@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: tokendance_postgres
+    environment:
+      POSTGRES_USER: tokendance
+      POSTGRES_PASSWORD: tokendance_dev_password
+      POSTGRES_DB: tokendance
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tokendance"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tokendance_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tokendance_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tokendance_network
+
+  # Backend API (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: tokendance_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_data:/data  # For file storage
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - SECRET_KEY=dev_secret_key_change_in_production_min_32_chars
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=tokendance
+      - POSTGRES_PASSWORD=tokendance_dev_password
+      - POSTGRES_DB=tokendance
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATA_ROOT=/data
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - tokendance_network
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: tokendance_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent overwriting node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    command: npm run dev
+    networks:
+      - tokendance_network
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_data:
+
+networks:
+  tokendance_network:
+    driver: bridge
