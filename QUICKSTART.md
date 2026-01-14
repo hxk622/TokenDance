@@ -5,7 +5,7 @@
 你的开发环境已经准备就绪：
 - ✅ PostgreSQL 运行中，数据库 `tokendance` 已创建
 - ✅ Redis 运行中
-- ✅ Python 依赖已安装（Poetry）
+- ✅ Python 依赖已安装（uv）
 - ✅ 环境变量已配置（backend/.env）
 
 ---
@@ -14,7 +14,7 @@
 
 ```bash
 cd /Users/xingkaihan/Documents/Code/TokenDance/backend
-$HOME/.local/bin/poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 ```
 
 后端将在 **http://localhost:8000** 启动
@@ -47,10 +47,10 @@ npm run dev
 cd /Users/xingkaihan/Documents/Code/TokenDance/backend
 
 # 生成迁移文件
-$HOME/.local/bin/poetry run alembic revision --autogenerate -m "Initial: User and Workspace models"
+uv run alembic revision --autogenerate -m "Initial: User and Workspace models"
 
 # 应用迁移
-$HOME/.local/bin/poetry run alembic upgrade head
+uv run alembic upgrade head
 ```
 
 ---
@@ -73,14 +73,13 @@ redis-cli ping
 
 ## 🔧 常用命令
 
-### Poetry 命令（添加PATH后）
+### uv 命令
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
 cd backend
-poetry run python -m app.main      # 启动后端
-poetry run pytest                  # 运行测试
-poetry run black app/              # 格式化代码
-poetry run mypy app/               # 类型检查
+uv run uvicorn app.main:app --reload  # 启动后端
+uv run pytest                         # 运行测试
+uv run black app/                     # 格式化代码
+uv run mypy app/                      # 类型检查
 ```
 
 ### 前端命令
@@ -96,11 +95,8 @@ npm run test          # 运行测试
 
 ## 💡 提示
 
-1. **永久添加 Poetry 到 PATH**：
-   ```bash
-   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-   source ~/.zshrc
-   ```
+1. **uv 已全局安装**：
+   uv 会自动添加到 PATH，无需手动配置
 
 2. **查看后端日志**：
    后端会输出彩色结构化日志到控制台

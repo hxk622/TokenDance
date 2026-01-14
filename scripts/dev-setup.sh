@@ -76,17 +76,17 @@ if [ "$DEV_MODE" = "1" ]; then
 elif [ "$DEV_MODE" = "2" ]; then
     echo -e "\n${YELLOW}Setting up local development environment...${NC}"
     
-    # Check for Poetry
-    if ! command -v poetry &> /dev/null; then
-        echo -e "${YELLOW}Poetry not found. Installing Poetry...${NC}"
-        curl -sSL https://install.python-poetry.org | python3 -
+    # Check for uv
+    if ! command -v uv &> /dev/null; then
+        echo -e "${YELLOW}uv not found. Installing uv...${NC}"
+        curl -LsSf https://astral.sh/uv/install.sh | sh
         export PATH="$HOME/.local/bin:$PATH"
     fi
     
     # Install backend dependencies
     echo -e "\n${YELLOW}Installing backend dependencies...${NC}"
     cd backend
-    poetry install
+    uv sync --all-extras
     cd ..
     echo -e "${GREEN}✓ Backend dependencies installed${NC}"
     
@@ -105,7 +105,7 @@ elif [ "$DEV_MODE" = "2" ]; then
     
     echo -e "\n${GREEN}✓ Setup complete!${NC}"
     echo -e "\n${YELLOW}To start development:${NC}"
-    echo -e "1. Backend:  ${GREEN}cd backend && poetry run python -m app.main${NC}"
+    echo -e "1. Backend:  ${GREEN}cd backend && uv run uvicorn app.main:app --reload${NC}"
     echo -e "2. Frontend: ${GREEN}cd frontend && npm run dev${NC}"
     echo -e "\nServices will be available at:"
     echo -e "  Frontend:    ${GREEN}http://localhost:5173${NC}"

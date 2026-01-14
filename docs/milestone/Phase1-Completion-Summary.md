@@ -121,13 +121,13 @@ Phase 1 - 基础架构与核心功能已完成开发，包括后端 API 和前�
 1. **数据库迁移** - 需要 Docker 环境
    ```bash
    cd backend
-   poetry run alembic upgrade head
+   uv run alembic upgrade head
    ```
 
 2. **后端服务启动**
    ```bash
    cd backend
-   poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
 3. **前端服务启动**

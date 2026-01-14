@@ -22,7 +22,7 @@ if curl -s -f http://localhost:8000/health > /dev/null 2>&1; then
     echo "  Version: $BACKEND_VERSION"
 else
     echo -e "${RED}✗ Not responding${NC}"
-    echo -e "${YELLOW}  Start with: cd backend && poetry run python -m app.main${NC}"
+    echo -e "${YELLOW}  Start with: cd backend && uv run uvicorn app.main:app --reload${NC}"
     BACKEND_ERROR=1
 fi
 

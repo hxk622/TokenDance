@@ -132,21 +132,21 @@ Access the application:
 ```bash
 cd backend
 
-# Install Poetry (if not installed)
-curl -sSL https://install.python-poetry.org | python3 -
+# Install uv (if not installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies
-poetry install
+uv sync --all-extras
 
 # Copy environment variables
 cp .env.example .env
 # Edit .env and fill in required values
 
 # Run database migrations
-poetry run alembic upgrade head
+uv run alembic upgrade head
 
 # Start development server
-poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 ```
 
 #### Frontend
@@ -243,7 +243,7 @@ TokenDance/
 ```bash
 # Backend tests
 cd backend
-poetry run pytest
+uv run pytest
 
 # Frontend tests
 cd frontend
@@ -255,10 +255,10 @@ npm run test
 ```bash
 # Backend linting & formatting
 cd backend
-poetry run black app/
-poetry run isort app/
-poetry run ruff app/
-poetry run mypy app/
+uv run black app/
+uv run isort app/
+uv run ruff check app/
+uv run mypy app/
 
 # Frontend linting & formatting
 cd frontend
@@ -273,13 +273,13 @@ npm run type-check
 cd backend
 
 # Create a new migration
-poetry run alembic revision --autogenerate -m "description"
+uv run alembic revision --autogenerate -m "description"
 
 # Apply migrations
-poetry run alembic upgrade head
+uv run alembic upgrade head
 
 # Rollback one migration
-poetry run alembic downgrade -1
+uv run alembic downgrade -1
 ```
 
 ## 📊 Monitoring

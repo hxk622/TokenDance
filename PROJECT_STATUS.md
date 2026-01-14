@@ -130,9 +130,9 @@ TokenDance/
 │   ├── src/
 │   │   ├── composables/
 │   │   │   └── useAgentStream.ts     ✅ SSE Composable
-│   │   ├── components/                🔄 待开发
-│   │   ├── views/                     🔄 待开发
-│   │   └── api/                       🔄 待开发
+│   │   ├── components/                ✅ 已完成
+│   │   ├── views/                     ✅ 已完成
+│   │   └── api/                       ✅ 已完成
 │   └── package.json                   ✅ 依赖已安装
 │
 ├── docs/                              ✅ 完整设计文档
@@ -162,7 +162,7 @@ export ANTHROPIC_API_KEY="your_key"
 python test_agent_engine_complete.py  # 交互式
 
 # 启动 API 服务
-poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 
 # 访问 API 文档
 open http://localhost:8000/api/v1/docs
@@ -226,21 +226,12 @@ pytest backend/test_api_integration.py::test_send_message_stream -v -s
 
 ## 🎯 下一步计划
 
-### 立即任务 (Phase 3 继续)
+### 立即任务
 
-1. **创建基础 UI 组件**
-   - [ ] InputBox.vue
-   - [ ] MessageBubble.vue
-   - [ ] MessageList.vue
-
-2. **创建高级组件**
-   - [ ] ThinkingTrace.vue
-   - [ ] ToolCallCard.vue
-
-3. **集成所有组件**
-   - [ ] 更新 ChatView.vue
-   - [ ] 添加路由
-   - [ ] 测试完整流程
+1. **迁移到uv** ✅ 已完成
+   - [x] 转换pyproject.toml
+   - [x] 更新所有文档中的poetry命令
+   - [x] 配置清华镜像源
 
 ### 后续功能
 
@@ -257,9 +248,8 @@ pytest backend/test_api_integration.py::test_send_message_stream -v -s
 - 无重大已知问题 ✅
 
 ### Phase 3 (前端)
-- UI 组件尚未完成
-- 需要样式优化
-- 需要错误处理完善
+- ✅ 核心UI组件已完成
+- 可以考虑进一步优化样式和错误处理
 
 ---
 
@@ -372,7 +362,7 @@ progress.md   (执行日志 - 所有动作记录)
 启动完整服务：
 ```bash
 # Terminal 1: Backend
-cd backend && poetry run python -m app.main
+cd backend && uv run uvicorn app.main:app --reload
 
 # Terminal 2: Frontend
 cd frontend && npm run dev

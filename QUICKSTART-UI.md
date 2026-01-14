@@ -9,7 +9,7 @@
 
 ```bash
 cd backend
-poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 ```
 
 后端将在 http://localhost:8000 启动

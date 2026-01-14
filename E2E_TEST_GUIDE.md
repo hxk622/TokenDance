@@ -15,7 +15,7 @@
 
 ### 后端要求
 - Python 3.11+
-- Poetry (依赖管理)
+- uv (依赖管理)
 - Anthropic API Key (必需)
 
 ### 前端要求
@@ -26,19 +26,15 @@
 
 ### 1. 安装后端依赖
 
-如果没有安装 Poetry:
+如果没有安装 uv:
 ```bash
-# macOS
-brew install poetry
-
-# 或使用 pip
-pip3 install poetry
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 安装依赖:
 ```bash
 cd backend
-poetry install
+uv sync --all-extras
 ```
 
 ### 2. 配置环境变量
@@ -58,7 +54,7 @@ BACKEND_CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 
 ```bash
 cd backend
-poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 ```
 
 服务将在 `http://localhost:8000` 启动
@@ -80,7 +76,7 @@ npm run dev
 
 ```bash
 cd backend
-poetry run pytest test_api_integration.py -v
+uv run pytest test_api_integration.py -v
 ```
 
 **预期结果**: 11 个测试全部通过
@@ -89,7 +85,7 @@ poetry run pytest test_api_integration.py -v
 
 ```bash
 cd backend
-poetry run pytest test_agent_engine_complete.py -v
+uv run pytest test_agent_engine_complete.py -v
 ```
 
 **预期结果**: 7 个测试全部通过
@@ -155,10 +151,10 @@ npx vue-tsc --noEmit
 
 ### 问题 1: 后端无法启动
 **症状**: `ModuleNotFoundError: No module named 'fastapi'`
-**解决**: 确认 Poetry 依赖已安装
+**解决**: 确认 uv 依赖已安装
 ```bash
 cd backend
-poetry install
+uv sync --all-extras
 ```
 
 ### 问题 2: 前端编译错误

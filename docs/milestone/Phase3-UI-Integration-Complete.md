@@ -173,7 +173,7 @@
 **1. 启动后端**
 ```bash
 cd backend
-poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 ```
 
 **2. 启动前端**

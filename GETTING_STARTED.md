@@ -79,11 +79,11 @@ docker-compose up -d postgres redis
 ```bash
 cd backend
 
-# 安装 Poetry（如果还没安装）
-curl -sSL https://install.python-poetry.org | python3 -
+# 安装 uv（如果还没安装）
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 安装依赖
-poetry install
+uv sync --all-extras
 
 # 复制环境变量
 cp .env.example .env
@@ -94,10 +94,10 @@ cp .env.example .env
 # - ANTHROPIC_API_KEY（如果有的话）
 
 # 运行数据库迁移（当实现了 Alembic 后）
-# poetry run alembic upgrade head
+# uv run alembic upgrade head
 
 # 启动开发服务器
-poetry run python -m app.main
+uv run uvicorn app.main:app --reload
 ```
 
 后端会在 http://localhost:8000 启动。
@@ -153,17 +153,17 @@ open http://localhost:8000/api/v1/docs
 cd backend
 
 # 代码格式化
-poetry run black app/
-poetry run isort app/
+uv run black app/
+uv run isort app/
 
 # 代码检查
-poetry run ruff app/
+uv run ruff check app/
 
 # 类型检查
-poetry run mypy app/
+uv run mypy app/
 
 # 运行测试
-poetry run pytest
+uv run pytest
 ```
 
 **前端**：
@@ -264,7 +264,7 @@ git push origin feature/user-auth
 **后端**：
 - 查看结构化日志：`docker-compose logs -f backend`
 - 使用 FastAPI 自动文档：http://localhost:8000/api/v1/docs
-- 使用 pytest 调试：`poetry run pytest -v -s`
+- 使用 pytest 调试：`uv run pytest -v -s`
 
 **前端**：
 - Vue Devtools（浏览器扩展）
@@ -293,8 +293,8 @@ docker-compose up -d
 
 ```bash
 # 清理缓存
-poetry cache clear pypi --all
-poetry install
+rm -rf .venv
+uv sync --all-extras
 ```
 
 ### 3. 前端依赖安装失败

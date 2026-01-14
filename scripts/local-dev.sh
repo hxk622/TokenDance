@@ -71,23 +71,23 @@ fi
 
 # Step 5: Install Python dependencies
 echo -e "\n${YELLOW}Step 5: Installing Python dependencies...${NC}"
-if ! command -v poetry &> /dev/null; then
-    echo -e "${YELLOW}Installing Poetry...${NC}"
-    curl -sSL https://install.python-poetry.org | python3 -
+if ! command -v uv &> /dev/null; then
+    echo -e "${YELLOW}Installing uv...${NC}"
+    curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
 cd backend
-poetry install
+uv sync --all-extras
 cd ..
 echo -e "${GREEN}✓ Python dependencies installed${NC}"
 
 # Step 6: Run database migrations
 echo -e "\n${YELLOW}Step 6: Running database migrations...${NC}"
 cd backend
-poetry run alembic upgrade head 2>/dev/null || {
+uv run alembic upgrade head 2>/dev/null || {
     echo -e "${YELLOW}⚠ No migrations to run yet. You can create one with:${NC}"
-    echo -e "  ${GREEN}poetry run alembic revision --autogenerate -m \"Initial migration\"${NC}"
+    echo -e "  ${GREEN}uv run alembic revision --autogenerate -m \"Initial migration\"${NC}"
 }
 cd ..
 
@@ -108,7 +108,7 @@ echo -e "\n${GREEN}✨ Setup complete!${NC}"
 echo -e "\n${YELLOW}To start development:${NC}"
 echo ""
 echo -e "Terminal 1 (Backend):"
-echo -e "  ${GREEN}cd backend && poetry run python -m app.main${NC}"
+echo -e "  ${GREEN}cd backend && uv run uvicorn app.main:app --reload${NC}"
 echo ""
 echo -e "Terminal 2 (Frontend):"
 echo -e "  ${GREEN}cd frontend && npm run dev${NC}"
