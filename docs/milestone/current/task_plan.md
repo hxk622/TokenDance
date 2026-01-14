@@ -71,7 +71,7 @@
 - [x] 实现 PreviewArea 组件占位符 - 已完成
 - [x] 完成布局比例 localStorage 持久化 - 已完成
 - [x] 实现 Scroll-Sync 基础联动逻辑 - 已完成
-- [ ] 集成 Canvas 库（选择 vis-network 或 D3.js）
+- [x] 集成 D3.js 库并实现 DAG 渲染 - 已完成
 
 ### 验收标准
 - ✅ 用户可拖拽调整左右比例，拖拽后刷新页面比例保持
