@@ -6,6 +6,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const emit = defineEmits<{
+  'node-click': [nodeId: string]
+}>()
 
 // Node types
 interface Node {
@@ -49,8 +52,7 @@ const selectedNodeId = ref<string | null>(null)
 
 function handleNodeClick(nodeId: string) {
   selectedNodeId.value = nodeId
-  // TODO: Emit event to scroll StreamingInfo to this node's logs
-  console.log('Node clicked:', nodeId)
+  emit('node-click', nodeId)
 }
 
 function getNodeColor(status: Node['status']): string {

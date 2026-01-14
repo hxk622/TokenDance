@@ -21,6 +21,11 @@
   - Working Memory UI
   - E2E测试
 
+- **QUICKSTART-UI.md** - UI功能快速启动指南（已合并到 QUICKSTART.md）
+  - 前端功能使用说明
+  - Working Memory 操作指南
+  - UI组件演示
+
 ### 项目状态
 - **PROJECT_STATUS.md** - 项目状态快照（2026-01-14）
   - Phase 1-4 完成度

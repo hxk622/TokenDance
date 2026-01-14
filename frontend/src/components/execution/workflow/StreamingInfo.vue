@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 
 interface Props {
   sessionId: string
@@ -27,6 +27,8 @@ const logs = ref<LogEntry[]>([
 ])
 
 const mode = ref<'all' | 'coworker'>('all')
+const logStreamRef = ref<HTMLElement | null>(null)
+const isScrollLocked = ref(false)
 
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp)
@@ -42,6 +44,35 @@ function getLogIcon(type: LogEntry['type']): string {
   }
   return icons[type]
 }
+
+// Scroll-Sync: Scroll to specific node's logs
+function scrollToNode(nodeId: string) {
+  if (isScrollLocked.value) return
+  
+  nextTick(() => {
+    const logStream = logStreamRef.value
+    if (!logStream) return
+    
+    const targetLog = logStream.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement
+    if (targetLog) {
+      targetLog.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      // Highlight the log entry
+      targetLog.style.background = 'rgba(0, 217, 255, 0.3)'
+      setTimeout(() => {
+        targetLog.style.background = ''
+      }, 1000)
+    }
+  })
+}
+
+function toggleScrollLock() {
+  isScrollLocked.value = !isScrollLocked.value
+}
+
+// Expose methods for parent component
+defineExpose({
+  scrollToNode,
+})
 </script>
 
 <template>
@@ -60,13 +91,17 @@ function getLogIcon(type: LogEntry['type']): string {
       >
         Coworker 文件操作
       </button>
-      <button class="btn-lock" title="固定视图（暂停Scroll-Sync）">
-        🔓
+      <button 
+        :class="['btn-lock', { locked: isScrollLocked }]"
+        :title="isScrollLocked ? '解锁视图' : '固定视图（暂停Scroll-Sync）'"
+        @click="toggleScrollLock"
+      >
+        {{ isScrollLocked ? '🔒' : '🔓' }}
       </button>
     </div>
 
     <!-- Log Stream -->
-    <div class="log-stream">
+    <div ref="logStreamRef" class="log-stream">
       <div
         v-for="log in logs"
         :key="log.id"
@@ -145,6 +180,11 @@ function getLogIcon(type: LogEntry['type']): string {
 
 .btn-lock:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-lock.locked {
+  background: rgba(255, 184, 0, 0.2);
+  border-color: #FFB800;
 }
 
 /* Log Stream */
