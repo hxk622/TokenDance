@@ -367,3 +367,236 @@ class MCPClient:
     @property
     def is_connected(self) -> bool:
         return self._initialized and self.transport.is_connected
+
+
+# =============================================================================
+# HTTP Transport
+# =============================================================================
+
+class MCPHttpTransport:
+    """
+    HTTP transport for MCP protocol.
+    
+    Communicates with MCP servers over HTTP/REST.
+    Supports both request-response and SSE for streaming.
+    """
+    
+    def __init__(
+        self,
+        url: str,
+        headers: Dict[str, str] = None,
+        timeout: float = 30.0,
+    ):
+        self.url = url.rstrip("/")
+        self.headers = headers or {}
+        self.timeout = timeout
+        self._connected = False
+        self._session = None
+    
+    async def connect(self) -> bool:
+        """Initialize HTTP session"""
+        try:
+            import aiohttp
+            self._session = aiohttp.ClientSession(
+                headers=self.headers,
+                timeout=aiohttp.ClientTimeout(total=self.timeout),
+            )
+            self._connected = True
+            logger.info("mcp_http_transport_connected", url=self.url)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create HTTP session: {e}")
+            return False
+    
+    async def disconnect(self):
+        """Close HTTP session"""
+        if self._session:
+            await self._session.close()
+            self._session = None
+        self._connected = False
+        logger.info("mcp_http_transport_disconnected")
+    
+    async def send_request(
+        self,
+        method: str,
+        params: Optional[Dict[str, Any]] = None,
+        timeout: float = None,
+    ) -> Any:
+        """Send a JSON-RPC request over HTTP"""
+        if not self._connected or not self._session:
+            raise MCPError({"code": -1, "message": "Not connected"})
+        
+        request_id = str(uuid.uuid4())
+        payload = {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": method,
+            "params": params or {},
+        }
+        
+        try:
+            async with self._session.post(
+                f"{self.url}/rpc",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=timeout or self.timeout),
+            ) as response:
+                if response.status != 200:
+                    raise MCPError({
+                        "code": response.status,
+                        "message": f"HTTP error: {response.status}",
+                    })
+                
+                result = await response.json()
+                
+                if "error" in result:
+                    raise MCPError(result["error"])
+                
+                return result.get("result")
+                
+        except asyncio.TimeoutError:
+            raise MCPError({"code": -32000, "message": f"Request timeout: {method}"})
+        except Exception as e:
+            if isinstance(e, MCPError):
+                raise
+            raise MCPError({"code": -1, "message": str(e)})
+    
+    async def send_notification(self, method: str, params: Optional[Dict[str, Any]] = None):
+        """Send a notification (fire-and-forget)"""
+        if not self._connected or not self._session:
+            return
+        
+        payload = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {},
+        }
+        
+        try:
+            async with self._session.post(
+                f"{self.url}/rpc",
+                json=payload,
+            ) as response:
+                pass  # Ignore response for notifications
+        except Exception as e:
+            logger.warning(f"Failed to send notification: {e}")
+    
+    def on_notification(self, method: str, handler: Callable):
+        """Register notification handler (not supported in HTTP mode)"""
+        logger.warning("Notification handlers not supported in HTTP transport")
+    
+    @property
+    def is_connected(self) -> bool:
+        return self._connected and self._session is not None
+
+
+# =============================================================================
+# Permission Control
+# =============================================================================
+
+class MCPPermissionChecker:
+    """
+    Permission checker for MCP tool execution.
+    
+    Enforces whitelist/blacklist policies and path restrictions.
+    """
+    
+    def __init__(
+        self,
+        default_policy: str = "allow",
+        whitelist: List[str] = None,
+        blacklist: List[str] = None,
+        allowed_paths: List[str] = None,
+        denied_paths: List[str] = None,
+    ):
+        self.default_policy = default_policy  # "allow" or "deny"
+        self.whitelist = set(whitelist or [])
+        self.blacklist = set(blacklist or [])
+        self.allowed_paths = allowed_paths or []
+        self.denied_paths = denied_paths or []
+    
+    def can_execute(self, tool_name: str, arguments: Dict[str, Any] = None) -> tuple[bool, str]:
+        """
+        Check if tool execution is allowed.
+        
+        Returns:
+            (allowed: bool, reason: str)
+        """
+        # Check blacklist first (always deny)
+        if tool_name in self.blacklist:
+            return False, f"Tool '{tool_name}' is blacklisted"
+        
+        # Check whitelist (if whitelist exists and tool not in it)
+        if self.whitelist and tool_name not in self.whitelist:
+            if self.default_policy == "deny":
+                return False, f"Tool '{tool_name}' not in whitelist"
+        
+        # Check path restrictions for file operations
+        if arguments:
+            path = arguments.get("path") or arguments.get("file_path")
+            if path:
+                path_check = self._check_path(path)
+                if not path_check[0]:
+                    return path_check
+        
+        return True, "allowed"
+    
+    def _check_path(self, path: str) -> tuple[bool, str]:
+        """Check if path is allowed"""
+        import os
+        
+        # Expand path
+        expanded_path = os.path.expanduser(os.path.expandvars(path))
+        abs_path = os.path.abspath(expanded_path)
+        
+        # Check denied paths
+        for denied in self.denied_paths:
+            denied_expanded = os.path.expanduser(os.path.expandvars(denied))
+            denied_abs = os.path.abspath(denied_expanded)
+            if abs_path.startswith(denied_abs):
+                return False, f"Path '{path}' is in denied area: {denied}"
+        
+        # Check allowed paths (if specified)
+        if self.allowed_paths:
+            is_allowed = False
+            for allowed in self.allowed_paths:
+                allowed_expanded = os.path.expanduser(os.path.expandvars(allowed))
+                allowed_abs = os.path.abspath(allowed_expanded)
+                if abs_path.startswith(allowed_abs):
+                    is_allowed = True
+                    break
+            
+            if not is_allowed:
+                return False, f"Path '{path}' not in allowed areas"
+        
+        return True, "path allowed"
+    
+    @classmethod
+    def from_config(cls) -> "MCPPermissionChecker":
+        """Create permission checker from mcp.json config"""
+        try:
+            from app.mcp.config import get_mcp_config
+            config = get_mcp_config()
+            perms = config.permissions
+            
+            return cls(
+                default_policy=perms.default_policy,
+                whitelist=perms.tool_whitelist,
+                blacklist=perms.tool_blacklist,
+                allowed_paths=perms.allowed_paths,
+                denied_paths=perms.denied_paths,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to load permissions from config: {e}")
+            return cls()  # Default permissive checker
+
+
+# Global permission checker
+_permission_checker: Optional[MCPPermissionChecker] = None
+
+
+def get_permission_checker() -> MCPPermissionChecker:
+    """Get the global permission checker"""
+    global _permission_checker
+    if _permission_checker is None:
+        _permission_checker = MCPPermissionChecker.from_config()
+    return _permission_checker

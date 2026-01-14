@@ -2,6 +2,7 @@
 MCP Server Registry
 
 Manages registration and configuration of MCP servers.
+Supports loading from mcp.json configuration file.
 """
 import os
 from typing import Dict, List, Optional
@@ -16,11 +17,15 @@ logger = get_logger(__name__)
 class MCPServerConfig(BaseModel):
     """Configuration for an MCP server"""
     name: str = Field(..., description="Unique server identifier")
-    description: str = Field(..., description="Human-readable description")
-    command: str = Field(..., description="Command to start the server")
+    description: str = Field(default="", description="Human-readable description")
+    command: Optional[str] = Field(default=None, description="Command to start the server (stdio)")
     args: List[str] = Field(default_factory=list, description="Command arguments")
     env: Dict[str, str] = Field(default_factory=dict, description="Environment variables")
     transport: MCPTransport = Field(default=MCPTransport.STDIO)
+    # HTTP transport fields
+    url: Optional[str] = Field(default=None, description="HTTP endpoint URL")
+    headers: Dict[str, str] = Field(default_factory=dict, description="HTTP headers")
+    # Common fields
     capabilities: List[MCPCapability] = Field(default_factory=list)
     enabled: bool = Field(default=True, description="Whether server is enabled")
     auto_start: bool = Field(default=True, description="Start with TokenDance")
@@ -37,14 +42,73 @@ class MCPServerRegistry:
     
     Provides registration, lookup, and configuration management
     for MCP servers used by TokenDance.
+    
+    Supports loading from:
+    1. mcp.json configuration file (preferred)
+    2. Built-in hardcoded servers (fallback)
     """
     
-    def __init__(self):
+    def __init__(self, load_from_config: bool = True):
         self._servers: Dict[str, MCPServerConfig] = {}
-        self._load_builtin_servers()
+        
+        if load_from_config:
+            self._load_from_config()
+        else:
+            self._load_builtin_servers()
+    
+    def _load_from_config(self):
+        """Load servers from mcp.json configuration"""
+        try:
+            from app.mcp.config import get_mcp_config
+            config = get_mcp_config()
+            
+            if not config.servers:
+                logger.warning("No servers in mcp.json, falling back to builtin")
+                self._load_builtin_servers()
+                return
+            
+            for name, srv_config in config.servers.items():
+                # Convert JSON config to MCPServerConfig
+                transport = MCPTransport.HTTP if srv_config.transport == "http" else MCPTransport.STDIO
+                
+                # Parse capabilities
+                capabilities = []
+                for cap in srv_config.capabilities:
+                    if cap == "tools":
+                        capabilities.append(MCPCapability.TOOLS)
+                    elif cap == "resources":
+                        capabilities.append(MCPCapability.RESOURCES)
+                    elif cap == "prompts":
+                        capabilities.append(MCPCapability.PROMPTS)
+                
+                server_config = MCPServerConfig(
+                    name=name,
+                    description=srv_config.description,
+                    command=srv_config.command,
+                    args=srv_config.args,
+                    env=srv_config.env,
+                    transport=transport,
+                    url=srv_config.url,
+                    headers=srv_config.headers,
+                    capabilities=capabilities,
+                    enabled=srv_config.enabled if isinstance(srv_config.enabled, bool) else False,
+                    auto_start=srv_config.auto_start,
+                )
+                
+                self.register(server_config)
+            
+            logger.info(
+                "servers_loaded_from_config",
+                total=len(self._servers),
+                enabled=len(self.list_enabled()),
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to load from config: {e}, falling back to builtin")
+            self._load_builtin_servers()
     
     def _load_builtin_servers(self):
-        """Load built-in MCP servers"""
+        """Load built-in MCP servers (fallback)"""
         
         # Filesystem server - Coworker capability
         self.register(MCPServerConfig(
@@ -78,17 +142,6 @@ class MCPServerRegistry:
             args=["-y", "@modelcontextprotocol/server-memory"],
             capabilities=[MCPCapability.TOOLS, MCPCapability.RESOURCES],
             enabled=True,
-        ))
-        
-        # Chrome DevTools - optional, disabled by default
-        self.register(MCPServerConfig(
-            name="chrome-devtools",
-            description="Chrome browser automation",
-            command="npx",
-            args=["-y", "@anthropic/mcp-server-chrome-devtools"],
-            capabilities=[MCPCapability.TOOLS],
-            enabled=False,  # Opt-in
-            auto_start=False,
         ))
         
         logger.info(

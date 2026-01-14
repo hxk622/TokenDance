@@ -1,0 +1,111 @@
+{
+  "$schema": "./mcp.schema.json",
+  "version": "1.0",
+  "settings": {
+    "auto_start_enabled": true,
+    "connection_timeout_ms": 30000,
+    "tool_execution_timeout_ms": 60000
+  },
+  "permissions": {
+    "default_policy": "allow",
+    "tool_whitelist": [],
+    "tool_blacklist": [
+      "filesystem_delete_file",
+      "shell_execute"
+    ],
+    "allowed_paths": [
+      "/tmp",
+      "${WORKSPACE_DIR}"
+    ],
+    "denied_paths": [
+      "/etc",
+      "/var",
+      "~/.ssh"
+    ]
+  },
+  "servers": {
+    "filesystem": {
+      "description": "File system operations for Coworker agent",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${WORKSPACE_DIR:-/tmp}"
+      ],
+      "env": {},
+      "capabilities": ["tools"],
+      "auto_start": true,
+      "enabled": true
+    },
+    "memory": {
+      "description": "Key-value memory store for agent context",
+      "transport": "stdio", 
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {},
+      "capabilities": ["tools"],
+      "auto_start": true,
+      "enabled": true
+    },
+    "brave-search": {
+      "description": "Web search using Brave Search API",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropics/mcp-server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      },
+      "capabilities": ["tools"],
+      "auto_start": true,
+      "enabled": "${BRAVE_API_KEY:?false}"
+    },
+    "github": {
+      "description": "GitHub operations",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "capabilities": ["tools"],
+      "auto_start": false,
+      "enabled": "${GITHUB_TOKEN:?false}"
+    },
+    "postgres": {
+      "description": "PostgreSQL database operations",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      },
+      "capabilities": ["tools", "resources"],
+      "auto_start": false,
+      "enabled": false
+    },
+    "custom-http-server": {
+      "description": "Example HTTP-based MCP server",
+      "transport": "http",
+      "url": "http://localhost:9000/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_HTTP_TOKEN}"
+      },
+      "capabilities": ["tools"],
+      "auto_start": false,
+      "enabled": false
+    }
+  }
+}
