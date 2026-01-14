@@ -11,6 +11,8 @@ TokenDance是一个通用AI Agent平台，结合Manus、GenSpark、AnyGen的优�
 - **Skill三级加载**: L1元数据（始终加载），L2指令（触发时加载），L3资源（按需加载）
 
 ## 开发规则
+
+### Git提交规范
 - **自动提交**: 每完成一个功能模块或组件后，立即执行 `git add .` + `git commit` + `git push`，保留开发成果
 - **提交信息格式**: 
   ```
@@ -21,6 +23,101 @@ TokenDance是一个通用AI Agent平台，结合Manus、GenSpark、AnyGen的优�
   Co-Authored-By: Warp <agent@warp.dev>
   ```
 - **提交粒度**: 每完成一个独立组件、修复一个bug、或完成一个TODO项时提交
+
+### 三文件工作法 (Manus)
+
+**核心理念**: 文件系统指针 > 内联文本，节省Context 60-80%
+
+#### 文件位置
+```
+docs/milestone/
+├── current/              # 当前任务
+│   ├── task_plan.md    # 任务计划
+│   ├── findings.md     # 技术决策
+│   └── progress.md     # 执行日志
+└── archive/             # 历史归档
+```
+
+#### 1. task_plan.md (路线图)
+**作用**: 任务拆解。在开始任何工作前，AI必须先写好Phase 1, Phase 2...的计划。
+
+**关键点**: 
+- 利用SessionStart和PreToolUse钟子
+- 让AI在做重大决策前必须"重读"这个计划
+- 防止跑偏 (Context Drift)
+
+**Plan Recitation**: 每次开始新工作前，重读task_plan.md
+
+#### 2. findings.md (知识库)
+**作用**: 存储研究发现和技术决策。
+
+**关键点**: 
+- 推行 "2-Action Rule"
+- 每进行两次重大操作 (web_search/read_url等)
+- AI必须将发现存入此文件，而不是塞进对话上下文
+- 这极大地节省了Token
+
+**2-Action Rule**:
+- 每2次`web_search`或`read_url`后
+- 必须将发现写入findings.md
+- 对话只记录"已写入findings.md"
+
+注意: `grep`、`read_files`等小操作不算在"2次"内
+
+#### 3. progress.md (Session日志)
+**作用**: 记录执行过程和测试结果。
+
+**关键点**: 
+- 强制记录 **所有错误**
+- 这是为了防止AI在同一个坑里反复摔倒
+- Manus所谓的不重复失败原则
+
+**Keep the Failures**: 所有错误必须记录到progress.md
+
+#### 为什么能节省Context？
+
+**传统方式**:
+```
+User: 搜索FastAPI最佳实践
+Assistant: [返回3000 tokens的搜索结果]
+User: 搜索Vue3组件设计
+Assistant: [又返回2500 tokens]
+```
+→ 对话历史不断膨胀，每次LLM调用都要处理所有历史
+
+**三文件方式**:
+```
+User: 搜索FastAPI最佳实践
+Assistant: [执行搜索，写入findings.md]
+         → 对话只记录: "已将FastAPI最佳实践写入findings.md"
+
+User: 现在开始写代码
+Assistant: [read_files findings.md]
+         → 只在需要时加载
+```
+
+**节省原理**:
+1. **延迟加载** - 只在需要时读取文件
+2. **摘要替代** - 对话历史只记录"已写入"
+3. **结构化存储** - 文件系统是无限的，Context是有限的
+4. **选择性加载** - 可以只读task_plan.md而不读findings.md
+
+#### Session生命周期
+
+**开始**:
+1. 读取task_plan.md
+2. 检查当前任务目标
+3. 开始工作
+
+**执行中**:
+1. 每2次重大操作后写入findings.md
+2. 每个Session结束后更新progress.md
+3. 遇到错误立即记录到progress.md
+
+**结束**:
+1. 更新task_plan.md的完成状态
+2. 归档到`docs/milestone/archive/`（如需）
+3. Git提交
 
 ## 技术栈
 - **Frontend**: Vue 3 + TypeScript + Shadcn/UI (Vue) + Tailwind + Pinia
