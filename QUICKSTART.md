@@ -4,6 +4,28 @@
 
 ---
 
+## ✅ 项目状态
+
+Phase 0（项目脚手架）已完成：
+
+**后端 (FastAPI)**:
+- ✅ Pydantic Settings 配置管理
+- ✅ Structlog 结构化日志 + request_id
+- ✅ Prometheus 指标采集
+- ✅ SQLAlchemy 2.0 异步数据库
+- ✅ 健康检查端点 + 全局错误处理
+
+**前端 (Vue 3)**:
+- ✅ TypeScript + Vue Router + Pinia
+- ✅ Axios 客户端（带拦截器）
+- ✅ Tailwind CSS + 严格类型检查
+
+**基础设施**:
+- ✅ Docker Compose (PostgreSQL + Redis)
+- ✅ 环境变量配置模板
+
+---
+
 ## 📋 前置要求
 
 - Python 3.11+
@@ -220,6 +242,73 @@ npm run type-check
 npm run test
 ```
 
+### Docker Compose 命令
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 启动特定服务
+docker-compose up -d postgres redis
+
+# 查看日志
+docker-compose logs -f backend
+
+# 重启服务
+docker-compose restart backend
+
+# 停止并清理
+docker-compose down -v
+```
+
+## 🧰 质量工具链
+
+### 后端（在 backend/）
+```bash
+# 代码格式化
+uv run black app/
+uv run isort app/
+
+# 代码检查
+uv run ruff check app/
+
+# 类型检查
+uv run mypy app/
+
+# 单元测试
+uv run pytest
+```
+
+### 前端（在 frontend/）
+```bash
+# 代码检查
+npm run lint
+
+# 代码格式化（若配置）
+npm run format
+
+# 类型检查
+npm run type-check
+
+# 单元测试
+npm run test
+```
+
+## 🧑‍💻 Git 工作流
+```bash
+# 创建功能分支
+git checkout -b feature/<short-name>
+
+# 提交代码
+git add .
+git commit -m "feat: <message>"
+
+# 推送并创建 PR
+git push origin feature/<short-name>
+# 然后在远程仓库创建 PR
+```
+
+> 提交信息建议包含范围与类型，如 feat/fix/docs/chore，并保持小步提交。
+
 ---
 
 ## 🐛 常见问题
@@ -315,7 +404,7 @@ psql -d tokendance
 
 ## 📚 下一步
 
-- 📖 阅读 [GETTING_STARTED.md](GETTING_STARTED.md) 了解详细配置
+- 📖 阅读上文「🧑‍💻 Git 工作流」与「🧰 质量工具链」章节，完善开发环境
 - 🧪 查看 [E2E_TEST_GUIDE.md](E2E_TEST_GUIDE.md) 学习测试
 - 🎨 访问 http://localhost:5173/demo 体验 UI 组件
 - 📝 阅读 [产品文档](docs/product/PRD.md) 了解设计理念
