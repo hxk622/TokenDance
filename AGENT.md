@@ -1,7 +1,30 @@
 # TokenDance Agent Instructions
 
 ## 项目概述
-TokenDance是一个通用AI Agent平台，结合Manus、GenSpark、AnyGen的优势，MVP功能包括AI Deep Research和AI PPT Generation。
+
+### 产品愿景：Vibe-Agentic Workflow
+
+TokenDance 不是另一个 Agent 工具，而是一个**人机共生的终极创作场**。我们通过 **Vibe-Agentic Workflow** 将顶级 Agent 的原子能力进行重组和升华：
+
+**三位一体架构 (The Trinity)**:
+
+1. **Manus （执行大脑）**
+   - 全自动任务链 + 计划背诵 + 沙箱执行
+   - 负责高难度的外部决策、跨平台调度、从 0 到 1 的全自动交付
+
+2. **Coworker （执行双手）**
+   - 本地文件深度操控 + 外科手术式修改
+   - 继承 Claude Code 的基因，深度解析本地文件系统
+
+3. **Vibe Workflow （生命气息）**
+   - 情感价值 + 直觉交互 + 氛围感体验
+   - 将复杂的 Agent 智力转化为丝滑的创作愉悦感
+
+**使命**: 让"Claude Code"这种硬核能力真正服务于全世界（**For the rest of the world**）
+
+MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Generation（Manus 主导 + Vibe 增强）
+
+> 详见 [VisionAndMission.md](./docs/product/VisionAndMission.md)
 
 ## 核心架构原则
 - **Plan Recitation**: TODO列表追加到Context末尾，防止Lost-in-the-Middle
@@ -154,6 +177,7 @@ TokenDance/
 完整设计文档位于 `docs/` 目录，需要时按需读取：
 
 **产品与架构**:
+- `docs/product/VisionAndMission.md` - 产品愿景与使命（必读！）
 - `docs/product/PRD.md` - 产品需求文档
 - `docs/architecture/HLD.md` - 高层设计
 - `docs/architecture/LLD.md` - 低层设计 (API + DB Schema)
@@ -193,11 +217,31 @@ cd backend && uv run ruff check . && uv run mypy .
 ```
 
 ## 设计哲学
-1. **长期主义**: 打好技术地基，模块间自洽不矛盾
-2. **Progressive Disclosure**: 渐进式披露复杂性
-3. **Human in the Loop**: 关键决策人工介入
-4. **Workspace概念**: 每个Session有独立工作空间
-5. **Controlled Randomness**: 温度参数根据任务类型调整
+
+### Vibe-Agentic Workflow 三大支柱
+
+1. **直觉重于指令 (Intuition over Instruction)**
+   - 拖拽文件即可启动工作流
+   - 意图卡片选择而非复杂 Prompt
+   - 一键直达，减少认知负荷
+
+2. **情感共鸣与审美张力 (Emotional Resonance & Aesthetic Logic)**
+   - 毛玻璃特效 + 丝滑动画反馈
+   - 实时进度美学，而非生硬的进度条
+   - 界面根据用户状态动态反馈
+
+3. **极低摩擦力的“流” (Frictionless Flow)**
+   - 异步（Manus）与同步（Coworker）的节奏管理
+   - 消除 Context Switching
+   - 无缝衔接，智能预判
+
+### 技术原则
+
+4. **长期主义**: 打好技术地基，模块间自洽不矛盾
+5. **Progressive Disclosure**: 渐进式披露复杂性
+6. **Human in the Loop**: 关键决策人工介入
+7. **Workspace概念**: 每个Session有独立工作空间（沙盒隔离）
+8. **Controlled Randomness**: 温度参数根据任务类型调整
 6. **Action Space Pruning**: 最小工具集 > 100个垂直API
 
 ## 重要提醒
