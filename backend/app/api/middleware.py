@@ -12,7 +12,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import time
 import traceback
 
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def setup_middleware(app: FastAPI):

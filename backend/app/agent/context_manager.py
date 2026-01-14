@@ -16,7 +16,9 @@ from app.agent.prompts import AGENT_SYSTEM_PROMPT
 from app.agent.tools.registry import ToolRegistry
 from app.agent.working_memory.three_files import ThreeFilesManager
 from app.agent.llm.base import LLMMessage
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

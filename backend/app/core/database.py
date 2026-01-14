@@ -4,6 +4,7 @@ Uses SQLAlchemy 2.0 with async support.
 """
 from typing import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
@@ -67,3 +68,14 @@ async def close_db() -> None:
     """Close database connections."""
     await engine.dispose()
     logger.info("database_connections_closed")
+
+
+async def check_db_health() -> bool:
+    """Check database connection health."""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception as e:
+        logger.error("database_health_check_failed", error=str(e))
+        return False

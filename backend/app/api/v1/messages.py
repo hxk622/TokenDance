@@ -13,10 +13,12 @@ import json
 import uuid
 
 from app.core.database import get_db
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 from app.services.session_service import SessionService
 from app.agent.engine import AgentEngine, AgentResponse
-from app.agent.llm.anthropic import AnthropicLLM
+from app.agent.llm.anthropic import ClaudeLLM
 from app.filesystem import AgentFileSystem
 from app.core.config import settings
 
@@ -69,7 +71,7 @@ def get_agent_engine(session_id: str, workspace_id: str) -> AgentEngine:
             detail="ANTHROPIC_API_KEY not configured"
         )
     
-    llm = AnthropicLLM(
+    llm = ClaudeLLM(
         api_key=api_key,
         model="claude-3-5-sonnet-20241022",
         max_tokens=4096

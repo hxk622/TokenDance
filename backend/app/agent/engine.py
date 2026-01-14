@@ -21,7 +21,9 @@ from app.agent.working_memory.three_files import ThreeFilesManager
 from app.agent.llm.base import BaseLLM, LLMResponse
 from app.agent.prompts import ERROR_RECOVERY_PROMPT, FINDINGS_REMINDER_PROMPT
 from app.filesystem import AgentFileSystem
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

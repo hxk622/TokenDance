@@ -80,15 +80,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         version=settings.VERSION,
     )
     
-    # TODO: Initialize database connection pool
-    # TODO: Initialize Redis connection pool
+    # Initialize database connection pool
+    from app.core.database import init_db, close_db
+    await init_db()
+    logger.info("database_connection_pool_initialized")
+    
+    # Initialize Redis connection pool
+    from app.core.redis import init_redis, close_redis
+    await init_redis()
+    logger.info("redis_connection_pool_initialized")
     
     yield
     
     # Shutdown
     logger.info("application_shutdown")
-    # TODO: Close database connections
-    # TODO: Close Redis connections
+    
+    # Close Redis connections
+    await close_redis()
+    
+    # Close database connections
+    await close_db()
 
 
 def create_application() -> FastAPI:
@@ -125,13 +136,19 @@ def create_application() -> FastAPI:
     @app.get("/readiness")
     async def readiness_check():
         """Readiness check - verifies dependencies."""
-        # TODO: Check database connection
-        # TODO: Check Redis connection
+        from app.core.database import check_db_health
+        from app.core.redis import check_redis_health
+        
+        db_ok = await check_db_health()
+        redis_ok = await check_redis_health()
+        
+        all_ok = db_ok and redis_ok
+        
         return {
-            "status": "ready",
+            "status": "ready" if all_ok else "degraded",
             "checks": {
-                "database": "ok",  # placeholder
-                "redis": "ok",     # placeholder
+                "database": "ok" if db_ok else "failed",
+                "redis": "ok" if redis_ok else "failed",
             },
         }
     

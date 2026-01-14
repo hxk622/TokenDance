@@ -10,7 +10,9 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 from app.agent.tools.registry import ToolRegistry
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
