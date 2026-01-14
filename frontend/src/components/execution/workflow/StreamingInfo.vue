@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 
 interface Props {
   sessionId: string
@@ -29,6 +29,7 @@ const logs = ref<LogEntry[]>([
 const mode = ref<'all' | 'coworker'>('all')
 const logStreamRef = ref<HTMLElement | null>(null)
 const isScrollLocked = ref(false)
+const focusNodeId = ref<string | null>(null)
 
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp)
@@ -69,9 +70,39 @@ function toggleScrollLock() {
   isScrollLocked.value = !isScrollLocked.value
 }
 
+// Focus Mode: Filter logs by specific nodeId
+function enterFocusMode(nodeId: string) {
+  focusNodeId.value = nodeId
+}
+
+function exitFocusMode() {
+  focusNodeId.value = null
+}
+
+// Computed filtered logs
+const filteredLogs = computed(() => {
+  let filtered = logs.value
+  
+  // Filter by Focus Mode
+  if (focusNodeId.value) {
+    filtered = filtered.filter(log => log.nodeId === focusNodeId.value)
+  }
+  
+  // Filter by mode (Coworker only)
+  if (mode.value === 'coworker') {
+    filtered = filtered.filter(log => 
+      log.content.includes('coworker') || log.type === 'tool-call'
+    )
+  }
+  
+  return filtered
+})
+
 // Expose methods for parent component
 defineExpose({
   scrollToNode,
+  enterFocusMode,
+  exitFocusMode,
 })
 </script>
 
@@ -100,10 +131,16 @@ defineExpose({
       </button>
     </div>
 
+    <!-- Focus Mode Indicator -->
+    <div v-if="focusNodeId" class="focus-indicator">
+      <span>🎯 聚焦模式：Node-{{ focusNodeId }}</span>
+      <button class="btn-exit-focus" @click="exitFocusMode">退出聚焦</button>
+    </div>
+
     <!-- Log Stream -->
     <div ref="logStreamRef" class="log-stream">
       <div
-        v-for="log in logs"
+        v-for="log in filteredLogs"
         :key="log.id"
         :class="['log-entry', log.type]"
         :data-node-id="log.nodeId"
@@ -120,7 +157,7 @@ defineExpose({
     </div>
 
     <!-- Empty State -->
-    <div v-if="logs.length === 0" class="empty-state">
+    <div v-if="filteredLogs.length === 0" class="empty-state">
       <span class="empty-icon">📋</span>
       <p>暂无执行日志</p>
     </div>
@@ -185,6 +222,35 @@ defineExpose({
 .btn-lock.locked {
   background: rgba(255, 184, 0, 0.2);
   border-color: #FFB800;
+}
+
+/* Focus Mode Indicator */
+.focus-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: rgba(0, 217, 255, 0.15);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 6px;
+  color: #00D9FF;
+  font-size: 12px;
+}
+
+.btn-exit-focus {
+  padding: 4px 10px;
+  border: 1px solid rgba(0, 217, 255, 0.5);
+  border-radius: 4px;
+  background: transparent;
+  color: #00D9FF;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 120ms ease-out;
+}
+
+.btn-exit-focus:hover {
+  background: rgba(0, 217, 255, 0.2);
 }
 
 /* Log Stream */

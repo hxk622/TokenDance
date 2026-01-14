@@ -8,6 +8,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'node-click': [nodeId: string]
+  'node-double-click': [nodeId: string]
 }>()
 
 // Node types
@@ -49,10 +50,19 @@ const edges = ref<Edge[]>([
 ])
 
 const selectedNodeId = ref<string | null>(null)
+const isCollapsed = ref(false)
 
 function handleNodeClick(nodeId: string) {
   selectedNodeId.value = nodeId
   emit('node-click', nodeId)
+}
+
+function handleNodeDoubleClick(nodeId: string) {
+  emit('node-double-click', nodeId)
+}
+
+function toggleCollapse() {
+  isCollapsed.value = !isCollapsed.value
 }
 
 function getNodeColor(status: Node['status']): string {
@@ -78,9 +88,12 @@ watch(() => props.sessionId, (newId) => {
 </script>
 
 <template>
-  <div class="workflow-graph">
+  <div class="workflow-graph" :class="{ collapsed: isCollapsed }">
     <!-- Toolbar -->
     <div class="graph-toolbar">
+      <button class="btn-icon" :title="isCollapsed ? '展开' : '折叠'" @click="toggleCollapse">
+        <span>{{ isCollapsed ? '⬆' : '⬇' }}</span>
+      </button>
       <button class="btn-icon" title="缩小">
         <span>🔍-</span>
       </button>
@@ -95,8 +108,13 @@ watch(() => props.sessionId, (newId) => {
       </button>
     </div>
 
-    <!-- Canvas Area (Phase 1: Simple SVG mock) -->
-    <svg class="graph-canvas" width="100%" height="100%">
+    <!-- Mini Graph (Collapsed Mode) -->
+    <div v-if="isCollapsed" class="mini-graph">
+      <div class="mini-node" v-for="node in nodes" :key="node.id" :style="{ background: getNodeColor(node.status) }"></div>
+    </div>
+
+    <!-- Canvas Area (Normal Mode) -->
+    <svg v-else class="graph-canvas" width="100%" height="100%">
       <!-- Draw edges -->
       <g class="edges">
         <line
@@ -120,6 +138,7 @@ watch(() => props.sessionId, (newId) => {
           :transform="`translate(${node.x}, ${node.y})`"
           :class="['node', node.status, { selected: selectedNodeId === node.id }]"
           @click="handleNodeClick(node.id)"
+          @dblclick="handleNodeDoubleClick(node.id)"
         >
           <!-- Node circle -->
           <circle
@@ -317,6 +336,34 @@ watch(() => props.sessionId, (newId) => {
 
 .legend-dot.error {
   background: #FF3B30;
+}
+
+/* Collapse Mode */
+.workflow-graph.collapsed {
+  height: 80px;
+  min-height: 80px;
+  transition: height 200ms ease-out;
+}
+
+.mini-graph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+}
+
+.mini-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px currentColor;
+  transition: all 200ms ease-out;
+}
+
+.mini-node:hover {
+  transform: scale(1.15);
 }
 
 /* CSS Variables */

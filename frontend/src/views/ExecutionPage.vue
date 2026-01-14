@@ -34,6 +34,10 @@ const streamingInfoRef = ref<InstanceType<typeof StreamingInfo> | null>(null)
 // Artifact tab state
 const currentTab = ref<'report' | 'ppt' | 'file-diff'>('report')
 
+// Focus Mode state
+const isFocusMode = ref(false)
+const focusedNodeId = ref<string | null>(null)
+
 // Load saved ratios from localStorage
 onMounted(() => {
   const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
@@ -130,6 +134,44 @@ function handleTabChange(tab: 'report' | 'ppt' | 'file-diff') {
   console.log('Tab changed to:', tab)
   // TODO: Update URL or trigger other side effects
 }
+
+// Focus Mode: Enter when user double-clicks a node
+function handleNodeDoubleClick(nodeId: string) {
+  if (isFocusMode.value && focusedNodeId.value === nodeId) {
+    // Exit focus mode if already focused on this node
+    exitFocusMode()
+  } else {
+    // Enter focus mode
+    enterFocusMode(nodeId)
+  }
+}
+
+function enterFocusMode(nodeId: string) {
+  isFocusMode.value = true
+  focusedNodeId.value = nodeId
+  
+  // Adjust layout: 20% Graph, 80% Logs
+  topHeight.value = 20
+  bottomHeight.value = 80
+  
+  // Tell StreamingInfo to filter logs
+  streamingInfoRef.value?.enterFocusMode(nodeId)
+  
+  console.log(`Focus Mode: Node ${nodeId}`)
+}
+
+function exitFocusMode() {
+  isFocusMode.value = false
+  focusedNodeId.value = null
+  
+  // Reset layout to default
+  resetVerticalRatio()
+  
+  // Tell StreamingInfo to show all logs
+  streamingInfoRef.value?.exitFocusMode()
+  
+  console.log('Exit Focus Mode')
+}
 </script>
 
 <template>
@@ -158,6 +200,7 @@ function handleTabChange(tab: 'report' | 'ppt' | 'file-diff') {
           <WorkflowGraph 
             :session-id="sessionId" 
             @node-click="handleNodeClick"
+            @node-double-click="handleNodeDoubleClick"
           />
         </div>
 
