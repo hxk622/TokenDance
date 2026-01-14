@@ -226,8 +226,57 @@ TokenDance/
 └── docs/             # 设计文档
 ```
 
+## 文档目录规范
+
+### 标准目录结构
+
+```
+docs/
+├── product/              # 产品文档
+│   ├── VisionAndMission.md  (必读)
+│   └── PRD.md
+├── architecture/         # 架构设计
+│   ├── HLD.md
+│   └── LLD.md
+├── ux/                   # UI/UX设计（合并了UI和design）
+│   ├── Three-Column-Layout.md  (必读)
+│   ├── UI-Design.md
+│   └── Chain-of-Thought-UI.md
+├── modules/              # 模块设计
+│   ├── Context-Management.md
+│   ├── Memory.md
+│   └── ...
+└── milestone/            # 项目里程碑
+    ├── current/          # 当前开发任务（三文件工作法）
+    │   ├── task_plan.md
+    │   ├── findings.md
+    │   └── progress.md
+    └── archive/          # 历史里程碑归档
+```
+
+### 重要规范
+
+1. **目录命名统一使用小写** - `ux` 而非 `UX` 或 `UI`
+2. **禁止目录歧义** - 不允许同时存在 `UI/` 和 `design/`，一律合并到 `ux/`
+3. **Milestone命名规范** - 历史里程碑归档时必须加上前缀（如 `Backend-Phase1-Completion.md`）
+4. **当前开发任务** - 始终使用 `docs/milestone/current/` 三文件，不创建新的Phase文件
+
+### Milestone命名约定
+
+**历史里程碑（已归档）**:
+- `Backend-Phase1-Completion.md` - 后端基础架构
+- `Backend-Phase2-Final.md` - 数据库集成
+- `Backend-Phase3-Complete.md` - Agent引擎
+- `Backend-Phase4-UI-Integration.md` - 前后端集成
+
+**当前任务（正在进行）**:
+- 使用 `current/task_plan.md` 记录当前任务的Sprint计划
+- Sprint内部可以有子阶段（如UI-Sprint-Phase1/2/3）
+- 不在milestone目录根部创建新的Phase文件
+
+---
+
 ## 文档索引
-完整设计文档位于 `docs/` 目录，需要时按需读取：
 
 **产品与架构**:
 - `docs/product/VisionAndMission.md` - 产品愿景与使命（必读！）
@@ -235,19 +284,19 @@ TokenDance/
 - `docs/architecture/HLD.md` - 高层设计
 - `docs/architecture/LLD.md` - 低层设计 (API + DB Schema)
 
-**UI设计**:
-- `docs/design/UI-Design.md` - UI设计规范
-- `docs/design/Chain-of-Thought-UI.md` - 执行追踪UI
-- `docs/design/Three-Column-Layout.md` - 三栏布局规范（必读！）
+**UX设计**:
+- `docs/ux/Three-Column-Layout.md` - 三栏布局规范（必读！）
+- `docs/ux/UI-Design.md` - UI设计规范
+- `docs/ux/Chain-of-Thought-UI.md` - 执行追踪UI
 
 **核心模块**:
-- `docs/modules/Context-Management.md` - Context管理（摘要压缩、增量更新）
-- `docs/modules/Memory.md` - 三层记忆（Episodic/Semantic/Procedural）
+- `docs/modules/Context-Management.md` - Context管理
+- `docs/modules/Memory.md` - 三层记忆
 - `docs/modules/Skill-Design.md` - Skill三级懒加载
-- `docs/modules/Reasoning.md` - Self-Reflection三模式
-- `docs/modules/Planning.md` - 原子化拆分、非线性图
-- `docs/modules/Tool-Use.md` - 三步走闭环、稳定性四策略
-- `docs/modules/Context-Graph.md` - 决策轨迹记录、审计追踪
+- `docs/modules/Reasoning.md` - Self-Reflection
+- `docs/modules/Planning.md` - 原子化拆分
+- `docs/modules/Tool-Use.md` - 工具使用闭环
+- `docs/modules/Context-Graph.md` - 决策轨迹记录
 
 ## 常用命令
 ```bash

@@ -1,18 +1,27 @@
 # Task Plan - 当前开发任务
 
 **创建时间**: 2026-01-14  
-**任务名称**: Phase 4 完成 + Phase 5 规划  
-**预计周期**: 1-2周
+**任务名称**: UI-Sprint - 三栏布局执行页面开发  
+**预计周期**: 6周 (Week 1-6)
 
 ---
 
 ## 🎯 本次任务目标
 
-完成Phase 4基础设施完善，并规划Phase 5的核心功能开发。
+实现 **Vibe-Agentic Workflow** 执行页面的三栏布局，包括：
+- 左侧执行区：Workflow Graph (Meego式DAG) + Streaming Info (日志流)
+- 右侧预览区：Artifact Tabs + Preview Area
+- 完整的拖拽、联动、动画效果
+
+**设计规范**: `docs/ux/Three-Column-Layout.md`
 
 ---
 
-## ✅ Phase 4 - 已完成 (2026-01-14)
+---
+
+## 📋 历史里程碑状态
+
+### Backend-Phase4 - 已完成 (2026-01-14)
 
 ### 完成项
 - [x] 数据库连接池初始化 (PostgreSQL + Redis)
@@ -36,35 +45,78 @@
 
 ---
 
-## 🚀 Phase 5 - 下一步规划
+---
 
-### 优先级 P0 (必须完成)
-1. **前端组件集成**
-   - 将WorkingMemoryPanel集成到ChatView
-   - 添加HITL确认弹窗组件
-   - 测试SSE流式输出完整性
+## 🎨 UI-Sprint - 当前任务 (2026-01-14 开始)
 
-2. **API文档完善**
-   - 补充Swagger注释
-   - 添加请求/响应示例
-   - 更新API使用指南
+### 总体路线图
 
-### 优先级 P1 (重要)
-3. **性能优化**
-   - 连接池参数调优
-   - Redis缓存策略
-   - 数据库查询优化
+**UI-Sprint-Phase1 (Week 1-2)**: 核心框架  
+**UI-Sprint-Phase2 (Week 3-4)**: 交互增强  
+**UI-Sprint-Phase3 (Week 5-6)**: Vibe体验打磨
 
-4. **监控基础**
-   - 日志结构化输出
-   - 错误追踪集成
-   - 基础指标收集
+---
 
-### 优先级 P2 (可选)
-5. **用户体验优化**
-   - 加载状态优化
-   - 错误提示改进
-   - 响应式设计调整
+## 🔨 UI-Sprint-Phase1 - 核心框架 (Week 1-2)
+
+### 目标
+完成三栏基础布局 + Workflow Graph骨架 + Scroll-Sync联动。
+
+### 任务清单
+- [x] 创建 ExecutionPage.vue 布局容器 (292行) - 已完成
+- [ ] 实现 ResizableDivider 组件（水平/垂直拖拽）
+- [ ] 集成 Canvas 库（选择 vis-network 或 D3.js）
+- [ ] 实现 WorkflowGraph 组件（色球 + 连线基础渲染）
+- [ ] 实现 StreamingInfo 组件（日志流展示）
+- [ ] 实现 Scroll-Sync 基础联动逻辑
+- [ ] 完成布局比例 localStorage 持久化
+
+### 验收标准
+- ✅ 用户可拖拽调整左右比例，拖拽后刷新页面比例保持
+- ✅ Workflow Graph 可显示至少5个色球节点和连线
+- ✅ 点击色球节点时，下部日志区域滚动到对应位置
+
+---
+
+## 👨‍💻 UI-Sprint-Phase2 - 交互增强 (Week 3-4)
+
+### 目标
+完善 Artifact Tabs + Coworker 专属视图 + 聚焦模式。
+
+### 任务清单
+- [ ] 实现 ArtifactTabs 组件（支持切换、Pin、拖拽排序）
+- [ ] 实现 PreviewArea 组件（支持多种预览类型）
+- [ ] 实现 Coworker File Tree 视图（类似 VS Code Source Control）
+- [ ] 实现 Live Diff 组件（Monaco Editor Diff 模式）
+- [ ] 实现聚焦模式（点击节点后上20%/下80%）
+- [ ] 实现折叠模式（只显示 mini-graph）
+- [ ] 添加“固定视图”按钮（锁定 Scroll-Sync）
+
+### 验收标准
+- ✅ 右侧可通过 Tab 切换 Report、PPT、File Diff 等视图
+- ✅ Coworker 修改文件时，自动切换到 File Diff Tab 并高亮变更
+- ✅ 用户可进入聚焦模式，下部日志只显示当前节点内容
+
+---
+
+## ✨ UI-Sprint-Phase3 - Vibe体验打磨 (Week 5-6)
+
+### 目标
+实现毛玻璃特效 + 色球动画 + 智能滚动。
+
+### 任务清单
+- [ ] 添加毛玻璃背景（backdrop-filter: blur(20px)）
+- [ ] 实现色球呼吸动画（pulse-breath 1.5s 周期）
+- [ ] 实现能量连线流光效果（stroke-dasharray + animation）
+- [ ] 实现智能滚动策略（检测用户意图，避免强制跳转）
+- [ ] 添加过渡动画（布局变化200ms，色球切换300ms）
+- [ ] 微交互打磨（Hover态、拖拽反馈、加载动画）
+
+### 验收标准
+- ✅ 青色色球有明显的呼吸动画，绿色色球静止锁定
+- ✅ 能量连线有从左向右的流光效果
+- ✅ 用户手动滚动日志时，自动暂停 Scroll-Sync
+- ✅ 整体视觉符合 "Vibe Workflow" 氛围感标准
 
 ---
 
