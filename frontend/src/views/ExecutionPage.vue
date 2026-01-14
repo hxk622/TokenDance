@@ -1,0 +1,292 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import ResizableDivider from '@/components/execution/layout/ResizableDivider.vue'
+import WorkflowGraph from '@/components/execution/workflow/WorkflowGraph.vue'
+import StreamingInfo from '@/components/execution/workflow/StreamingInfo.vue'
+import ArtifactTabs from '@/components/execution/artifact/ArtifactTabs.vue'
+import PreviewArea from '@/components/execution/artifact/PreviewArea.vue'
+
+const route = useRoute()
+const sessionId = ref(route.params.id as string)
+
+// Layout ratios - 根据任务类型动态调整
+const taskType = ref<'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'>('default')
+const layoutRatios = {
+  'deep-research': { left: 35, right: 65 },
+  'ppt-generation': { left: 30, right: 70 },
+  'code-refactor': { left: 60, right: 40 },
+  'file-operations': { left: 65, right: 35 },
+  'default': { left: 45, right: 55 },
+}
+
+// Horizontal ratio (left vs right)
+const leftWidth = ref(layoutRatios[taskType.value].left)
+const rightWidth = ref(layoutRatios[taskType.value].right)
+
+// Vertical ratio (top vs bottom in left panel)
+const topHeight = ref(40)
+const bottomHeight = ref(60)
+
+// Load saved ratios from localStorage
+onMounted(() => {
+  const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
+  const savedVertical = localStorage.getItem('execution-vertical-ratio')
+  
+  if (savedHorizontal) {
+    const [left, right] = savedHorizontal.split(':').map(Number)
+    leftWidth.value = left
+    rightWidth.value = right
+  }
+  
+  if (savedVertical) {
+    const [top, bottom] = savedVertical.split(':').map(Number)
+    topHeight.value = top
+    bottomHeight.value = bottom
+  }
+})
+
+// Handle horizontal divider drag
+function handleHorizontalDrag(delta: number) {
+  const containerWidth = window.innerWidth
+  const deltaPercent = (delta / containerWidth) * 100
+  
+  let newLeft = leftWidth.value + deltaPercent
+  let newRight = rightWidth.value - deltaPercent
+  
+  // Enforce min/max constraints
+  const MIN_LEFT = (300 / containerWidth) * 100  // 300px
+  const MIN_RIGHT = (400 / containerWidth) * 100 // 400px
+  
+  if (newLeft < MIN_LEFT) {
+    newLeft = MIN_LEFT
+    newRight = 100 - MIN_LEFT
+  } else if (newRight < MIN_RIGHT) {
+    newRight = MIN_RIGHT
+    newLeft = 100 - MIN_RIGHT
+  }
+  
+  leftWidth.value = newLeft
+  rightWidth.value = newRight
+  
+  // Save to localStorage
+  localStorage.setItem('execution-horizontal-ratio', `${newLeft}:${newRight}`)
+}
+
+// Handle vertical divider drag
+function handleVerticalDrag(delta: number) {
+  const containerHeight = window.innerHeight - 64 // minus header
+  const deltaPercent = (delta / containerHeight) * 100
+  
+  let newTop = topHeight.value + deltaPercent
+  let newBottom = bottomHeight.value - deltaPercent
+  
+  // Enforce min/max constraints
+  const MIN_TOP = (120 / containerHeight) * 100    // 120px
+  const MIN_BOTTOM = (200 / containerHeight) * 100 // 200px
+  
+  if (newTop < MIN_TOP) {
+    newTop = MIN_TOP
+    newBottom = 100 - MIN_TOP
+  } else if (newBottom < MIN_BOTTOM) {
+    newBottom = MIN_BOTTOM
+    newTop = 100 - MIN_BOTTOM
+  }
+  
+  topHeight.value = newTop
+  bottomHeight.value = newBottom
+  
+  // Save to localStorage
+  localStorage.setItem('execution-vertical-ratio', `${newTop}:${newBottom}`)
+}
+
+// Reset to default ratio on double-click
+function resetHorizontalRatio() {
+  const ratio = layoutRatios[taskType.value]
+  leftWidth.value = ratio.left
+  rightWidth.value = ratio.right
+  localStorage.removeItem('execution-horizontal-ratio')
+}
+
+function resetVerticalRatio() {
+  topHeight.value = 40
+  bottomHeight.value = 60
+  localStorage.removeItem('execution-vertical-ratio')
+}
+</script>
+
+<template>
+  <div class="execution-page">
+    <!-- Header -->
+    <header class="execution-header">
+      <div class="task-info">
+        <h1 class="task-title">Deep Research: AI Agent 市场分析</h1>
+        <div class="status-indicator">
+          <span class="status-badge running">执行中</span>
+          <span class="time">已执行 2分30秒</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary">暂停</button>
+        <button class="btn-secondary">停止</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="execution-content">
+      <!-- Left Panel: Execution Area -->
+      <div class="left-panel" :style="{ width: `${leftWidth}%` }">
+        <!-- Top: Workflow Graph -->
+        <div class="workflow-graph-container" :style="{ height: `${topHeight}%` }">
+          <WorkflowGraph :session-id="sessionId" />
+        </div>
+
+        <!-- Vertical Divider -->
+        <ResizableDivider
+          direction="horizontal"
+          @drag="handleVerticalDrag"
+          @double-click="resetVerticalRatio"
+        />
+
+        <!-- Bottom: Streaming Info -->
+        <div class="streaming-info-container" :style="{ height: `${bottomHeight}%` }">
+          <StreamingInfo :session-id="sessionId" />
+        </div>
+      </div>
+
+      <!-- Horizontal Divider -->
+      <ResizableDivider
+        direction="vertical"
+        @drag="handleHorizontalDrag"
+        @double-click="resetHorizontalRatio"
+      />
+
+      <!-- Right Panel: Preview Area -->
+      <div class="right-panel" :style="{ width: `${rightWidth}%` }">
+        <ArtifactTabs :session-id="sessionId" />
+        <PreviewArea :session-id="sessionId" />
+      </div>
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.execution-page {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary, rgba(18, 18, 18, 0.95));
+  color: var(--text-primary, #ffffff);
+}
+
+/* Header */
+.execution-header {
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.task-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.task-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.running {
+  background: rgba(0, 217, 255, 0.2);
+  color: #00D9FF;
+}
+
+.time {
+  font-size: 14px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  border: 1px solid var(--divider-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--divider-hover, rgba(0, 217, 255, 0.5));
+}
+
+/* Main Content */
+.execution-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left Panel */
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.workflow-graph-container {
+  overflow: hidden;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.streaming-info-container {
+  overflow: hidden;
+}
+
+/* Right Panel */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-secondary, rgba(28, 28, 30, 0.9));
+}
+
+/* CSS Variables */
+:root {
+  --bg-primary: rgba(18, 18, 18, 0.95);
+  --bg-secondary: rgba(28, 28, 30, 0.9);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --divider-color: rgba(255, 255, 255, 0.1);
+  --divider-hover: rgba(0, 217, 255, 0.5);
+}
+</style>
