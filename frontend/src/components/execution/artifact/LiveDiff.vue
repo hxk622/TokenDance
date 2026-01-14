@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 
 // Monaco Editor integration will be added later
 // For now, we'll use a mock diff display
@@ -11,7 +11,7 @@ interface FileDiff {
   action: 'modified' | 'created' | 'deleted'
 }
 
-const props = defineProps<{
+defineProps<{
   filePath?: string
 }>()
 
@@ -86,13 +86,10 @@ function getDiffStatus(original: string, modified: string): 'unchanged' | 'added
 // Monaco Editor integration placeholder
 const editorContainer = ref<HTMLElement | null>(null)
 
-onMounted(() => {
-  // TODO: Initialize Monaco Editor Diff in Phase3
-  console.log('Monaco Diff Editor will be initialized here')
-})
-
-onUnmounted(() => {
-  // TODO: Dispose Monaco Editor
+defineExpose({
+  editorContainer,
+  diffLines,
+  currentDiff
 })
 </script>
 

@@ -10,7 +10,7 @@
       </button>
     </div>
 
-    <div class="logs-container" ref="logsContainerRef">
+    <div class="logs-container" ref="logsContainerRef" @scroll="handleScroll">
       <div 
         v-for="log in displayLogs" 
         :key="log.id"
@@ -28,43 +28,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useExecutionStore } from '@/stores/execution'
 
 interface Props {
   sessionId: string
 }
 
-interface LogEntry {
-  id: string
-  nodeId: string
-  timestamp: number
-  type: 'thinking' | 'tool-call' | 'result' | 'error'
-  content: string
-}
-
 defineProps<Props>()
+
+// Use Pinia store
+const executionStore = useExecutionStore()
 
 const mode = ref<'all' | 'coworker'>('all')
 const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 const logsContainerRef = ref<HTMLElement | null>(null)
+const autoScroll = ref(true)
 
-// Mock logs
-const allLogs = ref<LogEntry[]>([
-  { id: '1', nodeId: '1', timestamp: Date.now() - 60000, type: 'thinking', content: '分析用户需求...' },
-  { id: '2', nodeId: '1', timestamp: Date.now() - 50000, type: 'tool-call', content: 'web_search("AI Agent market")' },
-  { id: '3', nodeId: '1', timestamp: Date.now() - 40000, type: 'result', content: '找到 5 篇相关文章' },
-  { id: '4', nodeId: '2', timestamp: Date.now() - 30000, type: 'thinking', content: '开始深度研究...' },
-  { id: '5', nodeId: '2', timestamp: Date.now() - 20000, type: 'tool-call', content: 'read_url("https://example.com/ai-market")' },
-  { id: '6', nodeId: '2', timestamp: Date.now() - 10000, type: 'result', content: '提取关键信息：市场规模、增长趋势...' },
-])
-
+// Use logs from store
 const displayLogs = computed(() => {
+  let logs = executionStore.logs
+  
+  // Filter by focus mode
   if (isFocusMode.value && focusedNodeId.value) {
-    return allLogs.value.filter(log => log.nodeId === focusedNodeId.value)
+    logs = logs.filter(log => log.nodeId === focusedNodeId.value)
   }
-  return allLogs.value
+  
+  return logs
 })
+
+// Auto-scroll to bottom when new logs arrive
+watch(
+  () => executionStore.logs.length,
+  () => {
+    if (autoScroll.value) {
+      nextTick(() => {
+        if (logsContainerRef.value) {
+          logsContainerRef.value.scrollTop = logsContainerRef.value.scrollHeight
+        }
+      })
+    }
+  }
+)
+
+// Detect user scroll to pause auto-scroll
+function handleScroll(event: Event) {
+  const el = event.target as HTMLElement
+  const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+  autoScroll.value = isAtBottom
+}
 
 function formatTime(timestamp: number) {
   const date = new Date(timestamp)

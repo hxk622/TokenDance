@@ -1,14 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import ResizableDivider from '@/components/execution/ResizableDivider.vue'
 import WorkflowGraph from '@/components/execution/WorkflowGraph.vue'
 import StreamingInfo from '@/components/execution/StreamingInfo.vue'
 import ArtifactTabs from '@/components/execution/ArtifactTabs.vue'
 import PreviewArea from '@/components/execution/PreviewArea.vue'
+import { useExecutionStore } from '@/stores/execution'
 
 const route = useRoute()
 const sessionId = ref(route.params.id as string)
+
+// Pinia Store
+const executionStore = useExecutionStore()
+
+// Computed from store
+const isRunning = computed(() => executionStore.isRunning)
+// const isCompleted = computed(() => executionStore.isCompleted) // reserved for future use
+const sessionStatus = computed(() => {
+  if (executionStore.isLoading) return 'loading'
+  if (executionStore.error) return 'error'
+  return executionStore.session?.status || 'idle'
+})
+const elapsedTime = ref('0分0秒')
+let elapsedTimer: ReturnType<typeof setInterval> | null = null
 
 // Layout ratios - 根据任务类型动态调整
 const taskType = ref<'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'>('default')
@@ -39,7 +54,7 @@ const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 
 // Load saved ratios from localStorage
-onMounted(() => {
+onMounted(async () => {
   const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
   const savedVertical = localStorage.getItem('execution-vertical-ratio')
   
@@ -54,7 +69,72 @@ onMounted(() => {
     topHeight.value = top
     bottomHeight.value = bottom
   }
+  
+  // Initialize store and connect SSE
+  await initializeExecution()
 })
+
+onUnmounted(() => {
+  // Cleanup
+  executionStore.disconnect()
+  if (elapsedTimer) {
+    clearInterval(elapsedTimer)
+  }
+})
+
+// Initialize execution
+async function initializeExecution() {
+  // For demo session, skip loading and just connect SSE
+  if (sessionId.value.startsWith('demo')) {
+    // Initialize demo workflow
+    executionStore.nodes = [
+      { id: '1', type: 'manus', status: 'pending', label: '搜索市场数据', x: 100, y: 100 },
+      { id: '2', type: 'manus', status: 'pending', label: '分析竞品', x: 300, y: 100 },
+      { id: '3', type: 'coworker', status: 'pending', label: '生成分析摘要', x: 500, y: 100 },
+      { id: '4', type: 'coworker', status: 'pending', label: '生成最终报告', x: 700, y: 100 },
+    ]
+    executionStore.edges = [
+      { id: 'e1', from: '1', to: '2', type: 'context', active: false },
+      { id: 'e2', from: '2', to: '3', type: 'context', active: false },
+      { id: 'e3', from: '3', to: '4', type: 'result', active: false },
+    ]
+  } else {
+    // Load real session
+    await executionStore.loadSession(sessionId.value)
+  }
+  
+  // Connect SSE stream
+  executionStore.sessionId = sessionId.value
+  executionStore.connectSSE()
+  
+  // Start elapsed timer
+  startElapsedTimer()
+}
+
+// Elapsed time tracking
+function startElapsedTimer() {
+  const startTime = Date.now()
+  elapsedTimer = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000)
+    const minutes = Math.floor(elapsed / 60)
+    const seconds = elapsed % 60
+    elapsedTime.value = `${minutes}分${seconds}秒`
+  }, 1000)
+}
+
+// Handle pause/stop actions
+function handlePause() {
+  console.log('Pause execution')
+  // TODO: Call API to pause
+}
+
+function handleStop() {
+  executionStore.disconnect()
+  if (elapsedTimer) {
+    clearInterval(elapsedTimer)
+  }
+  console.log('Stop execution')
+}
 
 // Handle horizontal divider drag
 function handleHorizontalDrag(delta: number) {
@@ -181,13 +261,17 @@ function exitFocusMode() {
       <div class="task-info">
         <h1 class="task-title">Deep Research: AI Agent 市场分析</h1>
         <div class="status-indicator">
-          <span class="status-badge running">执行中</span>
-          <span class="time">已执行 2分30秒</span>
+          <span :class="['status-badge', sessionStatus]">
+            {{ sessionStatus === 'running' ? '执行中' : 
+               sessionStatus === 'completed' ? '已完成' : 
+               sessionStatus === 'error' ? '错误' : '准备中' }}
+          </span>
+          <span class="time">已执行 {{ elapsedTime }}</span>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn-secondary">暂停</button>
-        <button class="btn-secondary">停止</button>
+        <button class="btn-secondary" @click="handlePause" :disabled="!isRunning">暂停</button>
+        <button class="btn-secondary" @click="handleStop">停止</button>
       </div>
     </header>
 

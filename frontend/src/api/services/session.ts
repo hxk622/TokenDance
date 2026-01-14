@@ -189,7 +189,7 @@ class SessionService {
   /**
    * Get working memory files (三文件工作法)
    */
-  async getWorkingMemory(sessionId: string): Promise<{
+  async getWorkingMemory(_sessionId: string): Promise<{
     task_plan: string
     findings: string
     progress: string

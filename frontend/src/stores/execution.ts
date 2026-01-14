@@ -8,8 +8,8 @@ import {
   sessionService,
   createSSEConnection,
   SSEConnection,
-  SSEEvent,
   SSEEventType,
+  type SSEEvent,
   type SessionDetail,
   type Message,
   type Artifact,
@@ -115,7 +115,7 @@ export const useExecutionStore = defineStore('execution', () => {
       artifacts.value = artifactResponse.artifacts
 
       // Initialize workflow nodes from session metadata
-      initializeWorkflow(sessionData)
+      initializeWorkflow()
 
     } catch (err: any) {
       error.value = err.message || 'Failed to load session'
@@ -128,7 +128,7 @@ export const useExecutionStore = defineStore('execution', () => {
   /**
    * Initialize workflow from session metadata
    */
-  function initializeWorkflow(sessionData: SessionDetail) {
+  function initializeWorkflow() {
     // TODO: Parse actual workflow from session metadata
     // For now, use mock data
     nodes.value = [

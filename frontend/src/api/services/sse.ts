@@ -91,12 +91,18 @@ export class SSEConnection {
   private url: string
   private options: Required<SSEOptions>
   private reconnectAttempts = 0
-  private reconnectTimer: NodeJS.Timeout | null = null
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private isClosed = false
 
-  constructor(sessionId: string, options: SSEOptions = {}) {
+  constructor(sessionId: string, options: SSEOptions = {}, useDemo = false) {
     const token = localStorage.getItem('access_token')
-    this.url = `${API_BASE_URL}/api/v1/sessions/${sessionId}/stream?token=${token || ''}`
+    
+    // Use demo endpoint for testing, or real session endpoint
+    if (useDemo || sessionId === 'demo' || sessionId.startsWith('demo-')) {
+      this.url = `${API_BASE_URL}/api/v1/demo/stream`
+    } else {
+      this.url = `${API_BASE_URL}/api/v1/sessions/${sessionId}/stream?token=${token || ''}`
+    }
     
     this.options = {
       onEvent: options.onEvent || (() => {}),
@@ -212,11 +218,21 @@ export class SSEConnection {
  */
 export function createSSEConnection(
   sessionId: string,
-  options: SSEOptions = {}
+  options: SSEOptions = {},
+  useDemo = false
 ): SSEConnection {
-  const connection = new SSEConnection(sessionId, options)
+  const connection = new SSEConnection(sessionId, options, useDemo)
   connection.connect()
   return connection
+}
+
+/**
+ * Create SSE connection to demo stream (for testing)
+ */
+export function createDemoSSEConnection(
+  options: SSEOptions = {}
+): SSEConnection {
+  return createSSEConnection('demo', options, true)
 }
 
 export default {

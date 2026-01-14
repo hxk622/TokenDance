@@ -298,6 +298,29 @@ docs/
 - `docs/modules/Tool-Use.md` - 工具使用闭环
 - `docs/modules/Context-Graph.md` - 决策轨迹记录
 
+## 测试文件规范
+
+### 测试文件位置
+- **后端测试**: 所有测试文件必须放在 `backend/tests/` 目录下
+- **前端测试**: 所有测试文件必须放在 `frontend/tests/` 目录下（如有）
+- **禁止**: 不允许在模块根目录（如 `backend/`）直接放置测试文件
+
+### 测试文件命名
+- 文件名必须以 `test_` 前缀开头，如 `test_agent_engine.py`
+- 测试类名以 `Test` 开头，如 `TestAgentEngine`
+- 测试方法名以 `test_` 开头，如 `test_run_task`
+
+### 测试目录结构
+```
+backend/tests/
+├── __init__.py
+├── test_agent_engine.py
+├── test_api_integration.py
+└── ...
+```
+
+---
+
 ## 常用命令
 ```bash
 # 前端 - 安装依赖
@@ -313,7 +336,7 @@ cd backend && uv sync --all-extras
 cd backend && uv run uvicorn app.main:app --reload
 
 # 后端 - 运行测试
-cd backend && uv run pytest
+cd backend && uv run pytest tests/
 
 # 后端 - 代码检查
 cd backend && uv run ruff check . && uv run mypy .

@@ -5,8 +5,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import * as d3 from 'd3'
+import { useExecutionStore } from '@/stores/execution'
 
 interface Props {
   sessionId: string
@@ -17,45 +18,40 @@ interface Emits {
   (e: 'node-double-click', nodeId: string): void
 }
 
-interface Node {
-  id: string
-  label: string
-  type: 'manus' | 'coworker'
-  status: 'active' | 'success' | 'pending' | 'error' | 'inactive'
-  x?: number
-  y?: number
-}
-
-interface Edge {
-  source: string
-  target: string
-  type: 'context' | 'result'
-}
-
 defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Use Pinia store
+const executionStore = useExecutionStore()
 
 const containerRef = ref<HTMLElement | null>(null)
 const svgRef = ref<SVGSVGElement | null>(null)
 
-// Mock data - DAG structure
-const nodes = ref<Node[]>([
-  { id: '1', label: 'Init', type: 'manus', status: 'success' },
-  { id: '2', label: 'Research', type: 'manus', status: 'active' },
-  { id: '3', label: 'Analysis', type: 'manus', status: 'pending' },
-  { id: '4', label: 'File Edit', type: 'coworker', status: 'inactive' },
-  { id: '5', label: 'Report', type: 'manus', status: 'inactive' },
-])
+// Use nodes and edges from store
+const nodes = computed(() => executionStore.nodes.map(n => ({
+  id: n.id,
+  label: n.label,
+  type: n.type,
+  status: n.status,
+  x: n.x,
+  y: n.y,
+})))
 
-const edges = ref<Edge[]>([
-  { source: '1', target: '2', type: 'context' },
-  { source: '2', target: '3', type: 'result' },
-  { source: '3', target: '4', type: 'context' },
-  { source: '3', target: '5', type: 'context' },
-  { source: '4', target: '5', type: 'result' },
-])
+const edges = computed(() => executionStore.edges.map(e => ({
+  source: e.from,
+  target: e.to,
+  type: e.type,
+})))
 
 let simulation: d3.Simulation<d3.SimulationNodeDatum, undefined> | null = null
+
+// Watch for node status changes to update graph
+watch(
+  () => executionStore.nodes.map(n => n.status).join(','),
+  () => {
+    updateNodeStyles()
+  }
+)
 
 onMounted(() => {
   renderGraph()
@@ -189,6 +185,20 @@ function getNodeColor(status: string): string {
 
 function handleResize() {
   renderGraph()
+}
+
+// Update node visual styles without re-rendering entire graph
+function updateNodeStyles() {
+  if (!svgRef.value) return
+  
+  const svg = d3.select(svgRef.value)
+  
+  svg.selectAll('.node-circle')
+    .data(nodes.value)
+    .attr('fill', (d: any) => getNodeColor(d.status))
+    .attr('stroke', (d: any) => getNodeColor(d.status))
+    .attr('filter', (d: any) => d.status === 'active' ? 'url(#glow)' : 'none')
+    .attr('class', (d: any) => `node-circle status-${d.status}`)
 }
 </script>
 

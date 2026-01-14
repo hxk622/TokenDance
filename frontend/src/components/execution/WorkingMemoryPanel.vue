@@ -77,12 +77,14 @@ const props = defineProps<{
   sessionId: string
 }>()
 
-const activeTab = ref<'task_plan' | 'findings' | 'progress'>('task_plan')
+const activeTab = ref<'task_plan' | 'findings' | 'progress'>('task_plan' as const)
 const memory = ref<WorkingMemoryResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const files = [
+type TabKey = 'task_plan' | 'findings' | 'progress'
+
+const files: { key: TabKey; label: string; description: string }[] = [
   {
     key: 'task_plan',
     label: 'Task Plan',
