@@ -380,12 +380,62 @@ socket_connect_timeout=5
 
 ---
 
+---
+
+## 🖥️ UI/UX 设计决策
+
+### 三栏布局设计 (Three-Column Layout)
+**时间**: 2026-01-14 17:20  
+**文档**: `docs/design/Three-Column-Layout.md`
+
+**设计理念**:
+- 执行页面采用**“左二右一”三栏布局**，视觉解耦战略、战术、成果
+- 左侧执行区上下分屏：上Workflow Graph（Meego式DAG）+ 下Streaming Info（日志流）
+- 右侧预览区：Artifact Tabs切换 + 主预览区域
+
+**核心优化**:
+1. **动态比例适配** - 根据任务类型自动调整左右比例（Deep Research 35:65 vs Code Refactor 60:40）
+2. **智能Scroll-Sync** - 首次点击smooth滚动，快速点击只高亮，用户手动滚动时暂停联动
+3. **Coworker专属视图** - File Tree + Live Diff，类似VS Code Source Control
+4. **聚焦模式** - 双击节点后上20%/下80%，过滤当前节点日志
+5. **Artifact Tabs** - 支持Pin、拖拽排序、自动聚焦切换
+
+**色彩系统**:
+- 青色脉冲#00D9FF（Agent计算中）
+- 绿色锁定#00FF88（节点已完成）
+- 琥珀暂停#FFB800（等待HITL）
+- 红色冲突#FF3B30（执行失败）
+
+**动画标准**:
+- 布局变化：200ms cubic-bezier
+- 色球呼吸：1.5s ease-in-out infinite
+- 能量连线流光：1s linear infinite
+
+**实施路径**:
+- Phase 1 (Week 1-2): 三栏基础框架 + Workflow Graph骨架 + Scroll-Sync
+- Phase 2 (Week 3-4): Artifact Tabs + Coworker视图 + 聚焦模式
+- Phase 3 (Week 5-6): 毛玻璃特效 + 色球动画 + 智能滚动
+
+**技术选型**:
+- 布局拖拽：react-resizable-panels (但项目是Vue，需要Vue替代方案)
+- Workflow Graph：vis-network (DAG专用) 或 D3.js
+- Diff视图：Monaco Editor (Diff Mode)
+- Canvas动画：原生Canvas API + CSS动画
+
+**风险提醒**:
+- Vue 3生态中react-resizable-panels不兼容，需要寻找Vue替代方案或自研
+- Workflow Graph如果节点>50，需要考虑虚拟化渲染
+- 日志流如果>1000条，需要虚拟滚动 (vue-virtual-scroller)
+
+---
+
 ## 🔄 更新日志
 
 - 2026-01-14 08:00: 初始化findings.md，回顾Phase 1-4关键决策
 - 2026-01-14 16:20: 记录Vibe Workflow产品理念升级
 - 2026-01-14 16:25: 记录Claude Cowork竞品分析 (2-Action Rule)
 - 2026-01-14 16:45: 产品愿景重构 - Vibe-Agentic Workflow (三位一体)
+- 2026-01-14 17:20: 三栏布局UI设计规范完成
 - (待续...)
 
 ---
