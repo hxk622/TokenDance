@@ -1,7 +1,7 @@
 # TokenDance 产品需求文档 (PRD)
 
-> Version: 1.0.0 | MVP阶段
-> Last Updated: 2026-01-08
+> Version: 1.1.0 | MVP阶段 + Vibe Workflow理念
+> Last Updated: 2026-01-14
 
 ## 1. 产品概述
 
@@ -83,6 +83,47 @@ TokenDance 是一个**通用AI Agent平台**，融合了业界领先产品的核
 - 网络受限访问
 
 ## 3. 产品设计原则
+
+### 3.0 核心理念: Vibe Workflow (氛围感工作流)
+
+**定义**:
+
+Vibe Workflow 是一种以情绪价值和**认知流（Flow）**为核心的设计范式。它主张：工具不仅要解决"功能性需求"，更要创造一种顺滑、优雅且充满激励感的"使用环境"，让用户在操作过程中获得心理上的愉悦与审美上的满足。
+
+**三大支柱 (The Three Pillars)**:
+
+#### 1. 直觉重于指令 (Intuition over Instruction)
+
+**理念**： 最好的操作是不需要思考的。减少复杂的菜单层级，通过暗示（Cues）和自然的交互逻辑引导用户。
+
+**落地**： 追求"手感"。就像实体乐器一样，反馈要即时且符合预期，让用户进入一种"无意识"的创作状态。
+
+#### 2. 情感共鸣与审美张力 (Emotional Resonance & Aesthetic Logic)
+
+**理念**： 美学本身就是生产力。视觉的精致、动效的细腻、音效的质感，这些不是装饰，而是为了构建一个让用户愿意长时间停留的"数字空间"。
+
+**落地**： 拒绝冰冷的工业感，引入更多的人文关怀。设计要有呼吸感，界面要根据用户的状态进行动态反馈。
+
+#### 3. 极低摩擦力的"流" (Frictionless Flow)
+
+**理念**： 任何微小的卡顿或逻辑断层都会破坏"Vibe"。工作流应该是流动的，而非跳跃的。
+
+**落地**： 消除转换成本（Context Switching）。通过无缝的衔接、智能的预判，让用户从一个任务进入下一个任务时，感受不到边界。
+
+**Vibe Workflow 的核心价值对比**:
+
+| 维度 | 传统工具 (Tool-centric) | Vibe Workflow (Experience-centric) |
+|------|---------------------------|----------------------------------|
+| 目标 | 完成任务 (Task Completion) | 享受过程 (Process Enjoyment) |
+| 反馈 | 报错或成功 (Binary Feedback) | 情感激励与节奏感 (Rhythmic Feedback) |
+| 用户状态 | 被动、疲劳 (Passive/Tired) | 主动、沉浸 (Proactive/Immersed) |
+| 产品门槛 | 需要学习手册 (Manual Required) | 依赖直觉与探索 (Discovery-based) |
+
+**我们的宣言**:
+
+> "我们不只是在制造锤子，我们是在构建一个激发灵感的工坊。我们相信，当工具的'Vibe'对了，创造力就会自然涌现。"
+
+---
 
 ### 3.1 渐进式披露 (Progressive Disclosure)
 
