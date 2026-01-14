@@ -76,20 +76,23 @@ TokenDance/
 
 ## 常用命令
 ```bash
-# 安装依赖（假设使用pnpm monorepo）
+# 前端 - 安装依赖
 pnpm install
 
-# 启动前端开发服务器
-pnpm --filter web dev
+# 前端 - 启动开发服务器
+cd frontend && pnpm dev
 
-# 启动后端服务器
-pnpm --filter api dev
+# 后端 - 安装依赖 (使用 uv)
+cd backend && uv sync --all-extras
 
-# 运行测试
-pnpm test
+# 后端 - 启动开发服务器
+cd backend && uv run uvicorn app.main:app --reload
 
-# 代码检查
-pnpm lint
+# 后端 - 运行测试
+cd backend && uv run pytest
+
+# 后端 - 代码检查
+cd backend && uv run ruff check . && uv run mypy .
 ```
 
 ## 设计哲学

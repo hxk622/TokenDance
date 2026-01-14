@@ -1,45 +1,53 @@
-[tool.poetry]
+[project]
 name = "tokendance-backend"
 version = "0.1.0"
 description = "TokenDance - Universal AI Agent Platform Backend"
-authors = ["TokenDance Team <team@tokendance.ai>"]
+authors = [{name = "TokenDance Team", email = "team@tokendance.ai"}]
 readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "sqlalchemy[asyncio]>=2.0.25",
+    "asyncpg>=0.30.0",
+    "alembic>=1.13.1",
+    "pydantic[email]>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    "redis[hiredis]>=5.0.1",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "structlog>=24.1.0",
+    "prometheus-client>=0.19.0",
+    "httpx>=0.26.0",
+    "anthropic>=0.8.1",
+    "msgpack>=1.0.7",
+    "watchdog>=3.0.0",
+    "bcrypt<5.0.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.109.0"
-uvicorn = {extras = ["standard"], version = "^0.27.0"}
-sqlalchemy = {extras = ["asyncio"], version = "^2.0.25"}
-asyncpg = "^0.30.0"
-alembic = "^1.13.1"
-pydantic = {extras = ["email"], version = "^2.5.3"}
-pydantic-settings = "^2.1.0"
-redis = {extras = ["hiredis"], version = "^5.0.1"}
-python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-python-multipart = "^0.0.6"
-structlog = "^24.1.0"
-prometheus-client = "^0.19.0"
-httpx = "^0.26.0"
-anthropic = "^0.8.1"
-msgpack = "^1.0.7"
-watchdog = "^3.0.0"
-bcrypt = "<5.0.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.4"
-pytest-asyncio = "^0.23.3"
-pytest-cov = "^4.1.0"
-black = "^24.1.1"
-isort = "^5.13.2"
-ruff = "^0.1.13"
-mypy = "^1.8.0"
-pre-commit = "^3.6.0"
-httpx = "^0.26.0"
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.23.3",
+    "pytest-cov>=4.1.0",
+    "black>=24.1.1",
+    "isort>=5.13.2",
+    "ruff>=0.1.13",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+index-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+native-tls = true
 
 [tool.black]
 line-length = 100

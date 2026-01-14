@@ -25,8 +25,8 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
-# Poetry
-poetry.lock
+# uv
+# uv.lock is tracked for reproducible builds
 
 # Virtual environments
 venv/
