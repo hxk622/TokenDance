@@ -10,6 +10,18 @@ TokenDance是一个通用AI Agent平台，结合Manus、GenSpark、AnyGen的优�
 - **Keep the Failures**: 保留失败记录供学习，记录到Context Graph
 - **Skill三级加载**: L1元数据（始终加载），L2指令（触发时加载），L3资源（按需加载）
 
+## 开发规则
+- **自动提交**: 每完成一个功能模块或组件后，立即执行 `git add .` + `git commit` + `git push`，保留开发成果
+- **提交信息格式**: 
+  ```
+  feat: <简短描述功能>
+  
+  <详细说明>
+  
+  Co-Authored-By: Warp <agent@warp.dev>
+  ```
+- **提交粒度**: 每完成一个独立组件、修复一个bug、或完成一个TODO项时提交
+
 ## 技术栈
 - **Frontend**: Vue 3 + TypeScript + Shadcn/UI (Vue) + Tailwind + Pinia
 - **Backend**: FastAPI + Celery
