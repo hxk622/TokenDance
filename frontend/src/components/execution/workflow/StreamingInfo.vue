@@ -31,6 +31,11 @@ const logStreamRef = ref<HTMLElement | null>(null)
 const isScrollLocked = ref(false)
 const focusNodeId = ref<string | null>(null)
 
+// Smart scroll strategy
+const lastClickTime = ref(0)
+const userScrollTimeout = ref<NodeJS.Timeout | null>(null)
+const isUserScrolling = ref(false)
+
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp)
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -46,9 +51,16 @@ function getLogIcon(type: LogEntry['type']): string {
   return icons[type]
 }
 
-// Scroll-Sync: Scroll to specific node's logs
+// Scroll-Sync: Scroll to specific node's logs with smart strategy
 function scrollToNode(nodeId: string) {
-  if (isScrollLocked.value) return
+  if (isScrollLocked.value || isUserScrolling.value) return
+  
+  const now = Date.now()
+  const timeSinceLastClick = now - lastClickTime.value
+  lastClickTime.value = now
+  
+  // 5秒内连续点击 → 只高亮不滚动
+  const onlyHighlight = timeSinceLastClick < 5000
   
   nextTick(() => {
     const logStream = logStreamRef.value
@@ -56,9 +68,14 @@ function scrollToNode(nodeId: string) {
     
     const targetLog = logStream.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement
     if (targetLog) {
-      targetLog.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      // 只高亮或者滚动+高亮
+      if (!onlyHighlight) {
+        targetLog.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      
       // Highlight the log entry
       targetLog.style.background = 'rgba(0, 217, 255, 0.3)'
+      targetLog.style.transition = 'background 120ms ease-out'
       setTimeout(() => {
         targetLog.style.background = ''
       }, 1000)
@@ -68,6 +85,21 @@ function scrollToNode(nodeId: string) {
 
 function toggleScrollLock() {
   isScrollLocked.value = !isScrollLocked.value
+}
+
+// Detect user scroll and pause auto-sync
+function handleUserScroll() {
+  isUserScrolling.value = true
+  
+  // Clear previous timeout
+  if (userScrollTimeout.value) {
+    clearTimeout(userScrollTimeout.value)
+  }
+  
+  // Resume auto-sync after 3 seconds of no scrolling
+  userScrollTimeout.value = setTimeout(() => {
+    isUserScrolling.value = false
+  }, 3000)
 }
 
 // Focus Mode: Filter logs by specific nodeId
@@ -138,7 +170,7 @@ defineExpose({
     </div>
 
     <!-- Log Stream -->
-    <div ref="logStreamRef" class="log-stream">
+    <div ref="logStreamRef" class="log-stream" @scroll="handleUserScroll">
       <div
         v-for="log in filteredLogs"
         :key="log.id"

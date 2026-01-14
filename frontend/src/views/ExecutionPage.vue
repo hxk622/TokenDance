@@ -261,7 +261,9 @@ function exitFocusMode() {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
+  background: rgba(28, 28, 30, 0.7);
   backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .task-info {

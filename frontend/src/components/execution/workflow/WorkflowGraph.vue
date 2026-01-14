@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import NodeTooltip from './NodeTooltip.vue'
 
 interface Props {
   sessionId: string
@@ -37,10 +38,53 @@ interface Edge {
 
 // Mock data for Phase 1
 const nodes = ref<Node[]>([
-  { id: '1', type: 'manus', status: 'success', label: '搜索市场数据', x: 100, y: 100 },
-  { id: '2', type: 'manus', status: 'success', label: '分析竞品', x: 300, y: 100 },
-  { id: '3', type: 'coworker', status: 'active', label: '生成报告', x: 500, y: 100 },
-  { id: '4', type: 'manus', status: 'inactive', label: '创建PPT', x: 700, y: 100 },
+  { 
+    id: '1', 
+    type: 'manus', 
+    status: 'success', 
+    label: '搜索市场数据', 
+    x: 100, 
+    y: 100,
+    metadata: {
+      startTime: Date.now() - 120000,
+      duration: 45000,
+      output: 'Found 3 relevant reports on AI Agent market size and growth trends'
+    }
+  },
+  { 
+    id: '2', 
+    type: 'manus', 
+    status: 'success', 
+    label: '分析竞品', 
+    x: 300, 
+    y: 100,
+    metadata: {
+      startTime: Date.now() - 75000,
+      duration: 38000,
+      output: 'Analyzed Manus (sandbox execution), Coworker (local files), GenSpark (deep research)'
+    }
+  },
+  { 
+    id: '3', 
+    type: 'coworker', 
+    status: 'active', 
+    label: '生成报告', 
+    x: 500, 
+    y: 100,
+    metadata: {
+      startTime: Date.now() - 15000,
+      duration: 15000,
+      output: 'Generating markdown report with competitive analysis and market insights...'
+    }
+  },
+  { 
+    id: '4', 
+    type: 'manus', 
+    status: 'inactive', 
+    label: '创建PPT', 
+    x: 700, 
+    y: 100 
+  },
 ])
 
 const edges = ref<Edge[]>([
@@ -51,6 +95,11 @@ const edges = ref<Edge[]>([
 
 const selectedNodeId = ref<string | null>(null)
 const isCollapsed = ref(false)
+
+// Tooltip state
+const tooltipVisible = ref(false)
+const hoveredNode = ref<Node | null>(null)
+const tooltipPosition = ref({ x: 0, y: 0 })
 
 function handleNodeClick(nodeId: string) {
   selectedNodeId.value = nodeId
@@ -63,6 +112,17 @@ function handleNodeDoubleClick(nodeId: string) {
 
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
+}
+
+function handleNodeHover(node: Node, event: MouseEvent) {
+  tooltipVisible.value = true
+  hoveredNode.value = node
+  tooltipPosition.value = { x: event.clientX, y: event.clientY }
+}
+
+function handleNodeLeave() {
+  tooltipVisible.value = false
+  hoveredNode.value = null
 }
 
 function getNodeColor(status: Node['status']): string {
@@ -139,6 +199,8 @@ watch(() => props.sessionId, (newId) => {
           :class="['node', node.status, { selected: selectedNodeId === node.id }]"
           @click="handleNodeClick(node.id)"
           @dblclick="handleNodeDoubleClick(node.id)"
+          @mouseenter="handleNodeHover(node, $event)"
+          @mouseleave="handleNodeLeave"
         >
           <!-- Node circle -->
           <circle
@@ -158,6 +220,19 @@ watch(() => props.sessionId, (newId) => {
         </g>
       </g>
     </svg>
+
+    <!-- Node Tooltip -->
+    <NodeTooltip
+      v-if="hoveredNode"
+      :visible="tooltipVisible"
+      :node-id="hoveredNode.id"
+      :node-type="hoveredNode.type"
+      :status="hoveredNode.status"
+      :label="hoveredNode.label"
+      :x="tooltipPosition.x"
+      :y="tooltipPosition.y"
+      :metadata="hoveredNode.metadata"
+    />
 
     <!-- Legend -->
     <div class="graph-legend">
@@ -206,8 +281,9 @@ watch(() => props.sessionId, (newId) => {
   height: 32px;
   border: 1px solid var(--divider-color);
   border-radius: 6px;
-  background: rgba(28, 28, 30, 0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(28, 28, 30, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
@@ -234,20 +310,25 @@ watch(() => props.sessionId, (newId) => {
 /* Edges */
 .edge {
   transition: stroke 200ms ease-out;
+  stroke-linecap: round;
 }
 
 .edge.active {
-  stroke: rgba(0, 217, 255, 0.8);
-  stroke-dasharray: 10 5;
+  stroke: rgba(0, 217, 255, 0.9);
+  stroke-width: 3;
+  stroke-dasharray: 15 10;
   animation: flow-energy 1s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
 }
 
 @keyframes flow-energy {
   0% {
-    stroke-dashoffset: 15;
+    stroke-dashoffset: 25;
+    opacity: 1;
   }
   100% {
     stroke-dashoffset: 0;
+    opacity: 0.95;
   }
 }
 
@@ -280,10 +361,12 @@ watch(() => props.sessionId, (newId) => {
   0%, 100% {
     transform: scale(1);
     opacity: 1;
+    filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.15);
     opacity: 0.9;
+    filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 40px currentColor);
   }
 }
 
@@ -302,8 +385,9 @@ watch(() => props.sessionId, (newId) => {
   display: flex;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba(28, 28, 30, 0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(28, 28, 30, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 8px;
   border: 1px solid var(--divider-color);
 }
