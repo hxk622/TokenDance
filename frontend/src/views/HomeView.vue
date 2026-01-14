@@ -14,15 +14,30 @@
         >
           Get Started
         </button>
+        <button 
+          class="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
+          @click="handleExecutionDemo"
+        >
+          🚀 View Execution Demo
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
 const handleGetStarted = () => {
   console.log('Get Started clicked')
   // TODO: Navigate to registration or workspace creation
+}
+
+const handleExecutionDemo = () => {
+  // 导航到ExecutionPage，使用demo session ID
+  router.push({ name: 'Execution', params: { id: 'demo-session-001' } })
 }
 </script>
 

@@ -27,6 +27,16 @@ const routes: RouteRecordRaw[] = [
     name: 'Demo',
     component: () => import('@/views/DemoView.vue')
   },
+  {
+    path: '/execution/:id',
+    name: 'Execution',
+    component: () => import('@/views/ExecutionPage.vue'),
+    props: true,
+    meta: {
+      title: 'Task Execution',
+      requiresAuth: false  // MVP阶段暂不需要认证
+    }
+  },
   // TODO: Add more routes
   // {
   //   path: '/login',
