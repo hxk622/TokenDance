@@ -10,9 +10,13 @@ from contextlib import asynccontextmanager
 
 from app.mcp.registry import MCPServerRegistry, MCPServerConfig, get_registry
 from app.mcp.types import MCPTool, MCPToolResult, MCPCapability
+from app.mcp.protocol import MCPStdioTransport, MCPClient, MCPError
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Whether to use real MCP protocol or mock implementation
+USE_REAL_PROTOCOL = False  # Set to True when MCP servers are installed
 
 
 class MCPServerConnection:
@@ -234,6 +238,112 @@ class MCPServerConnection:
             return MCPToolResult.from_error(str(e), duration_ms=duration_ms)
 
 
+class RealMCPServerConnection:
+    """
+    Real MCP server connection using stdio protocol.
+    
+    Requires actual MCP servers to be installed (e.g., npx @modelcontextprotocol/server-filesystem).
+    """
+    
+    def __init__(self, config: MCPServerConfig):
+        self.config = config
+        self.name = config.name
+        self._client: Optional[MCPClient] = None
+        self._tools: List[MCPTool] = []
+    
+    async def connect(self) -> bool:
+        """Establish real connection to the MCP server"""
+        try:
+            transport = MCPStdioTransport(
+                command=self.config.command,
+                args=self.config.args,
+                env=self.config.env,
+            )
+            self._client = MCPClient(transport)
+            
+            if not await self._client.connect():
+                return False
+            
+            # Discover tools
+            raw_tools = await self._client.list_tools()
+            self._tools = [
+                MCPTool(
+                    name=f"{self.name}_{t['name']}",
+                    description=t.get('description', ''),
+                    input_schema=t.get('inputSchema', {}),
+                    server_name=self.name,
+                )
+                for t in raw_tools
+            ]
+            
+            logger.info(
+                "real_mcp_server_connected",
+                server=self.name,
+                tools_count=len(self._tools),
+            )
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to real MCP server {self.name}: {e}")
+            return False
+    
+    async def disconnect(self):
+        """Disconnect from the MCP server"""
+        if self._client:
+            await self._client.disconnect()
+            self._client = None
+        self._tools = []
+        logger.info("real_mcp_server_disconnected", server=self.name)
+    
+    @property
+    def is_connected(self) -> bool:
+        return self._client is not None and self._client.is_connected
+    
+    def get_tools(self) -> List[MCPTool]:
+        return self._tools
+    
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> MCPToolResult:
+        """Execute a tool on the real MCP server"""
+        if not self._client or not self._client.is_connected:
+            return MCPToolResult.from_error("Server not connected")
+        
+        start_time = time.time()
+        
+        try:
+            # Remove server prefix from tool name
+            raw_name = tool_name.replace(f"{self.name}_", "", 1)
+            
+            result = await self._client.call_tool(raw_name, arguments)
+            duration_ms = (time.time() - start_time) * 1000
+            
+            # Extract content from result
+            content = result.get("content", [])
+            if content and len(content) > 0:
+                # Get text content
+                text_content = next(
+                    (c.get("text") for c in content if c.get("type") == "text"),
+                    str(content)
+                )
+                return MCPToolResult.from_success(text_content, duration_ms=duration_ms)
+            
+            return MCPToolResult.from_success(result, duration_ms=duration_ms)
+            
+        except MCPError as e:
+            duration_ms = (time.time() - start_time) * 1000
+            return MCPToolResult.from_error(str(e), duration_ms=duration_ms)
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"Tool execution failed: {e}")
+            return MCPToolResult.from_error(str(e), duration_ms=duration_ms)
+
+
+def create_connection(config: MCPServerConfig):
+    """Factory function to create appropriate connection type"""
+    if USE_REAL_PROTOCOL:
+        return RealMCPServerConnection(config)
+    return MCPServerConnection(config)
+
+
 class MCPManager:
     """
     Central manager for MCP server connections.
@@ -293,7 +403,7 @@ class MCPManager:
                 logger.warning(f"Server disabled: {server_name}")
                 return False
             
-            conn = MCPServerConnection(config)
+            conn = create_connection(config)
             success = await conn.connect()
             
             if success:

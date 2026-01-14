@@ -5,14 +5,37 @@ This module provides MCP server management capabilities for TokenDance,
 enabling standardized tool definitions and secure execution environments.
 """
 
-from app.mcp.registry import MCPServerRegistry, MCPServerConfig
-from app.mcp.manager import MCPManager
-from app.mcp.types import MCPTool, MCPToolResult
+from app.mcp.registry import MCPServerRegistry, MCPServerConfig, get_registry
+from app.mcp.manager import (
+    MCPManager,
+    MCPServerConnection,
+    RealMCPServerConnection,
+    get_manager,
+    mcp_session,
+    USE_REAL_PROTOCOL,
+)
+from app.mcp.types import MCPTool, MCPToolResult, MCPTransport, MCPCapability
+from app.mcp.protocol import MCPClient, MCPStdioTransport, MCPError
 
 __all__ = [
-    "MCPServerRegistry",
-    "MCPServerConfig", 
-    "MCPManager",
+    # Types
     "MCPTool",
     "MCPToolResult",
+    "MCPTransport",
+    "MCPCapability",
+    # Registry
+    "MCPServerRegistry",
+    "MCPServerConfig",
+    "get_registry",
+    # Manager
+    "MCPManager",
+    "MCPServerConnection",
+    "RealMCPServerConnection",
+    "get_manager",
+    "mcp_session",
+    "USE_REAL_PROTOCOL",
+    # Protocol
+    "MCPClient",
+    "MCPStdioTransport",
+    "MCPError",
 ]
