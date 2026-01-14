@@ -6,20 +6,21 @@
 
 import { ref, onUnmounted } from 'vue'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-export interface AgentStreamCallbacks {
+export interface UseAgentStreamOptions {
+  apiBase?: string
   onStart?: () => void
-  onIteration?: (data: { iteration: number; max_iterations: number }) => void
-  onReasoning?: (data: { content: string; iteration: number }) => void
-  onToolCall?: (data: { tool_name: string; parameters: any; iteration: number }) => void
-  onToolResult?: (data: { tool_name: string; success: boolean; result?: string; error?: string; iteration: number }) => void
-  onAnswer?: (data: { content: string; iteration: number; token_usage?: any }) => void
-  onError?: (data: { message: string; type: string }) => void
-  onDone?: (data?: { iterations?: number; token_usage?: any; error?: boolean }) => void
+  onIteration?: (data: { iteration: number }) => void
+  onReasoning?: (data: { reasoning: string }) => void
+  onToolCall?: (data: { tool: string; args: Record<string, any> }) => void
+  onToolResult?: (data: { tool: string; success: boolean; result: string }) => void
+  onAnswer?: (data: { answer: string }) => void
+  onError?: (data: { error: string }) => void
+  onDone?: () => void
 }
 
-export function useAgentStream(sessionId: string, callbacks: AgentStreamCallbacks = {}) {
+export function useAgentStream(options: UseAgentStreamOptions = {}) {
+  const API_BASE = options.apiBase || 'http://localhost:8000'
   const eventSource = ref<EventSource | null>(null)
   const isConnected = ref(false)
   const isLoading = ref(false)
@@ -27,7 +28,7 @@ export function useAgentStream(sessionId: string, callbacks: AgentStreamCallback
   /**
    * 发送消息并建立 SSE 连接
    */
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (sessionId: string, content: string) => {
     // 关闭之前的连接
     if (eventSource.value) {
       eventSource.value.close()
@@ -62,15 +63,10 @@ export function useAgentStream(sessionId: string, callbacks: AgentStreamCallback
       if (!contentType?.includes('text/event-stream')) {
         // 非流式响应，直接返回
         const data = await response.json()
-        callbacks.onAnswer?.({
-          content: data.content,
-          iteration: data.iterations || 1,
-          token_usage: data.token_usage
+        options.onAnswer?.({
+          answer: data.content
         })
-        callbacks.onDone?.({
-          iterations: data.iterations,
-          token_usage: data.token_usage
-        })
+        options.onDone?.()
         isLoading.value = false
         return
       }
@@ -117,9 +113,8 @@ export function useAgentStream(sessionId: string, callbacks: AgentStreamCallback
 
     } catch (error: any) {
       console.error('SSE connection error:', error)
-      callbacks.onError?.({
-        message: error.message || 'Connection failed',
-        type: 'ConnectionError'
+      options.onError?.({
+        error: error.message || 'Connection failed'
       })
     } finally {
       isLoading.value = false
@@ -133,35 +128,35 @@ export function useAgentStream(sessionId: string, callbacks: AgentStreamCallback
   const handleEvent = (eventType: string, data: any) => {
     switch (eventType) {
       case 'start':
-        callbacks.onStart?.()
+        options.onStart?.()
         break
       
       case 'iteration':
-        callbacks.onIteration?.(data)
+        options.onIteration?.(data)
         break
       
       case 'reasoning':
-        callbacks.onReasoning?.(data)
+        options.onReasoning?.(data)
         break
       
       case 'tool_call':
-        callbacks.onToolCall?.(data)
+        options.onToolCall?.(data)
         break
       
       case 'tool_result':
-        callbacks.onToolResult?.(data)
+        options.onToolResult?.(data)
         break
       
       case 'answer':
-        callbacks.onAnswer?.(data)
+        options.onAnswer?.(data)
         break
       
       case 'error':
-        callbacks.onError?.(data)
+        options.onError?.(data)
         break
       
       case 'done':
-        callbacks.onDone?.(data)
+        options.onDone?.()
         isLoading.value = false
         break
       
