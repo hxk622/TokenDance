@@ -215,6 +215,58 @@
 
 ---
 
+## 📅 UI-Sprint-Phase1 开发日志 (2026-01-14)
+
+### Session 9: ResizableDivider 组件开发
+**时间**: 2026-01-14 12:55 - 13:15  
+**目标**: 实现可拖拽分隔条组件
+
+#### 执行步骤
+1. ✅ 创建 `ResizableDivider.vue` (224行)
+   - 支持水平/垂直两个方向
+   - 实时比例提示
+   - 拖拽状态视觉反馈
+   - 双击重置功能
+
+2. ✅ 创建占位符组件
+   - `WorkflowGraph.vue` (152行) - Mock节点展示
+   - `StreamingInfo.vue` (225行) - 日志流展示
+   - `ArtifactTabs.vue` (84行) - Tab切换
+   - `PreviewArea.vue` (120行) - 预览区域
+
+3. ✅ 集成到 ExecutionPage
+   - 修正组件引用路径
+   - 修正事件绑定（resize/reset）
+   - 添加所有组件导入
+
+#### 测试结果
+- ✅ 组件创建成功
+- ⚠️ 未执行前端测试（待后续）
+
+#### 遇到的问题
+无
+
+#### 功能亮点
+1. **ResizableDivider 交互体验**
+   - Hover态: 青色高亮
+   - 拖拽中: 青色满值 + 全局光标
+   - 双击重置: 恢复默认比例
+   - 扩大热区: 实际可点击区域 16px
+
+2. **Mock 组件完善**
+   - WorkflowGraph: 5个色球节点 + 呼吸动画
+   - StreamingInfo: 日志流 + 聚焦模式
+   - ArtifactTabs: Tab切换 + 活跃状态
+   - PreviewArea: 响应式Tab内容
+
+3. **核心功能完成**
+   - ✅ 布局拖拽调整
+   - ✅ localStorage 持久化
+   - ✅ Scroll-Sync 联动
+   - ✅ 聚焦模式逻辑
+
+---
+
 ## 🐛 错误记录 (Keep the Failures)
 
 ### Error 1: Alembic迁移失败

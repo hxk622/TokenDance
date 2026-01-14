@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import ResizableDivider from '@/components/execution/layout/ResizableDivider.vue'
-import WorkflowGraph from '@/components/execution/workflow/WorkflowGraph.vue'
-import StreamingInfo from '@/components/execution/workflow/StreamingInfo.vue'
-import ArtifactTabs from '@/components/execution/artifact/ArtifactTabs.vue'
-import PreviewArea from '@/components/execution/artifact/PreviewArea.vue'
+import ResizableDivider from '@/components/execution/ResizableDivider.vue'
+import WorkflowGraph from '@/components/execution/WorkflowGraph.vue'
+import StreamingInfo from '@/components/execution/StreamingInfo.vue'
+import ArtifactTabs from '@/components/execution/ArtifactTabs.vue'
+import PreviewArea from '@/components/execution/PreviewArea.vue'
 
 const route = useRoute()
 const sessionId = ref(route.params.id as string)
@@ -206,9 +206,9 @@ function exitFocusMode() {
 
         <!-- Vertical Divider -->
         <ResizableDivider
-          direction="horizontal"
-          @drag="handleVerticalDrag"
-          @double-click="resetVerticalRatio"
+          direction="vertical"
+          @resize="handleVerticalDrag"
+          @reset="resetVerticalRatio"
         />
 
         <!-- Bottom: Streaming Info -->
@@ -222,9 +222,9 @@ function exitFocusMode() {
 
       <!-- Horizontal Divider -->
       <ResizableDivider
-        direction="vertical"
-        @drag="handleHorizontalDrag"
-        @double-click="resetHorizontalRatio"
+        direction="horizontal"
+        @resize="handleHorizontalDrag"
+        @reset="resetHorizontalRatio"
       />
 
       <!-- Right Panel: Preview Area -->

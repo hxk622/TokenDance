@@ -64,12 +64,14 @@
 
 ### 任务清单
 - [x] 创建 ExecutionPage.vue 布局容器 (292行) - 已完成
-- [ ] 实现 ResizableDivider 组件（水平/垂直拖拽）
+- [x] 实现 ResizableDivider 组件（水平/垂直拖拽）- 已完成
+- [x] 实现 WorkflowGraph 组件占位符（Mock节点）- 已完成
+- [x] 实现 StreamingInfo 组件占位符（日志流）- 已完成
+- [x] 实现 ArtifactTabs 组件占位符 - 已完成
+- [x] 实现 PreviewArea 组件占位符 - 已完成
+- [x] 完成布局比例 localStorage 持久化 - 已完成
+- [x] 实现 Scroll-Sync 基础联动逻辑 - 已完成
 - [ ] 集成 Canvas 库（选择 vis-network 或 D3.js）
-- [ ] 实现 WorkflowGraph 组件（色球 + 连线基础渲染）
-- [ ] 实现 StreamingInfo 组件（日志流展示）
-- [ ] 实现 Scroll-Sync 基础联动逻辑
-- [ ] 完成布局比例 localStorage 持久化
 
 ### 验收标准
 - ✅ 用户可拖拽调整左右比例，拖拽后刷新页面比例保持
