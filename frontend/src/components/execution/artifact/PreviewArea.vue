@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import CoworkerFileTree from '../workflow/CoworkerFileTree.vue'
+import LiveDiff from './LiveDiff.vue'
 
 interface Props {
   sessionId: string
+  currentTab?: 'report' | 'ppt' | 'file-diff'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  currentTab: 'report'
+})
 
 // Mock preview content
 const previewContent = ref(`# AI Agent 市场分析报告
@@ -35,22 +40,34 @@ const previewContent = ref(`# AI Agent 市场分析报告
 
 <template>
   <div class="preview-area">
-    <!-- Preview Content -->
-    <div class="preview-content">
+    <!-- Report Tab -->
+    <div v-if="currentTab === 'report'" class="preview-content">
       <pre class="markdown-preview">{{ previewContent }}</pre>
+      <div class="preview-actions">
+        <button class="btn-action">📥 下载</button>
+        <button class="btn-action">📋 复制</button>
+        <button class="btn-action">🔄 刷新</button>
+      </div>
     </div>
 
-    <!-- Actions -->
-    <div class="preview-actions">
-      <button class="btn-action">
-        📥 下载
-      </button>
-      <button class="btn-action">
-        📋 复制
-      </button>
-      <button class="btn-action">
-        🔄 刷新
-      </button>
+    <!-- PPT Tab (Phase3) -->
+    <div v-else-if="currentTab === 'ppt'" class="preview-content">
+      <div class="ppt-placeholder">
+        <span class="placeholder-icon">📊</span>
+        <p>PPT预览功能将在Phase3实现</p>
+      </div>
+    </div>
+
+    <!-- File Diff Tab -->
+    <div v-else-if="currentTab === 'file-diff'" class="file-diff-view">
+      <div class="file-diff-layout">
+        <div class="file-tree-panel">
+          <CoworkerFileTree />
+        </div>
+        <div class="diff-panel">
+          <LiveDiff />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -118,9 +135,59 @@ const previewContent = ref(`# AI Agent 市场分析报告
   border-color: var(--color-node-active);
 }
 
+/* PPT Placeholder */
+.ppt-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+}
+
+.placeholder-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.ppt-placeholder p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* File Diff View */
+.file-diff-view {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.file-diff-layout {
+  flex: 1;
+  display: flex;
+  gap: 1px;
+  background: var(--divider-color);
+}
+
+.file-tree-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.diff-panel {
+  flex: 1;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
 :root {
+  --bg-primary: rgba(18, 18, 18, 0.95);
   --bg-secondary: rgba(28, 28, 30, 0.9);
   --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
   --divider-color: rgba(255, 255, 255, 0.1);
   --color-node-active: #00D9FF;
 }

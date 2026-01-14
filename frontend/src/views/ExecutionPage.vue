@@ -28,6 +28,12 @@ const rightWidth = ref(layoutRatios[taskType.value].right)
 const topHeight = ref(40)
 const bottomHeight = ref(60)
 
+// Refs for child components
+const streamingInfoRef = ref<InstanceType<typeof StreamingInfo> | null>(null)
+
+// Artifact tab state
+const currentTab = ref<'report' | 'ppt' | 'file-diff'>('report')
+
 // Load saved ratios from localStorage
 onMounted(() => {
   const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
@@ -113,6 +119,17 @@ function resetVerticalRatio() {
   bottomHeight.value = 60
   localStorage.removeItem('execution-vertical-ratio')
 }
+
+// Scroll-Sync: When user clicks a node in WorkflowGraph, scroll to its logs
+function handleNodeClick(nodeId: string) {
+  streamingInfoRef.value?.scrollToNode(nodeId)
+}
+
+// Handle tab change
+function handleTabChange(tab: 'report' | 'ppt' | 'file-diff') {
+  console.log('Tab changed to:', tab)
+  // TODO: Update URL or trigger other side effects
+}
 </script>
 
 <template>
@@ -138,7 +155,10 @@ function resetVerticalRatio() {
       <div class="left-panel" :style="{ width: `${leftWidth}%` }">
         <!-- Top: Workflow Graph -->
         <div class="workflow-graph-container" :style="{ height: `${topHeight}%` }">
-          <WorkflowGraph :session-id="sessionId" />
+          <WorkflowGraph 
+            :session-id="sessionId" 
+            @node-click="handleNodeClick"
+          />
         </div>
 
         <!-- Vertical Divider -->
@@ -150,7 +170,10 @@ function resetVerticalRatio() {
 
         <!-- Bottom: Streaming Info -->
         <div class="streaming-info-container" :style="{ height: `${bottomHeight}%` }">
-          <StreamingInfo :session-id="sessionId" />
+          <StreamingInfo 
+            ref="streamingInfoRef"
+            :session-id="sessionId" 
+          />
         </div>
       </div>
 
@@ -163,8 +186,15 @@ function resetVerticalRatio() {
 
       <!-- Right Panel: Preview Area -->
       <div class="right-panel" :style="{ width: `${rightWidth}%` }">
-        <ArtifactTabs :session-id="sessionId" />
-        <PreviewArea :session-id="sessionId" />
+        <ArtifactTabs 
+          :session-id="sessionId" 
+          v-model:current-tab="currentTab"
+          @tab-change="handleTabChange"
+        />
+        <PreviewArea 
+          :session-id="sessionId" 
+          :current-tab="currentTab"
+        />
       </div>
     </main>
   </div>

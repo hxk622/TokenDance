@@ -1,15 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 interface Props {
   sessionId: string
+  currentTab?: 'report' | 'ppt' | 'file-diff'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  currentTab: 'report'
+})
+
+const emit = defineEmits<{
+  (e: 'update:currentTab', value: 'report' | 'ppt' | 'file-diff'): void
+  (e: 'tab-change', value: 'report' | 'ppt' | 'file-diff'): void
+}>()
 
 interface ArtifactTab {
-  id: string
-  type: 'report' | 'ppt' | 'code' | 'browser' | 'file-diff'
+  id: 'report' | 'ppt' | 'file-diff'
+  type: 'report' | 'ppt' | 'file-diff'
   title: string
   icon: string
   isPinned?: boolean
@@ -18,16 +26,22 @@ interface ArtifactTab {
 const tabs = ref<ArtifactTab[]>([
   { id: 'report', type: 'report', title: '研究报告', icon: '📄' },
   { id: 'ppt', type: 'ppt', title: 'PPT', icon: '📊' },
-  { id: 'code', type: 'code', title: '代码', icon: '🧩' },
+  { id: 'file-diff', type: 'file-diff', title: '文件变更', icon: '🧩' },
 ])
 
-const currentTab = ref('report')
+const current = computed({
+  get: () => props.currentTab,
+  set: (v: 'report' | 'ppt' | 'file-diff') => emit('update:currentTab', v)
+})
 
-function switchTab(id: string) {
-  currentTab.value = id
+function switchTab(id: 'report' | 'ppt' | 'file-diff') {
+  if (current.value !== id) {
+    current.value = id
+    emit('tab-change', id)
+  }
 }
 
-function togglePin(id: string) {
+function togglePin(id: ArtifactTab['id']) {
   const t = tabs.value.find(t => t.id === id)
   if (t) t.isPinned = !t.isPinned
 }
@@ -38,7 +52,7 @@ function togglePin(id: string) {
     <div
       v-for="tab in tabs"
       :key="tab.id"
-      :class="['tab', { active: currentTab === tab.id, pinned: tab.isPinned }]"
+      :class="['tab', { active: current === tab.id, pinned: tab.isPinned }]"
       @click="switchTab(tab.id)"
       @contextmenu.prevent="togglePin(tab.id)"
     >
