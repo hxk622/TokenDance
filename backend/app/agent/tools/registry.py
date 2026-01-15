@@ -12,11 +12,14 @@ logger = logging.getLogger(__name__)
 class ToolRegistry:
     """工具注册表
     
-    负责工具的注册、获取和管理
+    负责工具的注册、获取和管理。
+    支持 Action Space Pruning（限制可用工具子集）。
     """
     
     def __init__(self):
         self._tools: Dict[str, BaseTool] = {}
+        # Action Space Pruning: 允许的工具子集（None 表示允许所有）
+        self._allowed_tools: Optional[List[str]] = None
         logger.info("ToolRegistry initialized")
     
     def register(self, tool: BaseTool) -> None:
@@ -92,6 +95,16 @@ class ToolRegistry:
         """
         return list(self._tools.keys())
     
+    def list_active_names(self) -> List[str]:
+        """列出当前可用的工具名称（考虑 Action Space Pruning）
+        
+        Returns:
+            List[str]: 当前可用的工具名称列表
+        """
+        if self._allowed_tools is None:
+            return list(self._tools.keys())
+        return [name for name in self._allowed_tools if name in self._tools]
+    
     def list_schemas(self) -> List[ToolSchema]:
         """列出所有工具 Schema
         
@@ -129,6 +142,52 @@ class ToolRegistry:
             tool for tool in self._tools.values()
             if tool.requires_confirmation == requires_confirmation
         ]
+    
+    # =========================================================================
+    # Action Space Pruning（限制可用工具）
+    # =========================================================================
+    
+    def set_allowed_tools(self, tool_names: List[str]) -> None:
+        """设置允许的工具子集（Action Space Pruning）
+        
+        Args:
+            tool_names: 允许的工具名称列表
+        """
+        # 验证工具存在
+        valid_tools = [name for name in tool_names if name in self._tools]
+        invalid_tools = [name for name in tool_names if name not in self._tools]
+        
+        if invalid_tools:
+            logger.warning(f"Unknown tools in allowed list: {invalid_tools}")
+        
+        self._allowed_tools = valid_tools
+        logger.info(f"Action Space Pruning: allowed tools set to {valid_tools}")
+    
+    def reset_allowed_tools(self) -> None:
+        """重置工具限制，允许所有工具"""
+        self._allowed_tools = None
+        logger.info("Action Space Pruning: reset to allow all tools")
+    
+    def get_allowed_tools(self) -> Optional[List[str]]:
+        """获取当前允许的工具列表
+        
+        Returns:
+            允许的工具列表，None 表示允许所有
+        """
+        return self._allowed_tools
+    
+    def is_tool_allowed(self, tool_name: str) -> bool:
+        """检查工具是否在允许列表中
+        
+        Args:
+            tool_name: 工具名称
+            
+        Returns:
+            工具是否被允许
+        """
+        if self._allowed_tools is None:
+            return tool_name in self._tools
+        return tool_name in self._allowed_tools and tool_name in self._tools
     
     def __len__(self) -> int:
         """返回已注册工具数量"""

@@ -10,7 +10,7 @@ Context Manager
 """
 
 from typing import List, Dict, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.agent.prompts import AGENT_SYSTEM_PROMPT
 from app.agent.tools.registry import ToolRegistry
@@ -19,6 +19,15 @@ from app.agent.llm.base import LLMMessage
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class ActiveSkill:
+    """当前激活的 Skill 信息"""
+    skill_id: str
+    display_name: str
+    l2_instructions: str
+    allowed_tools: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -67,16 +76,27 @@ class ContextManager:
         # Token 统计
         self.total_input_tokens = 0
         self.total_output_tokens = 0
+        
+        # 当前激活的 Skill（用于 L2 指令注入）
+        self._active_skill: Optional[ActiveSkill] = None
     
     def get_system_prompt(self) -> str:
         """
         获取 System Prompt
         
         Returns:
-            str: System Prompt（包含三文件路径信息）
+            str: System Prompt（包含三文件路径信息和激活的 Skill 指令）
         """
         # 基础 System Prompt
         system = AGENT_SYSTEM_PROMPT
+        
+        # 注入激活的 Skill L2 指令
+        if self._active_skill:
+            system += f"\n\n# Active Skill: {self._active_skill.display_name}\n\n"
+            system += f"You are now operating in **{self._active_skill.display_name}** mode.\n"
+            system += f"Follow these skill-specific instructions:\n\n"
+            system += self._active_skill.l2_instructions
+            system += "\n\n---\n"
         
         # 添加三文件路径信息
         file_paths = self.three_files.get_file_paths()
@@ -324,4 +344,52 @@ class ContextManager:
         清空 context（谨慎使用）
         """
         self.messages.clear()
+        self._active_skill = None
         logger.warning("Context cleared!")
+    
+    # =========================================================================
+    # Skill 指令注入
+    # =========================================================================
+    
+    def inject_skill(
+        self,
+        skill_id: str,
+        display_name: str,
+        l2_instructions: str,
+        allowed_tools: Optional[List[str]] = None,
+    ) -> None:
+        """注入 Skill L2 指令
+        
+        当匹配到 Skill 时，将其 L2 指令注入到 System Prompt 中。
+        
+        Args:
+            skill_id: Skill ID
+            display_name: Skill 显示名称
+            l2_instructions: L2 完整指令
+            allowed_tools: 允许的工具列表
+        """
+        self._active_skill = ActiveSkill(
+            skill_id=skill_id,
+            display_name=display_name,
+            l2_instructions=l2_instructions,
+            allowed_tools=allowed_tools or [],
+        )
+        logger.info(f"Skill injected: {skill_id} ({display_name})")
+    
+    def clear_skill(self) -> None:
+        """清除当前激活的 Skill"""
+        if self._active_skill:
+            logger.info(f"Skill cleared: {self._active_skill.skill_id}")
+        self._active_skill = None
+    
+    def get_active_skill(self) -> Optional[ActiveSkill]:
+        """获取当前激活的 Skill
+        
+        Returns:
+            当前激活的 Skill 信息，或 None
+        """
+        return self._active_skill
+    
+    def has_active_skill(self) -> bool:
+        """检查是否有激活的 Skill"""
+        return self._active_skill is not None

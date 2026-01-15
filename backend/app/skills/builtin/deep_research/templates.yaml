@@ -1,0 +1,192 @@
+# Deep Research Skill 模板定义
+# 用于快速启动深度研究任务
+
+templates:
+  - id: deep_research_market
+    name: 市场调研
+    description: 深入分析某个行业或产品的市场规模、竞争格局、发展趋势
+    icon: "📊"
+    category: research
+    tags: [market, industry, analysis, 市场, 行业]
+    prompt_template: |
+      请帮我做一份关于「{topic}」的市场调研报告。
+
+      重点关注：
+      - 市场规模和增长趋势
+      - 主要玩家和竞争格局
+      - 技术发展方向
+      - 潜在机会和风险
+
+      {additional_requirements}
+    variables:
+      - name: topic
+        label: 研究主题
+        type: text
+        required: true
+        placeholder: "例如：AI Agent 市场、新能源汽车、跨境电商"
+      - name: additional_requirements
+        label: 额外要求
+        type: textarea
+        required: false
+        placeholder: "例如：重点关注中国市场、需要对比分析前三名厂商"
+    example_input: "AI Agent 市场"
+    example_output: |
+      # AI Agent 市场深度研究报告
+      > 研究日期：2024-01-15
+
+      ## 摘要
+      AI Agent 市场预计在 2024 年达到 XX 亿美元...
+
+  - id: deep_research_competitor
+    name: 竞品分析
+    description: 对比分析多个竞争产品的功能、定价、优劣势
+    icon: "⚔️"
+    category: research
+    tags: [competitor, comparison, product, 竞品, 对比]
+    prompt_template: |
+      请帮我做一份「{product}」的竞品分析报告。
+
+      需要对比的竞品：{competitors}
+
+      分析维度：
+      - 核心功能对比
+      - 定价策略
+      - 目标用户群
+      - 技术架构（如有公开信息）
+      - 优势和劣势
+
+      {focus_areas}
+    variables:
+      - name: product
+        label: 目标产品
+        type: text
+        required: true
+        placeholder: "例如：Notion、Figma、Slack"
+      - name: competitors
+        label: 竞品列表
+        type: text
+        required: true
+        placeholder: "例如：Obsidian, Roamsearch, Logseq"
+      - name: focus_areas
+        label: 重点关注
+        type: textarea
+        required: false
+        placeholder: "例如：重点关注协作功能、API 开放程度"
+    example_input: "Notion vs Obsidian vs Roam Research"
+
+  - id: deep_research_tech
+    name: 技术选型
+    description: 调研和对比多种技术方案，给出选型建议
+    icon: "🔧"
+    category: research
+    tags: [technology, architecture, selection, 技术, 选型]
+    prompt_template: |
+      我正在进行技术选型，需要调研「{tech_area}」相关的解决方案。
+
+      候选方案：{candidates}
+
+      评估维度：
+      - 性能和可扩展性
+      - 学习曲线和文档质量
+      - 社区活跃度和生态
+      - 企业采用情况
+      - 长期维护风险
+
+      项目背景：{project_context}
+    variables:
+      - name: tech_area
+        label: 技术领域
+        type: text
+        required: true
+        placeholder: "例如：前端框架、数据库、消息队列"
+      - name: candidates
+        label: 候选方案
+        type: text
+        required: true
+        placeholder: "例如：React, Vue, Svelte"
+      - name: project_context
+        label: 项目背景
+        type: textarea
+        required: false
+        placeholder: "例如：中型 SaaS 产品，团队 5 人，需要快速迭代"
+    example_input: "前端框架选型：React vs Vue vs Svelte"
+
+  - id: deep_research_academic
+    name: 学术研究
+    description: 针对学术主题进行文献调研和综述
+    icon: "🎓"
+    category: research
+    tags: [academic, paper, literature, 学术, 论文]
+    prompt_template: |
+      请帮我调研「{research_topic}」相关的学术进展。
+
+      研究方向：{research_direction}
+
+      需要了解：
+      - 该领域的核心问题和挑战
+      - 主要研究方法和流派
+      - 近期重要论文和突破
+      - 开放问题和未来方向
+
+      {specific_questions}
+    variables:
+      - name: research_topic
+        label: 研究主题
+        type: text
+        required: true
+        placeholder: "例如：大语言模型、强化学习、知识图谱"
+      - name: research_direction
+        label: 研究方向
+        type: text
+        required: false
+        placeholder: "例如：多模态、可解释性、效率优化"
+      - name: specific_questions
+        label: 具体问题
+        type: textarea
+        required: false
+        placr: "例如：RAG 和 Fine-tuning 哪个更适合知识密集型任务？"
+    example_input: "大语言模型的 Prompt Engineering 研究进展"
+
+  - id: deep_research_trend
+    name: 趋势洞察
+    description: 分析某个领域的发展趋势和未来预测
+    icon: "🔮"
+    category: research
+    tags: [trend, future, prediction, 趋势, 预测]
+    prompt_template: |
+      请帮我分析「{domain}」领域的发展趋势。
+
+      时间范围：{time_range}
+
+      分析内容：
+      - 当前发展阶段
+      - 关键驱动因素
+      - 主要趋势和变化
+      - 未来预测和展望
+      - 潜在风险和不确定性
+
+      {focus_points}
+    variables:
+      - name: domain
+        label: 分析领域
+        type: text
+        required: true
+        placeholder: "例如：生成式 AI、Web3、元宇宙"
+      - name: time_range
+        label: 时间范围
+        type: select
+        required: false
+        options:
+          - label: 近 1 年
+            value: "1年"
+          - label: 近 3 年
+            value: "3年"
+          - label: 近 5 年
+            value: "5年"
+        default: "3年"
+      - name: focus_points
+        label: 关注重点
+        type: textarea
+        required: false
+        placeholder: "例如：重点关注中国市场、关注政策影响"
+    example_input: "生成式 AI 未来 3 年发展趋势"

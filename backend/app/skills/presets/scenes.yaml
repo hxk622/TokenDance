@@ -1,0 +1,118 @@
+# 场景预设定义
+# 针对特定使用场景的模板集合，帮助用户快速进入工作流
+
+scenes:
+  - id: scene_startup_research
+    name: 创业调研
+    description: 从市场调研到商业计划，一站式创业准备
+    icon: "🚀"
+    color: "#10b981"
+    category: research
+    tags: [startup, business, market, 创业, 商业]
+    template_ids:
+      - deep_research_market
+      - deep_research_competitor
+      - deep_research_trend
+      - ppt_pitch_deck
+    recommended_skills:
+      - deep_research
+      - ppt
+
+  - id: scene_product_launch
+    name: 产品发布
+    description: 产品上市前的调研、文档和演示准备
+    icon: "📦"
+    color: "#6366f1"
+    category: document
+    tags: [product, launch, marketing, 产品, 发布]
+    template_ids:
+      - deep_research_competitor
+      - ppt_product_intro
+      - ppt_business_proposal
+    recommended_skills:
+      - deep_research
+      - ppt
+
+  - id: scene_tech_decision
+    name: 技术决策
+    description: 技术选型和架构决策的调研支持
+    icon: "⚙️"
+    color: "#f59e0b"
+    category: coding
+    tags: [technology, architecture, decision, 技术, 架构]
+    template_ids:
+      - deep_research_tech
+      - deep_research_trend
+    recommended_skills:
+      - deep_research
+
+  - id: scene_academic_research
+    name: 学术研究
+    description: 学术文献调研和研究报告撰写
+    icon: "🎓"
+    color: "#8b5cf6"
+    category: research
+    tags: [academic, paper, research, 学术, 论文]
+    template_ids:
+      - deep_research_academic
+      - deep_research_trend
+    recommended_skills:
+      - deep_research
+
+  - id: scene_project_management
+    name: 项目管理
+    description: 项目汇报和进度跟踪
+    icon: "📊"
+    color: "#3b82f6"
+    category: document
+    tags: [project, management, report, 项目, 管理]
+    template_ids:
+      - ppt_project_report
+      - ppt_business_proposal
+    recommended_skills:
+      - ppt
+
+  - id: scene_training
+    name: 培训教学
+    description: 创建培训课件和教学材料
+    icon: "📚"
+    color: "#ec4899"
+    category: document
+    tags: [training, education, teaching, 培训, 教学]
+    template_ids:
+      - ppt_training
+      - deep_research_tech
+    recommended_skills:
+      - ppt
+      - deep_research
+
+  - id: scene_data_anal  name: 数据分析
+    description: 数据可视化和分析报告
+    icon: "📈"
+    color: "#14b8a6"
+    category: data
+    tags: [data, analysis, visualization, 数据, 分析]
+    template_ids:
+      - deep_research_market
+      - deep_research_trend
+    recommended_skills:
+      - deep_research
+      - matplotlib
+      - seaborn
+      - plotly
+
+  - id: scene_investment_research
+    name: 投资研究
+    description: 行业研究和投资分析
+    icon: "💹"
+    color: "#22c55e"
+    category: research
+    tags: [investment, finance, analysis, 投资, 金融]
+    template_ids:
+      - deep_research_market
+      - deep_research_competitor
+      - deep_research_trend
+      - ppt_pitch_deck
+    recommended_skills:
+      - deep_research
+      - ppt

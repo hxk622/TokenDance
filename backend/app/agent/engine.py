@@ -23,6 +23,14 @@ from app.agent.prompts import ERROR_RECOVERY_PROMPT, FINDINGS_REMINDER_PROMPT
 from app.filesystem import AgentFileSystem
 from app.core.logging import get_logger
 
+# Skill System imports
+from app.skills import (
+    get_skill_registry,
+    get_skill_matcher,
+    SkillLoader,
+    SkillMatch,
+)
+
 logger = get_logger(__name__)
 
 
@@ -54,7 +62,8 @@ class AgentEngine:
         filesystem: AgentFileSystem,
         workspace_id: str,
         session_id: str,
-        max_iterations: int = 20
+        max_iterations: int = 20,
+        enable_skills: bool = True,
     ):
         """
         初始化 Agent Engine
@@ -65,16 +74,18 @@ class AgentEngine:
             workspace_id: Workspace ID
             session_id: Session ID
             max_iterations: 最大迭代次数
+            enable_skills: 是否启用 Skill 系统（默认 True）
         """
         self.llm = llm
         self.filesystem = filesystem
         self.workspace_id = workspace_id
         self.session_id = session_id
         self.max_iterations = max_iterations
+        self.enable_skills = enable_skills
         
         # 初始化工具注册表
-        self.tool_registry = ToolRegistry(filesystem=filesystem, workspace_id=workspace_id)
-        self.tool_registry.register_builtin_tools()
+        self.tool_registry = ToolRegistry()
+        # Note: register_builtin_tools 需要在外部调用，或者在这里单独处理
         
         # 初始化三文件管理器
         self.three_files = ThreeFilesManager(filesystem=filesystem, session_id=session_id)
@@ -89,10 +100,38 @@ class AgentEngine:
         # 初始化 Executor
         self.executor = ToolCallExecutor(tool_registry=self.tool_registry)
         
+        # 初始化 Skill 系统
+        self.skill_registry = None
+        self.skill_matcher = None
+        self.skill_loader = None
+        
+        if enable_skills:
+            self._init_skill_system()
+        
         # 状态
         self.iteration_count = 0
+        self._current_skill_match: Optional[SkillMatch] = None
         
-        logger.info(f"Agent Engine initialized for session {session_id}")
+        logger.info(f"Agent Engine initialized for session {session_id} (skills={enable_skills})")
+    
+    def _init_skill_system(self) -> None:
+        """初始化 Skill 系统组件"""
+        try:
+            # 获取 Skill 注册表（全局单例）
+            self.skill_registry = get_skill_registry()
+            
+            # 创建 Skill 匹配器（全局单例）
+            self.skill_matcher = get_skill_matcher(self.skill_registry)
+            
+            # 创建 Skill 加载器
+            self.skill_loader = SkillLoader(self.skill_registry)
+            
+            logger.info(
+                f"Skill system initialized: {len(self.skill_registry)} skills available"
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize skill system: {e}")
+            self.enable_skills = False
     
     async def run(self, user_message: str) -> AgentResponse:
         """
@@ -106,6 +145,9 @@ class AgentEngine:
         """
         logger.info(f"=== Agent Run Started ===")
         logger.info(f"User message: {user_message}")
+        
+        # Skill 匹配和注入
+        await self._match_and_inject_skill(user_message)
         
         # 添加用户消息到 context
         self.context_manager.add_user_message(user_message)
@@ -308,5 +350,76 @@ class AgentEngine:
         重置 Agent 状态（用于新对话）
         """
         self.context_manager.clear()
+        self.tool_registry.reset_allowed_tools()
+        self._current_skill_match = None
         self.iteration_count = 0
         logger.info("Agent state reset")
+    
+    # =========================================================================
+    # Skill 系统集成
+    # =========================================================================
+    
+    async def _match_and_inject_skill(self, user_message: str) -> None:
+        """匹配 Skill 并注入 L2 指令
+        
+        Args:
+            user_message: 用户消息
+        """
+        if not self.enable_skills or not self.skill_matcher:
+            return
+        
+        try:
+            # 匹配 Skill
+            match = await self.skill_matcher.match(user_message)
+            
+            if match and match.is_confident():
+                self._current_skill_match = match
+                logger.info(
+                    f"Skill matched: {match.skill_id} "
+                    f"(score={match.score:.2f}, reason={match.reason})"
+                )
+                
+                # 加载 L2 指令
+                l2_instructions = await self.skill_loader.load_l2(match.skill_id)
+                
+                # 获取 Skill 元数据
+                skill_meta = match.metadata
+                if not skill_meta:
+                    skill_meta = self.skill_registry.get(match.skill_id)
+                
+                if skill_meta:
+                    # 注入 Skill 指令到 Context
+                    self.context_manager.inject_skill(
+                        skill_id=match.skill_id,
+                        display_name=skill_meta.display_name,
+                        l2_instructions=l2_instructions,
+                        allowed_tools=skill_meta.allowed_tools,
+                    )
+                    
+                    # Action Space Pruning: 限制可用工具
+                    if skill_meta.allowed_tools:
+                        self.tool_registry.set_allowed_tools(skill_meta.allowed_tools)
+                        logger.info(
+                            f"Action Space Pruning: tools limited to {skill_meta.allowed_tools}"
+                        )
+            else:
+                # 没有匹配到 Skill，清除之前的 Skill 状态
+                self._clear_skill_state()
+                
+        except Exception as e:
+            logger.error(f"Skill matching failed: {e}")
+            self._clear_skill_state()
+    
+    def _clear_skill_state(self) -> None:
+        """清除 Skill 状态"""
+        self._current_skill_match = None
+        self.context_manager.clear_skill()
+        self.tool_registry.reset_allowed_tools()
+    
+    def get_current_skill(self) -> Optional[SkillMatch]:
+        """获取当前激活的 Skill
+        
+        Returns:
+            当前的 SkillMatch，或 None
+        """
+        return self._current_skill_match

@@ -11,6 +11,14 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/discover',
+    name: 'Discover',
+    component: () => import('@/views/SkillDiscovery.vue'),
+    meta: {
+      title: 'Discover Skills - TokenDance'
+    }
+  },
+  {
     path: '/chat',
     name: 'Chat',
     component: () => import('@/views/ChatView.vue')
