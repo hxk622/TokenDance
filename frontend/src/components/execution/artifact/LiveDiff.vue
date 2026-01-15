@@ -18,6 +18,9 @@ const useMonaco = ref(true) // Toggle between Monaco and fallback view
 const editorContainer = ref<HTMLElement | null>(null)
 const diffEditor = shallowRef<monaco.editor.IStandaloneDiffEditor | null>(null)
 
+// Use props to satisfy TypeScript (will be used in real implementation)
+const _filePath = computed(() => props.filePath)
+
 // Mock diff data
 const currentDiff = ref<FileDiff>({
   path: 'src/components/Button.vue',

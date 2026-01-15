@@ -57,6 +57,21 @@ const focusedNodeId = ref<string | null>(null)
 const isCollapsed = ref(false)
 const collapsedHeight = 80 // px for mini-graph
 
+// Responsive layout state
+const isCompactMode = ref(false)
+const activePanel = ref<'left' | 'right'>('left') // Which panel is visible in compact mode
+
+// Check viewport width
+function checkResponsiveMode() {
+  isCompactMode.value = window.innerWidth < 1280
+}
+
+// Toggle panel in compact mode (used in template via activePanel assignment)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _togglePanel() {
+  activePanel.value = activePanel.value === 'left' ? 'right' : 'left'
+}
+
 // Load saved ratios from localStorage
 onMounted(async () => {
   const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
@@ -74,6 +89,10 @@ onMounted(async () => {
     bottomHeight.value = bottom
   }
   
+  // Initialize responsive check
+  checkResponsiveMode()
+  window.addEventListener('resize', checkResponsiveMode)
+  
   // Initialize store and connect SSE
   await initializeExecution()
 })
@@ -81,6 +100,7 @@ onMounted(async () => {
 onUnmounted(() => {
   // Cleanup
   executionStore.disconnect()
+  window.removeEventListener('resize', checkResponsiveMode)
   if (elapsedTimer) {
     clearInterval(elapsedTimer)
   }
@@ -303,10 +323,37 @@ function toggleCollapse() {
       </div>
     </Transition>
 
+    <!-- Panel Toggle (Compact Mode) -->
+    <div v-if="isCompactMode" class="panel-toggle">
+      <button 
+        :class="['toggle-btn', { active: activePanel === 'left' }]" 
+        @click="activePanel = 'left'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span>执行跟踪</span>
+      </button>
+      <button 
+        :class="['toggle-btn', { active: activePanel === 'right' }]" 
+        @click="activePanel = 'right'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span>成果预览</span>
+      </button>
+    </div>
+
     <!-- Main Content -->
-    <main class="execution-content">
+    <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
       <!-- Left Panel: Execution Area -->
-      <div class="left-panel" :style="{ width: `${leftWidth}%` }">
+      <div 
+        class="left-panel" 
+        :class="{ hidden: isCompactMode && activePanel !== 'left' }"
+        :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
+      >
         <!-- Collapse Toggle Button -->
         <button 
           class="collapse-toggle"
@@ -325,7 +372,7 @@ function toggleCollapse() {
         >
           <WorkflowGraph 
             :session-id="sessionId" 
-            :mini-mode="isCollapsed"
+            :mini-mode="isCollapsed || isCompactMode"
             @node-click="handleNodeClick"
             @node-double-click="handleNodeDoubleClick"
           />
@@ -333,7 +380,7 @@ function toggleCollapse() {
 
         <!-- Vertical Divider (hidden when collapsed) -->
         <ResizableDivider
-          v-if="!isCollapsed"
+          v-if="!isCollapsed && !isCompactMode"
           direction="vertical"
           @resize="handleVerticalDrag"
           @reset="resetVerticalRatio"
@@ -342,7 +389,7 @@ function toggleCollapse() {
         <!-- Bottom: Streaming Info -->
         <div 
           class="streaming-info-container" 
-          :style="{ height: isCollapsed ? 'calc(100% - 80px)' : `${bottomHeight}%` }"
+          :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
         >
           <StreamingInfo 
             ref="streamingInfoRef"
@@ -351,15 +398,20 @@ function toggleCollapse() {
         </div>
       </div>
 
-      <!-- Horizontal Divider -->
+      <!-- Horizontal Divider (hidden in compact mode) -->
       <ResizableDivider
+        v-if="!isCompactMode"
         direction="horizontal"
         @resize="handleHorizontalDrag"
         @reset="resetHorizontalRatio"
       />
 
       <!-- Right Panel: Preview Area -->
-      <div class="right-panel" :style="{ width: `${rightWidth}%` }">
+      <div 
+        class="right-panel" 
+        :class="{ hidden: isCompactMode && activePanel !== 'right' }"
+        :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
+      >
         <ArtifactTabs 
           :session-id="sessionId" 
           v-model:current-tab="currentTab"
@@ -584,6 +636,118 @@ function toggleCollapse() {
   background: var(--bg-secondary, rgba(28, 28, 30, 0.9));
 }
 
+/* Panel Toggle (Compact Mode) */
+.panel-toggle {
+  display: flex;
+  padding: 8px 16px;
+  gap: 8px;
+  background: rgba(28, 28, 30, 0.9);
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--divider-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-btn.active {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.5);
+  color: var(--color-node-active, #00D9FF);
+}
+
+.toggle-btn svg {
+  flex-shrink: 0;
+}
+
+/* Compact Mode Styles */
+.execution-content.compact-mode {
+  flex-direction: column;
+}
+
+.execution-content.compact-mode .left-panel,
+.execution-content.compact-mode .right-panel {
+  width: 100% !important;
+  flex: 1;
+}
+
+.execution-content.compact-mode .left-panel.hidden,
+.execution-content.compact-mode .right-panel.hidden {
+  display: none;
+}
+
+.execution-content.compact-mode .workflow-graph-container {
+  height: 100px !important;
+  min-height: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1279px) {
+  .execution-header {
+    padding: 0 16px;
+  }
+  
+  .task-title {
+    font-size: 16px;
+  }
+  
+  .status-indicator {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .header-actions {
+    gap: 8px;
+  }
+  
+  .btn-secondary {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .execution-header {
+    height: auto;
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .task-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .header-actions {
+    justify-content: flex-end;
+  }
+  
+  .focus-mode-banner {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+}
+
 /* CSS Variables */
 :root {
   --bg-primary: rgba(18, 18, 18, 0.95);
@@ -592,5 +756,6 @@ function toggleCollapse() {
   --text-secondary: rgba(255, 255, 255, 0.6);
   --divider-color: rgba(255, 255, 255, 0.1);
   --divider-hover: rgba(0, 217, 255, 0.5);
+  --color-node-active: #00D9FF;
 }
 </style>

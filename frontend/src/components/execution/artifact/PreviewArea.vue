@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import CoworkerFileTree from '../workflow/CoworkerFileTree.vue'
 import LiveDiff from './LiveDiff.vue'
 
@@ -11,6 +11,68 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   currentTab: 'report'
 })
+
+// PPT Preview State
+interface Slide {
+  id: string
+  title: string
+  content: string
+  notes?: string
+  layout: 'title' | 'content' | 'two-column' | 'image'
+}
+
+const slides = ref<Slide[]>([
+  {
+    id: '1',
+    title: 'AI Agent 市场分析报告',
+    content: 'TokenDance Deep Research',
+    layout: 'title',
+  },
+  {
+    id: '2',
+    title: '市场规模与增长',
+    content: '- 2024年全球市场: $120亿\n- 预计2026年: $350亿\n- CAGR: 45%',
+    layout: 'content',
+  },
+  {
+    id: '3',
+    title: '主要竞品分析',
+    content: 'Manus: 沙箱执行 + 计划背诵\nCoworker: 本地文件深度操控\nGenSpark: 深度研究引擎',
+    layout: 'two-column',
+  },
+  {
+    id: '4',
+    title: '差异化机会',
+    content: '- Vibe Workflow理念\n- 三文件工作法\n- 多模态能力整合',
+    layout: 'content',
+  },
+  {
+    id: '5',
+    title: '总结与建议',
+    content: 'TokenDance 定位: Vibe-Agentic Workflow\n市场窗口期: 2024-2026',
+    layout: 'title',
+  },
+])
+
+const currentSlideIndex = ref(0)
+const currentSlide = computed(() => slides.value[currentSlideIndex.value])
+const totalSlides = computed(() => slides.value.length)
+
+function goToPrevSlide() {
+  if (currentSlideIndex.value > 0) {
+    currentSlideIndex.value--
+  }
+}
+
+function goToNextSlide() {
+  if (currentSlideIndex.value < slides.value.length - 1) {
+    currentSlideIndex.value++
+  }
+}
+
+function goToSlide(index: number) {
+  currentSlideIndex.value = index
+}
 
 // Mock preview content
 const previewContent = ref(`# AI Agent 市场分析报告
@@ -50,11 +112,73 @@ const previewContent = ref(`# AI Agent 市场分析报告
       </div>
     </div>
 
-    <!-- PPT Tab (Phase3) -->
-    <div v-else-if="currentTab === 'ppt'" class="preview-content">
-      <div class="ppt-placeholder">
-        <span class="placeholder-icon">📊</span>
-        <p>PPT预览功能将在Phase3实现</p>
+    <!-- PPT Tab -->
+    <div v-else-if="currentTab === 'ppt'" class="ppt-preview">
+      <!-- Slide Thumbnails Sidebar -->
+      <div class="ppt-sidebar">
+        <div class="sidebar-header">
+          <span class="slide-count">{{ totalSlides }} 张幻灯片</span>
+        </div>
+        <div class="thumbnail-list">
+          <div
+            v-for="(slide, index) in slides"
+            :key="slide.id"
+            :class="['thumbnail', { active: index === currentSlideIndex }]"
+            @click="goToSlide(index)"
+          >
+            <div class="thumbnail-content">
+              <div class="thumbnail-number">{{ index + 1 }}</div>
+              <div class="thumbnail-title">{{ slide.title }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Slide Preview -->
+      <div class="ppt-main">
+        <div class="slide-container">
+          <div :class="['slide', `layout-${currentSlide.layout}`]">
+            <h1 class="slide-title">{{ currentSlide.title }}</h1>
+            <div class="slide-content">
+              <p v-for="(line, i) in currentSlide.content.split('\\n')" :key="i">{{ line }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Slide Navigation -->
+        <div class="slide-nav">
+          <button class="nav-btn" :disabled="currentSlideIndex === 0" @click="goToPrevSlide">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <span class="nav-indicator">{{ currentSlideIndex + 1 }} / {{ totalSlides }}</span>
+          <button class="nav-btn" :disabled="currentSlideIndex === totalSlides - 1" @click="goToNextSlide">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- PPT Actions -->
+        <div class="ppt-actions">
+          <button class="btn-action">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            下载 PPTX
+          </button>
+          <button class="btn-action">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            全屏演示
+          </button>
+        </div>
       </div>
     </div>
 
@@ -135,25 +259,206 @@ const previewContent = ref(`# AI Agent 市场分析报告
   border-color: var(--color-node-active);
 }
 
-/* PPT Placeholder */
-.ppt-placeholder {
+/* PPT Preview */
+.ppt-preview {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.ppt-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: rgba(28, 28, 30, 0.6);
+  border-right: 1px solid var(--divider-color);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+}
+
+.sidebar-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--divider-color);
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
-.placeholder-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
+.thumbnail-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.ppt-placeholder p {
-  margin: 0;
+.thumbnail {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.thumbnail:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--divider-color);
+}
+
+.thumbnail.active {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.5);
+}
+
+.thumbnail-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.thumbnail-number {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.thumbnail-title {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ppt-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  position: relative;
+}
+
+.slide-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide {
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
+  border-radius: 12px;
+  border: 1px solid var(--divider-color);
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.slide.layout-title {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.slide.layout-title .slide-title {
+  font-size: 32px;
+}
+
+.slide.layout-content .slide-title {
+  margin-bottom: 24px;
+}
+
+.slide.layout-two-column .slide-content {
+  columns: 2;
+  column-gap: 32px;
+}
+
+.slide-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+.slide-content {
+  flex: 1;
+}
+
+.slide-content p {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.slide-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.nav-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--divider-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: rgba(0, 217, 255, 0.2);
+  border-color: var(--color-node-active);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.nav-indicator {
   font-size: 14px;
+  color: var(--text-secondary);
+  min-width: 60px;
+  text-align: center;
+}
+
+.ppt-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.ppt-actions .btn-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ppt-actions .btn-action svg {
+  flex-shrink: 0;
 }
 
 /* File Diff View */

@@ -13,6 +13,9 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'node-click': [nodeId: string]
   'node-double-click': [nodeId: string]
+  'node-rerun': [nodeId: string]
+  'node-view-logs': [nodeId: string]
+  'edge-disconnect': [edgeId: string]
 }>()
 
 // Node types
@@ -110,6 +113,16 @@ const tooltipVisible = ref(false)
 const hoveredNode = ref<Node | null>(null)
 const tooltipPosition = ref({ x: 0, y: 0 })
 
+// Context Menu state
+const contextMenuVisible = ref(false)
+const contextMenuNode = ref<Node | null>(null)
+const contextMenuPosition = ref({ x: 0, y: 0 })
+
+// Edge interaction state
+const draggingEdge = ref<string | null>(null)
+const dragStartPos = ref({ x: 0, y: 0 })
+const dragCurrentPos = ref({ x: 0, y: 0 })
+
 function handleNodeClick(nodeId: string) {
   selectedNodeId.value = nodeId
   emit('node-click', nodeId)
@@ -132,6 +145,100 @@ function handleNodeHover(node: Node, event: MouseEvent) {
 function handleNodeLeave() {
   tooltipVisible.value = false
   hoveredNode.value = null
+}
+
+// Context Menu handlers
+function handleContextMenu(node: Node, event: MouseEvent) {
+  event.preventDefault()
+  contextMenuVisible.value = true
+  contextMenuNode.value = node
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY }
+}
+
+function closeContextMenu() {
+  contextMenuVisible.value = false
+  contextMenuNode.value = null
+}
+
+function handleRerunNode() {
+  if (contextMenuNode.value) {
+    emit('node-rerun', contextMenuNode.value.id)
+    console.log('Rerun node:', contextMenuNode.value.id)
+  }
+  closeContextMenu()
+}
+
+function handleViewLogs() {
+  if (contextMenuNode.value) {
+    emit('node-view-logs', contextMenuNode.value.id)
+    console.log('View logs for node:', contextMenuNode.value.id)
+  }
+  closeContextMenu()
+}
+
+function handleCopyOutput() {
+  if (contextMenuNode.value?.metadata?.output) {
+    navigator.clipboard.writeText(contextMenuNode.value.metadata.output)
+    console.log('Output copied to clipboard')
+  }
+  closeContextMenu()
+}
+
+// Edge interaction handlers
+function handleEdgeDoubleClick(edge: Edge) {
+  // Double-click to disconnect edge
+  const index = edges.value.findIndex(e => e.id === edge.id)
+  if (index !== -1) {
+    edges.value.splice(index, 1)
+    emit('edge-disconnect', edge.id)
+    console.log('Disconnected edge:', edge.id)
+  }
+}
+
+function handleEdgeMouseDown(edge: Edge, event: MouseEvent) {
+  // Start dragging edge for reconnection
+  event.stopPropagation()
+  draggingEdge.value = edge.id
+  dragStartPos.value = { x: event.clientX, y: event.clientY }
+  dragCurrentPos.value = { x: event.clientX, y: event.clientY }
+  
+  document.addEventListener('mousemove', handleEdgeDrag)
+  document.addEventListener('mouseup', handleEdgeDragEnd)
+}
+
+function handleEdgeDrag(event: MouseEvent) {
+  if (!draggingEdge.value) return
+  dragCurrentPos.value = { x: event.clientX, y: event.clientY }
+}
+
+function handleEdgeDragEnd(event: MouseEvent) {
+  if (!draggingEdge.value) return
+  
+  // Find if dropped on a node
+  const target = document.elementFromPoint(event.clientX, event.clientY)
+  const nodeElement = target?.closest('[data-node-id]')
+  
+  if (nodeElement) {
+    const targetNodeId = nodeElement.getAttribute('data-node-id')
+    const edge = edges.value.find(e => e.id === draggingEdge.value)
+    
+    if (edge && targetNodeId && targetNodeId !== edge.from) {
+      // Reconnect edge to new target
+      edge.to = targetNodeId
+      console.log('Reconnected edge', edge.id, 'to node', targetNodeId)
+    }
+  }
+  
+  draggingEdge.value = null
+  document.removeEventListener('mousemove', handleEdgeDrag)
+  document.removeEventListener('mouseup', handleEdgeDragEnd)
+}
+
+// Close context menu on click outside
+function handleCanvasClick() {
+  if (contextMenuVisible.value) {
+    closeContextMenu()
+  }
 }
 
 function getNodeColor(status: Node['status']): string {
@@ -200,20 +307,34 @@ watch(() => props.sessionId, (newId) => {
     </div>
 
     <!-- Canvas Area (Normal Mode) -->
-    <svg v-else class="graph-canvas" width="100%" height="100%">
+    <svg v-else class="graph-canvas" width="100%" height="100%" @click="handleCanvasClick">
       <!-- Draw edges -->
       <g class="edges">
-        <line
-          v-for="edge in edges"
-          :key="edge.id"
-          :x1="nodes.find(n => n.id === edge.from)?.x"
-          :y1="nodes.find(n => n.id === edge.from)?.y"
-          :x2="nodes.find(n => n.id === edge.to)?.x"
-          :y2="nodes.find(n => n.id === edge.to)?.y"
-          :class="['edge', { active: edge.active }]"
-          stroke="rgba(255, 255, 255, 0.3)"
-          stroke-width="2"
-        />
+        <g v-for="edge in edges" :key="edge.id" class="edge-group">
+          <!-- Invisible wider line for easier interaction -->
+          <line
+            :x1="nodes.find(n => n.id === edge.from)?.x"
+            :y1="nodes.find(n => n.id === edge.from)?.y"
+            :x2="nodes.find(n => n.id === edge.to)?.x"
+            :y2="nodes.find(n => n.id === edge.to)?.y"
+            class="edge-hitbox"
+            stroke="transparent"
+            stroke-width="20"
+            @dblclick="handleEdgeDoubleClick(edge)"
+            @mousedown="handleEdgeMouseDown(edge, $event)"
+          />
+          <!-- Visible edge line -->
+          <line
+            :x1="nodes.find(n => n.id === edge.from)?.x"
+            :y1="nodes.find(n => n.id === edge.from)?.y"
+            :x2="nodes.find(n => n.id === edge.to)?.x"
+            :y2="nodes.find(n => n.id === edge.to)?.y"
+            :class="['edge', { active: edge.active, dragging: draggingEdge === edge.id }]"
+            stroke="rgba(255, 255, 255, 0.3)"
+            stroke-width="2"
+            pointer-events="none"
+          />
+        </g>
       </g>
 
       <!-- Draw nodes -->
@@ -221,10 +342,12 @@ watch(() => props.sessionId, (newId) => {
         <g
           v-for="node in nodes"
           :key="node.id"
+          :data-node-id="node.id"
           :transform="`translate(${node.x}, ${node.y})`"
           :class="['node', node.status, { selected: selectedNodeId === node.id }]"
-          @click="handleNodeClick(node.id)"
+          @click.stop="handleNodeClick(node.id)"
           @dblclick="handleNodeDoubleClick(node.id)"
+          @contextmenu="handleContextMenu(node, $event)"
           @mouseenter="handleNodeHover(node, $event)"
           @mouseleave="handleNodeLeave"
         >
@@ -259,6 +382,41 @@ watch(() => props.sessionId, (newId) => {
       :y="tooltipPosition.y"
       :metadata="hoveredNode.metadata"
     />
+
+    <!-- Context Menu -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="contextMenuVisible && contextMenuNode"
+          class="context-menu"
+          :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
+        >
+          <div class="context-menu-item" @click="handleRerunNode">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            <span>重新执行</span>
+          </div>
+          <div class="context-menu-item" @click="handleViewLogs">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span>查看日志</span>
+          </div>
+          <div class="context-menu-item" @click="handleCopyOutput" :class="{ disabled: !contextMenuNode.metadata?.output }">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>复制输出</span>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Legend -->
     <div class="graph-legend">
@@ -356,6 +514,21 @@ watch(() => props.sessionId, (newId) => {
     stroke-dashoffset: 0;
     opacity: 0.95;
   }
+}
+
+.edge-hitbox {
+  cursor: pointer;
+}
+
+.edge-hitbox:hover + .edge {
+  stroke: rgba(0, 217, 255, 0.6);
+  stroke-width: 3;
+}
+
+.edge.dragging {
+  stroke: rgba(255, 184, 0, 0.8);
+  stroke-width: 3;
+  stroke-dasharray: 8 4;
 }
 
 /* Nodes */
@@ -561,6 +734,64 @@ watch(() => props.sessionId, (newId) => {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 160px;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--divider-color);
+  border-radius: 8px;
+  padding: 6px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.context-menu-item:hover {
+  background: rgba(0, 217, 255, 0.15);
+}
+
+.context-menu-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.context-menu-item.disabled:hover {
+  background: transparent;
+}
+
+.context-menu-item svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.context-menu-item:hover svg {
+  color: var(--color-node-active);
+}
+
+/* Fade transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 150ms ease-out;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* CSS Variables */
