@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAgentStream } from '@/composables/useAgentStream'
 import MessageList, { type Message } from '@/components/MessageList.vue'
 import InputBox from '@/components/InputBox.vue'
 import ThinkingTrace from '@/components/ThinkingTrace.vue'
 import ToolCallCard, { type ToolCallStatus } from '@/components/ToolCallCard.vue'
 import WorkingMemory from '@/components/execution/WorkingMemory.vue'
+import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
+import { hitlApi, type HITLRequest } from '@/api/hitl'
 
 // Types
 interface ToolCall {
@@ -28,6 +30,12 @@ const showThinking = ref(false)
 const showMemoryPanel = ref(false)
 const memoryData = ref<WorkingMemoryResponse | null>(null)
 const isLoadingMemory = ref(false)
+
+// HITL State
+const pendingHITLRequests = ref<HITLRequest[]>([])
+const currentHITLRequest = ref<HITLRequest | null>(null)
+const showHITLDialog = ref(false)
+let hitlPollingInterval: ReturnType<typeof setInterval> | null = null
 
 // Session ID (hardcoded for now - TODO: dynamic from route/user)
 const sessionId = 'demo-session-123'
@@ -154,12 +162,73 @@ const refreshMemory = async () => {
   await loadWorkingMemory()
 }
 
+// HITL Methods
+const pollHITLRequests = async () => {
+  try {
+    const requests = await hitlApi.listPending(sessionId)
+    pendingHITLRequests.value = requests
+    
+    // Auto-show dialog for first pending request
+    if (requests.length > 0 && !showHITLDialog.value) {
+      currentHITLRequest.value = requests[0]
+      showHITLDialog.value = true
+    }
+  } catch (error) {
+    // Silently ignore polling errors (server may be down)
+    console.debug('HITL polling error:', error)
+  }
+}
+
+const startHITLPolling = () => {
+  // Poll every 2 seconds
+  hitlPollingInterval = setInterval(pollHITLRequests, 2000)
+  // Initial poll
+  pollHITLRequests()
+}
+
+const stopHITLPolling = () => {
+  if (hitlPollingInterval) {
+    clearInterval(hitlPollingInterval)
+    hitlPollingInterval = null
+  }
+}
+
+const handleHITLClose = () => {
+  showHITLDialog.value = false
+  currentHITLRequest.value = null
+}
+
+const handleHITLConfirmed = (approved: boolean) => {
+  showHITLDialog.value = false
+  currentHITLRequest.value = null
+  
+  // Add system message (using 'assistant' role for display)
+  const systemMessage: Message = {
+    id: `sys-${Date.now()}`,
+    role: 'assistant',
+    content: approved 
+      ? '✅ 操作已确认执行' 
+      : '❌ 操作已拒绝',
+    timestamp: new Date()
+  }
+  messages.value.push(systemMessage)
+  
+  // Refresh pending list
+  pollHITLRequests()
+}
+
 // Lifecycle
 onMounted(() => {
   // Initial load if panel is open by default
   if (showMemoryPanel.value) {
     loadWorkingMemory()
   }
+  // Start HITL polling
+  startHITLPolling()
+})
+
+onUnmounted(() => {
+  stopHITLPolling()
 })
 </script>
 
@@ -254,6 +323,29 @@ onMounted(() => {
         </div>
       </Transition>
     </div>
+
+    <!-- HITL Confirm Dialog -->
+    <HITLConfirmDialog
+      :visible="showHITLDialog"
+      :request="currentHITLRequest"
+      @close="handleHITLClose"
+      @confirmed="handleHITLConfirmed"
+    />
+
+    <!-- HITL Pending Badge (when dialog is closed but requests exist) -->
+    <Transition name="bounce">
+      <button
+        v-if="pendingHITLRequests.length > 0 && !showHITLDialog"
+        @click="showHITLDialog = true; currentHITLRequest = pendingHITLRequests[0]"
+        class="hitl-badge"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span>{{ pendingHITLRequests.length }} 待确认</span>
+      </button>
+    </Transition>
   </div>
 </template>
 
@@ -360,5 +452,43 @@ onMounted(() => {
 .slide-left-leave-to {
   transform: translateX(100%);
   opacity: 0;
+}
+
+/* HITL Badge */
+.hitl-badge {
+  @apply fixed bottom-24 right-6 flex items-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-full shadow-lg cursor-pointer hover:bg-amber-600 transition-all;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+  }
+}
+
+/* Bounce transition */
+.bounce-enter-active {
+  animation: bounce-in 0.3s;
+}
+
+.bounce-leave-active {
+  animation: bounce-in 0.3s reverse;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>
