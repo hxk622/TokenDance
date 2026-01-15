@@ -7,11 +7,13 @@ Built-in Tools - 内置工具集
 - shell: Shell命令执行
 - file_ops: 文件操作
 - browser_ops: 浏览器操作 (agent-browser)
+- report_generator: 研究报告生成
 """
 from .web_search import WebSearchTool, create_web_search_tool
 from .read_url import ReadUrlTool, create_read_url_tool
 from .shell import ShellTool
 from .file_ops import FileOpsTool, create_file_ops_tool
+from .report_generator import ReportGeneratorTool, create_report_generator_tool
 from .browser_ops import (
     BrowserOpenTool,
     BrowserClickTool,
@@ -31,6 +33,9 @@ __all__ = [
     "ShellTool",
     "FileOpsTool",
     "create_file_ops_tool",
+    # Report generator
+    "ReportGeneratorTool",
+    "create_report_generator_tool",
     # Browser tools
     "BrowserOpenTool",
     "BrowserClickTool",
