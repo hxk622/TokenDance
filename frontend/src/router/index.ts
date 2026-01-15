@@ -44,6 +44,15 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false  // MVP阶段暂不需要认证
     }
   },
+  {
+    path: '/files',
+    name: 'Files',
+    component: () => import('@/views/FilesView.vue'),
+    meta: {
+      title: 'Files - Coworker',
+      requiresAuth: false
+    }
+  },
   // TODO: Add more routes
   // {
   //   path: '/login',
