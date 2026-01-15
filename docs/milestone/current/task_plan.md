@@ -133,25 +133,25 @@
 
 ### Deep Research 工作流 (Option A)
 
-#### 1. DeepResearchAgent 实现 🔥
+#### 1. DeepResearchAgent 实现 ✅
 文件: `backend/app/agent/agents/deep_research.py`
-- [ ] 继承 ResearchAgent，扩展多轮搜索能力
-- [ ] 实现 QueryExpansion (查询扩展)
-- [ ] 实现 SourceCredibility (来源可信度评估)
-- [ ] 实现 InformationSynthesis (信息综合)
+- [x] 继承 ResearchAgent，扩展多轮搜索能力
+- [x] 实现 QueryExpansion (查询扩展)
+- [x] 实现 SourceCredibility (来源可信度评估)
+- [x] 实现 InformationSynthesis (信息综合)
 
-#### 2. 研究报告生成
+#### 2. 研究报告生成 ✅
 文件: `backend/app/agent/tools/builtin/report_generator.py`
-- [ ] Markdown 报告模板
-- [ ] 引用管理 (自动生成参考文献)
-- [ ] 摘要生成 (Executive Summary)
-- [ ] 关键发现提取
+- [x] Markdown 报告模板
+- [x] 引用管理 (自动生成参考文献)
+- [x] 摘要生成 (Executive Summary)
+- [x] 关键发现提取
 
-#### 3. 时光长廊 (Timeline)
+#### 3. 时光长廊 (Timeline) ✅
 文件: `backend/app/services/research_timeline.py`
-- [ ] 截图存储 (MinIO/本地)
-- [ ] 时间戳索引
-- [ ] 页面元数据记录
+- [x] 截图存储 (MinIO/本地)
+- [x] 时间戳索引
+- [x] 页面元数据记录
 - [ ] 前端 Timeline 组件集成
 
 ### 本地文件索引 (Option B)
@@ -230,6 +230,46 @@
 
 ---
 
+## 🌟 MVP 扩展功能 (2026-01-15 新增)
+
+### 1. AI 图像生成 (Nano Banana 集成) ✅ Skill已创建
+文件: `backend/app/skills/builtin/image_generation/SKILL.md`
+- [x] 创建 image_generation Skill 定义
+- [x] 创建马年祝福图模板 (`resources/chinese_new_year_2026.md`)
+- [ ] 实现 generate_image 工具 (Gemini API 调用)
+- [ ] 实现 edit_image 工具
+- [ ] 前端图像预览组件
+
+### 2. 舆情分析场景模板 ✅ 已创建
+文件: `backend/app/skills/builtin/deep_research/resources/sentiment_analysis_template.md`
+- [x] 创建舆情分析场景模板
+- [x] 定义情感分析框架
+- [x] 定义舆情报告输出模板
+- [ ] 集成到 Deep Research Skill 工作流
+
+### 3. 科学计算技能 (100+ Skills) ✅ 已存在
+目录: `backend/app/skills/scientific/`
+- [x] bioinformatics - 生物信息学
+- [x] chemistry - 化学
+- [x] clinical - 临床
+- [x] data-science - 数据科学
+- [x] database - 数据库
+- [x] lab-automation - 实验室自动化
+- [x] physics - 物理
+- [x] research-tools - 研究工具
+- [x] visualization - 可视化 (matplotlib, seaborn, plotly, networkx)
+- [x] writing - 写作
+
+**工作量评估**:
+| 功能 | 工作量 | 优先级 |
+|------|--------|--------|
+| Nano Banana API 集成 | 2-3天 | P0.5 |
+| 马年祝福图模板 | 已完成 | P0.5 |
+| 舆情分析模板 | 已完成 | P1 |
+| 科学计算技能 | 已存在 | P1 |
+
+---
+
 ## 📝 开发原则
 
 ### Plan Recitation (计划背诵)
@@ -293,6 +333,11 @@
 - 2026-01-15: HITL 前端集成完成
 - 2026-01-15: API 文档 + 部署指南完成
 - 2026-01-15: 切换到 MVP Sprint (Deep Research + PPT + 文件索引)
+- 2026-01-15: **MVP 扩展功能讨论与初步实施**
+  - 新增 AI 图像生成 Skill (Nano Banana)
+  - 新增马年祝福图模板
+  - 新增舆情分析场景模板 (作为 Deep Research 扩展)
+  - 确认科学计算 100+ Skills 已存在
 
 ---
 
