@@ -47,6 +47,9 @@ class OperationCategory(str, Enum):
     # 文档操作
     DOCUMENT_CREATE = "document_create" # 创建文档（Markdown, PDF 等）
 
+    # 内容生成
+    CONTENT_GENERATION = "content_generation"  # 内容生成（图片、音频等）
+
 
 # 风险等级优先级映射（用于比较）
 RISK_PRIORITY: dict[RiskLevel, int] = {
@@ -71,6 +74,7 @@ CATEGORY_DEFAULT_RISK: dict[OperationCategory, RiskLevel] = {
     OperationCategory.SHELL_WRITE: RiskLevel.HIGH,
     OperationCategory.SHELL_DANGEROUS: RiskLevel.CRITICAL,
     OperationCategory.DOCUMENT_CREATE: RiskLevel.LOW,
+    OperationCategory.CONTENT_GENERATION: RiskLevel.LOW,
 }
 
 
