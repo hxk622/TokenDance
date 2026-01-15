@@ -5,12 +5,59 @@ import LiveDiff from './LiveDiff.vue'
 
 interface Props {
   sessionId: string
-  currentTab?: 'report' | 'ppt' | 'file-diff'
+  currentTab?: 'report' | 'ppt' | 'file-diff' | 'image'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   currentTab: 'report'
 })
+
+// Image Preview State
+interface GeneratedImage {
+  id: string
+  path: string
+  prompt: string
+  style: string
+  dimensions: string
+  createdAt: string
+}
+
+const generatedImages = ref<GeneratedImage[]>([
+  // Mock data - will be replaced with real data from backend
+  {
+    id: '1',
+    path: '/api/images/generated_20260115_214800_1.png',
+    prompt: 'A majestic horse galloping through cherry blossoms, golden hour lighting, Chinese New Year festive atmosphere',
+    style: 'realistic',
+    dimensions: '1024x1024',
+    createdAt: '2026-01-15 21:48:00'
+  }
+])
+
+const selectedImageIndex = ref(0)
+const selectedImage = computed(() => generatedImages.value[selectedImageIndex.value])
+const isImageZoomed = ref(false)
+
+function selectImage(index: number) {
+  selectedImageIndex.value = index
+}
+
+function toggleZoom() {
+  isImageZoomed.value = !isImageZoomed.value
+}
+
+function downloadImage(image: GeneratedImage) {
+  // Create download link
+  const link = document.createElement('a')
+  link.href = image.path
+  link.download = `tokendance_${image.id}.png`
+  link.click()
+}
+
+function regenerateImage() {
+  // TODO: Call backend to regenerate
+  console.log('Regenerate image with prompt:', selectedImage.value?.prompt)
+}
 
 // PPT Preview State
 interface Slide {
@@ -190,6 +237,101 @@ const previewContent = ref(`# AI Agent 市场分析报告
         </div>
         <div class="diff-panel">
           <LiveDiff />
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Preview Tab -->
+    <div v-else-if="currentTab === 'image'" class="image-preview">
+      <!-- Image Thumbnails Sidebar -->
+      <div class="image-sidebar" v-if="generatedImages.length > 1">
+        <div class="sidebar-header">
+          <span class="image-count">{{ generatedImages.length }} 张图像</span>
+        </div>
+        <div class="image-thumbnail-list">
+          <div
+            v-for="(image, index) in generatedImages"
+            :key="image.id"
+            :class="['image-thumbnail', { active: index === selectedImageIndex }]"
+            @click="selectImage(index)"
+          >
+            <img :src="image.path" :alt="`Image ${index + 1}`" />
+            <div class="thumbnail-overlay">
+              <span>{{ index + 1 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Image Preview -->
+      <div class="image-main">
+        <div 
+          :class="['image-container', { zoomed: isImageZoomed }]"
+          @click="toggleZoom"
+        >
+          <img 
+            v-if="selectedImage"
+            :src="selectedImage.path" 
+            :alt="selectedImage.prompt"
+            class="preview-image"
+          />
+          <div v-else class="no-image">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <p>暂无生成图像</p>
+          </div>
+        </div>
+
+        <!-- Image Info -->
+        <div v-if="selectedImage" class="image-info">
+          <div class="info-row">
+            <span class="info-label">Prompt:</span>
+            <span class="info-value prompt-text">{{ selectedImage.prompt }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">风格:</span>
+            <span class="info-value">{{ selectedImage.style }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">尺寸:</span>
+            <span class="info-value">{{ selectedImage.dimensions }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">生成时间:</span>
+            <span class="info-value">{{ selectedImage.createdAt }}</span>
+          </div>
+        </div>
+
+        <!-- Image Actions -->
+        <div class="image-actions">
+          <button class="btn-action" @click="downloadImage(selectedImage!)" :disabled="!selectedImage">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            下载图像
+          </button>
+          <button class="btn-action" @click="regenerateImage" :disabled="!selectedImage">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            重新生成
+          </button>
+          <button class="btn-action" @click="toggleZoom">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="11" y1="8" x2="11" y2="14"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+            {{ isImageZoomed ? '缩小' : '放大' }}
+          </button>
         </div>
       </div>
     </div>
@@ -486,6 +628,198 @@ const previewContent = ref(`# AI Agent 市场分析报告
   flex: 1;
   background: var(--bg-primary);
   overflow: hidden;
+}
+
+/* Image Preview */
+.image-preview {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.image-sidebar {
+  width: 120px;
+  flex-shrink: 0;
+  background: rgba(28, 28, 30, 0.6);
+  border-right: 1px solid var(--divider-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.image-sidebar .sidebar-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--divider-color);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.image-thumbnail-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.image-thumbnail {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 150ms ease-out;
+}
+
+.image-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-thumbnail:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.image-thumbnail.active {
+  border-color: var(--color-node-active);
+}
+
+.thumbnail-overlay {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  font-size: 10px;
+  color: white;
+}
+
+.image-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  position: relative;
+}
+
+.image-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: all 300ms ease-out;
+}
+
+.image-container.zoomed {
+  cursor: zoom-out;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 0;
+  padding: 24px;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: all 300ms ease-out;
+}
+
+.image-container.zoomed .preview-image {
+  max-width: 95vw;
+  max-height: 95vh;
+  border-radius: 0;
+}
+
+.no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.no-image svg {
+  opacity: 0.5;
+}
+
+.no-image p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.image-info {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-row {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.info-label {
+  color: var(--text-secondary);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: var(--text-primary);
+}
+
+.info-value.prompt-text {
+  font-style: italic;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.image-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.image-actions .btn-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.image-actions .btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 :root {

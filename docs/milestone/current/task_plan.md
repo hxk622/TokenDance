@@ -156,19 +156,19 @@
 
 ### 本地文件索引 (Option B)
 
-#### 4. 文件系统服务
+#### 4. 文件系统服务 ✅
 文件: `backend/app/services/file_indexer.py`
-- [ ] 目录遍历 (支持 .gitignore)
-- [ ] 文件监听 (watchdog)
-- [ ] 增量索引策略
-- [ ] 语言检测 (linguist/guesslang)
+- [x] 目录遍历 (支持 .gitignore)
+- [ ] 文件监听 (watchdog) - 待集成
+- [x] 增量索引策略
+- [x] 语言检测
 
-#### 5. 代码分析
+#### 5. 代码分析 ✅
 文件: `backend/app/services/code_analyzer.py`
-- [ ] AST 解析 (tree-sitter)
-- [ ] 依赖关系提取
-- [ ] 符号提取 (函数/类/变量)
-- [ ] 代码结构图生成
+- [x] AST 解析 (Python ast 模块)
+- [x] 依赖关系提取
+- [x] 符号提取 (函数/类/变量)
+- [x] 代码结构图生成
 
 #### 6. 向量化索引
 文件: `backend/app/services/vector_indexer.py`

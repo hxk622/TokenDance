@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
+type TabType = 'report' | 'ppt' | 'file-diff' | 'image'
+
 interface Props {
   sessionId: string
-  currentTab?: 'report' | 'ppt' | 'file-diff'
+  currentTab?: TabType
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -11,14 +13,14 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'update:currentTab', value: 'report' | 'ppt' | 'file-diff'): void
-  (e: 'tab-change', value: 'report' | 'ppt' | 'file-diff'): void
+  (e: 'update:currentTab', value: TabType): void
+  (e: 'tab-change', value: TabType): void
   (e: 'tabs-reordered', tabs: ArtifactTab[]): void
 }>()
 
 interface ArtifactTab {
-  id: 'report' | 'ppt' | 'file-diff'
-  type: 'report' | 'ppt' | 'file-diff'
+  id: TabType
+  type: TabType
   title: string
   icon: string
   isPinned?: boolean
@@ -27,19 +29,20 @@ interface ArtifactTab {
 const tabs = ref<ArtifactTab[]>([
   { id: 'report', type: 'report', title: '研究报告', icon: '📄' },
   { id: 'ppt', type: 'ppt', title: 'PPT', icon: '📊' },
+  { id: 'image', type: 'image', title: '生成图像', icon: '🎨' },
   { id: 'file-diff', type: 'file-diff', title: '文件变更', icon: '🧩' },
 ])
 
 const current = computed({
   get: () => props.currentTab,
-  set: (v: 'report' | 'ppt' | 'file-diff') => emit('update:currentTab', v)
+  set: (v: TabType) => emit('update:currentTab', v)
 })
 
 // Drag and Drop state
 const draggedTab = ref<ArtifactTab | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
-function switchTab(id: 'report' | 'ppt' | 'file-diff') {
+function switchTab(id: TabType) {
   if (current.value !== id) {
     current.value = id
     emit('tab-change', id)
