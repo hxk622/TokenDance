@@ -294,6 +294,7 @@ docs/
 **UX设计**:
 - `docs/ux/Three-Column-Layout.md` - 三栏布局规范（必读！）
 - `docs/ux/UI-Design.md` - UI设计规范
+- `docs/ux/UI-UX-Pro-Max-Integration.md` - UI/UX Pro Max 规范整合（必读！）
 - `docs/ux/Chain-of-Thought-UI.md` - 执行追踪UI
 
 **核心模块**:
@@ -437,65 +438,47 @@ cd backend && uv run ruff check . && uv run mypy .
 - Transparency (透明度)
 - Persistence (沉淀感)
 
-## 重要提醒
+## Agent 协作规范：知识沉淀与持续改进
 
-**核心原则**: TokenDance 是"可指挥的智能工作台"，不是另一个 ChatGPT 克隆
+### Plans 使用规范
 
-### 禁止事项
+Agent 支持创建和编辑 Plans（实施计划），用于：
+- 复杂任务的分阶段规划
+- 技术方案设计与评审
+- 多步骤实现的追踪
 
-1. **禁止 AI 助手式开场白**
-   - ❌ "我能帮你..." / "让我帮你..." / "AI 助手"
-   - ✅ 直接展示用户能做什么 → "你的智能工作台"
+**沉淀原则**: 重要的讨论结论、技术决策、设计共识应当被持久化：
+1. **Plans** - 用于实施计划和技术方案
+2. **Rules (WARP.md)** - 用于项目规范和开发约定
+3. **三文件工作法** - 用于日常开发的 findings/progress
 
-2. **禁止 Emoji 图标**
-   - ❌ 🔍🚀📊💻 等 emoji 作为主要图标
-   - ✅ 使用专业的 SVG 图标系统（Heroicons/Lucide）
+### Rules 动态更新
 
-3. **禁止功能导向的描述**
-   - ❌ "深度研究" / "生成PPT" / "执行代码"
-   - ✅ 用户任务导向 → "市场调研" / "演示汇报" / "开发调试"
+当讨论中产生以下内容时，应主动提议更新 WARP.md：
+- 新的技术约定或编码规范
+- 项目结构变更
+- 工具链更新
+- 设计规范调整
+- 重要的架构决策
 
-4. **禁止通用示例 Prompt**
-   - ❌ "帮我..." / "请..." / "生成..."
-   - ✅ 具体场景 → "竞品分析·行业报告·数据洞察"
+**参考项目**: [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) - 展示了如何将领域知识组织为可复用的 Skills
 
-5. **禁止过度的毛玻璃和渐变**
-   - ❌ 彩虹渐变背景、大面积半透明
-   - ✅ 克制的灰度系统、细微的网格纹理
+---
 
-### 设计语言
+## UI/UX 设计规范（Pro Max 整合版）
 
-**视觉风格**：
-- 灰度为主（#fafafa / #f1f5f9 背景）
-- 黑色强调（#111827 / #1f2937）
-- 色彩克制（仅在状态和强调时使用）
-- 细边框（1px gray-100/200）
-- 圆角适中（8px / 12px / 16px）
+**权威参考**: `docs/ux/UI-UX-Pro-Max-Integration.md` （必读！）
 
-**交互反馈**：
-- hover: 边框加深、subtle shadow
-- active: 轻微缩放（scale-[0.98]）
-- 过渡: 200-300ms ease
+该文档整合了 [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) 的专业规范，包含：
+- 57 UI 样式 + 95 色彩方案 + 56 字体配对
+- 图标系统：Lucide Icons（禁用 Emoji）
+- 交互规范：200ms 过渡、cursor-pointer、无布局偏移
+- 对比度标准：4.5:1 最低（浅色模式优化）
+- 交付检查清单：25 项质量检查点
 
-**文案原则**：
-- 用户是"导演"而非"观众"
-- 强调"和 Agent 一起"而非"让 Agent 帮你"
-- 突出"接管""干预""复用"等控制感词汇
+**开发时必须遵守**: UI-UX-Pro-Max-Integration.md 中的所有规范
 
-**参考标杆**：
-- Linear（简洁、专业、高效）
-- Notion（灰度系统、功能直接）
-- Vercel（克制的动效、强调内容）
-
-**Footer Slogan**：
-```
-随时接管 · 实时干预 · 沉淀复用
-```
-
-这三个词直接体现 UI-Design-Principles.md 的核心：
-- Controllability (可控性)
-- Transparency (透明度)
-- Persistence (沉淀感)
+---
 
 ## 重要提醒
 - 所有模块都向Context Graph记录决策轨迹

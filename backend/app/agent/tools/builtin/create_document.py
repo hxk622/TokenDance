@@ -6,27 +6,33 @@ Create Document Tool - 创建并保存文档
 - 保存到 Workspace 文件系统
 - 支持自定义文件名
 - 自动创建目录
+
+风险等级：LOW（创建新文件，不修改现有内容）
 """
 
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from app.agent.tools.base import BaseTool, ToolResult
+from app.agent.tools.risk import RiskLevel, OperationCategory
 
 logger = logging.getLogger(__name__)
 
 
 class CreateDocumentTool(BaseTool):
-    """创建文档工具"""
+    """创建文档工具
+
+    风险等级：LOW（创建新文件，不修改现有内容）
+    """
 
     name = "create_document"
     description = (
         "Create and save a document (Markdown format) to the workspace. "
         "Use this to save research reports, summaries, or any structured content."
     )
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -51,7 +57,10 @@ class CreateDocumentTool(BaseTool):
         },
         "required": ["title", "content"]
     }
-    
+
+    # 风险配置
+    risk_level = RiskLevel.LOW
+    operation_categories = [OperationCategory.DOCUMENT_CREATE]
     requires_confirmation = False
 
     def __init__(self, workspace_root: Optional[Path] = None):

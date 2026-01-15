@@ -6,11 +6,22 @@ Built-in Tools - 内置工具集
 - read_url: 网页内容读取
 - shell: Shell命令执行
 - file_ops: 文件操作
+- browser_ops: 浏览器操作 (agent-browser)
 """
 from .web_search import WebSearchTool, create_web_search_tool
 from .read_url import ReadUrlTool, create_read_url_tool
 from .shell import ShellTool
 from .file_ops import FileOpsTool, create_file_ops_tool
+from .browser_ops import (
+    BrowserOpenTool,
+    BrowserClickTool,
+    BrowserFillTool,
+    BrowserSnapshotTool,
+    BrowserScreenshotTool,
+    BrowserCloseTool,
+    create_browser_tools,
+    cleanup_browser_session,
+)
 
 __all__ = [
     "WebSearchTool",
@@ -20,4 +31,13 @@ __all__ = [
     "ShellTool",
     "FileOpsTool",
     "create_file_ops_tool",
+    # Browser tools
+    "BrowserOpenTool",
+    "BrowserClickTool",
+    "BrowserFillTool",
+    "BrowserSnapshotTool",
+    "BrowserScreenshotTool",
+    "BrowserCloseTool",
+    "create_browser_tools",
+    "cleanup_browser_session",
 ]

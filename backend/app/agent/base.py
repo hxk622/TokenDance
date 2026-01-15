@@ -22,6 +22,7 @@ from .types import (
 from .context import AgentContext
 from .memory import WorkingMemory
 from .tools import ToolRegistry, BaseTool
+from .tools.risk import RiskLevel
 from .llm import BaseLLM, LLMMessage
 
 logger = logging.getLogger(__name__)
@@ -245,31 +246,32 @@ class BaseAgent(ABC):
             )
     
     # ==================== 工具调用 ====================
-    
+
     async def _execute_tool(
         self,
         action: AgentAction
     ) -> AsyncGenerator[SSEEvent, None]:
         """执行工具调用
-        
+
         包含：
-        - 2-Action Rule 检查
+        - 信任决策评估
         - HITL 确认（如果需要）
+        - 2-Action Rule 检查
         - 工具执行
         - 3-Strike Protocol 错误处理
-        
+
         Args:
             action: 工具调用动作
-            
+
         Yields:
             SSEEvent: 工具相关事件
         """
         tool_name = action.tool_name
         tool_args = action.tool_args or {}
         tool_id = str(uuid.uuid4())
-        
+
         logger.info(f"Executing tool: {tool_name}")
-        
+
         # 1. 发送 tool_call pending 事件
         yield SSEEvent(
             type=SSEEventType.TOOL_CALL,
@@ -280,27 +282,40 @@ class BaseAgent(ABC):
                 'status': ToolStatus.PENDING.value
             }
         )
-        
+
         try:
             # 2. 获取工具
             tool: BaseTool = self.tools.get(tool_name)
-            
-            # 3. HITL 确认检查
-            if tool.requires_confirmation:
+
+            # 3. 信任决策评估
+            trust_result = await self._evaluate_trust(tool, tool_args)
+
+            if trust_result.get('requires_confirmation', False):
+                # 需要 HITL 确认
                 yield SSEEvent(
                     type=SSEEventType.CONFIRM_REQUIRED,
                     data={
                         'action_id': tool_id,
                         'tool': tool_name,
                         'args': tool_args,
-                        'description': tool.description
+                        'description': tool.get_confirmation_description(**tool_args),
+                        'risk_level': trust_result.get('risk_level', 'low'),
+                        'reason': trust_result.get('reason', ''),
+                        'operation_categories': trust_result.get('operation_categories', []),
+                        'can_remember': trust_result.get('can_remember', True),
                     }
                 )
-                
+
                 # TODO: 等待确认（需要外部状态管理）
-                logger.info(f"Tool {tool_name} requires confirmation")
+                # 当 HITL 服务完全集成后，这里应该等待用户响应
+                logger.info(f"Tool {tool_name} requires confirmation (risk={trust_result.get('risk_level')})")
                 # 暂时假设确认通过
-            
+            else:
+                # 自动授权 - 记录日志
+                logger.info(
+                    f"Tool {tool_name} auto-approved: {trust_result.get('reason', 'within trust level')}"
+                )
+
             # 4. 执行工具 - running 状态
             yield SSEEvent(
                 type=SSEEventType.TOOL_CALL,
@@ -309,13 +324,13 @@ class BaseAgent(ABC):
                     'status': ToolStatus.RUNNING.value
                 }
             )
-            
+
             # 验证参数
             tool.validate_args(tool_args)
-            
+
             # 执行
             result = await tool.execute(**tool_args)
-            
+
             # 5. 成功 - 发送 tool_result 事件
             yield SSEEvent(
                 type=SSEEventType.TOOL_RESULT,
@@ -325,7 +340,7 @@ class BaseAgent(ABC):
                     'result': result[:500] if len(result) > 500 else result  # 限制长度
                 }
             )
-            
+
             # 6. 记录到 context
             tool_call_record = ToolCallRecord(
                 id=tool_id,
@@ -335,7 +350,7 @@ class BaseAgent(ABC):
                 result=result
             )
             self.context.add_tool_call(tool_call_record)
-            
+
             # 7. 记录到 progress.md
             await self.memory.log_action(
                 f"Tool Call: {tool_name}",
@@ -466,7 +481,71 @@ class BaseAgent(ABC):
         )
     
     # ==================== 辅助方法 ====================
-    
+
+    async def _evaluate_trust(self, tool: BaseTool, tool_args: dict) -> dict:
+        """评估工具调用的信任决策
+
+        这是一个简化版本的信任评估，当数据库完全集成后，
+        应该使用 TrustService 进行完整的信任决策。
+
+        Args:
+            tool: 工具实例
+            tool_args: 工具调用参数
+
+        Returns:
+            dict: 信任决策结果，包含：
+                - requires_confirmation: 是否需要确认
+                - reason: 决策原因
+                - risk_level: 风险等级
+                - operation_categories: 操作类别列表
+                - can_remember: 是否允许记住选择
+        """
+        # 获取动态风险等级和操作类别
+        risk_level = tool.get_risk_level(**tool_args)
+        operation_categories = tool.get_operation_categories(**tool_args)
+
+        # 向后兼容：如果工具强制需要确认
+        if tool.requires_confirmation:
+            return {
+                'requires_confirmation': True,
+                'reason': '工具配置为强制确认',
+                'risk_level': risk_level.value,
+                'operation_categories': [c.value for c in operation_categories],
+                'can_remember': risk_level != RiskLevel.CRITICAL,
+            }
+
+        # CRITICAL 风险等级始终需要确认
+        if risk_level == RiskLevel.CRITICAL:
+            return {
+                'requires_confirmation': True,
+                'reason': '极高风险操作，需要确认',
+                'risk_level': risk_level.value,
+                'operation_categories': [c.value for c in operation_categories],
+                'can_remember': False,
+            }
+
+        # 默认信任策略：NONE 和 LOW 风险自动执行
+        # TODO: 当数据库集成后，从 TrustConfig 读取配置
+        default_auto_approve_levels = [RiskLevel.NONE, RiskLevel.LOW]
+
+        if risk_level in default_auto_approve_levels:
+            return {
+                'requires_confirmation': False,
+                'reason': f'风险等级 {risk_level.value} 在自动授权范围内',
+                'risk_level': risk_level.value,
+                'operation_categories': [c.value for c in operation_categories],
+                'can_remember': True,
+            }
+
+        # 其他情况需要确认
+        return {
+            'requires_confirmation': True,
+            'reason': '操作未预授权',
+            'risk_level': risk_level.value,
+            'operation_categories': [c.value for c in operation_categories],
+            'can_remember': True,
+        }
+
     async def _add_user_message(self, content: str) -> None:
         """添加用户消息到 context
         

@@ -8,6 +8,11 @@ ShellTool - 终端命令执行工具
 - 输出截断，防止输出过大
 
 来源：Manus核心能力，解锁系统生态工具
+
+风险等级：动态（根据命令类型）
+- 安全命令（ls, cat, grep）: LOW
+- git 命令: MEDIUM
+- 危险命令: CRITICAL
 """
 
 import asyncio
@@ -15,9 +20,11 @@ import os
 import shlex
 import subprocess
 from typing import Optional, List
+
 from pydantic import BaseModel, Field
 
 from ..base import BaseTool, ToolResult
+from ..risk import RiskLevel, OperationCategory
 
 
 class ShellToolArgs(BaseModel):
@@ -30,18 +37,37 @@ class ShellToolArgs(BaseModel):
 class ShellTool(BaseTool):
     """
     Shell命令执行工具
-    
+
     设计原则：
     1. 白名单机制 - 只允许安全的命令
     2. 工作区限制 - 命令只能在workspace目录下执行
     3. 超时控制 - 防止命令挂起
     4. 输出截断 - 防止输出过大撑爆Context
+
+    风险等级：动态（根据命令类型）
+    - 安全命令（ls, cat, grep 等只读命令）: LOW
+    - git 命令（非 push）: MEDIUM
+    - git push / 危险命令: HIGH 或 CRITICAL
     """
-    
+
     name = "shell"
     description = "执行shell命令，用于文件操作、代码搜索、版本控制等。支持ls、cat、grep、git、find等常用命令。"
     args_schema = ShellToolArgs
-    
+
+    # 默认风险配置（会被动态覆盖）
+    risk_level = RiskLevel.HIGH
+    operation_categories = [OperationCategory.SHELL_SAFE]
+    requires_confirmation = False
+
+    # 安全命令 - 只读操作
+    SAFE_COMMANDS = {
+        "ls", "tree", "find", "pwd", "file",
+        "cat", "head", "tail", "less", "more",
+        "grep", "rg", "ag", "ack",
+        "wc", "du", "stat",
+        "echo", "which", "whereis", "type",
+    }
+
     # 白名单命令 - 只允许这些命令执行
     WHITELIST_COMMANDS = {
         # 文件浏览
@@ -57,7 +83,7 @@ class ShellTool(BaseTool):
         # 其他工具
         "echo", "which", "whereis", "type",
     }
-    
+
     # 危险命令黑名单 - 即使在白名单中也不允许的模式
     DANGEROUS_PATTERNS = [
         "rm -rf /",
@@ -69,16 +95,67 @@ class ShellTool(BaseTool):
         "curl | sh",
         "wget | sh",
     ]
-    
+
     def __init__(self, workspace_path: Optional[str] = None):
         """
         初始化ShellTool
-        
+
         Args:
             workspace_path: 工作区路径，命令只能在此目录下执行
         """
         super().__init__()
         self.workspace_path = workspace_path or os.getcwd()
+
+    def get_risk_level(self, **kwargs) -> RiskLevel:
+        """根据命令动态评估风险等级"""
+        command = kwargs.get("command", "")
+
+        # 解析主命令
+        try:
+            parts = shlex.split(command)
+            main_cmd = parts[0] if parts else ""
+            command_name = os.path.basename(main_cmd)
+        except ValueError:
+            return RiskLevel.CRITICAL
+
+        # 检查危险模式
+        for pattern in self.DANGEROUS_PATTERNS:
+            if pattern in command:
+                return RiskLevel.CRITICAL
+
+        # 安全命令（只读）
+        if command_name in self.SAFE_COMMANDS:
+            return RiskLevel.LOW
+
+        # git 命令
+        if command_name == "git":
+            if any(x in command for x in ["push", "force", "--force"]):
+                return RiskLevel.HIGH
+            return RiskLevel.MEDIUM
+
+        # 其他白名单命令
+        if command_name in self.WHITELIST_COMMANDS:
+            return RiskLevel.MEDIUM
+
+        return RiskLevel.HIGH
+
+    def get_operation_categories(self, **kwargs) -> List[OperationCategory]:
+        """根据命令返回操作类别"""
+        risk = self.get_risk_level(**kwargs)
+
+        if risk == RiskLevel.CRITICAL:
+            return [OperationCategory.SHELL_DANGEROUS]
+        elif risk == RiskLevel.LOW:
+            return [OperationCategory.SHELL_SAFE]
+        else:
+            return [OperationCategory.SHELL_WRITE]
+
+    def get_confirmation_description(self, **kwargs) -> str:
+        """提供详细的确认描述"""
+        command = kwargs.get("command", "")
+        risk = self.get_risk_level(**kwargs)
+
+        return f"执行 Shell 命令:\n```\n{command}\n```\n风险等级: {risk.value}"
     
     async def execute(
         self,

@@ -5,7 +5,7 @@ Web Search 工具
 使用 DuckDuckGo 进行网页搜索（免费、无需 API Key）
 """
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import asyncio
 
 try:
@@ -15,22 +15,30 @@ except ImportError:
     DDGS_AVAILABLE = False
 
 from ..base import BaseTool
+from ..risk import RiskLevel, OperationCategory
 
 logger = logging.getLogger(__name__)
 
 
 class WebSearchTool(BaseTool):
     """网页搜索工具
-    
+
     使用 DuckDuckGo 搜索引擎进行网页搜索。
     免费、无需 API Key、支持中英文。
-    
+
     功能：
     - 关键词搜索
     - 返回标题、链接、摘要
     - 可配置结果数量
+
+    风险等级：NONE（纯读取操作，无副作用）
     """
-    
+
+    # 风险配置
+    risk_level = RiskLevel.NONE
+    operation_categories = [OperationCategory.WEB_SEARCH]
+    requires_confirmation = False
+
     def __init__(self):
         super().__init__(
             name="web_search",

@@ -9,12 +9,19 @@ FileOpsTool - 文件操作工具
 - 检查文件存在
 
 集成AgentFileSystem，支持多租户隔离
+
+风险等级：动态（根据操作类型）
+- read/exists/list: NONE
+- write: LOW
+- delete: MEDIUM
 """
 
 from typing import Optional, Dict, Any, List
+
 from pydantic import BaseModel, Field
 
 from ..base import BaseTool, ToolResult
+from ..risk import RiskLevel, OperationCategory
 from app.filesystem import AgentFileSystem
 
 
@@ -50,22 +57,72 @@ class FileExistsArgs(BaseModel):
 class FileOpsTool(BaseTool):
     """
     文件操作工具
-    
+
     提供文件读写、列表、删除、检查等操作，所有操作限制在workspace内。
+
+    风险等级：动态（根据操作类型）
+    - read/exists/list: NONE（纯读取）
+    - write: LOW（创建/修改文件）
+    - delete: MEDIUM（删除文件）
     """
-    
+
     name = "file_ops"
     description = "文件操作工具。支持读写文件、列出目录、删除文件等操作。所有路径相对于workspace，确保安全。"
-    
+
+    # 默认风险配置（会被动态覆盖）
+    risk_level = RiskLevel.LOW
+    operation_categories = [OperationCategory.FILE_READ]
+    requires_confirmation = False
+
     def __init__(self, filesystem: AgentFileSystem):
         """
         初始化FileOpsTool
-        
+
         Args:
             filesystem: AgentFileSystem实例
         """
         super().__init__()
         self.fs = filesystem
+
+    def get_risk_level(self, **kwargs) -> RiskLevel:
+        """根据操作类型动态评估风险等级"""
+        operation = kwargs.get("operation", "read")
+
+        risk_mapping = {
+            "read": RiskLevel.NONE,
+            "exists": RiskLevel.NONE,
+            "list": RiskLevel.NONE,
+            "write": RiskLevel.LOW,
+            "delete": RiskLevel.MEDIUM,
+        }
+        return risk_mapping.get(operation, RiskLevel.MEDIUM)
+
+    def get_operation_categories(self, **kwargs) -> List[OperationCategory]:
+        """根据操作类型返回操作类别"""
+        operation = kwargs.get("operation", "read")
+
+        category_mapping = {
+            "read": [OperationCategory.FILE_READ],
+            "exists": [OperationCategory.FILE_READ],
+            "list": [OperationCategory.FILE_READ],
+            "write": [OperationCategory.FILE_CREATE, OperationCategory.FILE_MODIFY],
+            "delete": [OperationCategory.FILE_DELETE],
+        }
+        return category_mapping.get(operation, [OperationCategory.FILE_READ])
+
+    def get_confirmation_description(self, **kwargs) -> str:
+        """提供详细的确认描述"""
+        operation = kwargs.get("operation", "read")
+        path = kwargs.get("path", "unknown")
+
+        descriptions = {
+            "read": f"读取文件: {path}",
+            "exists": f"检查文件是否存在: {path}",
+            "list": f"列出目录: {path}",
+            "write": f"写入文件: {path}",
+            "delete": f"删除文件: {path}（此操作不可逆）",
+        }
+        return descriptions.get(operation, f"文件操作: {operation} on {path}")
     
     async def execute(self, operation: str, **kwargs) -> ToolResult:
         """

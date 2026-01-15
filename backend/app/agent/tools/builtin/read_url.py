@@ -5,7 +5,7 @@ Read URL 工具
 抓取网页内容并转换为 Markdown 格式
 """
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 import asyncio
 import re
 
@@ -28,20 +28,28 @@ except ImportError:
     HTML2TEXT_AVAILABLE = False
 
 from ..base import BaseTool
+from ..risk import RiskLevel, OperationCategory
 
 logger = logging.getLogger(__name__)
 
 
 class ReadUrlTool(BaseTool):
     """网页抓取工具
-    
+
     功能：
     - 抓取网页 HTML
     - 清理无用内容（脚本、样式等）
     - 转换为 Markdown 格式
     - 提取主要文本内容
+
+    风险等级：NONE（纯读取操作，无副作用）
     """
-    
+
+    # 风险配置
+    risk_level = RiskLevel.NONE
+    operation_categories = [OperationCategory.WEB_READ]
+    requires_confirmation = False
+
     def __init__(self):
         super().__init__(
             name="read_url",
