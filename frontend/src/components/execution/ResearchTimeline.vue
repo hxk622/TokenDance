@@ -365,7 +365,7 @@ onUnmounted(() => {
       <p class="text-xs text-gray-500 mb-2">截图预览</p>
       <div class="flex gap-2 overflow-x-auto pb-1">
         <div
-          v-for="({ entry, index }, i) in screenshotEntries"
+          v-for="({ entry }, i) in screenshotEntries"
           :key="i"
           class="flex-shrink-0 w-20 h-14 rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-shadow"
           @click="handleScreenshotClick(i, entry)"
