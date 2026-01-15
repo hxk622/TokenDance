@@ -232,13 +232,14 @@
 
 ## 🌟 MVP 扩展功能 (2026-01-15 新增)
 
-### 1. AI 图像生成 (Nano Banana 集成) ✅ Skill已创建
+### 1. AI 图像生成 (Nano Banana 集成) ✅ 已完成
 文件: `backend/app/skills/builtin/image_generation/SKILL.md`
 - [x] 创建 image_generation Skill 定义
 - [x] 创建马年祝福图模板 (`resources/chinese_new_year_2026.md`)
-- [ ] 实现 generate_image 工具 (Gemini API 调用)
-- [ ] 实现 edit_image 工具
-- [ ] 前端图像预览组件
+- [x] 实现 generate_image 工具 (Gemini API 调用)
+- [x] 实现 edit_image 工具
+- [x] 前端图像预览组件 (ArtifactTabs + PreviewArea)
+- [x] 添加 GEMINI_API_KEY 环境变量配置
 
 ### 2. 舆情分析场景模板 ✅ 已创建
 文件: `backend/app/skills/builtin/deep_research/resources/sentiment_analysis_template.md`

@@ -12,16 +12,52 @@ Coworker 基因：深度理解本地文件系统
 """
 import os
 import logging
+import threading
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Set, Callable
+from enum import Enum
 import fnmatch
 import hashlib
 import json
 import asyncio
 
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import (
+        FileSystemEventHandler,
+        FileCreatedEvent,
+        FileModifiedEvent,
+        FileDeletedEvent,
+        FileMovedEvent,
+    )
+    WATCHDOG_AVAILABLE = True
+except ImportError:
+    WATCHDOG_AVAILABLE = False
+    Observer = None
+    FileSystemEventHandler = object
+
 logger = logging.getLogger(__name__)
+
+
+# ==================== 文件变更事件 ====================
+
+class FileChangeType(Enum):
+    """文件变更类型"""
+    CREATED = "created"
+    MODIFIED = "modified"
+    DELETED = "deleted"
+    MOVED = "moved"
+
+
+@dataclass
+class FileChangeEvent:
+    """文件变更事件"""
+    change_type: FileChangeType
+    src_path: str
+    dest_path: Optional[str] = None  # 仅用于 MOVED 类型
+    timestamp: datetime = field(default_factory=datetime.now)
 
 
 # ==================== 数据模型 ====================
