@@ -24,19 +24,29 @@ class SkillRegistry:
     """Skill注册表
     
     管理所有Skill的L1元数据，提供快速查询能力。
+    支持多目录扫描：builtin（内置）和 scientific（科学计算）。
     """
     
-    def __init__(self, skills_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        skills_dirs: Optional[List[Path]] = None,
+        include_scientific: bool = True,
+    ):
         """初始化注册表
         
         Args:
-            skills_dir: Skill目录路径，默认为 backend/app/skills/builtin/
+            skills_dirs: Skill目录路径列表，默认为 builtin/ 和 scientific/
+            include_scientific: 是否包含科学计算技能（默认True）
         """
-        if skills_dir is None:
-            # 默认使用内置Skill目录
-            skills_dir = Path(__file__).parent / "builtin"
+        if skills_dirs is None:
+            base_dir = Path(__file__).parent
+            skills_dirs = [base_dir / "builtin"]
+            if include_scientific:
+                scientific_dir = base_dir / "scientific"
+                if scientific_dir.exists():
+                    skills_dirs.append(scientific_dir)
         
-        self.skills_dir = Path(skills_dir)
+        self.skills_dirs = [Path(d) for d in skills_dirs]
         self.skills: Dict[str, SkillMetadata] = {}
         self._loaded = False
     
@@ -46,37 +56,60 @@ class SkillRegistry:
             logger.warning("SkillRegistry already loaded, skipping reload")
             return
         
-        if not self.skills_dir.exists():
-            logger.warning(f"Skills directory not found: {self.skills_dir}")
-            return
+        total_loaded = 0
         
-        logger.info(f"Loading skills from: {self.skills_dir}")
-        
-        for skill_dir in self.skills_dir.iterdir():
-            if not skill_dir.is_dir():
+        for skills_dir in self.skills_dirs:
+            if not skills_dir.exists():
+                logger.warning(f"Skills directory not found: {skills_dir}")
                 continue
             
-            # 跳过 __pycache__ 等特殊目录
-            if skill_dir.name.startswith("_") or skill_dir.name.startswith("."):
-                continue
-            
-            skill_file = skill_dir / "SKILL.md"
-            if not skill_file.exists():
-                logger.debug(f"No SKILL.md found in {skill_dir}")
-                continue
-            
-            try:
-                metadata = self._parse_skill_file(skill_file)
-                if metadata and metadata.enabled:
-                    self.skills[metadata.name] = metadata
-                    logger.info(f"Loaded skill: {metadata.name} ({metadata.display_name})")
-                elif metadata:
-                    logger.info(f"Skill disabled: {metadata.name}")
-            except Exception as e:
-                logger.error(f"Failed to parse skill file {skill_file}: {e}")
+            logger.info(f"Loading skills from: {skills_dir}")
+            loaded_count = self._load_from_directory(skills_dir)
+            total_loaded += loaded_count
         
         self._loaded = True
-        logger.info(f"Loaded {len(self.skills)} skills")
+        logger.info(f"Total loaded: {total_loaded} skills from {len(self.skills_dirs)} directories")
+    
+    def _load_from_directory(self, skills_dir: Path, recursive: bool = True) -> int:
+        """从单个目录加载skills
+        
+        Args:
+            skills_dir: Skill目录路径
+            recursive: 是否递归扫描子目录（用于按类别分组的scientific skills）
+            
+        Returns:
+            加载的skill数量
+        """
+        loaded_count = 0
+        
+        for item in skills_dir.iterdir():
+            if not item.is_dir():
+                continue
+            
+            # 跳过特殊目录
+            if item.name.startswith("_") or item.name.startswith("."):
+                continue
+            
+            skill_file = item / "SKILL.md"
+            
+            if skill_file.exists():
+                # 这是一个skill目录
+                try:
+                    metadata = self._parse_skill_file(skill_file)
+                    if metadata and metadata.enabled:
+                        self.skills[metadata.name] = metadata
+                        logger.debug(f"Loaded skill: {metadata.name}")
+                        loaded_count += 1
+                    elif metadata:
+                        logger.debug(f"Skill disabled: {metadata.name}")
+                except Exception as e:
+                    logger.error(f"Failed to parse skill file {skill_file}: {e}")
+            elif recursive:
+                # 这可能是一个分类目录（如 scientific/bioinformatics/）
+                sub_count = self._load_from_directory(item, recursive=False)
+                loaded_count += sub_count
+        
+        return loaded_count
     
     def _parse_skill_file(self, skill_file: Path) -> Optional[SkillMetadata]:
         """解析SKILL.md的YAML头
@@ -315,16 +348,20 @@ def get_skill_registry() -> SkillRegistry:
     return _registry
 
 
-def init_skill_registry(skills_dir: Optional[Path] = None) -> SkillRegistry:
+def init_skill_registry(
+    skills_dirs: Optional[List[Path]] = None,
+    include_scientific: bool = True,
+) -> SkillRegistry:
     """初始化全局SkillRegistry
     
     Args:
-        skills_dir: Skill目录路径
+        skills_dirs: Skill目录路径列表
+        include_scientific: 是否包含科学计算技能
         
     Returns:
         初始化后的SkillRegistry
     """
     global _registry
-    _registry = SkillRegistry(skills_dir)
+    _registry = SkillRegistry(skills_dirs, include_scientific)
     _registry.load_all()
     return _registry

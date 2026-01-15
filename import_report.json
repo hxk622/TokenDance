@@ -1,0 +1,849 @@
+{
+  "total": 140,
+  "success": 139,
+  "error": 1,
+  "skipped": 0,
+  "timestamp": "2026-01-15T17:33:38.425121",
+  "results": [
+    {
+      "name": "adaptyv",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "aeon",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "alphafold-database",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "anndata",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "arboreto",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "astropy",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "benchling-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "biomni",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "biopython",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "biorxiv-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "bioservices",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "brenda-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "cellxgene-census",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "chembl-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "cirq",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "citation-management",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "clinical-decision-support",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "clinical-reports",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "clinicaltrials-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "clinpgx-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "clinvar-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "cobrapy",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "cosmic-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "dask",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "datacommons-client",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "datamol",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "deepchem",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "deeptools",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "denario",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "diffdock",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "dnanexus-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "document-skills",
+      "category": "",
+      "status": "error",
+      "error": "SKILL.md not found in /tmp/claude-scientific-skills/scientific-skills/document-skills"
+    },
+    {
+      "name": "drugbank-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "ena-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "ensembl-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "esm",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "etetoolkit",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "exploratory-data-analysis",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "fda-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "flowio",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "fluidsim",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "gene-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "generate-image",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "geniml",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "geo-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "geopandas",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "get-available-resources",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "gget",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "gtars",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "gwas-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "histolab",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "hmdb-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "hypogenic",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "hypothesis-generation",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "iso-13485-certification",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "kegg-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "labarchive-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "lamindb",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "latchbio-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "latex-posters",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "literature-review",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "market-research-reports",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "markitdown",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "matchms",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "matlab",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "matplotlib",
+      "category": "visualization",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "medchem",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "metabolomics-workbench-database",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "modal",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "molfeat",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "networkx",
+      "category": "visualization",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "neurokit2",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "neuropixels-analysis",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "offer-k-dense-web",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "omero-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "openalex-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "opentargets-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "opentrons-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "paper-2-web",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pathml",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pdb-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "peer-review",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pennylane",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "perplexity-search",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "plotly",
+      "category": "visualization",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "polars",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pptx-posters",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "protocolsio-integration",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pubchem-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pubmed-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pufferlib",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pydeseq2",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pydicom",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pyhealth",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pylabrobot",
+      "category": "lab-automation",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pymatgen",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pymc",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pymoo",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pyopenms",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pysam",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pytdc",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "pytorch-lightning",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "qiskit",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "qutip",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "rdkit",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "reactome-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "research-grants",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "research-lookup",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "rowan",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scanpy",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scholar-evaluation",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scientific-brainstorming",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scientific-critical-thinking",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scientific-schematics",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scientific-slides",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scientific-visualization",
+      "category": "visualization",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scientific-writing",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scikit-bio",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scikit-learn",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scikit-survival",
+      "category": "research-tools",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "scvi-tools",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "seaborn",
+      "category": "visualization",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "shap",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "simpy",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "stable-baselines3",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "statistical-analysis",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "statsmodels",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "string-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "sympy",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "torch_geometric",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "torchdrug",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "transformers",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "treatment-plans",
+      "category": "clinical",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "umap-learn",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "uniprot-database",
+      "category": "bioinformatics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "uspto-database",
+      "category": "database",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "vaex",
+      "category": "data-science",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "venue-templates",
+      "category": "writing",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "zarr-python",
+      "category": "physics",
+      "status": "success",
+      "error": ""
+    },
+    {
+      "name": "zinc-database",
+      "category": "chemistry",
+      "status": "success",
+      "error": ""
+    }
+  ]
+}

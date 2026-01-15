@@ -5,6 +5,7 @@ from app.models.session import Session, SessionStatus  # noqa: F401
 from app.models.message import Message, MessageRole  # noqa: F401
 from app.models.artifact import Artifact, ArtifactType  # noqa: F401
 from app.models.skill import Skill  # noqa: F401
+from app.models.trust_config import TrustConfig, TrustAuditLog  # noqa: F401
 
 __all__ = [
     # User & Workspace
@@ -21,4 +22,7 @@ __all__ = [
     "ArtifactType",
     # Skill
     "Skill",
+    # Trust
+    "TrustConfig",
+    "TrustAuditLog",
 ]

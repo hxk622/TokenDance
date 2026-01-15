@@ -1,7 +1,7 @@
 """API v1 router - aggregates all v1 endpoints."""
 from fastapi import APIRouter
 
-from app.api.v1 import auth, session, chat, messages, hitl, stream, demo_stream, mcp
+from app.api.v1 import auth, session, chat, messages, hitl, stream, demo_stream, mcp, trust
 
 api_router = APIRouter()
 
@@ -13,4 +13,5 @@ api_router.include_router(stream.router, prefix="/sessions", tags=["stream"])  #
 api_router.include_router(mcp.router, prefix="/mcp", tags=["mcp"])  # MCP tools management
 api_router.include_router(demo_stream.router, tags=["demo"])  # Demo endpoints (no auth)
 api_router.include_router(hitl.router, tags=["hitl"])  # Human-in-the-Loop
+api_router.include_router(trust.router, prefix="/trust", tags=["trust"])  # Trust configuration
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])  # Legacy
