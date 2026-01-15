@@ -8,6 +8,7 @@ Built-in Tools - 内置工具集
 - file_ops: 文件操作
 - browser_ops: 浏览器操作 (agent-browser)
 - report_generator: 研究报告生成
+- ppt_generator: PPT 演示文稿生成
 """
 from .web_search import WebSearchTool, create_web_search_tool
 from .read_url import ReadUrlTool, create_read_url_tool
@@ -28,6 +29,11 @@ from .image_generation import (
     GenerateImageTool,
     EditImageTool,
     create_image_generation_tools,
+)
+from .ppt_generator import (
+    GeneratePPTTool,
+    QuickPPTTool,
+    create_ppt_tools,
 )
 
 __all__ = [
@@ -54,4 +60,8 @@ __all__ = [
     "GenerateImageTool",
     "EditImageTool",
     "create_image_generation_tools",
+    # PPT generation tools
+    "GeneratePPTTool",
+    "QuickPPTTool",
+    "create_ppt_tools",
 ]

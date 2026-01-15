@@ -6,35 +6,52 @@
       :class="['tab', { active: currentTab === tab.type }]"
       @click="selectTab(tab.type)"
     >
-      <span class="icon">{{ tab.icon }}</span>
+      <component :is="tab.icon" class="icon-svg" />
       <span class="title">{{ tab.title }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
+import {
+  DocumentTextIcon,
+  PresentationChartBarIcon,
+  DocumentDuplicateIcon,
+  ClockIcon,
+} from '@heroicons/vue/24/outline'
+
+export type TabType = 'report' | 'ppt' | 'file-diff' | 'timeline'
 
 interface Props {
   sessionId: string
-  currentTab: 'report' | 'ppt' | 'file-diff'
+  currentTab: TabType
+  taskType?: 'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'
 }
 
 interface Emits {
-  (e: 'update:currentTab', tab: 'report' | 'ppt' | 'file-diff'): void
-  (e: 'tab-change', tab: 'report' | 'ppt' | 'file-diff'): void
+  (e: 'update:currentTab', tab: TabType): void
+  (e: 'tab-change', tab: TabType): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const tabs = ref([
-  { id: '1', type: 'report' as const, title: '研究报告', icon: '📄' },
-  { id: '2', type: 'ppt' as const, title: 'PPT', icon: '📊' },
-  { id: '3', type: 'file-diff' as const, title: '文件变更', icon: '📝' },
-])
+const allTabs = [
+  { id: '1', type: 'timeline' as const, title: '研究时间轴', icon: ClockIcon, showFor: ['deep-research'] },
+  { id: '2', type: 'report' as const, title: '研究报告', icon: DocumentTextIcon, showFor: ['deep-research', 'default'] },
+  { id: '3', type: 'ppt' as const, title: 'PPT', icon: PresentationChartBarIcon, showFor: ['ppt-generation', 'default'] },
+  { id: '4', type: 'file-diff' as const, title: '文件变更', icon: DocumentDuplicateIcon, showFor: ['code-refactor', 'file-operations', 'default'] },
+]
 
-function selectTab(tab: 'report' | 'ppt' | 'file-diff') {
+const tabs = computed(() => {
+  const taskType = props.taskType || 'default'
+  return allTabs.filter(tab => 
+    tab.showFor.includes(taskType) || tab.showFor.includes('default')
+  )
+})
+
+function selectTab(tab: TabType) {
   emit('update:currentTab', tab)
   emit('tab-change', tab)
 }
@@ -74,8 +91,10 @@ function selectTab(tab: 'report' | 'ppt' | 'file-diff') {
   color: #00D9FF;
 }
 
-.icon {
-  font-size: 16px;
+.icon-svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .title {

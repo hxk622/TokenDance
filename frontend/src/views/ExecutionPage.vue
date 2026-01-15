@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ResizableDivider from '@/components/execution/ResizableDivider.vue'
 import WorkflowGraph from '@/components/execution/WorkflowGraph.vue'
 import StreamingInfo from '@/components/execution/StreamingInfo.vue'
-import ArtifactTabs from '@/components/execution/ArtifactTabs.vue'
+import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.vue'
 import PreviewArea from '@/components/execution/PreviewArea.vue'
 import { useExecutionStore } from '@/stores/execution'
 
@@ -46,8 +46,8 @@ const bottomHeight = ref(60)
 // Refs for child components
 const streamingInfoRef = ref<InstanceType<typeof StreamingInfo> | null>(null)
 
-// Artifact tab state
-const currentTab = ref<'report' | 'ppt' | 'file-diff'>('report')
+// Artifact tab state - defaults based on task type
+const currentTab = ref<TabType>('timeline')
 
 // Focus Mode state
 const isFocusMode = ref(false)
@@ -234,10 +234,22 @@ function handleNodeClick(nodeId: string) {
 }
 
 // Handle tab change
-function handleTabChange(tab: 'report' | 'ppt' | 'file-diff') {
+function handleTabChange(tab: TabType) {
   console.log('Tab changed to:', tab)
   // TODO: Update URL or trigger other side effects
 }
+
+// Set default tab based on task type
+watch(taskType, (newType) => {
+  const defaults: Record<string, TabType> = {
+    'deep-research': 'timeline',
+    'ppt-generation': 'ppt',
+    'code-refactor': 'file-diff',
+    'file-operations': 'file-diff',
+    'default': 'report',
+  }
+  currentTab.value = defaults[newType] || 'report'
+}, { immediate: true })
 
 // Focus Mode: Enter when user double-clicks a node
 function handleNodeDoubleClick(nodeId: string) {
@@ -414,12 +426,14 @@ function toggleCollapse() {
       >
         <ArtifactTabs 
           :session-id="sessionId" 
+          :task-type="taskType"
           v-model:current-tab="currentTab"
           @tab-change="handleTabChange"
         />
         <PreviewArea 
           :session-id="sessionId" 
           :current-tab="currentTab"
+          :is-executing="isRunning"
         />
       </div>
     </main>
