@@ -24,6 +24,11 @@ from .browser_ops import (
     create_browser_tools,
     cleanup_browser_session,
 )
+from .image_generation import (
+    GenerateImageTool,
+    EditImageTool,
+    create_image_generation_tools,
+)
 
 __all__ = [
     "WebSearchTool",
@@ -45,4 +50,8 @@ __all__ = [
     "BrowserCloseTool",
     "create_browser_tools",
     "cleanup_browser_session",
+    # Image generation tools
+    "GenerateImageTool",
+    "EditImageTool",
+    "create_image_generation_tools",
 ]
