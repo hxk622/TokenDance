@@ -170,11 +170,17 @@
 - [x] 符号提取 (函数/类/变量)
 - [x] 代码结构图生成
 
-#### 6. 向量化索引
+#### 6. 向量化索引 ✅
 文件: `backend/app/services/vector_indexer.py`
-- [ ] 文件内容向量化 (OpenAI Embeddings / 本地模型)
-- [ ] pgvector 存储
-- [ ] 语义搜索 API
+- [x] 文件内容向量化 (OpenAI Embeddings / 本地模型)
+- [x] pgvector 存储
+- [x] 语义搜索 API
+
+#### 7. API 端点 ✅
+文件: `backend/app/api/v1/research.py` + `backend/app/api/v1/files.py`
+- [x] Deep Research API (启动/状态/报告/时间线)
+- [x] Files API (索引/搜索/目录树/符号分析)
+- [x] 路由注册到 api.py
 
 ---
 
@@ -342,4 +348,4 @@
 
 ---
 
-**当前状态**: MVP Sprint Week 1 - 开始 DeepResearchAgent 开发
+**当前状态**: MVP Sprint Week 2 - API 端点完成，准备进入 Week 3 (PPT Generation)

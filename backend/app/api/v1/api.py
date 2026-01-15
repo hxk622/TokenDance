@@ -1,7 +1,10 @@
 """API v1 router - aggregates all v1 endpoints."""
 from fastapi import APIRouter
 
-from app.api.v1 import auth, session, chat, messages, hitl, stream, demo_stream, mcp, trust, skills, timeline
+from app.api.v1 import (
+    auth, session, chat, messages, hitl, stream, demo_stream, 
+    mcp, trust, skills, timeline, research, files
+)
 
 api_router = APIRouter()
 
@@ -16,4 +19,6 @@ api_router.include_router(hitl.router, tags=["hitl"])  # Human-in-the-Loop
 api_router.include_router(trust.router, prefix="/trust", tags=["trust"])  # Trust configuration
 api_router.include_router(skills.router, prefix="/skills", tags=["skills"])  # Skill discovery and templates
 api_router.include_router(timeline.router, tags=["timeline"])  # Research Timeline
+api_router.include_router(research.router, tags=["research"])  # Deep Research API
+api_router.include_router(files.router, tags=["files"])  # File indexing & search
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])  # Legacy
