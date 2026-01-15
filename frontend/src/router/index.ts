@@ -4,23 +4,22 @@ import type { RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'Chat',
-    component: () => import('@/views/ChatView.vue')
+    name: 'Home',
+    component: () => import('@/views/HomeView.vue'),
+    meta: {
+      title: 'TokenDance - AI Agent Platform'
+    }
   },
   {
     path: '/chat',
-    redirect: '/'
+    name: 'Chat',
+    component: () => import('@/views/ChatView.vue')
   },
   {
     path: '/chat/:sessionId',
     name: 'ChatSession',
     component: () => import('@/views/ChatView.vue'),
     props: true
-  },
-  {
-    path: '/home',
-    name: 'Home',
-    component: () => import('@/views/HomeView.vue')
   },
   {
     path: '/demo',

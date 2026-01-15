@@ -106,6 +106,48 @@
       "capabilities": ["tools"],
       "auto_start": false,
       "enabled": false
+    },
+    "wechat-reader": {
+      "description": "微信公众号文章读取工具",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@langgpt/weixin-mcp-server"],
+      "env": {},
+      "capabilities": ["tools", "resources"],
+      "auto_start": false,
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "description": "Chrome DevTools integration for web debugging and analysis",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "capabilities": ["tools"],
+      "auto_start": false,
+      "enabled": true
+    },
+    "jina-reader": {
+      "description": "Jina AI reader - converts web pages to LLM-friendly format",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.jina.ai/v1"],
+      "env": {},
+      "capabilities": ["tools"],
+      "auto_start": false,
+      "enabled": true
+    },
+    "xiaohongshu": {
+      "description": "小红书内容读取工具",
+      "transport": "stdio",
+      "command": "rednote-mcp",
+      "args": ["--stdio"],
+      "env": {},
+      "capabilities": ["tools", "resources"],
+      "auto_start": false,
+      "enabled": true
     }
   }
 }

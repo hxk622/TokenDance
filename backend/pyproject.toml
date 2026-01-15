@@ -24,6 +24,7 @@ dependencies = [
     "msgpack>=1.0.7",
     "watchdog>=3.0.0",
     "bcrypt<5.0.0",
+    "sentence-transformers>=2.2.0",
 ]
 
 [project.optional-dependencies]
