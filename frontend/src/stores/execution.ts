@@ -63,6 +63,22 @@ export interface FileOperation {
   timestamp: number
 }
 
+/**
+ * Browser Operation for BrowserOperationLog
+ */
+export interface BrowserOperation {
+  id: string
+  type: 'open' | 'click' | 'fill' | 'snapshot' | 'screenshot' | 'close'
+  target?: string
+  value?: string
+  status: 'pending' | 'running' | 'success' | 'error'
+  result?: string
+  error?: string
+  duration?: number
+  timestamp: string
+  screenshotPath?: string
+}
+
 export const useExecutionStore = defineStore('execution', () => {
   // Session state
   const sessionId = ref<string | null>(null)
@@ -80,6 +96,9 @@ export const useExecutionStore = defineStore('execution', () => {
 
   // File operations state
   const fileOperations = ref<FileOperation[]>([])
+
+  // Browser operations state
+  const browserOperations = ref<BrowserOperation[]>([])
 
   // Messages & Artifacts
   const messages = ref<Message[]>([])
@@ -336,6 +355,7 @@ export const useExecutionStore = defineStore('execution', () => {
     edges.value = []
     logs.value = []
     fileOperations.value = []
+    browserOperations.value = []
     messages.value = []
     artifacts.value = []
     error.value = null
@@ -351,6 +371,7 @@ export const useExecutionStore = defineStore('execution', () => {
     edges,
     logs,
     fileOperations,
+    browserOperations,
     messages,
     artifacts,
 

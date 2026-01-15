@@ -547,8 +547,203 @@ class FileIndexerService:
             return False
 
 
+# ==================== 文件监听器 (watchdog) ====================
+
+class _FileEventHandler(FileSystemEventHandler):
+    """文件事件处理器"""
+    
+    def __init__(
+        self,
+        indexer: FileIndexerService,
+        on_change: Optional[Callable[[FileChangeEvent], None]] = None
+    ):
+        self.indexer = indexer
+        self.on_change = on_change
+        self._debounce_timers: Dict[str, threading.Timer] = {}
+        self._debounce_delay = 0.5  # 防抖延迟
+    
+    def _should_process(self, path: str) -> bool:
+        """检查是否应该处理该路径"""
+        return not self.indexer.gitignore.should_ignore(path)
+    
+    def _debounced_process(self, event_type: FileChangeType, src_path: str, dest_path: str = None):
+        """防抖处理"""
+        # 取消之前的定时器
+        if src_path in self._debounce_timers:
+            self._debounce_timers[src_path].cancel()
+        
+        def process():
+            event = FileChangeEvent(
+                change_type=event_type,
+                src_path=src_path,
+                dest_path=dest_path
+            )
+            
+            # 更新索引
+            if event_type == FileChangeType.DELETED:
+                if src_path in self.indexer.state.files:
+                    del self.indexer.state.files[src_path]
+            elif event_type in (FileChangeType.CREATED, FileChangeType.MODIFIED):
+                # 同步索引文件
+                loop = asyncio.new_event_loop()
+                try:
+                    file_info = loop.run_until_complete(
+                        self.indexer._index_file(src_path)
+                    )
+                    if file_info:
+                        self.indexer.state.files[src_path] = file_info
+                finally:
+                    loop.close()
+            elif event_type == FileChangeType.MOVED and dest_path:
+                # 处理移动
+                if src_path in self.indexer.state.files:
+                    del self.indexer.state.files[src_path]
+                loop = asyncio.new_event_loop()
+                try:
+                    file_info = loop.run_until_complete(
+                        self.indexer._index_file(dest_path)
+                    )
+                    if file_info:
+                        self.indexer.state.files[dest_path] = file_info
+                finally:
+                    loop.close()
+            
+            # 触发回调
+            if self.on_change:
+                self.on_change(event)
+            
+            # 触发索引器回调
+            for callback in self.indexer._callbacks:
+                try:
+                    callback(event)
+                except Exception as e:
+                    logger.warning(f"Callback error: {e}")
+            
+            # 清理定时器
+            self._debounce_timers.pop(src_path, None)
+        
+        # 设置新的定时器
+        timer = threading.Timer(self._debounce_delay, process)
+        self._debounce_timers[src_path] = timer
+        timer.start()
+    
+    def on_created(self, event):
+        if event.is_directory or not self._should_process(event.src_path):
+            return
+        logger.debug(f"File created: {event.src_path}")
+        self._debounced_process(FileChangeType.CREATED, event.src_path)
+    
+    def on_modified(self, event):
+        if event.is_directory or not self._should_process(event.src_path):
+            return
+        logger.debug(f"File modified: {event.src_path}")
+        self._debounced_process(FileChangeType.MODIFIED, event.src_path)
+    
+    def on_deleted(self, event):
+        if event.is_directory or not self._should_process(event.src_path):
+            return
+        logger.debug(f"File deleted: {event.src_path}")
+        self._debounced_process(FileChangeType.DELETED, event.src_path)
+    
+    def on_moved(self, event):
+        if event.is_directory:
+            return
+        logger.debug(f"File moved: {event.src_path} -> {event.dest_path}")
+        self._debounced_process(FileChangeType.MOVED, event.src_path, event.dest_path)
+
+
+class FileWatcher:
+    """文件监听器
+    
+    使用示例:
+        indexer = FileIndexerService("/path/to/project")
+        watcher = FileWatcher(indexer)
+        
+        # 注册变更回调
+        watcher.on_change(lambda event: print(f"Changed: {event.src_path}"))
+        
+        # 启动监听
+        watcher.start()
+        
+        # ...
+        
+        # 停止监听
+        watcher.stop()
+    """
+    
+    def __init__(self, indexer: FileIndexerService):
+        if not WATCHDOG_AVAILABLE:
+            raise ImportError(
+                "watchdog is required for file watching. "
+                "Install with: pip install watchdog"
+            )
+        
+        self.indexer = indexer
+        self._observer: Optional[Observer] = None
+        self._change_callbacks: List[Callable[[FileChangeEvent], None]] = []
+        self._running = False
+    
+    def on_change(self, callback: Callable[[FileChangeEvent], None]) -> None:
+        """注册文件变更回调"""
+        self._change_callbacks.append(callback)
+    
+    def start(self) -> None:
+        """启动文件监听"""
+        if self._running:
+            return
+        
+        def notify_all(event: FileChangeEvent):
+            for callback in self._change_callbacks:
+                try:
+                    callback(event)
+                except Exception as e:
+                    logger.warning(f"Change callback error: {e}")
+        
+        handler = _FileEventHandler(self.indexer, notify_all)
+        self._observer = Observer()
+        self._observer.schedule(
+            handler,
+            str(self.indexer.root_path),
+            recursive=True
+        )
+        self._observer.start()
+        self._running = True
+        logger.info(f"FileWatcher started for: {self.indexer.root_path}")
+    
+    def stop(self) -> None:
+        """停止文件监听"""
+        if not self._running or not self._observer:
+            return
+        
+        self._observer.stop()
+        self._observer.join(timeout=5)
+        self._observer = None
+        self._running = False
+        logger.info("FileWatcher stopped")
+    
+    @property
+    def is_running(self) -> bool:
+        """是否正在运行"""
+        return self._running
+    
+    def __enter__(self):
+        self.start()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
+
 # ==================== 工厂函数 ====================
 
 def create_file_indexer(root_path: str) -> FileIndexerService:
     """创建文件索引服务"""
     return FileIndexerService(root_path=root_path)
+
+
+def create_file_watcher(indexer: FileIndexerService) -> Optional[FileWatcher]:
+    """创建文件监听器（如果 watchdog 可用）"""
+    if not WATCHDOG_AVAILABLE:
+        logger.warning("watchdog not available, file watching disabled")
+        return None
+    return FileWatcher(indexer)
