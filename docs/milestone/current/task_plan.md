@@ -1,19 +1,21 @@
 # Task Plan - 当前开发任务
 
-**创建时间**: 2026-01-14  
-**任务名称**: UI-Sprint - 三栏布局执行页面开发  
-**预计周期**: 6周 (Week 1-6)
+**创建时间**: 2026-01-15  
+**任务名称**: MVP Sprint - Deep Research + PPT + 文件索引  
+**预计周期**: 4周 (Week 1-4)
+**开发模式**: Option A (功能) + Option B (基础设施) 并行
 
 ---
 
 ## 🎯 本次任务目标
 
-实现 **Vibe-Agentic Workflow** 执行页面的三栏布局，包括：
-- 左侧执行区：Workflow Graph (Meego式DAG) + Streaming Info (日志流)
-- 右侧预览区：Artifact Tabs + Preview Area
-- 完整的拖拽、联动、动画效果
+实现 **MVP 核心功能**，包括：
+- Deep Research 工作流 (Manus 主导)
+- PPT Generation 工作流
+- 本地文件索引系统 (Coworker 基因)
+- E2E 测试 + 性能基准
 
-**设计规范**: `docs/ux/Three-Column-Layout.md`
+**设计规范**: `docs/product/VisionAndMission.md`
 
 ---
 
@@ -127,28 +129,87 @@
 **Commit**: 6db26ed
 
 ---
+## 📋 MVP Sprint - Week 1-2 任务
 
-## 📋 当前Sprint待办
+### Deep Research 工作流 (Option A)
 
-### 本周任务 (2026-01-14 ~ 2026-01-20)
+#### 1. DeepResearchAgent 实现 🔥
+文件: `backend/app/agent/agents/deep_research.py`
+- [ ] 继承 ResearchAgent，扩展多轮搜索能力
+- [ ] 实现 QueryExpansion (查询扩展)
+- [ ] 实现 SourceCredibility (来源可信度评估)
+- [ ] 实现 InformationSynthesis (信息综合)
 
-#### 1. 三文件工作法实施 🔥
-- [ ] 创建task_plan.md (本文件)
-- [ ] 创建findings.md (技术决策记录)
-- [ ] 创建progress.md (执行日志)
-- [ ] 更新AGENT.md (添加工作流规则)
+#### 2. 研究报告生成
+文件: `backend/app/agent/tools/builtin/report_generator.py`
+- [ ] Markdown 报告模板
+- [ ] 引用管理 (自动生成参考文献)
+- [ ] 摘要生成 (Executive Summary)
+- [ ] 关键发现提取
 
-#### 2. 前端集成
-- [ ] 在ChatView中添加WorkingMemoryPanel
-- [ ] 创建HITLConfirmDialog组件
-- [ ] 测试完整的消息流
+#### 3. 时光长廊 (Timeline)
+文件: `backend/app/services/research_timeline.py`
+- [ ] 截图存储 (MinIO/本地)
+- [ ] 时间戳索引
+- [ ] 页面元数据记录
+- [ ] 前端 Timeline 组件集成
 
-#### 3. 文档完善
-- [ ] 补充API文档
-- [ ] 更新README快速开始
-- [ ] 编写部署指南
+### 本地文件索引 (Option B)
+
+#### 4. 文件系统服务
+文件: `backend/app/services/file_indexer.py`
+- [ ] 目录遍历 (支持 .gitignore)
+- [ ] 文件监听 (watchdog)
+- [ ] 增量索引策略
+- [ ] 语言检测 (linguist/guesslang)
+
+#### 5. 代码分析
+文件: `backend/app/services/code_analyzer.py`
+- [ ] AST 解析 (tree-sitter)
+- [ ] 依赖关系提取
+- [ ] 符号提取 (函数/类/变量)
+- [ ] 代码结构图生成
+
+#### 6. 向量化索引
+文件: `backend/app/services/vector_indexer.py`
+- [ ] 文件内容向量化 (OpenAI Embeddings / 本地模型)
+- [ ] pgvector 存储
+- [ ] 语义搜索 API
 
 ---
+
+## 📋 MVP Sprint - Week 3-4 任务
+
+### PPT Generation (Option A)
+
+#### 7. PPT Agent
+文件: `backend/app/agent/agents/ppt_agent.py`
+- [ ] 大纲生成 (从研究报告/笔记)
+- [ ] 内容填充 (每页要点)
+- [ ] 视觉建议 (图表/图片)
+
+#### 8. 渲染引擎
+文件: `backend/app/services/ppt_renderer.py`
+- [ ] Slidev 模板集成
+- [ ] Marp 备选方案
+- [ ] 图表渲染 (Mermaid/Chart.js)
+- [ ] 导出 (PDF/PPTX via puppeteer)
+
+### 测试与性能 (Option B)
+
+#### 9. E2E 测试
+文件: `backend/tests/e2e/`
+- [ ] Deep Research 完整流程测试
+- [ ] PPT Generation 测试
+- [ ] HITL 交互测试
+- [ ] 错误恢复测试
+
+#### 10. 性能基准
+文件: `backend/tests/benchmark/`
+- [ ] Token 消耗统计
+- [ ] 响应时间测量
+- [ ] 并发任务测试 (5 tasks)
+- [ ] 内存/CPU 监控
 
 ---
 
@@ -190,11 +251,23 @@
 
 ## 📊 成功标准
 
-### Phase 5 Milestone 1 完成标志
-- [ ] 前端完整集成 (Working Memory + HITL)
-- [ ] API文档覆盖率 > 80%
-- [ ] 所有E2E测试通过
-- [ ] 性能基准测试完成
+### Deep Research MVP
+- [ ] 用户输入主题，自动搜索 5+ 来源
+- [ ] 生成结构化 Markdown 报告 (带引用)
+- [ ] 时光长廊显示关键页面截图
+- [ ] 支持 HITL 确认关键发现
+
+### PPT Generation MVP
+- [ ] 从研究报告一键生成 PPT
+- [ ] 10-15 页幻灯片
+- [ ] 支持导出 PDF
+- [ ] 基础图表支持
+
+### 文件索引 MVP
+- [ ] 拖入文件夹自动索引
+- [ ] 语义搜索 ("找到处理用户认证的代码")
+- [ ] 文件树可视化
+- [ ] 增量更新 (< 1s)
 
 ### 交付物要求
 - 代码有完整注释
@@ -204,13 +277,23 @@
 
 ---
 
+## 📅 里程碑
+
+- **Week 1 End**: Deep Research 基础流程 + 文件遍历
+- **Week 2 End**: 研究报告生成 + 向量化索引
+- **Week 3 End**: PPT 大纲生成 + E2E 测试框架
+- **Week 4 End**: PPT 导出 + 性能基准报告
+
+---
+
 ## 🔄 计划更新日志
 
 - 2026-01-14: 初始化task_plan.md，记录Phase 4完成状态
 - 2026-01-15: UI-Sprint Phase 1-3 全部完成
 - 2026-01-15: HITL 前端集成完成
 - 2026-01-15: API 文档 + 部署指南完成
+- 2026-01-15: 切换到 MVP Sprint (Deep Research + PPT + 文件索引)
 
 ---
 
-**下一步**: MVP 功能开发 (Deep Research / PPT Generation)
+**当前状态**: MVP Sprint Week 1 - 开始 DeepResearchAgent 开发
