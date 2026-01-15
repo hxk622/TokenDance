@@ -425,4 +425,110 @@
 
 ---
 
+## 📅 MVP Sprint Week 1-2 开发日志 (2026-01-15)
+
+### Session 11: DeepResearchAgent 实现
+**时间**: 2026-01-15 10:00 - 11:00  
+**目标**: 实现深度研究 Agent 核心功能
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/agent/agents/deep_research.py` (617行)
+   - 多阶段研究流程 (init→searching→reading→synthesizing→reporting)
+   - 来源可信度评估 (SourceCredibility)
+   - 查询扩展 (QueryExpansion)
+   - 2-Action Rule 集成
+
+2. ✅ 创建 `backend/app/agent/tools/builtin/report_generator.py` (228行)
+   - Markdown 报告模板
+   - 引用管理
+   - 摘要生成
+
+3. ✅ 创建 `backend/app/services/research_timeline.py` (352行)
+   - 截图存储 (MinIO/本地)
+   - 时间线索引
+   - Markdown 导出
+
+**Commit**: 45fe77b
+
+---
+
+### Session 12: 本地文件索引系统
+**时间**: 2026-01-15 11:00 - 12:00  
+**目标**: 实现文件索引与代码分析
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/services/file_indexer.py` (518行)
+   - 目录遍历 (支持 .gitignore)
+   - GitignoreParser 解析器
+   - 40+ 语言检测
+   - 增量索引策略
+
+2. ✅ 创建 `backend/app/services/code_analyzer.py` (553行)
+   - Python AST 分析
+   - 依赖关系提取 (pyproject.toml, package.json, go.mod)
+   - 符号提取 (函数/类/变量)
+
+**Commit**: 71b0448
+
+---
+
+### Session 13: 向量化索引与 API
+**时间**: 2026-01-15 14:00 - 15:00  
+**目标**: 实现向量搜索与 REST API
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/services/vector_indexer.py` (712行)
+   - EmbeddingProvider 抽象 (OpenAI/本地模型)
+   - VectorStore 抽象 (InMemory/PgVector)
+   - TextChunker 文本分块
+   - 语义搜索 API
+
+2. ✅ 创建 `backend/app/api/v1/research.py` (314行)
+   - POST /research/start - 启动研究
+   - GET /research/{task_id} - 查询状态
+   - GET /research/{task_id}/report - 获取报告
+   - GET /research/{task_id}/timeline - 获取时间线
+
+3. ✅ 创建 `backend/app/api/v1/files.py` (329行)
+   - POST /files/index - 索引目录
+   - POST /files/search - 语义搜索
+   - GET /files/tree - 目录树
+   - GET /files/stats - 索引统计
+   - GET /files/analyze/{path} - 文件分析
+   - GET /files/search/symbol - 符号搜索
+
+4. ✅ 更新 `backend/app/api/v1/api.py`
+   - 注册 research 和 files 路由
+
+**Commit**: 608cf5a
+
+---
+
+### Week 2 完成总结
+
+#### 交付物
+| 文件 | 行数 | 描述 |
+|------|------|------|
+| deep_research.py | 617 | DeepResearchAgent 核心 |
+| report_generator.py | 228 | 报告生成工具 |
+| research_timeline.py | 352 | 时光长廊服务 |
+| file_indexer.py | 518 | 文件索引服务 |
+| code_analyzer.py | 553 | 代码分析服务 |
+| vector_indexer.py | 712 | 向量化索引 |
+| research.py (API) | 314 | 研究 API |
+| files.py (API) | 329 | 文件 API |
+| **总计** | **3,623** | |
+
+#### 架构模式
+- Factory 函数: `create_xxx()` 工厂方法
+- 抽象基类: EmbeddingProvider, VectorStore
+- Dataclass: 数据模型 + `to_dict()` 方法
+- 异步设计: 所有服务方法支持 async/await
+
+#### 下一步
+- Week 3: PPT Generation Agent
+- Week 3: E2E 测试框架
+
+---
+
 **更新时机**: 每次开发Session结束时
