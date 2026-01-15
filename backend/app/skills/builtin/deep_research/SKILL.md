@@ -1,11 +1,11 @@
 ---
 name: deep_research
 display_name: 深度研究
-description: 深度研究能力，支持多源搜索、信息聚合、引用回溯。适用于市场调研、竞品分析、学术研究、技术选型等场景。能够系统性地搜集、整理、分析信息，生成带引用的结构化报告。
-version: 1.0.0
+description: 深度研究能力，支持多源搜索、信息聚合、引用回溯。适用于市场调研、竞品分析、学术研究、技术选型等场景。能够系统性地搜集、整理、分析信息，生成带引用的结构化报告。支持浏览器自动化，可访问动态网页和需要登录的平台。
+version: 1.1.0
 author: system
-tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析]
-allowed_tools: [web_search, read_url, create_document]
+tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation]
+allowed_tools: [web_search, read_url, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close]
 max_iterations: 30
 timeout: 600
 enabled: true
@@ -52,6 +52,22 @@ priority: 10
 - 只读取 Top 相关性页面（避免 Context 爆炸）
 - 优先官方网站、权威媒体
 - 对长文本先摘要再存储
+
+### Phase 4.5: 浏览器自动化（按需）
+当遇到以下情况时，切换到浏览器操作：
+- 动态 SPA 应用（read_url 返回空白）
+- 需要登录的平台
+- 反爬虫保护的网站
+- 需要滚动/交互加载的内容
+
+浏览器工作流：
+1. `browser_open` 打开目标页面
+2. `browser_snapshot` 获取页面结构（compact模式）
+3. 根据需要执行 `browser_click`/`browser_fill`
+4. `browser_screenshot` 记录关键帧
+5. 提取信息后 `browser_close` 释放资源
+
+> 详见 L3 资源：`resources/browser_automation.md`
 
 ### Phase 5: 信息聚合
 - 去重相同信息
@@ -109,6 +125,46 @@ read_url(url="https://example.com/article")
 - `title`: 报告标题
 - `content`: Markdown 格式内容
 - `format`: 输出格式（markdown）
+
+### browser_* 系列（浏览器自动化）
+
+基于 agent-browser 的 Snapshot + Refs 机制，相比传统 Playwright 节省 93%+ tokens。
+
+**browser_open**: 打开网页
+```python
+browser_open(url="https://example.com")
+# 返回: {"title": "...", "url": "..."}
+```
+
+**browser_snapshot**: 获取页面结构快照（核心）
+```python
+browser_snapshot(interactive_only=True, compact=True)
+# 返回压缩的 Markdown 格式，约 500-2000 tokens
+# - @e1 [搜索框] type=input
+# - @e2 [按钮] type=button
+```
+
+**browser_click**: 点击元素
+```python
+browser_click(ref="@e1")  # 使用 snapshot 返回的 Ref ID
+```
+
+**browser_fill**: 填充输入框
+```python
+browser_fill(ref="@e1", text="搜索关键词")
+```
+
+**browser_screenshot**: 截取关键帧
+```python
+browser_screenshot(path="/workspace/screenshots/step1.png")
+```
+
+**browser_close**: 关闭浏览器
+```python
+browser_close()
+```
+
+> 详细用法参见 L3 资源：`resources/browser_automation.md`
 
 ## 最佳实践
 
