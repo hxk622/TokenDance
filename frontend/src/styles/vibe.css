@@ -1,0 +1,343 @@
+/**
+ * TokenDance Vibe Styles
+ * 
+ * Vibe-Agentic Workflow 设计系统核心样式
+ * - 毛玻璃效果
+ * - 色球动画
+ * - 微交互
+ * - 过渡动画
+ */
+
+/* ============================================
+   CSS Variables - Vibe Color System
+   ============================================ */
+
+:root {
+  /* 主色调 */
+  --vibe-primary: #00D9FF;
+  --vibe-success: #00FF88;
+  --vibe-warning: #FFB800;
+  --vibe-danger: #FF3B30;
+  --vibe-inactive: #8E8E93;
+  
+  /* 背景色 */
+  --vibe-bg-primary: rgba(18, 18, 18, 0.95);
+  --vibe-bg-secondary: rgba(28, 28, 30, 0.9);
+  --vibe-bg-tertiary: rgba(44, 44, 46, 0.8);
+  
+  /* 文本色 */
+  --vibe-text-primary: #ffffff;
+  --vibe-text-secondary: rgba(255, 255, 255, 0.6);
+  --vibe-text-tertiary: rgba(255, 255, 255, 0.4);
+  
+  /* 边框色 */
+  --vibe-border: rgba(255, 255, 255, 0.1);
+  --vibe-border-hover: rgba(0, 217, 255, 0.5);
+  
+  /* 动画时长 */
+  --vibe-duration-fast: 120ms;
+  --vibe-duration-normal: 200ms;
+  --vibe-duration-slow: 300ms;
+  
+  /* 动画曲线 */
+  --vibe-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --vibe-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   毛玻璃效果
+   ============================================ */
+
+.vibe-glass {
+  background: rgba(28, 28, 30, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--vibe-border);
+}
+
+.vibe-glass-light {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+}
+
+.vibe-glass-dark {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+}
+
+/* ============================================
+   色球动画
+   ============================================ */
+
+/* 呼吸动画 - 活跃状态 */
+@keyframes vibe-breath {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 40px currentColor);
+  }
+}
+
+.vibe-breath {
+  animation: vibe-breath 1.5s ease-in-out infinite;
+}
+
+/* 脉冲波纹 - 活跃节点 */
+@keyframes vibe-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.vibe-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: vibe-pulse-ring 1.5s ease-out infinite;
+}
+
+/* 能量流光 - 连线效果 */
+@keyframes vibe-energy-flow {
+  0% {
+    stroke-dashoffset: 30;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.vibe-energy-line {
+  stroke-dasharray: 15 10;
+  animation: vibe-energy-flow 1s linear infinite;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* ============================================
+   微交互效果
+   ============================================ */
+
+/* Hover 浮起效果 */
+.vibe-hover-lift {
+  transition: transform var(--vibe-duration-fast) var(--vibe-ease-out),
+              box-shadow var(--vibe-duration-fast) var(--vibe-ease-out);
+}
+
+.vibe-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Active 按下效果 */
+.vibe-active-press:active {
+  transform: scale(0.98);
+  transition: transform 50ms ease-out;
+}
+
+/* 发光效果 */
+.vibe-glow {
+  box-shadow: 0 0 20px var(--vibe-primary);
+}
+
+.vibe-glow-success {
+  box-shadow: 0 0 20px var(--vibe-success);
+}
+
+.vibe-glow-warning {
+  box-shadow: 0 0 20px var(--vibe-warning);
+}
+
+.vibe-glow-danger {
+  box-shadow: 0 0 20px var(--vibe-danger);
+}
+
+/* ============================================
+   过渡动画
+   ============================================ */
+
+/* 淡入淡出 */
+.vibe-fade-enter-active,
+.vibe-fade-leave-active {
+  transition: opacity var(--vibe-duration-normal) var(--vibe-ease-out);
+}
+
+.vibe-fade-enter-from,
+.vibe-fade-leave-to {
+  opacity: 0;
+}
+
+/* 滑入滑出 */
+.vibe-slide-up-enter-active,
+.vibe-slide-up-leave-active {
+  transition: all var(--vibe-duration-normal) var(--vibe-ease-out);
+}
+
+.vibe-slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.vibe-slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* 缩放弹出 */
+.vibe-scale-enter-active {
+  transition: all var(--vibe-duration-normal) var(--vibe-ease-bounce);
+}
+
+.vibe-scale-leave-active {
+  transition: all var(--vibe-duration-fast) var(--vibe-ease-out);
+}
+
+.vibe-scale-enter-from,
+.vibe-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+/* ============================================
+   加载动画
+   ============================================ */
+
+/* 骨架屏闪烁 */
+@keyframes vibe-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.vibe-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: vibe-shimmer 1.5s infinite;
+}
+
+/* 旋转加载 */
+@keyframes vibe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vibe-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--vibe-border);
+  border-top-color: var(--vibe-primary);
+  border-radius: 50%;
+  animation: vibe-spin 0.8s linear infinite;
+}
+
+/* 点点加载 */
+@keyframes vibe-dots {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.vibe-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.vibe-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--vibe-primary);
+  border-radius: 50%;
+  animation: vibe-dots 1.4s infinite ease-in-out both;
+}
+
+.vibe-dots span:nth-child(1) { animation-delay: -0.32s; }
+.vibe-dots span:nth-child(2) { animation-delay: -0.16s; }
+.vibe-dots span:nth-child(3) { animation-delay: 0s; }
+
+/* ============================================
+   工具类
+   ============================================ */
+
+/* 禁用选择 */
+.vibe-no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 隐藏滚动条 */
+.vibe-hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.vibe-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 自定义滚动条 */
+.vibe-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.vibe-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.vibe-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.vibe-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 文本省略 */
+.vibe-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 文本多行省略 */
+.vibe-line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vibe-line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

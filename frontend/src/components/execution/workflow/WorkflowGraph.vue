@@ -4,9 +4,12 @@ import NodeTooltip from './NodeTooltip.vue'
 
 interface Props {
   sessionId: string
+  miniMode?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  miniMode: false
+})
 const emit = defineEmits<{
   'node-click': [nodeId: string]
   'node-double-click': [nodeId: string]
@@ -95,6 +98,12 @@ const edges = ref<Edge[]>([
 
 const selectedNodeId = ref<string | null>(null)
 const isCollapsed = ref(false)
+const isLoading = ref(true)
+
+// Simulate loading
+setTimeout(() => {
+  isLoading.value = false
+}, 800)
 
 // Tooltip state
 const tooltipVisible = ref(false)
@@ -168,9 +177,26 @@ watch(() => props.sessionId, (newId) => {
       </button>
     </div>
 
-    <!-- Mini Graph (Collapsed Mode) -->
-    <div v-if="isCollapsed" class="mini-graph">
-      <div class="mini-node" v-for="node in nodes" :key="node.id" :style="{ background: getNodeColor(node.status) }"></div>
+    <!-- Loading Skeleton -->
+    <div v-if="isLoading" class="graph-skeleton">
+      <div class="skeleton-node" v-for="i in 4" :key="i">
+        <div class="skeleton-circle"></div>
+        <div class="skeleton-label"></div>
+      </div>
+      <div class="skeleton-shimmer"></div>
+    </div>
+
+    <!-- Mini Graph (Collapsed Mode or Mini Mode) -->
+    <div v-else-if="isCollapsed || miniMode" class="mini-graph">
+      <div 
+        v-for="node in nodes" 
+        :key="node.id" 
+        :class="['mini-node', node.status]"
+        :style="{ background: getNodeColor(node.status) }"
+        @click="handleNodeClick(node.id)"
+      >
+        <span class="mini-node-pulse" v-if="node.status === 'active'"></span>
+      </div>
     </div>
 
     <!-- Canvas Area (Normal Mode) -->
@@ -444,10 +470,97 @@ watch(() => props.sessionId, (newId) => {
   border-radius: 50%;
   box-shadow: 0 0 12px currentColor;
   transition: all 200ms ease-out;
+  cursor: pointer;
+  position: relative;
 }
 
 .mini-node:hover {
   transform: scale(1.15);
+}
+
+.mini-node.active {
+  animation: mini-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes mini-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px currentColor, 0 0 24px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  }
+}
+
+.mini-node-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Skeleton Loading */
+.graph-skeleton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 100%);
+}
+
+.skeleton-label {
+  width: 80px;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 100%);
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* CSS Variables */
