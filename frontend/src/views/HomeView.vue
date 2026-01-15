@@ -364,7 +364,27 @@ const handleKeydown = (e: KeyboardEvent) => {
   @apply text-xs text-gray-400;
 }
 
-/* Drop */
+/* 焦点卡片区 */
+.focus-section {
+  @apply mb-8;
+}
+
+/* 智能输入区 */
+.smart-input-section {
+  @apply mb-8;
+}
+
+/* 团队活动区 */
+.team-section {
+  @apply mb-8;
+}
+
+/* 全球实时区 */
+.global-section {
+  @apply mb-8;
+}
+
+/* Drop Section */
 .drop-section {
   @apply mb-8;
 }
