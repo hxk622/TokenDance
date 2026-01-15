@@ -80,45 +80,51 @@
 
 ---
 
-## 👨‍💻 UI-Sprint-Phase2 - 交互增强 (Week 3-4)
+## 👨‍💻 UI-Sprint-Phase2 - 交互增强 (Week 3-4) ✅ 已完成
 
 ### 目标
 完善 Artifact Tabs + Coworker 专属视图 + 聚焦模式。
 
 ### 任务清单
-- [ ] 实现 ArtifactTabs 组件（支持切换、Pin、拖拽排序）
-- [ ] 实现 PreviewArea 组件（支持多种预览类型）
-- [ ] 实现 Coworker File Tree 视图（类似 VS Code Source Control）
-- [ ] 实现 Live Diff 组件（Monaco Editor Diff 模式）
-- [ ] 实现聚焦模式（点击节点后上20%/下80%）
-- [ ] 实现折叠模式（只显示 mini-graph）
-- [ ] 添加“固定视图”按钮（锁定 Scroll-Sync）
+- [x] 实现 ArtifactTabs 组件（支持切换、Pin、拖拽排序）- 已完成
+- [x] 实现 PreviewArea 组件（支持多种预览类型）- 已完成
+- [x] 实现 Coworker File Tree 视图（类似 VS Code Source Control）- 已完成
+- [x] 实现 Live Diff 组件（Monaco Editor Diff 模式）- 已完成
+- [x] 实现聚焦模式（点击节点后上20%/下80%）- 已完成
+- [x] 实现折叠模式（只显示 mini-graph）- 已完成
+- [x] 添加"固定视图"按钮（锁定 Scroll-Sync）- 已完成
 
 ### 验收标准
 - ✅ 右侧可通过 Tab 切换 Report、PPT、File Diff 等视图
 - ✅ Coworker 修改文件时，自动切换到 File Diff Tab 并高亮变更
 - ✅ 用户可进入聚焦模式，下部日志只显示当前节点内容
 
+**完成时间**: 2026-01-15
+**Commit**: 2147df9
+
 ---
 
-## ✨ UI-Sprint-Phase3 - Vibe体验打磨 (Week 5-6)
+## ✨ UI-Sprint-Phase3 - Vibe体验打磨 (Week 5-6) ✅ 已完成
 
 ### 目标
 实现毛玻璃特效 + 色球动画 + 智能滚动。
 
 ### 任务清单
-- [ ] 添加毛玻璃背景（backdrop-filter: blur(20px)）
-- [ ] 实现色球呼吸动画（pulse-breath 1.5s 周期）
-- [ ] 实现能量连线流光效果（stroke-dasharray + animation）
-- [ ] 实现智能滚动策略（检测用户意图，避免强制跳转）
-- [ ] 添加过渡动画（布局变化200ms，色球切换300ms）
-- [ ] 微交互打磨（Hover态、拖拽反馈、加载动画）
+- [x] 添加毛玻璃背景（backdrop-filter: blur(20px)）- 已完成
+- [x] 实现色球呼吸动画（pulse-breath 1.5s 周期）- 已完成
+- [x] 实现能量连线流光效果（stroke-dasharray + animation）- 已完成
+- [x] 实现智能滚动策略（检测用户意图，避免强制跳转）- 已完成
+- [x] 添加过渡动画（布局变化200ms，色球切换300ms）- 已完成
+- [x] 微交互打磨（Hover态、拖拽反馈、加载动画）- 已完成
 
 ### 验收标准
 - ✅ 青色色球有明显的呼吸动画，绿色色球静止锁定
 - ✅ 能量连线有从左向右的流光效果
 - ✅ 用户手动滚动日志时，自动暂停 Scroll-Sync
 - ✅ 整体视觉符合 "Vibe Workflow" 氛围感标准
+
+**完成时间**: 2026-01-15
+**Commit**: 6db26ed
 
 ---
 
@@ -144,7 +150,26 @@
 
 ---
 
-## 🎓 开发原则
+---
+
+## 📦 新增交付物 (2026-01-15)
+
+### HITL 前端集成
+- `frontend/src/api/hitl.ts` - HITL API 客户端
+- `frontend/src/components/execution/HITLConfirmDialog.vue` - 确认弹窗
+- ChatView 集成轮询 + 浮动徽章
+
+### Vibe 设计系统
+- `frontend/src/styles/vibe.css` - 全局 Vibe 样式
+- `frontend/src/components/common/RippleButton.vue` - 波纹按钮
+
+### 文档
+- `docs/api/README.md` - API 文档
+- `docs/deployment/README.md` - 部署指南
+
+---
+
+## 📝 开发原则
 
 ### Plan Recitation (计划背诵)
 - 每次开始新工作前，重读此计划
@@ -182,8 +207,10 @@
 ## 🔄 计划更新日志
 
 - 2026-01-14: 初始化task_plan.md，记录Phase 4完成状态
-- (待续...)
+- 2026-01-15: UI-Sprint Phase 1-3 全部完成
+- 2026-01-15: HITL 前端集成完成
+- 2026-01-15: API 文档 + 部署指南完成
 
 ---
 
-**下次更新时机**: Phase 5 Milestone 1 开始时
+**下一步**: MVP 功能开发 (Deep Research / PPT Generation)
