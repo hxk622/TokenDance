@@ -1,81 +1,72 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import IntentCard, { type IntentType } from '@/components/home/IntentCard.vue'
-import PromptSuggestions, { type PromptSuggestion } from '@/components/home/PromptSuggestions.vue'
 import FileDropZone from '@/components/home/FileDropZone.vue'
 
 const router = useRouter()
 const inputValue = ref('')
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 
-// 意图卡片数据
-const intents: IntentType[] = [
+// 工作流卡片 - 以用户任务为中心，而非功能
+const workflows = [
   {
     id: 'research',
-    icon: '🔍',
-    title: '深度研究',
-    description: 'AI 帮你调研分析',
-    color: '#6366f1',
-    gradient: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)'
+    title: '市场调研',
+    subtitle: '竞品分析 · 行业报告 · 数据洞察',
+    icon: 'chart-bar',
+    accent: 'indigo'
   },
   {
-    id: 'ppt',
-    icon: '📊',
-    title: '生成 PPT',
-    description: '一键生成演示文稿',
-    color: '#f59e0b',
-    gradient: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+    id: 'presentation',
+    title: '演示汇报',
+    subtitle: '方案展示 · 周报总结 · 培训材料',
+    icon: 'presentation',
+    accent: 'amber'
   },
   {
-    id: 'code',
-    icon: '💻',
-    title: '执行代码',
-    description: '运行和调试代码',
-    color: '#10b981',
-    gradient: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
+    id: 'development',
+    title: '开发调试',
+    subtitle: '代码审查 · 性能优化 · Bug 排查',
+    icon: 'code',
+    accent: 'emerald'
   }
 ]
 
-// 示例 Prompt
-const suggestions: PromptSuggestion[] = [
-  { id: '1', icon: '📈', text: '帮我调研 2024 年 AI Agent 市场趋势' },
-  { id: '2', icon: '📝', text: '把这份报告做成 10 页 PPT' },
-  { id: '3', icon: '📊', text: '分析这份 CSV 数据并生成图表' },
-  { id: '4', icon: '🔧', text: '帮我重构这段代码，提升性能' }
+// 最近项目（模拟数据，实际应从 API 获取）
+const recentProjects = [
+  { id: '1', name: '2024 Q4 竞品分析', time: '2 小时前', status: 'completed' },
+  { id: '2', name: '产品路演 PPT', time: '昨天', status: 'in-progress' },
+  { id: '3', name: 'API 性能优化', time: '3 天前', status: 'completed' }
 ]
 
-// 处理意图选择
-const handleIntentSelect = (intent: IntentType) => {
-  const prompts: Record<string, string> = {
-    research: '请帮我深度调研：',
-    ppt: '请帮我生成一份 PPT：',
-    code: '请帮我执行以下任务：'
-  }
-  inputValue.value = prompts[intent.id]
-  inputRef.value?.focus()
+// 处理工作流选择
+const handleWorkflowSelect = (workflow: typeof workflows[0]) => {
+  router.push({
+    path: '/chat',
+    query: { workflow: workflow.id }
+  })
 }
 
-// 处理示例选择
-const handleSuggestionSelect = (text: string) => {
-  inputValue.value = text
-  // 直接提交
-  handleSubmit()
+// 处理最近项目点击
+const handleProjectClick = (project: typeof recentProjects[0]) => {
+  router.push({
+    path: `/chat/${project.id}`
+  })
 }
 
 // 处理文件拖拽
 const handleFileDrop = (files: FileList) => {
   console.log('Files dropped:', files)
-  // TODO: 处理文件上传，启动 Coworker
   const fileNames = Array.from(files).map(f => f.name).join(', ')
-  inputValue.value = `请帮我分析这些文件：${fileNames}`
+  router.push({
+    path: '/chat',
+    query: { files: fileNames }
+  })
 }
 
 // 处理提交
 const handleSubmit = () => {
   if (!inputValue.value.trim()) return
-  
-  // 跳转到聊天页并带上初始消息
   router.push({
     path: '/chat',
     query: { q: inputValue.value }
@@ -93,152 +84,297 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 <template>
   <div class="home-view">
-    <!-- Background Effects -->
-    <div class="bg-gradient" />
-    <div class="bg-noise" />
+    <!-- Subtle Background -->
+    <div class="bg-pattern" />
+    
+    <!-- Header -->
+    <header class="home-header">
+      <div class="header-left">
+        <h1 class="logo">TokenDance</h1>
+      </div>
+      <div class="header-right">
+        <button class="header-btn">文档</button>
+        <button class="header-btn header-btn-primary">登录</button>
+      </div>
+    </header>
     
     <!-- Main Content -->
-    <main class="home-content">
-      <!-- Hero Section -->
-      <section class="hero-section">
-        <h1 class="hero-title">
-          <span class="hero-icon">🚀</span>
-          TokenDance
-        </h1>
-        <p class="hero-subtitle">我能帮你完成各种任务</p>
+    <main class="home-main">
+      <!-- Hero -->
+      <section class="hero">
+        <h2 class="hero-title">你的智能工作台</h2>
+        <p class="hero-desc">和 Agent 一起完成任务，随时接管和调整</p>
       </section>
       
-      <!-- Input Section -->
+      <!-- Input -->
       <section class="input-section">
-        <div class="input-container">
-          <textarea
+        <div class="input-wrapper">
+          <input
             ref="inputRef"
             v-model="inputValue"
+            type="text"
             class="main-input"
-            placeholder="输入你想完成的任务..."
-            rows="1"
+            placeholder="描述你要完成的任务，或直接拖入文件..."
             @keydown="handleKeydown"
           />
           <button 
-            class="submit-button"
+            class="input-submit"
             :disabled="!inputValue.trim()"
             @click="handleSubmit"
           >
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            开始
+          </button>
+        </div>
+      </section>
+      
+      <!-- Workflows -->
+      <section class="workflows-section">
+        <h3 class="section-title">开始一个工作流</h3>
+        <div class="workflows-grid">
+          <button
+            v-for="wf in workflows"
+            :key="wf.id"
+            class="workflow-card"
+            :class="`workflow-card--${wf.accent}`"
+            @click="handleWorkflowSelect(wf)"
+          >
+            <div class="workflow-icon">
+              <svg v-if="wf.icon === 'chart-bar'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <svg v-else-if="wf.icon === 'presentation'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+            </div>
+            <div class="workflow-content">
+              <span class="workflow-title">{{ wf.title }}</span>
+              <span class="workflow-subtitle">{{ wf.subtitle }}</span>
+            </div>
+            <svg class="workflow-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
       </section>
       
-      <!-- Intent Cards -->
-      <section class="intent-section">
-        <IntentCard
-          v-for="intent in intents"
-          :key="intent.id"
-          :intent="intent"
-          @select="handleIntentSelect"
-        />
+      <!-- Recent Projects -->
+      <section class="recent-section">
+        <h3 class="section-title">最近项目</h3>
+        <div class="recent-list">
+          <button
+            v-for="project in recentProjects"
+            :key="project.id"
+            class="recent-item"
+            @click="handleProjectClick(project)"
+          >
+            <div class="recent-status" :class="`recent-status--${project.status}`" />
+            <span class="recent-name">{{ project.name }}</span>
+            <span class="recent-time">{{ project.time }}</span>
+          </button>
+        </div>
       </section>
       
-      <!-- Prompt Suggestions -->
-      <section class="suggestions-section">
-        <PromptSuggestions
-          :suggestions="suggestions"
-          @select="handleSuggestionSelect"
-        />
-      </section>
-      
-      <!-- File Drop Zone -->
+      <!-- Drop Zone -->
       <section class="drop-section">
         <FileDropZone @drop="handleFileDrop" />
       </section>
     </main>
+    
+    <!-- Footer -->
+    <footer class="home-footer">
+      <p>随时接管 · 实时干预 · 沉淀复用</p>
+    </footer>
   </div>
 </template>
 
 <style scoped>
 .home-view {
-  @apply relative min-h-screen overflow-hidden;
+  @apply relative min-h-screen flex flex-col;
+  background: #fafafa;
 }
 
-/* Background Effects */
-.bg-gradient {
-  @apply absolute inset-0 -z-10;
-  background: 
-    radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+/* Background */
+.bg-pattern {
+  @apply absolute inset-0 -z-10 opacity-[0.03];
+  background-image: 
+    linear-gradient(to right, #000 1px, transparent 1px),
+    linear-gradient(to bottom, #000 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.bg-noise {
-  @apply absolute inset-0 -z-10 opacity-30;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+/* Header */
+.home-header {
+  @apply flex items-center justify-between px-8 py-4 border-b border-gray-100;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(8px);
 }
 
-/* Main Content */
-.home-content {
-  @apply relative z-10 max-w-4xl mx-auto px-6 py-16;
+.logo {
+  @apply text-xl font-semibold text-gray-900 tracking-tight;
 }
 
-/* Hero Section */
-.hero-section {
-  @apply text-center mb-12;
+.header-right {
+  @apply flex items-center gap-2;
+}
+
+.header-btn {
+  @apply px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors;
+}
+
+.header-btn-primary {
+  @apply bg-gray-900 text-white rounded-lg hover:bg-gray-800;
+}
+
+/* Main */
+.home-main {
+  @apply flex-1 max-w-3xl w-full mx-auto px-6 py-12;
+}
+
+/* Hero */
+.hero {
+  @apply text-center mb-10;
 }
 
 .hero-title {
-  @apply text-5xl font-bold text-gray-800 mb-4
-         flex items-center justify-center gap-4;
+  @apply text-3xl font-semibold text-gray-900 mb-2;
 }
 
-.hero-icon {
-  @apply text-4xl;
+.hero-desc {
+  @apply text-base text-gray-500;
 }
 
-.hero-subtitle {
-  @apply text-xl text-gray-500;
-}
-
-/* Input Section */
+/* Input */
 .input-section {
   @apply mb-12;
 }
 
-.input-container {
-  @apply relative max-w-2xl mx-auto;
+.input-wrapper {
+  @apply flex gap-3;
 }
 
 .main-input {
-  @apply w-full px-6 py-4 pr-14
-         text-lg text-gray-800 placeholder-gray-400
-         bg-white/80 backdrop-blur-sm
-         border border-gray-200 rounded-2xl
-         shadow-lg shadow-gray-200/50
-         focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500
-         transition-all duration-200
-         resize-none;
+  @apply flex-1 px-5 py-3.5
+         text-base text-gray-900 placeholder-gray-400
+         bg-white border border-gray-200 rounded-xl
+         focus:outline-none focus:border-gray-400
+         transition-colors;
 }
 
-.submit-button {
-  @apply absolute right-3 top-1/2 -translate-y-1/2
-         w-10 h-10 flex items-center justify-center
-         rounded-xl bg-cyan-500 text-white
-         hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed
-         transition-colors duration-200;
+.input-submit {
+  @apply px-6 py-3.5
+         text-sm font-medium text-white
+         bg-gray-900 rounded-xl
+         hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
+         transition-colors;
 }
 
-/* Intent Section */
-.intent-section {
-  @apply flex justify-center gap-6 mb-12 flex-wrap;
+/* Section Title */
+.section-title {
+  @apply text-sm font-medium text-gray-400 uppercase tracking-wider mb-4;
 }
 
-/* Suggestions Section */
-.suggestions-section {
+/* Workflows */
+.workflows-section {
   @apply mb-12;
 }
 
-/* Drop Section */
+.workflows-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+}
+
+.workflow-card {
+  @apply flex items-center gap-4 p-5
+         bg-white border border-gray-100 rounded-xl
+         hover:border-gray-200 hover:shadow-sm
+         transition-all text-left;
+}
+
+.workflow-icon {
+  @apply w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0;
+}
+
+.workflow-card--indigo .workflow-icon {
+  @apply bg-indigo-50 text-indigo-600;
+}
+
+.workflow-card--amber .workflow-icon {
+  @apply bg-amber-50 text-amber-600;
+}
+
+.workflow-card--emerald .workflow-icon {
+  @apply bg-emerald-50 text-emerald-600;
+}
+
+.workflow-content {
+  @apply flex-1 min-w-0;
+}
+
+.workflow-title {
+  @apply block text-base font-medium text-gray-900;
+}
+
+.workflow-subtitle {
+  @apply block text-sm text-gray-400 truncate;
+}
+
+.workflow-arrow {
+  @apply w-5 h-5 text-gray-300 flex-shrink-0;
+}
+
+.workflow-card:hover .workflow-arrow {
+  @apply text-gray-400;
+}
+
+/* Recent */
+.recent-section {
+  @apply mb-12;
+}
+
+.recent-list {
+  @apply space-y-2;
+}
+
+.recent-item {
+  @apply w-full flex items-center gap-3 px-4 py-3
+         bg-white border border-gray-100 rounded-lg
+         hover:border-gray-200
+         transition-colors text-left;
+}
+
+.recent-status {
+  @apply w-2 h-2 rounded-full flex-shrink-0;
+}
+
+.recent-status--completed {
+  @apply bg-emerald-500;
+}
+
+.recent-status--in-progress {
+  @apply bg-amber-500;
+}
+
+.recent-name {
+  @apply flex-1 text-sm text-gray-700;
+}
+
+.recent-time {
+  @apply text-xs text-gray-400;
+}
+
+/* Drop */
 .drop-section {
   @apply mb-8;
+}
+
+/* Footer */
+.home-footer {
+  @apply py-6 text-center;
+}
+
+.home-footer p {
+  @apply text-sm text-gray-400;
 }
 </style>
