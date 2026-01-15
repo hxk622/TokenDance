@@ -53,6 +53,10 @@ const currentTab = ref<'report' | 'ppt' | 'file-diff'>('report')
 const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 
+// Collapse Mode state (mini-graph view)
+const isCollapsed = ref(false)
+const collapsedHeight = 80 // px for mini-graph
+
 // Load saved ratios from localStorage
 onMounted(async () => {
   const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
@@ -252,6 +256,18 @@ function exitFocusMode() {
   
   console.log('Exit Focus Mode')
 }
+
+// Collapse Mode: Toggle between full graph and mini-graph
+function toggleCollapse() {
+  isCollapsed.value = !isCollapsed.value
+  
+  if (isCollapsed.value) {
+    // Exit focus mode if active
+    if (isFocusMode.value) {
+      exitFocusMode()
+    }
+  }
+}
 </script>
 
 <template>
@@ -275,28 +291,59 @@ function exitFocusMode() {
       </div>
     </header>
 
+    <!-- Focus Mode Banner -->
+    <Transition name="slide-down">
+      <div v-if="isFocusMode" class="focus-mode-banner">
+        <span class="focus-icon">🎯</span>
+        <span class="focus-text">聚焦模式: 节点 {{ focusedNodeId }}</span>
+        <button class="focus-exit-btn" @click="exitFocusMode">
+          <span>退出聚焦</span>
+          <kbd>ESC</kbd>
+        </button>
+      </div>
+    </Transition>
+
     <!-- Main Content -->
     <main class="execution-content">
       <!-- Left Panel: Execution Area -->
       <div class="left-panel" :style="{ width: `${leftWidth}%` }">
+        <!-- Collapse Toggle Button -->
+        <button 
+          class="collapse-toggle"
+          :class="{ collapsed: isCollapsed }"
+          @click="toggleCollapse"
+          :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+        >
+          <span class="collapse-icon">{{ isCollapsed ? '▼' : '▲' }}</span>
+        </button>
+
         <!-- Top: Workflow Graph -->
-        <div class="workflow-graph-container" :style="{ height: `${topHeight}%` }">
+        <div 
+          class="workflow-graph-container" 
+          :class="{ collapsed: isCollapsed }"
+          :style="{ height: isCollapsed ? `${collapsedHeight}px` : `${topHeight}%` }"
+        >
           <WorkflowGraph 
             :session-id="sessionId" 
+            :mini-mode="isCollapsed"
             @node-click="handleNodeClick"
             @node-double-click="handleNodeDoubleClick"
           />
         </div>
 
-        <!-- Vertical Divider -->
+        <!-- Vertical Divider (hidden when collapsed) -->
         <ResizableDivider
+          v-if="!isCollapsed"
           direction="vertical"
           @resize="handleVerticalDrag"
           @reset="resetVerticalRatio"
         />
 
         <!-- Bottom: Streaming Info -->
-        <div class="streaming-info-container" :style="{ height: `${bottomHeight}%` }">
+        <div 
+          class="streaming-info-container" 
+          :style="{ height: isCollapsed ? 'calc(100% - 80px)' : `${bottomHeight}%` }"
+        >
           <StreamingInfo 
             ref="streamingInfoRef"
             :session-id="sessionId" 
@@ -419,11 +466,109 @@ function exitFocusMode() {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .workflow-graph-container {
   overflow: hidden;
   border-bottom: 1px solid var(--divider-color);
+  transition: height 200ms ease-out;
+}
+
+.workflow-graph-container.collapsed {
+  min-height: 80px;
+}
+
+/* Collapse Toggle */
+.collapse-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(28, 28, 30, 0.9);
+  border: 1px solid var(--divider-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.collapse-toggle:hover {
+  background: rgba(0, 217, 255, 0.2);
+  border-color: var(--color-node-active, #00D9FF);
+  color: var(--color-node-active, #00D9FF);
+}
+
+.collapse-toggle.collapsed {
+  background: rgba(0, 217, 255, 0.15);
+}
+
+.collapse-icon {
+  font-size: 10px;
+}
+
+/* Focus Mode Banner */
+.focus-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(0, 217, 255, 0.15);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.3);
+}
+
+.focus-icon {
+  font-size: 16px;
+}
+
+.focus-text {
+  font-size: 14px;
+  color: var(--color-node-active, #00D9FF);
+}
+
+.focus-exit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.focus-exit-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.5);
+}
+
+.focus-exit-btn kbd {
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+/* Slide Down Transition */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 200ms ease-out;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
 }
 
 .streaming-info-container {

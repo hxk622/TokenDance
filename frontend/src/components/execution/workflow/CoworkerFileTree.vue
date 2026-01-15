@@ -1,21 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 interface FileOperation {
   path: string
   action: 'read' | 'modified' | 'created' | 'deleted'
   timestamp: number
+  originalContent?: string
+  modifiedContent?: string
 }
 
-// Mock data
-const operations = ref<FileOperation[]>([
+const props = defineProps<{
+  operations?: FileOperation[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'file-select', operation: FileOperation): void
+  (e: 'file-double-click', operation: FileOperation): void
+}>()
+
+// Mock data (used when no props provided)
+const defaultOperations: FileOperation[] = [
   { path: 'src/main.ts', action: 'read', timestamp: Date.now() - 60000 },
   { path: 'src/components/Button.vue', action: 'modified', timestamp: Date.now() - 50000 },
   { path: 'docs/report.md', action: 'created', timestamp: Date.now() - 30000 },
   { path: 'tests/old.spec.ts', action: 'deleted', timestamp: Date.now() - 20000 },
-])
+]
 
+const internalOperations = ref<FileOperation[]>(props.operations || defaultOperations)
 const selectedFile = ref<string | null>(null)
+
+// Watch for prop changes
+watch(() => props.operations, (newOps) => {
+  if (newOps) {
+    internalOperations.value = newOps
+  }
+})
 
 function getActionIcon(action: FileOperation['action']): string {
   const icons = {
@@ -37,9 +56,13 @@ function getActionColor(action: FileOperation['action']): string {
   return colors[action]
 }
 
-function selectFile(path: string) {
-  selectedFile.value = path
-  // TODO: Emit event to show diff
+function selectFile(operation: FileOperation) {
+  selectedFile.value = operation.path
+  emit('file-select', operation)
+}
+
+function handleDoubleClick(operation: FileOperation) {
+  emit('file-double-click', operation)
 }
 
 function formatTime(timestamp: number): string {
@@ -50,6 +73,12 @@ function formatTime(timestamp: number): string {
   if (minutes < 60) return `${minutes}分钟前`
   return `${Math.floor(minutes / 60)}小时前`
 }
+
+// Expose for parent components
+defineExpose({
+  selectedFile,
+  operations: internalOperations
+})
 </script>
 
 <template>
@@ -61,10 +90,11 @@ function formatTime(timestamp: number): string {
 
     <div class="file-list">
       <div
-        v-for="op in operations"
+        v-for="op in internalOperations"
         :key="op.path"
         :class="['file-item', op.action, { selected: selectedFile === op.path }]"
-        @click="selectFile(op.path)"
+        @click="selectFile(op)"
+        @dblclick="handleDoubleClick(op)"
       >
         <div class="file-info">
           <span class="action-icon">{{ getActionIcon(op.action) }}</span>
@@ -80,7 +110,7 @@ function formatTime(timestamp: number): string {
     </div>
 
     <!-- Empty State -->
-    <div v-if="operations.length === 0" class="empty-state">
+    <div v-if="internalOperations.length === 0" class="empty-state">
       <span class="empty-icon">📁</span>
       <p>暂无文件操作</p>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+// computed is used for diffLines below
 
 // Monaco Editor integration will be added later
 // For now, we'll use a mock diff display
