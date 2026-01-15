@@ -41,14 +41,16 @@ function formatTime(timestamp: number): string {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-function getLogIcon(type: LogEntry['type']): string {
-  const icons = {
-    thinking: '💭',
-    'tool-call': '🔧',
-    result: '✅',
-    error: '❌',
-  }
-  return icons[type]
+// SVG path data for icons (Lucide-style)
+const iconPaths = {
+  thinking: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', // message-square
+  'tool-call': 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z', // wrench
+  result: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3', // check-circle
+  error: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z|M15 9l-6 6|M9 9l6 6', // x-circle
+}
+
+function getLogIconPath(type: LogEntry['type']): string {
+  return iconPaths[type] || iconPaths.thinking
 }
 
 // Scroll-Sync: Scroll to specific node's logs with smart strategy
@@ -159,7 +161,16 @@ defineExpose({
         :title="isScrollLocked ? '解锁视图' : '固定视图（暂停Scroll-Sync）'"
         @click="toggleScrollLock"
       >
-        {{ isScrollLocked ? '🔒' : '🔓' }}
+        <!-- Lock icon (locked state) -->
+        <svg v-if="isScrollLocked" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <!-- Unlock icon (unlocked state) -->
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+        </svg>
       </button>
     </div>
 
@@ -178,7 +189,11 @@ defineExpose({
         :data-node-id="log.nodeId"
       >
         <div class="log-meta">
-          <span class="log-icon">{{ getLogIcon(log.type) }}</span>
+          <span class="log-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path v-for="(d, i) in getLogIconPath(log.type).split('|')" :key="i" :d="d" />
+            </svg>
+          </span>
           <span class="log-time">{{ formatTime(log.timestamp) }}</span>
           <span class="log-node">Node-{{ log.nodeId }}</span>
         </div>
@@ -350,7 +365,14 @@ defineExpose({
 }
 
 .log-icon {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.log-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .log-time {

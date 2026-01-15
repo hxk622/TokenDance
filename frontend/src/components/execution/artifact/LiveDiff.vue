@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-// computed is used for diffLines below
-
-// Monaco Editor integration will be added later
-// For now, we'll use a mock diff display
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue'
+import * as monaco from 'monaco-editor'
 
 interface FileDiff {
   path: string
@@ -12,9 +9,14 @@ interface FileDiff {
   action: 'modified' | 'created' | 'deleted'
 }
 
-defineProps<{
+const props = defineProps<{
   filePath?: string
 }>()
+
+// Monaco Editor integration
+const useMonaco = ref(true) // Toggle between Monaco and fallback view
+const editorContainer = ref<HTMLElement | null>(null)
+const diffEditor = shallowRef<monaco.editor.IStandaloneDiffEditor | null>(null)
 
 // Mock diff data
 const currentDiff = ref<FileDiff>({
@@ -61,9 +63,7 @@ const buttonClass = computed(() => ({
 </template>`,
 })
 
-// For Phase2 MVP, we'll show side-by-side text comparison
-// In Phase3, we'll integrate Monaco Editor Diff
-
+// Fallback diff lines (when Monaco is disabled or fails to load)
 const diffLines = computed(() => {
   const original = currentDiff.value.originalContent.split('\n')
   const modified = currentDiff.value.modifiedContent.split('\n')
@@ -77,20 +77,156 @@ const diffLines = computed(() => {
   }))
 })
 
-function getDiffStatus(original: string, modified: string): 'unchanged' | 'added' | 'removed' | 'modified' {
+function getDiffStatus(original: string | undefined, modified: string | undefined): 'unchanged' | 'added' | 'removed' | 'modified' {
   if (original === undefined) return 'added'
   if (modified === undefined) return 'removed'
   if (original === modified) return 'unchanged'
   return 'modified'
 }
 
-// Monaco Editor integration placeholder
-const editorContainer = ref<HTMLElement | null>(null)
+// Monaco Editor initialization
+function initMonacoEditor() {
+  if (!editorContainer.value || diffEditor.value) return
+  
+  try {
+    // Configure Monaco theme to match our dark UI
+    monaco.editor.defineTheme('tokendance-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#1c1c1e',
+        'editor.foreground': '#ffffff',
+        'diffEditor.insertedTextBackground': '#00ff8820',
+        'diffEditor.removedTextBackground': '#ff3b3020',
+        'diffEditor.insertedLineBackground': '#00ff8815',
+        'diffEditor.removedLineBackground': '#ff3b3015',
+      }
+    })
+    monaco.editor.setTheme('tokendance-dark')
+    
+    // Create diff editor
+    diffEditor.value = monaco.editor.createDiffEditor(editorContainer.value, {
+      readOnly: true,
+      renderSideBySide: true,
+      automaticLayout: true,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      fontSize: 13,
+      fontFamily: "'SF Mono', 'Monaco', 'Courier New', monospace",
+      lineNumbers: 'on',
+      renderLineHighlight: 'none',
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: 8,
+        horizontalScrollbarSize: 8,
+      },
+    })
+    
+    updateDiffModel()
+  } catch (error) {
+    console.error('Failed to initialize Monaco Editor:', error)
+    useMonaco.value = false
+  }
+}
+
+function updateDiffModel() {
+  if (!diffEditor.value) return
+  
+  // Detect language from file extension
+  const ext = currentDiff.value.path.split('.').pop() || 'plaintext'
+  const languageMap: Record<string, string> = {
+    vue: 'html',
+    ts: 'typescript',
+    tsx: 'typescript',
+    js: 'javascript',
+    jsx: 'javascript',
+    py: 'python',
+    md: 'markdown',
+    json: 'json',
+    css: 'css',
+    scss: 'scss',
+    html: 'html',
+  }
+  const language = languageMap[ext] || 'plaintext'
+  
+  const originalModel = monaco.editor.createModel(currentDiff.value.originalContent, language)
+  const modifiedModel = monaco.editor.createModel(currentDiff.value.modifiedContent, language)
+  
+  diffEditor.value.setModel({
+    original: originalModel,
+    modified: modifiedModel,
+  })
+}
+
+// Navigation functions
+function goToPrevChange() {
+  if (!diffEditor.value) return
+  const lineChanges = diffEditor.value.getLineChanges()
+  if (!lineChanges || lineChanges.length === 0) return
+  
+  const currentLine = diffEditor.value.getModifiedEditor().getPosition()?.lineNumber || 0
+  for (let i = lineChanges.length - 1; i >= 0; i--) {
+    if (lineChanges[i].modifiedStartLineNumber < currentLine) {
+      diffEditor.value.getModifiedEditor().revealLineInCenter(lineChanges[i].modifiedStartLineNumber)
+      diffEditor.value.getModifiedEditor().setPosition({ lineNumber: lineChanges[i].modifiedStartLineNumber, column: 1 })
+      break
+    }
+  }
+}
+
+function goToNextChange() {
+  if (!diffEditor.value) return
+  const lineChanges = diffEditor.value.getLineChanges()
+  if (!lineChanges || lineChanges.length === 0) return
+  
+  const currentLine = diffEditor.value.getModifiedEditor().getPosition()?.lineNumber || 0
+  for (const change of lineChanges) {
+    if (change.modifiedStartLineNumber > currentLine) {
+      diffEditor.value.getModifiedEditor().revealLineInCenter(change.modifiedStartLineNumber)
+      diffEditor.value.getModifiedEditor().setPosition({ lineNumber: change.modifiedStartLineNumber, column: 1 })
+      break
+    }
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  if (useMonaco.value) {
+    // Delay initialization to ensure container is rendered
+    setTimeout(initMonacoEditor, 100)
+  }
+})
+
+onUnmounted(() => {
+  if (diffEditor.value) {
+    diffEditor.value.dispose()
+    diffEditor.value = null
+  }
+})
+
+// Watch for diff changes
+watch(() => currentDiff.value, () => {
+  if (useMonaco.value && diffEditor.value) {
+    updateDiffModel()
+  }
+}, { deep: true })
+
+// Watch for file path changes from props
+watch(() => props.filePath, (newPath) => {
+  if (newPath) {
+    // In real implementation, fetch diff for this file
+    console.log('File path changed:', newPath)
+  }
+})
 
 defineExpose({
   editorContainer,
   diffLines,
-  currentDiff
+  currentDiff,
+  goToPrevChange,
+  goToNextChange,
 })
 </script>
 
@@ -105,15 +241,35 @@ defineExpose({
         </span>
       </div>
       <div class="diff-controls">
-        <button class="control-btn" title="上一处修改">⬆</button>
-        <button class="control-btn" title="下一处修改">⬇</button>
-        <button class="control-btn" title="接受修改">✓</button>
-        <button class="control-btn" title="拒绝修改">✕</button>
+        <button class="control-btn" title="上一处修改" @click="goToPrevChange">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+        <button class="control-btn" title="下一处修改" @click="goToNextChange">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <button class="control-btn accept" title="接受修改">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </button>
+        <button class="control-btn reject" title="拒绝修改">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- Mock Diff Display (Phase2 MVP) -->
-    <div class="diff-container">
+    <!-- Monaco Editor Diff View -->
+    <div v-if="useMonaco" ref="editorContainer" class="monaco-container"></div>
+    
+    <!-- Fallback Diff Display (when Monaco fails or disabled) -->
+    <div v-else class="diff-container">
       <div class="diff-side original">
         <div class="side-header">原始文件</div>
         <div class="code-view">
@@ -144,9 +300,6 @@ defineExpose({
         </div>
       </div>
     </div>
-
-    <!-- Monaco Editor Container (Phase3) -->
-    <div ref="editorContainer" class="monaco-container" style="display: none;"></div>
   </div>
 </template>
 
@@ -316,6 +469,17 @@ defineExpose({
   flex: 1;
   width: 100%;
   height: 100%;
+  min-height: 300px;
+}
+
+.control-btn.accept:hover {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00FF88;
+}
+
+.control-btn.reject:hover {
+  background: rgba(255, 59, 48, 0.2);
+  color: #FF3B30;
 }
 
 :root {

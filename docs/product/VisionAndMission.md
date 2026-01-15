@@ -174,6 +174,7 @@ UI 提示（丝滑动画）：
 3. **多模态能力** - Deep Research + PPT + Code Review + 本地文件操控
 4. **开放平台** - 可集成任意顶级 Agent（Manus、Coworker、未来更多）
 5. **For the world** - 从技术极客到普通创作者全覆盖
+6. **agent-browser 集成** - 采用 Vercel Labs 的 Snapshot + Refs 技术，实现 93% Token 节省的浏览器自动化
 
 ---
 
@@ -220,9 +221,10 @@ UI 提示（丝滑动画）：
 用户意图："研究 Rust 异步编程最佳实践"
     ↓
 Manus 启动：
-  - Web 搜索 + 论文爬取
+  - Web 搜索 (Tavily API)
+  - 浏览器深度采集 (agent-browser Snapshot + Refs)
   - 多源信息整合
-  - 生成结构化报告
+  - 生成结构化报告 + 时光长廊 (关键页面截图回溯)
     ↓
 Coworker 辅助：
   - 将报告保存到本地 Workspace

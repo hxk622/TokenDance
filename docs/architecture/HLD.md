@@ -331,6 +331,7 @@ backend/app/
 | **向量数据库** | Milvus | Skill 匹配、思维快照检索 🆕 |
 | **对象存储** | MinIO | 文件、产出物存储 |
 | **沙箱** | Docker | 代码执行隔离 |
+| **浏览器自动化** | agent-browser | Vercel Labs 出品，Snapshot + Refs 模式，节省 93% Token 🆕 |
 | **LLM** | Claude API / Gemini API | 主推理引擎 |
 | **搜索** | Tavily API | Web搜索服务 |
 
@@ -352,6 +353,14 @@ backend/app/
 - 资源隔离和限制能力强
 - 快速启动（相比VM）
 - 可扩展至Kubernetes
+
+#### 为什么选择 agent-browser？🆕
+- **93% Token 节省**：Snapshot + Refs 模式 vs Playwright MCP 完整 Accessibility Tree
+- **确定性元素选择**：@e1, @e2 引用模式，比 CSS Selector 更稳定
+- **原生 Session 隔离**：支持多 Agent 并发操作不同浏览器实例
+- **Rust + Node.js 混合架构**：快速启动，高性能
+- **与 TokenDance 原则契合**：完美匹配 Dual Context Streams、三文件工作法
+- **降级方案**：抽象服务层设计，可切换回 Playwright
 
 ## 4. 多租户架构
 
