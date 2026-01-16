@@ -285,7 +285,7 @@ function renderGraph() {
         .attr('fill', getNodeColor(d.status))
         .attr('stroke', getNodeColor(d.status))
         .attr('stroke-width', 3)
-        .attr('filter', d.status === 'active' ? 'urlglow)' : 'none')
+        .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
 
       // Coworker icon (folder/file)
       nodeGroup.append('text')
@@ -304,7 +304,7 @@ function renderGraph() {
         .attr('fill', getNodeColor(d.status))
         .attr('stroke', getNodeColor(d.status))
         .attr('stroke-width', 3)
-        .attr('filter', d.status === 'active' ? 'low)' : 'none')
+        .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
     }
   })
 
@@ -349,15 +349,15 @@ function handleResize() {
 // Update node visual styles without re-rendering entire graph
 function updateNodeStyles() {
   if (!svgRef.value) return
-  
+
   const svg = d3.select(svgRef.value)
-  
-  svg.selectAll('.node-circle')
+
+  svg.selectAll('.node-shape')
     .data(nodes.value)
     .attr('fill', (d: any) => getNodeColor(d.status))
     .attr('stroke', (d: any) => getNodeColor(d.status))
     .attr('filter', (d: any) => d.status === 'active' ? 'url(#glow)' : 'none')
-    .attr('class', (d: any) => `node-circle status-${d.status}`)
+    .attr('class', (d: any) => `node-shape status-${d.status}`)
 }
 
 // Tooltip functions
@@ -450,8 +450,12 @@ function handleCopyOutput(nodeId: string) {
   transform: scale(1.1);
 }
 
-:deep(.node-circle.status-active) {
+:deep(.node-shape.status-active) {
   animation: pulse-breath 1.5s ease-in-out infinite;
+}
+
+:deep(.node-icon) {
+  pointer-events: none;
 }
 
 :deep(.edge) {
@@ -466,6 +470,38 @@ function handleCopyOutput(nodeId: string) {
   stroke-width: 3 !important;
 }
 
+/* Manus hexagon specific animation */
+:deep(.node-shape.status-active[d]) {
+  animation: hexagon-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hexagon-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* Coworker rect specific animation */
+:deep(rect.node-shape.status-active) {
+  animation: rect-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes rect-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.9;
+  }
+}
+
 @keyframes flow-energy {
   0% {
     stroke-dashoffset: 0;
@@ -477,12 +513,10 @@ function handleCopyOutput(nodeId: string) {
 
 @keyframes pulse-breath {
   0%, 100% {
-    r: 40;
     opacity: 1;
   }
   50% {
-    r: 44;
-    opacity: 0.9;
+    opacity: 0.85;
   }
 }
 </style>

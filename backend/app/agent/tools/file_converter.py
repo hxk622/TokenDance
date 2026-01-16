@@ -17,12 +17,12 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from app.agent.tools.base import Tool, ToolResult
+from app.agent.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
 
 
-class FileConverterTool(Tool):
+class FileConverterTool(BaseTool):
     """
     文件转 Markdown 转换工具
     
@@ -85,10 +85,10 @@ class FileConverterTool(Tool):
     
     async def execute(
         self, 
-        file_path: str,
+        file_path: str = "",
         extract_images: bool = False,
         **kwargs
-    ) -> ToolResult:
+    ) -> str:
         """
         执行文件转换
         
@@ -97,22 +97,16 @@ class FileConverterTool(Tool):
             extract_images: 是否提取图片描述
             
         Returns:
-            ToolResult: 转换结果（Markdown 文本）
+            str: 转换后的 Markdown 文本
         """
         try:
             # 验证文件存在
             path = Path(file_path)
             if not path.exists():
-                return ToolResult(
-                    success=False,
-                    error=f"File not found: {file_path}"
-                )
+                return f"Error: File not found: {file_path}"
             
             if not path.is_file():
-                return ToolResult(
-                    success=False,
-                    error=f"Path is not a file: {file_path}"
-                )
+                return f"Error: Path is not a file: {file_path}"
             
             # 获取 MarkItDown 实例
             md = self._get_markitdown()
@@ -141,29 +135,15 @@ class FileConverterTool(Tool):
                 f"({file_size} bytes -> {char_count} chars, {line_count} lines)"
             )
             
-            return ToolResult(
-                success=True,
-                output=markdown_content,
-                metadata={
-                    "source_file": str(path),
-                    "file_extension": file_ext,
-                    "file_size_bytes": file_size,
-                    "markdown_chars": char_count,
-                    "markdown_lines": line_count,
-                }
-            )
+            # 返回带元信息的结果
+            header = f"<!-- Source: {path.name} | Size: {file_size} bytes | Lines: {line_count} -->\n\n"
+            return header + markdown_content
         
         except ImportError as e:
-            return ToolResult(
-                success=False,
-                error=f"MarkItDown dependency error: {str(e)}"
-            )
+            return f"Error: MarkItDown dependency error: {str(e)}"
         except Exception as e:
             logger.error(f"File conversion failed for {file_path}: {e}", exc_info=True)
-            return ToolResult(
-                success=False,
-                error=f"Conversion error: {type(e).__name__}: {str(e)}"
-            )
+            return f"Error: Conversion failed: {type(e).__name__}: {str(e)}"
     
     def get_supported_formats(self) -> Dict[str, list]:
         """

@@ -120,6 +120,15 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false
     }
   },
+  {
+    path: '/financial',
+    name: 'FinancialAnalysis',
+    component: () => import('@/views/FinancialAnalysis.vue'),
+    meta: {
+      title: '投研工作台 - TokenDance',
+      requiresAuth: false
+    }
+  },
 ]
 
 const router = createRouter({

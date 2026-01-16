@@ -74,13 +74,53 @@
         </div>
       </section>
 
-      <!-- Sentiment Result Display -->
+      <!-- Sentiment Dashboard -->
       <section class="test-section">
-        <h2>5. 舆情分析 - SentimentDashboard 组件</h2>
+        <h2>5. 情绪仪表盘 - SentimentDashboard</h2>
         <SentimentDashboard
           :sentiment="store.sentimentResult"
           :is-loading="store.sentimentLoading"
           :error="store.sentimentError"
+        />
+      </section>
+
+      <!-- Post Stream -->
+      <section v-if="store.sentimentResult" class="test-section">
+        <h2>6. 帖子流 - PostStream</h2>
+        <PostStream
+          :posts="store.sentimentResult.posts"
+          :is-loading="store.sentimentLoading"
+          :error="store.sentimentError"
+        />
+      </section>
+
+      <!-- Key Points Card -->
+      <section class="test-section">
+        <h2>7. 核心观点 - KeyPointsCard</h2>
+        <KeyPointsCard
+          :key-points="mockKeyPoints"
+          :is-loading="false"
+        />
+      </section>
+
+      <!-- Combined Chart -->
+      <section v-if="store.historicalData" class="test-section">
+        <h2>8. K线图+舆情 - CombinedChart</h2>
+        <CombinedChart
+          :historical-data="store.historicalData"
+          :is-loading="store.historicalLoading"
+          :error="store.historicalError"
+        />
+      </section>
+
+      <!-- Comparison Card -->
+      <section class="test-section">
+        <h2>9. 技术vs舆情 - ComparisonCard</h2>
+        <ComparisonCard
+          :stock-info="store.stockInfo"
+          :stock-quote="store.stockQuote"
+          :sentiment-result="store.sentimentResult"
+          :is-loading="store.isLoading"
         />
       </section>
 
@@ -98,14 +138,14 @@
           {{ apiStatus.message }}
         </p>
       </section>
-
-      <!-- Component Export Test -->
+      <!-- Week 1 + Week 2 Checklist -->
       <section class="test-section">
-        <h2>7. Week 1 交付清单</h2>
+        <h2>10. 交付清单</h2>
         <div class="checklist">
+          <h3 class="checklist-title">Week 1: 基础设施</h3>
           <div class="checklist-item">
             <span class="check">✅</span>
-            <span>后端 Financial API（7个端点）</span>
+            <span>后端 Financial API（ 7个端点）</span>
           </div>
           <div class="checklist-item">
             <span class="check">✅</span>
@@ -121,7 +161,29 @@
           </div>
           <div class="checklist-item">
             <span class="check">✅</span>
-            <span>股票搜索组件（508 lines）</span>
+            <span>StockSearch 组件（508 lines）</span>
+          </div>
+
+          <h3 class="checklist-title" style="margin-top: 1.5rem;">Week 2: 可视化组件</h3>
+          <div class="checklist-item">
+            <span class="check">✅</span>
+            <span>SentimentDashboard（644 lines）</span>
+          </div>
+          <div class="checklist-item">
+            <span class="check">✅</span>
+            <span>PostStream（575 lines）</span>
+          </div>
+          <div class="checklist-item">
+            <span class="check">✅</span>
+            <span>KeyPointsCard（445 lines）</span>
+          </div>
+          <div class="checklist-item">
+            <span class="check">✅</span>
+            <span>CombinedChart（513 lines）</span>
+          </div>
+          <div class="checklist-item">
+            <span class="check">✅</span>
+            <span>ComparisonCard（584 lines）</span>
           </div>
         </div>
       </section>
@@ -135,10 +197,37 @@ import { useFinancialStore } from '@/stores/financial'
 import financialService from '@/services/financial'
 import StockSearch from '@/components/financial/StockSearch.vue'
 import SentimentDashboard from '@/components/financial/SentimentDashboard.vue'
+import PostStream from '@/components/financial/PostStream.vue'
+import KeyPointsCard from '@/components/financial/KeyPointsCard.vue'
+import CombinedChart from '@/components/financial/CombinedChart.vue'
+import ComparisonCard from '@/components/financial/ComparisonCard.vue'
 
 const store = useFinancialStore()
 const testingAPI = ref(false)
 const apiStatus = ref<{ success: boolean; message: string } | null>(null)
+
+// Mock key points data
+const mockKeyPoints = ref({
+  bullish: [
+    {
+      content: '公司三季度营收同比增长35%，连续5个季度保持高速增长，市场份额持续扩大',
+      summary: '业绩持续高增长',
+      supportingPosts: ['post-1', 'post-2', 'post-3']
+    },
+    {
+      content: '新产品线预计Q4上市，市场预期贡献20%增量收入',
+      summary: '新产品亮点突出',
+      supportingPosts: ['post-4']
+    }
+  ],
+  bearish: [
+    {
+      content: '行业竞争加剧，主要竞对手降价策略可能影响毛利率',
+      summary: '竞争压力增大',
+      supportingPosts: ['post-5', 'post-6']
+    }
+  ]
+})
 
 interface StockItem {
   symbol: string
@@ -370,6 +459,15 @@ function getSentimentLabel(label: string) {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.checklist-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .checklist-item {
