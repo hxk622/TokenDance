@@ -238,14 +238,75 @@ function renderGraph() {
       showContextMenu(event, d)
     })
 
-  // Node circles
-  node.append('circle')
-    .attr('r', 40)
-    .attr('class', d => `node-circle status-${d.status}`)
-    .attr('fill', d => getNodeColor(d.status))
-    .attr('stroke', d => getNodeColor(d.status))
-    .attr('stroke-width', 3)
-    .attr('filter', d => d.status === 'active' ? 'url(#glow)' : 'none')
+  // Node circles - Different shapes based on type
+  node.each(function(d: any) {
+    const nodeGroup = d3.select(this)
+
+    if (d.type === 'manus') {
+      // Manus: 六边形 (Hexagon) - 代表"智能大脑"
+      const hexagonPath = d3.path()
+      const size = 38
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * 60 - 30) * Math.PI / 180
+        const x = size * Math.cos(angle)
+        const y = size * Math.sin(angle)
+        if (i === 0) hexagonPath.moveTo(x, y)
+        else hexagonPath.lineTo(x, y)
+      }
+      hexagonPath.closePath()
+
+      nodeGroup.append('path')
+        .attr('d', hexagonPath.toString())
+        .attr('class', `node-shape status-${d.status}`)
+        .attr('fill', getNodeColor(d.status))
+        .attr('stroke', getNodeColor(d.status))
+        .attr('stroke-width', 3)
+        .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
+
+      // Manus icon (brain/cpu)
+      nodeGroup.append('text')
+        .attr('class', 'node-icon')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '.35em')
+        .attr('fill', d.status === 'active' ? '#000' : '#fff')
+        .attr('font-size', '18px')
+        .text('⚡')
+
+    } else if (d.type === 'coworker') {
+      // Coworker: 圆角方形 (Rounded Square) - 代表"执行双手"
+      nodeGroup.append('rect')
+        .attr('x', -32)
+        .attr('y', -32)
+        .attr('width', 64)
+        .attr('height', 64)
+        .attr('rx', 12)
+        .attr('ry', 12)
+        .attr('class', `node-shape status-${d.status}`)
+        .attr('fill', getNodeColor(d.status))
+        .attr('stroke', getNodeColor(d.status))
+        .attr('stroke-width', 3)
+        .attr('filter', d.status === 'active' ? 'urlglow)' : 'none')
+
+      // Coworker icon (folder/file)
+      nodeGroup.append('text')
+        .attr('class', 'node-icon')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '.35em')
+        .attr('fill', d.status === 'active' ? '#000' : '#fff')
+        .attr('font-size', '18px')
+        .text('📁')
+
+    } else {
+      // Default: 圆形
+      nodeGroup.append('circle')
+        .attr('r', 40)
+        .attr('class', `node-shape status-${d.status}`)
+        .attr('fill', getNodeColor(d.status))
+        .attr('stroke', getNodeColor(d.status))
+        .attr('stroke-width', 3)
+        .attr('filter', d.status === 'active' ? 'low)' : 'none')
+    }
+  })
 
   // Node labels
   node.append('text')

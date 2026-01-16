@@ -488,180 +488,406 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* ============================================
+   Dark Theme First - TokenDance Design System
+   ============================================ */
+
 .home-view {
   @apply relative min-h-screen flex flex-col;
-  background: #fafafa;
-}
-
-/* Dark mode support */
-:global(.dark) .home-view {
   background: #0a0a0b;
 }
 
-:global(.dark) .home-header {
-  @apply border-gray-800;
+/* Header - Dark Theme Default */
+.home-header {
+  @apply flex items-center justify-between px-8 py-4 border-b border-gray-800;
   background: rgba(20, 20, 21, 0.8);
+  backdrop-filter: blur(8px);
 }
 
-:global(.dark) .logo {
-  @apply text-white;
+.logo {
+  @apply text-xl font-semibold text-white tracking-tight;
+  font-family: 'Satoshi', sans-serif;
 }
 
-:global(.dark) .header-btn {
-  @apply text-gray-300 hover:text-white;
+.header-right {
+  @apply flex items-center gap-2;
 }
 
-:global(.dark) .header-btn-primary {
-  @apply bg-white text-gray-900 hover:bg-gray-100;
+.header-btn {
+  @apply px-4 py-2 text-sm text-gray-300 hover:text-white
+         cursor-pointer transition-colors duration-200;
 }
 
-:global(.dark) .hero-tagline {
-  @apply text-indigo-400;
+.header-btn-primary {
+  @apply bg-white text-gray-900 rounded-lg hover:bg-gray-100;
 }
 
-:global(.dark) .hero-title {
-  @apply text-white;
+/* Hero Section - Dark Theme Default */
+.hero {
+  @apply text-center mb-8;
 }
 
-:global(.dark) .hero-desc {
-  @apply text-gray-400;
+.hero-tagline {
+  @apply text-sm font-medium text-indigo-400 mb-2 tracking-wide;
 }
 
-:global(.dark) .cta-primary {
-  @apply bg-white text-gray-900 hover:bg-gray-100;
+.hero-title {
+  @apply text-3xl md:text-4xl font-bold text-white mb-3;
+  font-family: 'Satoshi', sans-serif;
 }
 
-:global(.dark) .cta-secondary {
-  @apply bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700 hover:border-gray-600;
+.hero-desc {
+  @apply text-base text-gray-400 mb-6;
 }
 
-:global(.dark) .trinity-card {
-  @apply bg-gray-900/50 border-gray-800;
+/* Hero CTA */
+.hero-cta {
+  @apply flex items-center justify-center gap-4;
 }
 
-:global(.dark) .trinity-card:hover,
-:global(.dark) .trinity-card-active {
+.cta-primary {
+  @apply flex items-center gap-2 px-6 py-3
+         text-base font-medium text-gray-900
+         bg-white rounded-xl
+         hover:bg-gray-100
+         cursor-pointer transition-colors duration-200;
+}
+
+.cta-secondary {
+  @apply flex items-center gap-2 px-6 py-3
+         text-base font-medium text-gray-200
+         bg-gray-800 border border-gray-700 rounded-xl
+         hover:bg-gray-700 hover:border-gray-600
+         cursor-pointer transition-all duration-200;
+}
+
+/* Trinity Section - Dark Theme Default */
+.trinity-section {
+  @apply mb-10;
+}
+
+.trinity-grid {
+  @apply grid grid-cols-1 sm:grid-cols-3 gap-4;
+}
+
+.trinity-card {
+  @apply flex flex-col items-center text-center p-4 rounded-xl
+         bg-gray-900/50 border border-gray-800
+         cursor-pointer
+         transition-all duration-300;
+}
+
+.trinity-card:hover {
   @apply bg-gray-900 border-gray-700;
+  transform: translateY(-2px);
 }
 
-:global(.dark) .trinity-name {
-  @apply text-white;
+.trinity-card-active {
+  @apply bg-gray-900 border-gray-700;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-:global(.dark) .trinity-role,
-:global(.dark) .trinity-desc {
-  @apply text-gray-400;
+.trinity-icon {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center mb-3
+         transition-all duration-300;
 }
 
-:global(.dark) .featured-card {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(20, 20, 21, 0.9));
-  @apply border-indigo-900/50;
-}
-
-:global(.dark) .featured-card:hover {
-  @apply border-indigo-700/50;
-}
-
-:global(.dark) .featured-badge {
-  @apply bg-indigo-900/50 text-indigo-300;
-}
-
-:global(.dark) .featured-icon {
+.trinity-icon--manus {
   @apply bg-indigo-900/50 text-indigo-400;
 }
 
-:global(.dark) .featured-title {
-  @apply text-white;
+.trinity-icon--coworker {
+  @apply bg-emerald-900/50 text-emerald-400;
 }
 
-:global(.dark) .featured-desc {
-  @apply text-gray-400;
+.trinity-icon--vibe {
+  @apply bg-cyan-900/50 text-cyan-400;
 }
 
-:global(.dark) .featured-action {
-  @apply bg-gray-800 border-gray-700 text-indigo-400;
+.trinity-card-active .trinity-icon--manus {
+  @apply bg-indigo-800/50;
 }
 
-:global(.dark) .input-wrapper {
-  @apply bg-gray-900 border-gray-700;
+.trinity-card-active .trinity-icon--coworker {
+  @apply bg-emerald-800/50;
 }
 
-:global(.dark) .input-wrapper:focus-within {
+.trinity-card-active .trinity-icon--vibe {
+  @apply bg-cyan-800/50;
+}
+
+.trinity-content {
+  @apply flex flex-col gap-0.5;
+}
+
+.trinity-name {
+  @apply text-sm font-semibold text-white;
+}
+
+.trinity-role {
+  @apply text-xs text-gray-400;
+}
+
+.trinity-desc {
+  @apply text-xs text-gray-400 mt-1;
+}
+
+/* Featured Card - Dark Theme Default */
+.featured-section {
+  @apply mb-8;
+}
+
+.featured-card {
+  @apply w-full flex items-center gap-5 p-6
+         border border-indigo-900/50 rounded-2xl
+         hover:border-indigo-700/50
+         cursor-pointer transition-all duration-200 text-left
+         relative overflow-hidden;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(20, 20, 21, 0.9));
+}
+
+.featured-card:hover {
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+}
+
+.featured-badge {
+  @apply absolute top-3 right-3
+         px-2 py-0.5 text-xs font-medium
+         text-indigo-300 bg-indigo-900/50 rounded-full;
+}
+
+.featured-icon {
+  @apply w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0
+         bg-indigo-900/50 text-indigo-400;
+}
+
+.featured-content {
+  @apply flex-1;
+}
+
+.featured-title {
+  @apply text-lg font-semibold text-white mb-1;
+}
+
+.featured-desc {
+  @apply text-sm text-gray-400;
+}
+
+.featured-action {
+  @apply flex items-center gap-2 px-4 py-2
+         text-sm font-medium text-indigo-400
+         bg-gray-800 rounded-lg border border-gray-700
+         transition-colors duration-200;
+}
+
+.featured-card:hover .featured-action {
+  @apply bg-indigo-900/30 border-indigo-800;
+}
+
+/* Input Section - Dark Theme Default */
+.input-section {
+  @apply mb-10;
+}
+
+.input-container {
+  @apply space-y-3;
+}
+
+.input-wrapper {
+  @apply flex items-center gap-2 px-2
+         bg-gray-900 border border-gray-700 rounded-xl
+         transition-all duration-200;
+  position: relative;
+}
+
+.input-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent, transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.input-wrapper:focus-within {
   @apply border-gray-500;
 }
 
-:global(.dark) .attach-btn {
-  @apply text-gray-500 hover:text-gray-300 hover:bg-gray-800;
+.input-wrapper:focus-within::before {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+  opacity: 1;
 }
 
-:global(.dark) .main-input {
-  @apply text-white placeholder-gray-500;
+.attach-btn {
+  @apply p-2.5 text-gray-500 hover:text-gray-300
+         cursor-pointer transition-colors duration-200 rounded-lg
+         hover:bg-gray-800;
 }
 
-:global(.dark) .input-submit {
-  @apply bg-white text-gray-900 hover:bg-gray-100;
+.main-input {
+  @apply flex-1 py-3.5
+         text-base text-white placeholder-gray-500
+         bg-transparent border-none;
 }
 
-:global(.dark) .input-submit:disabled {
-  @apply bg-gray-700 text-gray-500;
+.main-input:focus {
+  outline: none;
 }
 
-:global(.dark) .quick-action-btn {
-  @apply bg-gray-900 border-gray-700 text-gray-300 hover:border-gray-600 hover:bg-gray-800;
+.input-submit {
+  @apply p-3 mr-1
+         text-gray-900 bg-white rounded-lg
+         hover:bg-gray-100
+         cursor-pointer transition-colors duration-200;
 }
 
-:global(.dark) .section-title {
-  @apply text-gray-500;
+.input-submit:disabled {
+  @apply bg-gray-700 text-gray-500 cursor-not-allowed;
 }
 
-:global(.dark) .suggestion-item {
-  @apply bg-gray-900/60 border-gray-800 text-gray-300 hover:bg-gray-900 hover:border-gray-700;
+/* Quick Actions */
+.quick-actions {
+  @apply flex items-center gap-2;
 }
 
-:global(.dark) .workflow-card {
-  @apply bg-gray-900 border-gray-800 hover:border-gray-700;
+.quick-action-btn {
+  @apply flex items-center gap-1.5 px-3 py-1.5
+         text-sm text-gray-300
+         bg-gray-900 border border-gray-700 rounded-lg
+         hover:border-gray-600 hoveray-800
+         cursor-pointer transition-all duration-200;
 }
 
-:global(.dark) .workflow-title {
-  @apply text-white;
+/* Section Title */
+.section-title {
+  @apply text-xs font-medium text-gray-500 uppercase tracking-wider mb-4;
 }
 
-:global(.dark) .workflow-subtitle {
+/* Suggestions Section - Dark Theme Default */
+.suggestions-section {
+  @apply mb-10;
+}
+
+.suggestions-list {
+  @apply space-y-2;
+}
+
+.suggestion-item {
+  @apply w-full flex items-center gap-3 px-4 py-3
+         text-sm text-gray-300
+         bg-gray-900/60 border border-gray-800 rounded-lg
+         hover:bg-gray-900 hover:border-gray-700
+         cursor-pointer transition-all duration-200 text-left;
+}
+
+/* Workflows Section - Dark Theme Default */
+.workflows-section {
+  @apply mb-10;
+}
+
+.workflows-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+.workflow-card {
+  @apply flex items-center gap-4 p-5
+         bg-gray-900 border border-gray-800 rounded-xl
+         hover:border-gray-700
+         cursor-pointer transition-all duration-200 text-left;
+}
+
+.workflow-icon {
+  @apply w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0;
+}
+
+.workflow-card--indigo .workflow-icon {
+  @apply bg-indigo-900/50 text-indigo-400;
+}
+
+.workflow-card--amber .workflow-icon {
+  @apply bg-amber-900/50 text-amber-400;
+}
+
+.workflow-card--emerald .workflow-icon {
+  @apply bg-emerald-900/50 text-emerald-400;
+}
+
+.workflow-content {
+  @apply flex-1 min-w-0;
+}
+
+.workflow-title {
+  @apply block text-base font-medium text-white;
+}
+
+.workflow-subtitle {
+  @apply block text-sm text-gray-400 truncate;
+}
+
+.workflow-arrow {
+  @apply w-5 h-5 text-gray-600 flex-shrink-0 transition-colors duration-200;
+}
+
+.workflow-card:hover .workflow-arrow {
   @apply text-gray-400;
 }
 
-:global(.dark) .workflow-arrow {
-  @apply text-gray-600;
+/* Recent Section - Dark Theme Default */
+.recent-section {
+  @apply mb-10;
 }
 
-:global(.dark) .workflow-card:hover .workflow-arrow {
-  @apply text-gray-400;
+.recent-list {
+  @apply space-y-2;
 }
 
-:global(.dark) .recent-item {
-  @apply bg-gray-900 border-gray-800 hover:border-gray-700;
+.recent-item {
+  @apply w-full flex items-center gap-3 px-4 py-3
+         bg-gray-900 border border-gray-800 rounded-lg
+         hover:border-gray-700
+         cursor-pointer transition-all duration-200 text-left;
 }
 
-:global(.dark) .recent-name {
-  @apply text-gray-300;
+.recent-status {
+  @apply w-2 h-2 rounded-full flex-shrink-0;
 }
 
-:global(.dark) .recent-time {
-  @apply text-gray-500;
+.recent-status--completed {
+  @apply bg-emerald-500;
 }
 
-:global(.dark) .home-footer p {
-  @apply text-gray-500;
+.recent-status--in-progress {
+  @apply bg-amber-500;
 }
 
-/* Session Sidebar */
+.recent-name {
+  @apply flex-1 text-sm text-gray-300;
+}
+
+.recent-time {
+  @apply text-xs text-gray-500;
+}
+
+/* Footer - Dark Theme Default */
+.home-footer {
+  @apply py-6 text-center;
+}
+
+.home-footer p {
+  @apply text-sm text-gray-500;
+}
+
+/* Session Sidebar - Dark Theme Default */
 .session-sidebar {
-  @apply fixed left-0 top-16 bottom-0 w-80 bg-white border-r border-gray-200
+  @apply fixed left-0 top-16 bottom-0 w-80 bg-gray-900 border-r border-gray-800
          overflow-y-auto z-20 transition-transform duration-300;
-}
-
-:global(.dark) .session-sidebar {
-  @apply bg-gray-900 border-gray-800;
 }
 
 /* Vibe Background */
@@ -671,42 +897,18 @@ onUnmounted(() => {
 
 .bg-gradient {
   @apply absolute inset-0;
-  background: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(139, 92, 246, 0.05), transparent),
-    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(6, 182, 212, 0.04), transparent);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(139, 92, 246, 0.08), transparent),
+    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(6, 182, 212, 0.06), transparent);
 }
 
 .bg-pattern {
-  @apply absolute inset-0 opacity-[0.02];
-  background-image: 
-    linear-gradient(to right, #000 1px, transparent 1px),
-    linear-gradient(to bottom, #000 1px, transparent 1px);
+  @apply absolute inset-0 opacity-[0.03];
+  background-image:
+    linear-gradient(to right, #fff 1px, transparent 1px),
+    linear-gradient(to bottom, #fff 1px, transparent 1px);
   background-size: 24px 24px;
-}
-
-/* Header */
-.home-header {
-  @apply flex items-center justify-between px-8 py-4 border-b border-gray-100;
-  background: rgba(255,255,255,0.8);
-  backdrop-filter: blur(8px);
-}
-
-.logo {
-  @apply text-xl font-semibold text-gray-900 tracking-tight;
-}
-
-.header-right {
-  @apply flex items-center gap-2;
-}
-
-.header-btn {
-  @apply px-4 py-2 text-sm text-slate-600 hover:text-slate-900 
-         cursor-pointer transition-colors duration-200;
-}
-
-.header-btn-primary {
-  @apply bg-gray-900 text-white rounded-lg hover:bg-gray-800;
 }
 
 /* Main */
@@ -714,7 +916,7 @@ onUnmounted(() => {
   @apply flex-1 max-w-3xl w-full mx-auto px-6 py-12;
 }
 
-/* 动态色球 */
+/* 动态色球 - 差异化动画 */
 .orb-container {
   @apply absolute inset-0 pointer-events-none;
 }
@@ -725,12 +927,32 @@ onUnmounted(() => {
   transition: all 0.8s ease-in-out;
 }
 
+/* Manus: 执行大脑 - 脉冲式呼吸，模拟"思考" */
 .orb-manus {
   @apply bg-indigo-500;
   top: 15%;
   left: 20%;
 }
 
+.orb-manus.orb-active {
+  @apply opacity-70;
+  animation: orb-manus-think 2s ease-in-out infinite;
+}
+
+@keyframes orb-manus-think {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1.2);
+    filter: blur(40px) brightness(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+    filter: blur(50px) brightness(1.2);
+  }
+}
+
+/* Coworker: 执行双手 - 轻微旋转+缩放，模拟"操作" */
 .orb-coworker {
   @apply bg-emerald-500;
   top: 25%;
@@ -738,26 +960,64 @@ onUnmounted(() => {
   transform: translateX(-50%);
 }
 
+.orb-coworker.orb-active {
+  @apply opacity-60;
+  animation: orb-coworker-work 3s ease-in-out infinite;
+}
+
+@keyframes orb-coworker-work {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1.2) rotate(0deg);
+  }
+  25% {
+    opacity: 0.5;
+    transform: translateX(-50%) scale(1.35) rotate(5deg);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1.3) rotate(0deg);
+  }
+  75% {
+    opacity: 0.5;
+    transform: translateX(-50%) scale(1.35) rotate(-5deg);
+  }
+}
+
+/* Vibe: 生命气息 - 不规则漂浮，模拟"灵动" */
 .orb-vibe {
   @apply bg-cyan-500;
   top: 15%;
   right: 20%;
 }
 
-.orb-active {
+.orb-vibe.orb-active {
   @apply opacity-60;
-  transform: scale(1.3);
-  animation: orb-breath 2s ease-in-out infinite;
+  animation: orb-vibe-float 4s ease-in-out infinite;
 }
 
-@keyframes orb-breath {
-  0%, 100% { opacity: 0.6; transform: scale(1.3); }
-  50% { opacity: 0.4; transform: scale(1.5); }
+@keyframes orb-vibe-float {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(0, 0) scale(1.2);
+  }
+  25% {
+    opacity: 0.5;
+    transform: translate(10px, -15px) scale(1.35);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(-5px, 5px) scale(1.25);
+  }
+  75% {
+    opacity: 0.5;
+    transform: translate(-10px, -10px) scale(1.4);
+  }
 }
 
 /* 能量连线 */
 .energy-lines {
-  @apply absolute w-full h-24 top-1/4 left-0 opacity-20;
+  @apply absolute w-full h-24 top-1/4 left-0 opacity-30;
 }
 
 .energy-line {
@@ -773,283 +1033,13 @@ onUnmounted(() => {
   to { stroke-dashoffset: -24; }
 }
 
-/* Hero */
-.hero {
-  @apply text-center mb-8;
-}
-
-.hero-tagline {
-  @apply text-sm font-medium text-indigo-600 mb-2;
-}
-
-.hero-title {
-  @apply text-4xl font-bold text-gray-900 mb-3;
-}
-
-.hero-desc {
-  @apply text-lg text-gray-600 mb-6;
-}
-
-.hero-cta {
-  @apply flex items-center justify-center gap-3;
-}
-
-.cta-primary {
-  @apply flex items-center gap-2 px-6 py-3 bg-gray-900 text-white 
-         rounded-lg hover:bg-gray-800 transition-colors;
-}
-
-.cta-secondary {
-  @apply flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 
-         text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 
-         transition-colors;
-}
-
-/* Trinity Section */
-.trinity-section {
-  @apply mb-8;
-}
-
-.trinity-grid {
-  @apply grid grid-cols-3 gap-4;
-}
-
-.trinity-card {
-  @apply p-4 bg-white border border-gray-200 rounded-lg
-         hover:border-gray-300 transition-all duration-300;
-}
-
-.trinity-card-active {
-  @apply border-indigo-300 bg-indigo-50/50;
-}
-
-.trinity-icon {
-  @apply w-12 h-12 flex items-center justify-center text-indigo-600 
-         bg-indigo-50 rounded-lg mb-3;
-}
-
-.trinity-icon--manus {
-  @apply bg-indigo-50 text-indigo-600;
-}
-
-.trinity-icon--coworker {
-  @apply bg-emerald-50 text-emerald-600;
-}
-
-.trinity-icon--vibe {
-  @apply bg-cyan-50 text-cyan-600;
-}
-
-.trinity-content {
-  @apply flex flex-col;
-}
-
-.trinity-name {
-  @apply text-base font-semibold text-gray-900 mb-1;
-}
-
-.trinity-role {
-  @apply text-sm text-gray-600 mb-1;
-}
-
-.trinity-desc {
-  @apply text-xs text-gray-500;
-}
-
-/* Featured Section */
-.featured-section {
-  @apply mb-8;
-}
-
-.featured-card {
-  @apply relative flex items-center gap-4 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 
-         border border-indigo-200 rounded-xl hover:border-indigo-300 
-         transition-all duration-300;
-}
-
-.featured-badge {
-  @apply absolute top-3 left-3 px-2 py-0.5 text-xs font-medium 
-         bg-indigo-100 text-indigo-700 rounded-md;
-}
-
-.featured-icon {
-  @apply w-12 h-12 flex items-center justify-center text-indigo-600 
-         bg-indigo-100 rounded-lg flex-shrink-0;
-}
-
-.featured-content {
-  @apply flex-1;
-}
-
-.featured-title {
-  @apply text-lg font-semibold text-gray-900 mb-1;
-}
-
-.featured-desc {
-  @apply text-sm text-gray-600;
-}
-
-.featured-action {
-  @apply flex items-center gap-1 text-sm font-medium text-indigo-600 
-         bg-indigo-50 px-3 py-1.5 rounded-md;
-}
-
-/* Input Section */
-.input-section {
-  @apply mb-8;
-}
-
-.input-container {
-  @apply max-w-2xl mx-auto;
-}
-
-.input-wrapper {
-  @apply flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 
-         rounded-lg focus-within:border-gray-400 focus-within:ring-2 
-         focus-within:ring-indigo-500/20 transition-all;
-}
-
-.attach-btn {
-  @apply p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 
-         rounded-md transition-colors;
-}
-
-.main-input {
-  @apply flex-1 bg-transparent outline-none text-gray-900 
-         placeholder-gray-400 text-base;
-}
-
-.input-submit {
-  @apply p-2 text-gray-400 hover:text-gray-600 bg-transparent 
-         rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-.quick-actions {
-  @apply flex gap-2 mt-2;
-}
-
-.quick-action-btn {
-  @apply flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 
-         bg-white border border-gray-200 rounded-md hover:bg-gray-50 
-         hover:border-gray-300 transition-colors;
-}
-
-/* Suggestions Section */
-.suggestions-section {
-  @apply mb-8;
-}
-
-.section-title {
-  @apply text-sm font-medium text-gray-500 mb-3;
-}
-
-.suggestions-list {
-  @apply flex flex-wrap gap-2;
-}
-
-.suggestion-item {
-  @apply flex items-center gap-2 px-4 py-2 text-sm text-gray-700 
-         bg-white border border-gray-200 rounded-md hover:bg-gray-50 
-         hover:border-gray-300 transition-colors;
-}
-
-/* Workflows Section */
-.workflows-section {
-  @apply mb-8;
-}
-
-.workflows-grid {
-  @apply grid grid-cols-2 gap-3;
-}
-
-.workflow-card {
-  @apply relative flex items-center gap-3 p-4 bg-white border border-gray-200 
-         rounded-lg hover:border-gray-300 transition-all duration-300;
-}
-
-.workflow-card--indigo {
-  @apply hover:border-indigo-300;
-}
-
-.workflow-card--amber {
-  @apply hover:border-amber-300;
-}
-
-.workflow-card--emerald {
-  @apply hover:border-emerald-300;
-}
-
-.workflow-icon {
-  @apply w-10 h-10 flex items-center justify-center text-gray-600 
-         bg-gray-100 rounded-md flex-shrink-0;
-}
-
-.workflow-content {
-  @apply flex flex-col flex-1;
-}
-
-.workflow-title {
-  @apply text-sm font-medium text-gray-900 mb-0.5;
-}
-
-.workflow-subtitle {
-  @apply text-xs text-gray-500;
-}
-
-.workflow-arrow {
-  @apply text-gray-400 flex-shrink-0;
-}
-
-.workflow-card:hover .workflow-arrow {
-  @apply text-gray-600;
-}
-
-/* Recent Section */
-.recent-section {
-  @apply mb-8;
-}
-
-.recent-list {
-  @apply flex flex-col gap-2;
-}
-
-.recent-item {
-  @apply flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 
-         rounded-lg hover:bg-gray-50 hover:border-gray-300 
-         transition-all duration-200;
-}
-
-.recent-status {
-  @apply w-2 h-2 rounded-full flex-shrink-0;
-}
-
-.recent-status--completed {
-  @apply bg-emerald-500;
-}
-
-.recent-status--in-progress {
-  @apply bg-blue-500;
-}
-
-.recent-name {
-  @apply flex-1 text-sm font-medium text-gray-900 truncate;
-}
-
-.recent-time {
-  @apply text-xs text-gray-500 flex-shrink-0;
-}
-
 /* Drop Section */
 .drop-section {
   @apply mb-8;
 }
 
-/* Footer */
-.home-footer {
-  @apply py-6 text-center border-t border-gray-100;
-}
-
-.home-footer p {
-  @apply text-sm text-gray-500;
+/* Hidden utility */
+.hidden {
+  display: none;
 }
 </style>

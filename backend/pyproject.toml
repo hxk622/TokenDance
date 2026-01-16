@@ -30,6 +30,12 @@ dependencies = [
     "html2text>=2020.1.16",
     "python-pptx>=0.6.23",
     "Pillow>=10.0.0",
+    # MarkItDown - Document to Markdown conversion
+    "markitdown>=0.0.2",
+    "mammoth>=1.11.0",
+    "pdfminer-six>=20260107",
+    "openpyxl>=3.1.5",
+    "speechrecognition>=3.14.5",
 ]
 
 [project.optional-dependencies]
