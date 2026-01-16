@@ -851,6 +851,7 @@ onMounted(() => {
   outline: none;
   border-color: rgba(0, 217, 255, 0.5);
   background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15);
 }
 
 .field-textarea {
@@ -896,6 +897,7 @@ onMounted(() => {
 .point-input:focus {
   outline: none;
   border-color: rgba(0, 217, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15);
 }
 
 .point-delete {

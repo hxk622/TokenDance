@@ -464,6 +464,167 @@ onUnmounted(() => {
   background: #fafafa;
 }
 
+/* Dark mode support */
+:global(.dark) .home-view {
+  background: #0a0a0b;
+}
+
+:global(.dark) .home-header {
+  @apply border-gray-800;
+  background: rgba(20, 20, 21, 0.8);
+}
+
+:global(.dark) .logo {
+  @apply text-white;
+}
+
+:global(.dark) .header-btn {
+  @apply text-gray-300 hover:text-white;
+}
+
+:global(.dark) .header-btn-primary {
+  @apply bg-white text-gray-900 hover:bg-gray-100;
+}
+
+:global(.dark) .hero-tagline {
+  @apply text-indigo-400;
+}
+
+:global(.dark) .hero-title {
+  @apply text-white;
+}
+
+:global(.dark) .hero-desc {
+  @apply text-gray-400;
+}
+
+:global(.dark) .cta-primary {
+  @apply bg-white text-gray-900 hover:bg-gray-100;
+}
+
+:global(.dark) .cta-secondary {
+  @apply bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700 hover:border-gray-600;
+}
+
+:global(.dark) .trinity-card {
+  @apply bg-gray-900/50 border-gray-800;
+}
+
+:global(.dark) .trinity-card:hover,
+:global(.dark) .trinity-card-active {
+  @apply bg-gray-900 border-gray-700;
+}
+
+:global(.dark) .trinity-name {
+  @apply text-white;
+}
+
+:global(.dark) .trinity-role,
+:global(.dark) .trinity-desc {
+  @apply text-gray-400;
+}
+
+:global(.dark) .featured-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(20, 20, 21, 0.9));
+  @apply border-indigo-900/50;
+}
+
+:global(.dark) .featured-card:hover {
+  @apply border-indigo-700/50;
+}
+
+:global(.dark) .featured-badge {
+  @apply bg-indigo-900/50 text-indigo-300;
+}
+
+:global(.dark) .featured-icon {
+  @apply bg-indigo-900/50 text-indigo-400;
+}
+
+:global(.dark) .featured-title {
+  @apply text-white;
+}
+
+:global(.dark) .featured-desc {
+  @apply text-gray-400;
+}
+
+:global(.dark) .featured-action {
+  @apply bg-gray-800 border-gray-700 text-indigo-400;
+}
+
+:global(.dark) .input-wrapper {
+  @apply bg-gray-900 border-gray-700;
+}
+
+:global(.dark) .input-wrapper:focus-within {
+  @apply border-gray-500;
+}
+
+:global(.dark) .attach-btn {
+  @apply text-gray-500 hover:text-gray-300 hover:bg-gray-800;
+}
+
+:global(.dark) .main-input {
+  @apply text-white placeholder-gray-500;
+}
+
+:global(.dark) .input-submit {
+  @apply bg-white text-gray-900 hover:bg-gray-100;
+}
+
+:global(.dark) .input-submit:disabled {
+  @apply bg-gray-700 text-gray-500;
+}
+
+:global(.dark) .quick-action-btn {
+  @apply bg-gray-900 border-gray-700 text-gray-300 hover:border-gray-600 hover:bg-gray-800;
+}
+
+:global(.dark) .section-title {
+  @apply text-gray-500;
+}
+
+:global(.dark) .suggestion-item {
+  @apply bg-gray-900/60 border-gray-800 text-gray-300 hover:bg-gray-900 hover:border-gray-700;
+}
+
+:global(.dark) .workflow-card {
+  @apply bg-gray-900 border-gray-800 hover:border-gray-700;
+}
+
+:global(.dark) .workflow-title {
+  @apply text-white;
+}
+
+:global(.dark) .workflow-subtitle {
+  @apply text-gray-400;
+}
+
+:global(.dark) .workflow-arrow {
+  @apply text-gray-600;
+}
+
+:global(.dark) .workflow-card:hover .workflow-arrow {
+  @apply text-gray-400;
+}
+
+:global(.dark) .recent-item {
+  @apply bg-gray-900 border-gray-800 hover:border-gray-700;
+}
+
+:global(.dark) .recent-name {
+  @apply text-gray-300;
+}
+
+:global(.dark) .recent-time {
+  @apply text-gray-500;
+}
+
+:global(.dark) .home-footer p {
+  @apply text-gray-500;
+}
+
 /* Vibe Background */
 .bg-vibe {
   @apply absolute inset-0 -z-10 overflow-hidden;

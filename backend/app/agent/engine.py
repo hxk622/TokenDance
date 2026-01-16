@@ -50,6 +50,26 @@ from app.skills import (
     get_skill_executor,
 )
 
+# Phase 2: Hybrid Execution imports
+from app.routing.router import (
+    ExecutionRouter,
+    ExecutionPath,
+    get_execution_router,
+    reset_execution_router,
+)
+from app.context.unified_context import (
+    UnifiedExecutionContext,
+    ExecutionType,
+    ExecutionStatus,
+    get_unified_context,
+)
+from app.mcp.executor import (
+    MCPCodeExecutor,
+    ExecutionRequest,
+    ExecutionLanguage,
+    get_mcp_executor,
+)
+
 logger = get_logger(__name__)
 
 
@@ -149,6 +169,17 @@ class AgentEngine:
         
         if enable_skills:
             self._init_skill_system()
+        
+        # ========== Phase 2: Hybrid Execution System ==========
+        # 初始化 ExecutionRouter 和 UnifiedExecutionContext
+        self.execution_router = get_execution_router(
+            skill_matcher=self.skill_matcher,
+            skill_executor=self.skill_executor,
+            skill_confidence_threshold=0.85,
+            structured_task_confidence=0.70,
+        )
+        self.unified_context = get_unified_context(session_id=session_id)
+        self.mcp_executor = get_mcp_executor()
         
         # 状态
         self.iteration_count = 0
@@ -604,19 +635,75 @@ class AgentEngine:
     # =========================================================================
     
     async def _match_and_inject_skill(self, user_message: str) -> None:
-        """匹配 Skill 并尝试自动执行
+        """执行混合路由决策和执行
         
-        工作流程：
-        1. 匹配用户消息到最相关的 Skill
-        2. 尝试执行 Skill 的 L3 脚本（如果存在）
-        3. 如果执行成功，注入执行结果到 Context
-        4. 如果执行失败或 Skill 无脚本，回退到仅注入 L2 指令
+        Phase 2 改进版工作流程：
+        1. 使用 ExecutionRouter 决定执行路径（Skill / MCP / LLM）
+        2. 根据路径选择执行方式
+        3. 记录执行到 UnifiedExecutionContext
+        4. 注入结果到 Context
+        
+        三路分支：
+        - Path A (Skill): 预制脚本执行（< 100ms）
+        - Path B (MCP): 动态代码生成执行（< 5s）
+        - Path C (LLM): 纯推理（无执行）
         
         Args:
             user_message: 用户消息
         """
-        if not self.enable_skills or not self.skill_matcher:
+        if not self.enable_skills or not self.execution_router:
             return
+        
+        try:
+            # Step 1: 路由决策
+            routing_decision = self.execution_router.route(user_message)
+            logger.info(
+                f"Execution path selected: {routing_decision.path.value} "
+                f"(confidence={routing_decision.confidence:.2f}, reason={routing_decision.reason})"
+            )
+            
+            # Step 2: 根据路由路径执行
+            execution_result = None
+            
+            if routing_decision.path == ExecutionPath.SKILL:
+                # Path A: Skill 执行
+                execution_result = await self._execute_skill_path(user_message)
+            
+            elif routing_decision.path == ExecutionPath.MCP_CODE:
+                # Path B: MCP 代码执行
+                execution_result = await self._execute_mcp_path(user_message)
+            
+            else:
+                # Path C: LLM 推理（无需执行）
+                logger.info("Routing to LLM reasoning path (pure inference)")
+            
+            # Step 3: 记录到统一上下文
+            if execution_result:
+                self.unified_context.set_var("last_execution_result", execution_result)
+                logger.info(
+                    f"Execution result recorded in unified context: "
+                    f"{execution_result.get('status', 'unknown')}"
+                )
+            
+            # Step 4: 注入到 Agent Context
+            if execution_result and execution_result.get("status") == "success":
+                self._inject_execution_result(execution_result, routing_decision.path)
+                
+        except Exception as e:
+            logger.error(f"Hybrid execution failed: {e}")
+            self._clear_skill_state()
+    
+    async def _execute_skill_path(self, user_message: str) -> Optional[Dict[str, Any]]:
+        """执行 Skill 路径
+        
+        Args:
+            user_message: 用户消息
+            
+        Returns:
+            执行结果或 None
+        """
+        if not self.skill_matcher:
+            return None
         
         try:
             # 匹配 Skill
@@ -629,68 +716,170 @@ class AgentEngine:
                     f"(score={match.score:.2f}, reason={match.reason})"
                 )
                 
-                # 加载 L2 指令
-                l2_instructions = await self.skill_loader.load_l2(match.skill_id)
+                # 记录执行开始
+                exec_record = self.unified_context.record_execution(
+                    execution_type=ExecutionType.SKILL,
+                    user_message=user_message,
+                    status=ExecutionStatus.RUNNING,
+                )
                 
-                # 获取 Skill 元数据
-                skill_meta = match.metadata
-                if not skill_meta:
-                    skill_meta = self.skill_registry.get(match.skill_id)
-                
-                if skill_meta:
-                    # Action Space Pruning: 限制可用工具
-                    if skill_meta.allowed_tools:
-                        self.tool_registry.set_allowed_tools(skill_meta.allowed_tools)
-                        logger.info(
-                            f"Action Space Pruning: tools limited to {skill_meta.allowed_tools}"
-                        )
+                try:
+                    # 加载 L2 指令
+                    l2_instructions = await self.skill_loader.load_l2(match.skill_id)
                     
-                    # 尝试执行 L3 脚本（如果存在）
-                    skill_execution_result = await self._try_execute_skill(
+                    # 获取 Skill 元数据
+                    skill_meta = match.metadata
+                    if not skill_meta:
+                        skill_meta = self.skill_registry.get(match.skill_id)
+                    
+                    if skill_meta and skill_meta.allowed_tools:
+                        self.tool_registry.set_allowed_tools(skill_meta.allowed_tools)
+                        logger.info(f"Action Space Pruning: tools limited")
+                    
+                    # 执行 L3 脚本
+                    skill_result = await self._try_execute_skill(
                         match.skill_id,
                         user_message,
                     )
                     
-                    # 构建注入内容：执行结果 + L2 指令
-                    if skill_execution_result and skill_execution_result.get("status") == "success":
-                        # 执行成功，注入结果 + 指令
-                        skill_result_summary = self._format_skill_result(
-                            skill_execution_result
-                        )
+                    # 构建结果
+                    if skill_result and skill_result.get("status") == "success":
+                        result_summary = self._format_skill_result(skill_result)
                         l2_instructions = (
-                            f"## Skill 执行结果\n{skill_result_summary}\n\n"
+                            f"## Skill 执行结果\n{result_summary}\n\n"
                             f"## 后续指令\n{l2_instructions}"
                         )
-                        logger.info(
-                            f"Skill {match.skill_id} executed successfully, "
-                            f"result injected into context"
+                        
+                        # 更新执行记录
+                        self.unified_context.update_execution_record(
+                            execution_id=exec_record.execution_id,
+                            status=ExecutionStatus.SUCCESS,
+                            result=skill_result,
                         )
+                        
+                        logger.info(f"Skill {match.skill_id} executed successfully")
+                        return {
+                            "status": "success",
+                            "path": ExecutionPath.SKILL.value,
+                            "skill_id": match.skill_id,
+                            "result": skill_result,
+                            "instructions": l2_instructions,
+                        }
                     else:
-                        # 执行失败或无脚本，仅注入指令（降级策略）
-                        if skill_execution_result:
-                            error_msg = skill_execution_result.get(
-                                "error",
-                                "Unknown execution error"
+                        # 执行失败，尝试降级
+                        error_msg = skill_result.get("error", "Unknown error") if skill_result else "Skill execution failed"
+                        self.unified_context.update_execution_record(
+                            execution_id=exec_record.execution_id,
+                            status=ExecutionStatus.FAILED,
+                            error=error_msg,
+                        )
+                        logger.warning(f"Skill execution failed: {error_msg}, attempting fallback")
+                        
+                        # 注入仅指令版本
+                        if skill_meta:
+                            self.context_manager.inject_skill(
+                                skill_id=match.skill_id,
+                                display_name=skill_meta.display_name,
+                                l2_instructions=l2_instructions,
+                                allowed_tools=skill_meta.allowed_tools,
                             )
-                            logger.warning(
-                                f"Skill {match.skill_id} execution failed, "
-                                f"falling back to instruction injection: {error_msg}"
-                            )
-                    
-                    # 注入 Skill 指令到 Context
-                    self.context_manager.inject_skill(
-                        skill_id=match.skill_id,
-                        display_name=skill_meta.display_name,
-                        l2_instructions=l2_instructions,
-                        allowed_tools=skill_meta.allowed_tools,
+                        return None
+                        
+                except Exception as e:
+                    self.unified_context.update_execution_record(
+                        execution_id=exec_record.execution_id,
+                        status=ExecutionStatus.FAILED,
+                        error=str(e),
                     )
+                    logger.error(f"Skill execution error: {e}")
+                    return None
             else:
-                # 没有匹配到 Skill，清除之前的 Skill 状态
-                self._clear_skill_state()
+                logger.debug("No confident Skill match")
+                return None
                 
         except Exception as e:
-            logger.error(f"Skill matching failed: {e}")
-            self._clear_skill_state()
+            logger.error(f"Skill path execution failed: {e}")
+            return None
+    
+    async def _execute_mcp_path(self, user_message: str) -> Optional[Dict[str, Any]]:
+        """执行 MCP 代码执行路径
+        
+        Args:
+            user_message: 用户消息
+            
+        Returns:
+            执行结果或 None
+        """
+        try:
+            logger.info("Entering MCP code execution path")
+            
+            # 记录执行开始
+            exec_record = self.unified_context.record_execution(
+                execution_type=ExecutionType.MCP_CODE,
+                user_message=user_message,
+                status=ExecutionStatus.RUNNING,
+            )
+            
+            # Step 1: LLM 生成代码
+            logger.info("Requesting LLM to generate code...")
+            code_generation_prompt = (
+                f"用户要求：{user_message}\n\n"
+                f"请生成 Python 代码来完成上述任务。"
+                f"代码必须符合以下要求：\n"
+                f"1. 不能导入 os, sys, subprocess 等系统库\n"
+                f"2. 不能使用 eval, exec 等动态执行\n"
+                f"3. 必须有完善的错误处理\n"
+                f"4. 输出结果用 print() 打印\n\n"
+                f"请在```python和```之间提供代码。"
+            )
+            
+            # 这里应该调用 LLM，但现在先标记为待实现
+            # generated_code = await self.llm.generate(code_generation_prompt)
+            logger.warning("LLM code generation not yet integrated in Phase 3")
+            
+            self.unified_context.update_execution_record(
+                execution_id=exec_record.execution_id,
+                status=ExecutionStatus.FAILED,
+                error="MCP code generation not yet implemented",
+            )
+            return None
+            
+        except Exception as e:
+            logger.error(f"MCP path execution failed: {e}")
+            return None
+    
+    def _inject_execution_result(
+        self, execution_result: Dict[str, Any], path: ExecutionPath
+    ) -> None:
+        """将执行结果注入到 Agent Context
+        
+        Args:
+            execution_result: 执行结果
+            path: 执行路径
+        """
+        try:
+            if path == ExecutionPath.SKILL and "instructions" in execution_result:
+                # Skill 结果：注入 L2 指令
+                skill_id = execution_result.get("skill_id")
+                if self.skill_registry and skill_id:
+                    skill_meta = self.skill_registry.get(skill_id)
+                    if skill_meta:
+                        self.context_manager.inject_skill(
+                            skill_id=skill_id,
+                            display_name=skill_meta.display_name,
+                            l2_instructions=execution_result["instructions"],
+                            allowed_tools=skill_meta.allowed_tools,
+                        )
+                        logger.info(f"Skill result injected to context: {skill_id}")
+            
+            # 记录到 progress.md
+            self.three_files.update_progress(
+                log_entry=f"✅ Execution completed via {path.value}",
+                is_error=False
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to inject execution result: {e}")
     
     def _clear_skill_state(self) -> None:
         """清除 Skill 状态"""
