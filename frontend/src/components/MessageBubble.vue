@@ -83,19 +83,20 @@ const formattedTime = computed(() => {
 }
 
 .message-content-wrapper {
-  @apply max-w-[70%] rounded-lg px-4 py-3 shadow-sm;
+  @apply max-w-[70%] rounded-2xl px-4 py-3;
 }
 
 .message-user .message-content-wrapper {
-  @apply bg-blue-600 text-white;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  @apply text-white shadow-lg shadow-indigo-500/20;
 }
 
 .message-assistant .message-content-wrapper {
-  @apply bg-white border border-gray-200;
+  @apply bg-bg-tertiary border border-border-default text-text-primary;
 }
 
 .message-error .message-content-wrapper {
-  @apply bg-red-50 border border-red-200;
+  @apply bg-red-950/50 border border-red-800/50 text-red-200;
 }
 
 .message-text {
@@ -107,12 +108,12 @@ const formattedTime = computed(() => {
 }
 
 .message-timestamp {
-  @apply text-xs mt-1 opacity-70;
+  @apply text-xs mt-1 opacity-60;
 }
 
-/* Markdown styling */
+/* Markdown styling - Dark Theme */
 .markdown-body {
-  @apply text-gray-800;
+  @apply text-text-primary;
 }
 
 .markdown-body :deep(p) {
@@ -125,7 +126,7 @@ const formattedTime = computed(() => {
 .markdown-body :deep(h4),
 .markdown-body :deep(h5),
 .markdown-body :deep(h6) {
-  @apply font-semibold mt-4 mb-2 first:mt-0;
+  @apply font-semibold mt-4 mb-2 first:mt-0 text-white;
 }
 
 .markdown-body :deep(h1) { @apply text-2xl; }
@@ -133,15 +134,15 @@ const formattedTime = computed(() => {
 .markdown-body :deep(h3) { @apply text-lg; }
 
 .markdown-body :deep(code) {
-  @apply px-1.5 py-0.5 bg-gray-100 rounded text-sm font-mono;
+  @apply px-1.5 py-0.5 bg-bg-elevated rounded text-sm font-mono text-accent-primary;
 }
 
 .markdown-body :deep(pre) {
-  @apply my-2 p-4 bg-gray-900 rounded-lg overflow-x-auto;
+  @apply my-2 p-4 bg-bg-primary rounded-lg overflow-x-auto border border-border-default;
 }
 
 .markdown-body :deep(pre code) {
-  @apply p-0 bg-transparent text-gray-100;
+  @apply p-0 bg-transparent text-text-primary;
 }
 
 .markdown-body :deep(ul),
@@ -150,22 +151,22 @@ const formattedTime = computed(() => {
 }
 
 .markdown-body :deep(li) {
-  @apply mb-1;
+  @apply mb-1 text-text-secondary;
 }
 
 .markdown-body :deep(blockquote) {
-  @apply border-l-4 border-gray-300 pl-4 italic my-2;
+  @apply border-l-4 border-accent-primary/50 pl-4 italic my-2 text-text-secondary;
 }
 
 .markdown-body :deep(a) {
-  @apply text-blue-600 hover:underline;
+  @apply text-accent-primary hover:text-accent-hover hover:underline;
 }
 
 .message-error .markdown-body {
-  @apply text-red-800;
+  @apply text-red-200;
 }
 
 .message-error .markdown-body :deep(code) {
-  @apply bg-red-100;
+  @apply bg-red-900/50 text-red-300;
 }
 </style>
