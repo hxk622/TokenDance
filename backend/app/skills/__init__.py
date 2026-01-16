@@ -7,6 +7,7 @@ Skill 系统是 TokenDance 的核心架构创新，通过三级懒加载机制�
 - SkillRegistry: Skill 注册表，管理 L1 元数据
 - SkillMatcher: Skill 意图匹配器，支持关键词/Embedding/LLM Rerank
 - SkillLoader: Skill 加载器，负责 L2 指令和 L3 资源的加载
+- SkillExecutor: Skill 执行器，负责执行 L3 脚本（自动化能力）
 
 使用示例：
     >>> from app.skills import get_skill_registry, get_skill_matcher
@@ -43,6 +44,13 @@ from .loader import (
     SkillContextBuilder,
 )
 
+# Executor
+from .executor import (
+    SkillExecutor,
+    get_skill_executor,
+    reset_skill_executor,
+)
+
 # Types
 from .types import (
     SkillMetadata,
@@ -77,6 +85,10 @@ __all__ = [
     # Loader
     "SkillLoader",
     "SkillContextBuilder",
+    # Executor
+    "SkillExecutor",
+    "get_skill_executor",
+    "reset_skill_executor",
     # Types
     "SkillMetadata",
     "SkillMatch",

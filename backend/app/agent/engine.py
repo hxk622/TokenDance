@@ -47,6 +47,7 @@ from app.skills import (
     get_skill_matcher,
     SkillLoader,
     SkillMatch,
+    get_skill_executor,
 )
 
 logger = get_logger(__name__)
@@ -144,6 +145,7 @@ class AgentEngine:
         self.skill_registry = None
         self.skill_matcher = None
         self.skill_loader = None
+        self.skill_executor = None
         
         if enable_skills:
             self._init_skill_system()
@@ -169,6 +171,9 @@ class AgentEngine:
             
             # 创建 Skill 加载器
             self.skill_loader = SkillLoader(self.skill_registry)
+            
+            # 获取 Skill 执行器（全局单例）
+            self.skill_executor = get_skill_executor(self.skill_registry)
             
             logger.info(
                 f"Skill system initialized: {len(self.skill_registry)} skills available"
@@ -599,7 +604,13 @@ class AgentEngine:
     # =========================================================================
     
     async def _match_and_inject_skill(self, user_message: str) -> None:
-        """匹配 Skill 并注入 L2 指令
+        """匹配 Skill 并尝试自动执行
+        
+        工作流程：
+        1. 匹配用户消息到最相关的 Skill
+        2. 尝试执行 Skill 的 L3 脚本（如果存在）
+        3. 如果执行成功，注入执行结果到 Context
+        4. 如果执行失败或 Skill 无脚本，回退到仅注入 L2 指令
         
         Args:
             user_message: 用户消息
@@ -627,6 +638,45 @@ class AgentEngine:
                     skill_meta = self.skill_registry.get(match.skill_id)
                 
                 if skill_meta:
+                    # Action Space Pruning: 限制可用工具
+                    if skill_meta.allowed_tools:
+                        self.tool_registry.set_allowed_tools(skill_meta.allowed_tools)
+                        logger.info(
+                            f"Action Space Pruning: tools limited to {skill_meta.allowed_tools}"
+                        )
+                    
+                    # 尝试执行 L3 脚本（如果存在）
+                    skill_execution_result = await self._try_execute_skill(
+                        match.skill_id,
+                        user_message,
+                    )
+                    
+                    # 构建注入内容：执行结果 + L2 指令
+                    if skill_execution_result and skill_execution_result.get("status") == "success":
+                        # 执行成功，注入结果 + 指令
+                        skill_result_summary = self._format_skill_result(
+                            skill_execution_result
+                        )
+                        l2_instructions = (
+                            f"## Skill 执行结果\n{skill_result_summary}\n\n"
+                            f"## 后续指令\n{l2_instructions}"
+                        )
+                        logger.info(
+                            f"Skill {match.skill_id} executed successfully, "
+                            f"result injected into context"
+                        )
+                    else:
+                        # 执行失败或无脚本，仅注入指令（降级策略）
+                        if skill_execution_result:
+                            error_msg = skill_execution_result.get(
+                                "error",
+                                "Unknown execution error"
+                            )
+                            logger.warning(
+                                f"Skill {match.skill_id} execution failed, "
+                                f"falling back to instruction injection: {error_msg}"
+                            )
+                    
                     # 注入 Skill 指令到 Context
                     self.context_manager.inject_skill(
                         skill_id=match.skill_id,
@@ -634,13 +684,6 @@ class AgentEngine:
                         l2_instructions=l2_instructions,
                         allowed_tools=skill_meta.allowed_tools,
                     )
-                    
-                    # Action Space Pruning: 限制可用工具
-                    if skill_meta.allowed_tools:
-                        self.tool_registry.set_allowed_tools(skill_meta.allowed_tools)
-                        logger.info(
-                            f"Action Space Pruning: tools limited to {skill_meta.allowed_tools}"
-                        )
             else:
                 # 没有匹配到 Skill，清除之前的 Skill 状态
                 self._clear_skill_state()
@@ -662,3 +705,94 @@ class AgentEngine:
             当前的 SkillMatch，或 None
         """
         return self._current_skill_match
+    
+    async def _try_execute_skill(
+        self,
+        skill_id: str,
+        user_message: str,
+    ) -> Optional[Dict[str, Any]]:
+        """尝试执行 Skill 的 L3 脚本
+        
+        Args:
+            skill_id: Skill ID
+            user_message: 用户消息
+            
+        Returns:
+            执行结果或 None（如果执行器不可用）
+        """
+        if not self.skill_executor:
+            logger.debug(f"Skill executor not available, skipping execution")
+            return None
+        
+        try:
+            # 检查 Skill 是否可执行
+            if not self.skill_executor.can_execute(skill_id):
+                logger.debug(f"Skill {skill_id} is not executable (no execute.py)")
+                return None
+            
+            # 执行 Skill
+            result = await self.skill_executor.execute(
+                skill_id=skill_id,
+                query=user_message,
+                context={
+                    "user_id": "unknown",  # TODO: 从 session 提取
+                    "session_id": self.session_id,
+                    "workspace_id": self.workspace_id,
+                },
+            )
+            
+            return result
+        
+        except Exception as e:
+            logger.error(f"Error executing skill {skill_id}: {e}", exc_info=True)
+            return None
+    
+    def _format_skill_result(self, result: Dict[str, Any]) -> str:
+        """格式化 Skill 执行结果为 Markdown
+        
+        Args:
+            result: 执行结果
+            
+        Returns:
+            Markdown 格式的结果
+        """
+        status = result.get("status", "unknown")
+        data = result.get("data")
+        error = result.get("error")
+        tokens_used = result.get("tokens_used", 0)
+        
+        parts = []
+        
+        if status == "success" and data:
+            parts.append("**执行成功**")
+            parts.append("")
+            
+            # 需要根据执行结果的具体类型首倶体提供不同格式
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, (str, int, float, bool)):
+                        parts.append(f"- **{key}**: {value}")
+                    elif isinstance(value, list):
+                        parts.append(f"- **{key}**: ({len(value)} items)")
+            elif isinstance(data, str):
+                # 提取简介（最多 500 个字符）
+                parts.append(data[:500])
+                if len(data) > 500:
+                    parts.append("...")
+            else:
+                parts.append(str(data)[:500])
+        
+        elif status == "timeout":
+            parts.append("**执行超时**")
+            parts.append("Skill 执行超时，平地执行后续Prompt 准备手动执行。")
+        
+        elif status == "failed" and error:
+            parts.append("**执行失败**")
+            parts.append(f"{error}")
+        
+        # 添加 Token 統計
+        if tokens_used > 0:
+            parts.append("")
+            parts.append(f"*Token 使用：{tokens_used}*")
+        
+        return "\n".join(parts)

@@ -16,6 +16,9 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_BASE_URL || 'http://localhost:8000',
         changeOrigin: true,
+        secure: false,
+        timeout: 60000,
+        ws: true,
       }
     }
   },

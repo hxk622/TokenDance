@@ -35,16 +35,13 @@ class SkillRegistry:
         """初始化注册表
         
         Args:
-            skills_dirs: Skill目录路径列表，默认为 builtin/ 和 scientific/
-            include_scientific: 是否包含科学计算技能（默认True）
+            skills_dirs: Skill目录路径列表，默认为 builtin/（包含所有子目录）
+            include_scientific: 是否包含科学计算技能（现在在 builtin/scientific/ 下，默认True）
         """
         if skills_dirs is None:
             base_dir = Path(__file__).parent
+            # 所有 Skill 都在 builtin/ 下，包括 builtin/scientific/
             skills_dirs = [base_dir / "builtin"]
-            if include_scientific:
-                scientific_dir = base_dir / "scientific"
-                if scientific_dir.exists():
-                    skills_dirs.append(scientific_dir)
         
         self.skills_dirs = [Path(d) for d in skills_dirs]
         self.skills: Dict[str, SkillMetadata] = {}

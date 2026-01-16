@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ---
 name: ppt_generation
 display_name: PPT 生成
