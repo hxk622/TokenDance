@@ -62,14 +62,15 @@ TokenDance 是一个**人机共生的终极创作场**，将顶级 Agent 的原�
 
 **功能要点**（Vibe-Agentic Workflow 实现）：
 - **Manus 执行**：多源并行搜索 + 智能信息聚合 + 引用回溯系统
+- **浏览器与爬取**：通过 agent-browser + web_search/read_url 实现自动打开网页、元素点击、内容抓取与截图（用于 Deep Research 时光长廊）
 - **Coworker 辅助**：自动保存到本地 Workspace + 创建 Markdown + 更新项目索引
-- **Vibe UI**：实时进度美学 + 毛玻璃特效 + 拖拽式交互
+- **Vibe UI**：实时进度美学 + 拖拽式交互 + 执行时间线可视化
 - Read-then-Summarize（三文件工作法：task_plan → findings → progress）
 - 一键导出 Markdown/PDF
 
 **验收标准**：
 - [ ] 用户输入研究主题后，Agent自动拆解搜索query
-- [ ] 至少聚合3个以上信息源
+- [ ] 至少聚合3个以上信息源（包含浏览器自动化采集的数据）
 - [ ] 每个关键结论必须有引用标注
 - [ ] 报告结构清晰、可导出
 
@@ -90,6 +91,40 @@ TokenDance 是一个**人机共生的终极创作场**，将顶级 Agent 的原�
 - [ ] 生成的PPT可直接导出使用
 - [ ] 支持单页重新生成/调整
 
+#### 功能3：科学计算能力包（Scientific Skills Pack）
+
+**背景**：项目已集成 K-Dense Claude Scientific Skills 中的 100+ 科学计算与科研工作流 Skill（见 `docs/skills/scientific-catalog.md`），包括数值计算、符号计算、统计建模、生物信息、物理仿真等。
+
+**用户故事**：
+> 作为一名科研工作者/数据科学家，我希望在同一个工作台里既能做 Deep Research，又能直接调用各类科学计算 Skill（如 SymPy、Bayesian 推断、地理空间分析等），并通过沙箱安全执行代码。
+
+**功能要点**：
+- Skill Registry 自动加载 100+ 科学计算技能（Scientific Skills Pack）
+- 通过 Sandbox + 终端脚本执行环境安全运行代码（Python 为主）
+- 科学计算结果可直接写入 Workspace 文件（笔记、报告、可视化）
+- 与 Deep Research/PPT Generation 联动（研究→建模→可视化→汇报）
+
+**验收标准**：
+- [ ] Skill Registry 中成功加载并可调用 100+ 科学相关 Skill
+- [ ] 支持在 Sandbox 内执行基础科学计算示例（符号计算、统计推断等）
+- [ ] 计算结果可被 Deep Research / PPT Agent 读取并引用
+
+#### 功能4：AI 图像生成（Nano Banana 集成）
+
+**用户故事**：
+> 作为一名需要做演示汇报的用户，我希望在同一个工作流里一键生成封面图、示意图或科学插图，而不需要额外打开设计工具。
+
+**功能要点**：
+- 通过 Nano Banana 模型（或兼容接口）进行 AI 生图
+- 提供少量预置模板（如汇报封面、节日海报、科研流程图背景）
+- 支持从 Deep Research 结论/PPT 大纲中自动生成提示词
+- 生成图片写入对象存储（MinIO），并在前端可直接预览/插入
+
+**验收标准**：
+- [ ] 至少支持 3 类常见图像场景（封面、插图、示意图）
+- [ ] 单次生成在可接受延迟内完成（< 20 秒为目标）
+- [ ] 生成图片可在 PPT 预览/报告预览中直接复用
+
 ### 2.2 基础能力（三位一体支撑）
 
 #### Workspace（工作空间 - Coworker 基因）
@@ -107,6 +142,14 @@ TokenDance 是一个**人机共生的终极创作场**，将顶级 Agent 的原�
 - 本地文件系统操作（Coworker 深度）
 - 操作可审计（Context Graph）
 - 网络受限访问 + 敏感文件保护
+
+#### 工具与集成（MCP / Skill / Browser / 终端脚本）
+
+- **MCP 支持**：通过 MCP Manager 与多种 MCP Server 集成（Google Drive、GitHub、Slack、Notion 等），统一对外工具/资源接口
+- **Skill 系统**：支持基于 YAML/Markdown 的 Skill 定义与三级加载（L1 元数据、L2 指令、L3 资源）
+- **浏览器操作**：集成 agent-browser（及 Playwright 兜底），支持 browser_open/browser_click/browser_screenshot 等工具，用于 Deep Research 网页采集和时光长廊截图
+- **终端脚本执行**：通过 Sandbox 内的终端执行器运行脚本（如 Python、Shell），用于自动化数据处理与科研工作流编排
+- **数据爬取与搜索**：结合 web_search/read_url/agent-browser 以及科学技能中的检索能力，实现从网页到结构化数据的爬取与搜索
 
 #### Agent 协作中枢（路由决策层）
 

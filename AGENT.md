@@ -22,7 +22,7 @@ TokenDance 不是另一个 Agent 工具，而是一个**人机共生的终极创
 
 **使命**: 让"Claude Code"这种硬核能力真正服务于全世界（**For the rest of the world**）
 
-MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Generation（Manus 主导 + Vibe 增强）
+MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Generation（Manus 主导 + Vibe 增强）、100+ 科学计算 Skills 能力包、AI 图像生成（Nano Banana 集成）
 
 > 详见 [VisionAndMission.md](./docs/product/VisionAndMission.md)
 
