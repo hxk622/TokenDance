@@ -23,6 +23,11 @@ from app.agent.tools.registry import ToolRegistry
 from app.agent.working_memory.three_files import ThreeFilesManager
 from app.agent.llm.base import BaseLLM, LLMResponse
 from app.agent.prompts import ERROR_RECOVERY_PROMPT, FINDINGS_REMINDER_PROMPT
+from app.agent.hybrid_execution_prompts import (
+    HYBRID_EXECUTION_SYSTEM_PROMPT,
+    MCP_CODE_GENERATION_PROMPT,
+    EXECUTION_PATH_SELECTION_PROMPT,
+)
 from app.filesystem import AgentFileSystem
 from app.core.logging import get_logger
 
@@ -449,6 +454,20 @@ class AgentEngine:
                 return 0
         return None
     
+    def _get_system_prompt(self) -> str:
+        """
+        获取 system prompt - 根据是否启用混合执行返回对应的提示词
+        
+        Returns:
+            str: System prompt
+        """
+        # 如果启用了混合执行系统，使用优化后的提示词
+        if self.execution_router is not None:
+            return HYBRID_EXECUTION_SYSTEM_PROMPT
+        else:
+            # 否则使用默认的 Agent system prompt
+            return self.context_manager.get_system_prompt()
+    
     async def _call_llm(self) -> LLMResponse:
         """
         调用 LLM
@@ -456,8 +475,8 @@ class AgentEngine:
         Returns:
             LLMResponse: LLM 响应
         """
-        # 获取 system prompt
-        system_prompt = self.context_manager.get_system_prompt()
+        # 获取 system prompt（支持混合执行系统）
+        system_prompt = self._get_system_prompt()
         
         # 获取 messages（包含 Plan Recitation）
         messages = self.context_manager.get_messages_for_llm(include_plan_recitation=True)
