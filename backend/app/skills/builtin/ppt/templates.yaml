@@ -4,12 +4,12 @@
 templates:
   - id: ppt_business_proposal
     name: 商业提案
-    description: 创建专业的商业提案或项目汇报 PPT
-    icon: "💼"
+    description: 说服决策者、赢得项目机会、推动业务落地
+    icon: "briefcase"
     category: document
     tags: [business, proposal, presentation, 商业, 提案]
     prompt_template: |
-      请帮我创建一份「{title}」的商业提案 PPT。
+      我需要准备一份「{title}」的商业提案，用于向决策者展示。
 
       目标受众：{audience}
       演示时长：{duration}
@@ -60,12 +60,12 @@ templates:
 
   - id: ppt_project_report
     name: 项目汇报
-    description: 创建项目进展或总结汇报 PPT
-    icon: "📋"
+    description: 展示工作成果、同步项目进展、获得资源支持
+    icon: "clipboard-document-list"
     category: document
     tags: [project, report, summary, 项目, 汇报]
     prompt_template: |
-      请帮我创建一份「{project_name}」的项目汇报 PPT。
+      我需要准备一份「{project_name}」的项目汇报，向团队和领导同步进展。
 
       汇报类型：{report_type}
       汇报周期：{period}
@@ -115,12 +115,12 @@ templates:
 
   - id: ppt_product_intro
     name: 产品介绍
-    description: 创建产品功能介绍或演示 PPT
-    icon: "🚀"
+    description: 打动潜在用户、展示产品价值、促成合作转化
+    icon: "rocket-launch"
     category: document
     tags: [product, introduction, demo, 产品, 介绍]
     prompt_template: |
-      请帮我创建一份「{product_name}」的产品介绍 PPT。
+      我需要准备一份「{product_name}」的产品介绍，向潜在用户展示价值。
 
       产品类型：{product_type}
       目标用户：{target_users}
@@ -159,12 +159,12 @@ templates:
 
   - id: ppt_training
     name: 培训课件
-    description: 创建培训或教学用的 PPT 课件
-    icon: "📚"
+    description: 传递知识技能、提升团队能力、标准化培训流程
+    icon: "book-open"
     category: document
     tags: [training, education, course, 培训, 课件]
     prompt_template: |
-      请帮我创建一份「{course_title}」的培训课件。
+      我需要准备一份「{course_title}」的培训课件，帮助学员掌握相关技能。
 
       培训对象：{audience}
       培训时长：{duration}
@@ -189,7 +189,7 @@ templates:
       - name: duration
         label: 培训时长
         type: select
-  equired: false
+        required: false
         options:
           - label: 1 小时
             value: "1小时"
@@ -229,12 +229,12 @@ templates:
 
   - id: ppt_pitch_deck
     name: 融资路演
-    description: 创建面向投资人的融资路演 PPT
-    icon: "💰"
+    description: 打动投资人、获得融资机会、推动公司发展
+    icon: "currency-dollar"
     category: document
     tags: [pitch, investor, funding, 融资, 路演]
     prompt_template: |
-      请帮我创建一份「{company_name}」的融资路演 PPT。
+      我需要准备一份「{company_name}」的融资路演材料，向投资人展示公司价值。
 
       融资轮次：{round}
       融资金额：{amount}

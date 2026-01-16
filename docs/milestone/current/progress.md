@@ -526,9 +526,285 @@
 - 异步设计: 所有服务方法支持 async/await
 
 #### 下一步
-- Week 3: PPT Generation Agent
+- Week 3: PPT Generation Agent ✅
 - Week 3: E2E 测试框架
 
 ---
 
+## 📅 Week 3: PPT Generation 开发日志 (2026-01-15)
+
+### Session 14: PPT Generation MVP 实现
+**时间**: 2026-01-15 15:00 - 16:30  
+**目标**: 实现基于 Marp 的 PPT 生成功能
+
+#### 执行步骤
+1. ✅ 创建 PPT Skill 定义 `backend/app/skills/builtin/ppt/SKILL.md` (347行)
+   - 技术架构: Template-Driven (Marp Markdown)
+   - 工作流程: 大纲生成 → 内容填充 → 渲染导出
+   - 工具定义: generate_ppt_outline, fill_ppt_content, render_ppt, export_ppt
+   - 模板系统: 商业提案/项目汇报/产品介绍/培训课件/融资路演
+   - 图表支持: Mermaid/Chart.js
+
+2. ✅ 创建 PPT Agent `backend/app/agent/agents/ppt.py` (770行)
+   - 数据模型: SlideType, PPTStyle, ChartType, SlideContent, PPTOutline
+   - PPTAgent 类: 支持多阶段工作流
+   - 大纲生成: 从内容自动提取结构
+   - Marp Markdown 转换: `to_marp_markdown()` 方法
+
+3. ✅ 创建 PPT 渲染服务 `backend/app/services/ppt_renderer.py` (665行)
+   - Marp CLI 集成: HTML/PDF 渲染
+   - 自定义主题: business/tech/minimal 三套 CSS
+   - PPTX 导出: python-pptx 集成
+   - 文件清理: 24小时自动清理
+
+4. ✅ 创建 PPT 工具 `backend/app/agent/tools/builtin/ppt_ops.py` (578行)
+   - GeneratePPTOutlineTool: 解析内容生成大纲
+   - FillPPTContentTool: 填充幻灯片内容
+   - RenderPPTTool: 渲染 HTML 预览
+   - ExportPPTTool: 导出 PDF/HTML/PPTX
+
+5. ✅ 创建 PPT API `backend/app/api/v1/ppt.py` (406行)
+   - POST /ppt/outline - 生成大纲
+   - POST /ppt/render - 渲染预览
+   - POST /ppt/export - 导出文件
+   - GET /ppt/outline/{id} - 大纲详情
+   - GET /ppt/outline/{id}/markdown - Markdown 源码
+   - GET /ppt/templates - 模板列表
+   - GET /ppt/themes - 主题列表
+   - GET /ppt/health - 健康检查
+
+6. ✅ 更新 agents 模块
+   - 添加 PPTAgent 到 `__init__.py`
+
+**Commit**: 7289233
+
+#### 技术决策
+- **选择 Marp 而非 Slidev**: Marp 更轻量，CLI 支持更好
+- **Template-Driven MVP**: 先实现模板驱动，后续再添加 Layered Image
+- **内存存储**: MVP 使用内存存储大纲，生产环境需迁移到 Redis/DB
+
+#### 代码统计
+| 文件 | 行数 | 描述 |
+|------|------|------|
+| SKILL.md | 347 | Skill 定义 |
+| ppt.py (Agent) | 770 | PPT Agent |
+| ppt_renderer.py | 665 | 渲染服务 |
+| ppt_ops.py | 578 | PPT 工具 |
+| ppt.py (API) | 406 | REST API |
+| **总计** | **2,766** | |
+
+#### 功能亮点
+1. **智能大纲生成**: 从 Markdown 内容自动提取章节结构
+2. **多主题支持**: 3 套自定义 CSS 主题 (business/tech/minimal)
+3. **Graceful Degradation**: 无 Marp CLI 时返回 Markdown 源码
+4. **与 Deep Research 集成**: 可直接从研究报告生成 PPT
+
+#### 完成标准
+- ✅ 从研究报告一键生成 PPT
+- ✅ 10-15 页幻灯片
+- ✅ 支持 PDF 导出
+- ✅ 基础图表支持 (Mermaid/表格)
+
+---
+
 **更新时机**: 每次开发Session结束时
+
+---
+
+## 📅 改进任务开发日志 (2026-01-15)
+
+### Session 15: 信任等级机制实现
+**时间**: 2026-01-15 17:00 - 18:30
+**目标**: 优化 HITL 确认体验，实现智能信任决策
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/agent/tools/risk.py` (85行)
+   - RiskLevel 枚举: NONE → LOW → MEDIUM → HIGH → CRITICAL
+   - OperationCategory 枚举: 11 种操作分类
+   - 风险比较工具函数
+
+2. ✅ 扩展 `backend/app/agent/tools/base.py`
+   - 添加 ToolResult dataclass
+   - BaseTool 新增 risk_level, operation_categories 属性
+   - 新增 get_risk_level(), get_operation_categories() 方法
+
+3. ✅ 创建 `backend/app/models/trust_config.py` (120行)
+   - TrustConfig 模型: 工作区级信任配置
+   - TrustAuditLog 模型: 授权决策审计日志
+
+4. ✅ 创建 `backend/app/services/trust_service.py` (280行)
+   - TrustDecisionResult 数据类
+   - TrustService: evaluate_trust(), grant_session_permission(), log_decision()
+   - 决策逻辑: CRITICAL 始终确认 → 黑名单检查 → 自动批准级别 → 预授权 → 会话授权
+
+5. ✅ 修改 `backend/app/agent/base.py`
+   - 新增 _evaluate_trust() 方法
+   - _execute_tool() 集成信任评估
+   - 增强 confirm_required SSE 事件
+
+6. ✅ 更新内置工具风险配置
+   - web_search.py: NONE, [WEB_SEARCH]
+   - read_url.py: NONE, [WEB_READ]
+   - file_ops.py: 动态风险 (read=NONE, write=LOW, delete=MEDIUM)
+   - shell.py: 动态风险 (safe=LOW, git=MEDIUM, dangerous=CRITICAL)
+   - create_document.py: LOW, [DOCUMENT_CREATE]
+
+7. ✅ 创建 `backend/app/api/v1/trust.py` (180行)
+   - GET/PUT /workspaces/{id}/trust
+   - POST /sessions/{id}/trust/grant
+   - GET /workspaces/{id}/trust/audit
+   - GET /metadata
+
+8. ✅ 创建数据库迁移
+   - trust_configs 表
+   - trust_audit_logs 表
+
+9. ✅ 创建 `frontend/src/api/trust.ts` (150行)
+   - TypeScript 类型定义
+   - API 客户端封装
+
+10. ✅ 增强 `frontend/src/components/execution/HITLConfirmDialog.vue`
+    - 风险等级徽章 (颜色编码)
+    - 操作分类标签
+    - "记住此选择" 复选框 (CRITICAL 隐藏)
+    - 风险说明文本
+
+11. ✅ 创建 `frontend/src/components/settings/TrustSettings.vue` (450行)
+    - 启用/禁用开关
+    - 风险等级选择器
+    - 预授权操作网格
+    - 黑名单操作网格
+    - 审计日志查看器
+
+#### 代码统计
+| 文件 | 行数 | 描述 |
+|------|------|------|
+| risk.py | 85 | 风险等级定义 |
+| trust_config.py | 120 | 数据模型 |
+| trust_service.py | 280 | 信任服务 |
+| trust.py (API) | 180 | REST API |
+| trust.ts | 150 | 前端 API |
+| HITLConfirmDialog.vue | +80 | 增强弹窗 |
+| TrustSettings.vue | 450 | 设置页面 |
+| **总计** | **~1,345** | |
+
+---
+
+### Session 16: Skill 冷启动优化 - 场景预设和模板系统
+**时间**: 2026-01-15 19:00 - 20:30
+**目标**: 帮助新用户快速上手，降低使用门槛
+
+#### 执行步骤
+1. ✅ 扩展 `backend/app/skills/types.py` (+150行)
+   - TemplateCategory 枚举: 7 种分类
+   - SkillTemplate 数据类: 模板定义 + 变量渲染
+   - ScenePreset 数据类: 场景预设
+   - SkillWithTemplates 数据类: 组合查询
+
+2. ✅ 创建 `backend/app/skills/template_registry.py` (380行)
+   - 自动扫描 templates.yaml 文件
+   - 按分类/技能/关键词搜索
+   - 热门模板/场景排序
+   - 模板渲染和变量替换
+
+3. ✅ 创建 `backend/app/skills/builtin/deep_research/templates.yaml` (193行)
+   - 市场调研模板
+   - 竞品分析模板
+   - 技术选型模板
+   - 学术研究模板
+   - 趋势洞察模板
+
+4. ✅ 创建 `backend/app/skills/builtin/ppt/templates.yaml` (294行)
+   - 商业提案模板
+   - 项目汇报模板
+   - 产品介绍模板
+   - 培训课件模板
+   - 融资路演模板
+
+5. ✅ 创建 `backend/app/skills/presets/scenes.yaml` (120行)
+   - 创业调研场景
+   - 产品发布场景
+   - 技术决策场景
+   - 学术研究场景
+   - 项目管理场景
+   - 培训教学场景
+   - 数据分析场景
+   - 投资研究场景
+
+6. ✅ 创建 `backend/app/api/v1/skills.py` (280行)
+   - GET /skills/skills - Skill 列表
+   - GET /skills/templates - 模板列表
+   - GET /skills/scenes - 场景预设
+   - POST /skills/templates/{id}/render - 渲染模板
+   - GET /skills/discovery - 发现页面数据
+
+7. ✅ 创建 `frontend/src/api/skills.ts` (180行)
+   - TypeScript 类型定义
+   - API 客户端封装
+
+8. ✅ 创建 `frontend/src/views/SkillDiscovery.vue` (380行)
+   - 分类筛选
+   - 搜索功能
+   - 场景预设卡片
+   - 模板网格展示
+
+9. ✅ 创建 `frontend/src/components/skills/TemplateCard.vue` (320行)
+   - 可展开的模板卡片
+   - 变量填写表单
+   - 实时预览
+
+10. ✅ 创建 `frontend/src/components/skills/TemplateModal.vue` (280行)
+    - 模板详情弹窗
+    - 变量填写
+    - 提交处理
+
+11. ✅ 更新 `frontend/src/router/index.ts`
+    - 添加 /discover 路由
+
+#### 设计规范修正
+12. ✅ 修复 Emoji 图标问题
+    - deep_research/templates.yaml: 📊→chart-bar, ⚔️→scale, 🔧→cpu-chip, 🎓→academic-cap, 🔮→arrow-trending-up
+    - ppt/templates.yaml: 💼→briefcase, 📋→clipboard-document-list, 🚀→rocket-launch, 📚→book-open, 💰→currency-dollar
+    - scenes.yaml: 所有 Emoji 替换为 Heroicons 名称
+
+13. ✅ 优化模板描述为用户任务导向
+    - "深入分析某个行业..." → "了解行业机会、评估市场规模、洞察竞争格局"
+    - "创建专业的商业提案..." → "说服决策者、赢得项目机会、推动业务落地"
+
+#### 代码统计
+| 文件 | 行数 | 描述 |
+|------|------|------|
+| types.py | +150 | 模板类型定义 |
+| template_registry.py | 380 | 模板注册服务 |
+| templates.yaml (research) | 193 | 研究模板 |
+| templates.yaml (ppt) | 294 | PPT 模板 |
+| scenes.yaml | 120 | 场景预设 |
+| skills.py (API) | 280 | REST API |
+| skills.ts | 180 | 前端 API |
+| SkillDiscovery.vue | 380 | 发现页面 |
+| TemplateCard.vue | 320 | 模板卡片 |
+| TemplateModal.vue | 280 | 模板弹窗 |
+| **总计** | **~2,577** | |
+
+---
+
+### 改进任务完成总结
+
+#### 总代码量
+- 信任等级机制: ~1,345 行
+- Skill 冷启动优化: ~2,577 行
+- **合计**: ~3,922 行
+
+#### 架构亮点
+1. **动态风险评估**: 工具可根据参数动态计算风险等级
+2. **会话级授权**: "记住此选择" 减少重复确认
+3. **审计日志**: 所有授权决策可追溯
+4. **模板变量系统**: 支持 text/textarea/select 三种输入类型
+5. **场景预设**: 将多个模板组合为工作流
+
+#### 遵循的设计原则
+- ✅ 禁止 Emoji 图标 → 使用 Heroicons 名称引用
+- ✅ 用户任务导向 → 描述用户能达成的目标
+- ✅ 三文件工作法 → 更新 task_plan.md 和 progress.md
+
+---

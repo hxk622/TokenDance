@@ -4,8 +4,8 @@
 scenes:
   - id: scene_startup_research
     name: 创业调研
-    description: 从市场调研到商业计划，一站式创业准备
-    icon: "🚀"
+    description: 验证商业想法、评估市场机会、准备融资材料
+    icon: "rocket-launch"
     color: "#10b981"
     category: research
     tags: [startup, business, market, 创业, 商业]
@@ -20,8 +20,8 @@ scenes:
 
   - id: scene_product_launch
     name: 产品发布
-    description: 产品上市前的调研、文档和演示准备
-    icon: "📦"
+    description: 准备上市材料、制定推广策略、打动目标用户
+    icon: "cube"
     color: "#6366f1"
     category: document
     tags: [product, launch, marketing, 产品, 发布]
@@ -35,8 +35,8 @@ scenes:
 
   - id: scene_tech_decision
     name: 技术决策
-    description: 技术选型和架构决策的调研支持
-    icon: "⚙️"
+    description: 评估技术方案、规避选型风险、做出明智决策
+    icon: "cog-6-tooth"
     color: "#f59e0b"
     category: coding
     tags: [technology, architecture, decision, 技术, 架构]
@@ -48,8 +48,8 @@ scenes:
 
   - id: scene_academic_research
     name: 学术研究
-    description: 学术文献调研和研究报告撰写
-    icon: "🎓"
+    description: 追踪前沿进展、梳理研究脉络、撰写综述报告
+    icon: "academic-cap"
     color: "#8b5cf6"
     category: research
     tags: [academic, paper, research, 学术, 论文]
@@ -61,8 +61,8 @@ scenes:
 
   - id: scene_project_management
     name: 项目管理
-    description: 项目汇报和进度跟踪
-    icon: "📊"
+    description: 同步项目进展、展示工作成果、获得资源支持
+    icon: "clipboard-document-check"
     color: "#3b82f6"
     category: document
     tags: [project, management, report, 项目, 管理]
@@ -74,8 +74,8 @@ scenes:
 
   - id: scene_training
     name: 培训教学
-    description: 创建培训课件和教学材料
-    icon: "📚"
+    description: 传递知识技能、提升团队能力、标准化培训流程
+    icon: "book-open"
     color: "#ec4899"
     category: document
     tags: [training, education, teaching, 培训, 教学]
@@ -86,9 +86,10 @@ scenes:
       - ppt
       - deep_research
 
-  - id: scene_data_anal  name: 数据分析
-    description: 数据可视化和分析报告
-    icon: "📈"
+  - id: scene_data_analysis
+    name: 数据分析
+    description: 洞察数据规律、可视化呈现、支撑业务决策
+    icon: "chart-bar"
     color: "#14b8a6"
     category: data
     tags: [data, analysis, visualization, 数据, 分析]
@@ -103,8 +104,8 @@ scenes:
 
   - id: scene_investment_research
     name: 投资研究
-    description: 行业研究和投资分析
-    icon: "💹"
+    description: 分析行业机会、评估投资标的、制定投资策略
+    icon: "banknotes"
     color: "#22c55e"
     category: research
     tags: [investment, finance, analysis, 投资, 金融]

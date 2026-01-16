@@ -4,7 +4,7 @@ display_name: 深度研究
 description: 深度研究能力，支持多源搜索、信息聚合、引用回溯。适用于市场调研、竞品分析、学术研究、技术选型等场景。能够系统性地搜集、整理、分析信息，生成带引用的结构化报告。支持浏览器自动化，可访问动态网页和需要登录的平台。
 version: 1.1.0
 author: system
-tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑]
+tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑, 金融, finance, 投研, 股票, stock, 财报, 行业分析, 估值, investment]
 allowed_tools: [web_search, read_url, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close]
 max_iterations: 30
 timeout: 600

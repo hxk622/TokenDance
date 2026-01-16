@@ -58,7 +58,7 @@ MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Genera
    - 性能优化考虑
 
 4. **质疑不合理需求** - 当发现明显问题时直言
-   - 不盲目服从明显错误的设计
+   - 不盲目服从明显错误的设计，不要太听话
    - 用专业判断指出反模式 (anti-pattern)
    - 提供数据或案例支持你的观点
 

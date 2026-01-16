@@ -348,4 +348,47 @@
 
 ---
 
+## 🔧 改进任务 - 信任等级机制 + Skill 冷启动优化 (2026-01-15)
+
+### 1. 信任等级机制 (Trust Level) ✅ 已完成
+
+**目标**: 优化 HITL 确认体验，减少不必要的打断
+
+**实现内容**:
+- `backend/app/agent/tools/risk.py` - 风险等级枚举和操作分类
+- `backend/app/agent/tools/base.py` - BaseTool 扩展风险评估方法
+- `backend/app/models/trust_config.py` - TrustConfig 和 TrustAuditLog 模型
+- `backend/app/services/trust_service.py` - 信任决策服务
+- `backend/app/agent/base.py` - Agent 集成信任评估
+- `backend/app/api/v1/trust.py` - Trust API 端点
+- `frontend/src/api/trust.ts` - 前端 API 客户端
+- `frontend/src/components/execution/HITLConfirmDialog.vue` - 增强确认弹窗
+- `frontend/src/components/settings/TrustSettings.vue` - 信任设置页面
+
+**风险等级**: NONE → LOW → MEDIUM → HIGH → CRITICAL
+
+### 2. Skill 冷启动优化 - 场景预设和模板系统 ✅ 已完成
+
+**目标**: 帮助新用户快速上手，降低使用门槛
+
+**实现内容**:
+- `backend/app/skills/types.py` - 新增 SkillTemplate, ScenePreset, TemplateCategory 类型
+- `backend/app/skills/template_registry.py` - 模板注册和管理服务
+- `backend/app/skills/builtin/deep_research/templates.yaml` - 5 个研究模板
+- `backend/app/skills/builtin/ppt/templates.yaml` - 5 个 PPT 模板
+- `backend/app/skills/presets/scenes.yaml` - 8 个场景预设
+- `backend/app/api/v1/skills.py` - Skill 发现 API
+- `frontend/src/api/skills.ts` - 前端 API 客户端
+- `frontend/src/views/SkillDiscovery.vue` - Skill 发现页面
+- `frontend/src/components/skills/TemplateCard.vue` - 模板卡片组件
+- `frontend/src/components/skills/TemplateModal.vue` - 模板详情弹窗
+- `frontend/src/router/index.ts` - 添加 /discover 路由
+
+**设计规范修正**:
+- 将 Emoji 图标替换为 Heroicons 图标名称引用
+- 将功能导向描述改为用户任务导向描述
+- 遵循 agent.md 中的 UI 设计原则
+
+---
+
 **当前状态**: MVP Sprint Week 2 - API 端点完成，准备进入 Week 3 (PPT Generation)

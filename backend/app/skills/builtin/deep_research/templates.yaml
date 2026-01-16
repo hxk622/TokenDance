@@ -4,12 +4,12 @@
 templates:
   - id: deep_research_market
     name: 市场调研
-    description: 深入分析某个行业或产品的市场规模、竞争格局、发展趋势
-    icon: "📊"
+    description: 了解行业机会、评估市场规模、洞察竞争格局
+    icon: "chart-bar"
     category: research
     tags: [market, industry, analysis, 市场, 行业]
     prompt_template: |
-      请帮我做一份关于「{topic}」的市场调研报告。
+      我需要了解「{topic}」的市场情况，帮助我做出商业决策。
 
       重点关注：
       - 市场规模和增长趋势
@@ -39,12 +39,12 @@ templates:
 
   - id: deep_research_competitor
     name: 竞品分析
-    description: 对比分析多个竞争产品的功能、定价、优劣势
-    icon: "⚔️"
+    description: 知己知彼、找准差异化定位、制定竞争策略
+    icon: "scale"
     category: research
     tags: [competitor, comparison, product, 竞品, 对比]
     prompt_template: |
-      请帮我做一份「{product}」的竞品分析报告。
+      我需要对「{product}」进行竞品分析，找到差异化机会。
 
       需要对比的竞品：{competitors}
 
@@ -66,7 +66,7 @@ templates:
         label: 竞品列表
         type: text
         required: true
-        placeholder: "例如：Obsidian, Roamsearch, Logseq"
+        placeholder: "例如：Obsidian, Roam Research, Logseq"
       - name: focus_areas
         label: 重点关注
         type: textarea
@@ -76,12 +76,12 @@ templates:
 
   - id: deep_research_tech
     name: 技术选型
-    description: 调研和对比多种技术方案，给出选型建议
-    icon: "🔧"
+    description: 评估技术方案、规避选型风险、做出明智决策
+    icon: "cpu-chip"
     category: research
     tags: [technology, architecture, selection, 技术, 选型]
     prompt_template: |
-      我正在进行技术选型，需要调研「{tech_area}」相关的解决方案。
+      我正在进行技术选型，需要评估「{tech_area}」相关的解决方案。
 
       候选方案：{candidates}
 
@@ -113,12 +113,12 @@ templates:
 
   - id: deep_research_academic
     name: 学术研究
-    description: 针对学术主题进行文献调研和综述
-    icon: "🎓"
+    description: 追踪前沿进展、梳理研究脉络、发现创新机会
+    icon: "academic-cap"
     category: research
     tags: [academic, paper, literature, 学术, 论文]
     prompt_template: |
-      请帮我调研「{research_topic}」相关的学术进展。
+      我需要了解「{research_topic}」相关的学术进展。
 
       研究方向：{research_direction}
 
@@ -144,17 +144,17 @@ templates:
         label: 具体问题
         type: textarea
         required: false
-        placr: "例如：RAG 和 Fine-tuning 哪个更适合知识密集型任务？"
+        placeholder: "例如：RAG 和 Fine-tuning 哪个更适合知识密集型任务？"
     example_input: "大语言模型的 Prompt Engineering 研究进展"
 
   - id: deep_research_trend
     name: 趋势洞察
-    description: 分析某个领域的发展趋势和未来预测
-    icon: "🔮"
+    description: 把握行业脉搏、预判未来走向、抢占先机
+    icon: "arrow-trending-up"
     category: research
     tags: [trend, future, prediction, 趋势, 预测]
     prompt_template: |
-      请帮我分析「{domain}」领域的发展趋势。
+      我需要了解「{domain}」领域的发展趋势，为战略决策提供依据。
 
       时间范围：{time_range}
 
