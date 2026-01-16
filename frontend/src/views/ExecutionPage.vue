@@ -614,7 +614,8 @@ onUnmounted(() => {
 <style scoped>
 .execution-page {
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   display: flex;
   flex-direction: column;
   background: var(--bg-primary, rgba(18, 18, 18, 0.95));
@@ -809,14 +810,14 @@ onUnmounted(() => {
   top: 8px;
   right: 8px;
   z-index: 10;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(28, 28, 30, 0.9);
   border: 1px solid var(--divider-color);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 150ms ease-out;
@@ -826,6 +827,20 @@ onUnmounted(() => {
   background: rgba(0, 217, 255, 0.2);
   border-color: var(--color-node-active, #00D9FF);
   color: var(--color-node-active, #00D9FF);
+}
+
+.collapse-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(18, 18, 18, 0.95), 0 0 0 4px #00D9FF;
+}
+
+.collapse-toggle:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.collapse-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(18, 18, 18, 0.95), 0 0 0 4px #00D9FF;
 }
 
 .collapse-toggle.collapsed {
