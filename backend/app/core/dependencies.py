@@ -20,7 +20,7 @@ from app.services.auth_service import AuthService
 from app.services.permission_service import PermissionService
 from app.services.agent_config_service import AgentConfigService
 from app.services.agent_service import AgentService
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 
 logger = get_logger(__name__)
 
@@ -141,7 +141,7 @@ def get_llm_model_repo(db: AsyncSession = Depends(get_db)) -> LLMModelRepository
 
 def get_agent_config_service(
     db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends()
+    settings: Settings = Depends(get_settings)
 ) -> AgentConfigService:
     """Get AgentConfigService instance.
     
@@ -157,7 +157,7 @@ def get_agent_config_service(
 
 def get_agent_service(
     db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(),
+    settings: Settings = Depends(get_settings),
     config_service: AgentConfigService = Depends(get_agent_config_service)
 ) -> AgentService:
     """Get AgentService instance.

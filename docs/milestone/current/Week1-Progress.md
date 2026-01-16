@@ -89,19 +89,53 @@ $ cd backend && uv run pytest tests/test_financial_api.py -v
 
 ---
 
-### 🔄 Day 5: 第一个组件（待完成）
+### ✅ Day 5: 第一个组件（100%）
 
-#### 剩余任务
+#### 已完成
 1. **股票搜索组件** (`frontend/src/components/financial/StockSearch.vue`)
-   - 输入股票代码或名称
-   - 实时搜索建议
-   - 支持拖拽代码到输入框
-   - 快捷选择（热门股票）
+   - 508行完整实现
+   - 功能：
+     - 输入股票代码或名称，实时搜索建议
+     - 支持拖拽代码到输入框
+     - 热门股票快捷选择（茅台、五粮液等6只）
+     - 键盘导航（↑↓ Enter Esc Cmd+K）
+     - 选择股票后自动调用 Store 的 `fetchCombinedAnalysis()`
    - 设计规范：
-     - 灰度系统（#fafafa 背景）
-     - 1px 细边框（gray-200）
-     - hover 时边框加深 + subtle shadow
+     - 灰度系统（#fafafa 背景，gray-200 边框）
      - 8px 圆角
+     - hover 时边框加深 + subtle shadow
+     - 200ms 过渡动画
+     - focus ring 效果
+
+---
+
+### 🧪 测试基础设施（100%）
+
+#### 已完成
+1. **修复后端启动问题**
+   - 修复 `AgentConfig` 模型的 `metadata` 保留字冲突（改为 `agent_metadata`）
+   - 修复 Pydantic v2 的 `Settings` 依赖注入（`Depends()` → `Depends(get_settings)`）
+   - 修复文件：`backend/app/models/agent_config.py`, `backend/app/api/v1/stream.py`, `backend/app/core/dependencies.py`
+
+2. **创建测试页面** (`frontend/src/views/FinancialTest.vue`)
+   - 406行完整测试页面
+   - 集成验证：
+     - StockSearch 组件渲染
+     - Pinia Store 状态显示
+     - API 数据展示（股票信息、行情、舆情）
+     - API 健康检查按钮
+     - Week 1 交付清单
+   - 路由：`/financial-test`（无需登录）
+
+3. **后端启动测试**
+   - ✅ FastAPI 服务正常启动（http://localhost:8000）
+   - ✅ 数据库初始化成功（PostgreSQL）
+   - ✅ Redis 连接池初始化
+   - ✅ Health endpoint 响应正常（`/health`）
+
+4. **前端启动测试**
+   - ✅ Vite dev server 正常启动（http://localhost:5173）
+   - ✅ 无编译错误
 
 ---
 
@@ -127,16 +161,19 @@ $ cd backend && uv run pytest tests/test_financial_api.py -v
 ### 后端
 - API Router: 298 lines
 - Tests: 230 lines
-- **Total**: ~528 lines
+- 修复: ~50 lines (模型 + 依赖注入)
+- **Total**: ~578 lines
 
 ### 前端
 - Types: 137 lines
 - Service: 144 lines
 - Store: 407 lines
-- **Total**: ~688 lines
+- StockSearch 组件: 508 lines
+- FinancialTest 页面: 406 lines
+- **Total**: ~1602 lines
 
 ### Grand Total
-**~1216 lines** of production-ready code
+**~2180 lines** of production-ready code
 
 ---
 
@@ -227,7 +264,9 @@ docs/
 
 1. `d0037e4` - feat: Week 1 Day 1 - 创建 Financial API Router
 2. `e1335ec` - test: Week 1 Day 2 - Financial API 测试完成
-3. (待提交) - feat: Week 1 Day 3-4 - 前端基础设施完成
+3. `a3c3d2b` - feat: Week 1 Day 3-4 - 前端基础设施完成
+4. `5c1fd71` - feat: Week 1 Day 5 - StockSearch 组件完成
+5. (待提交) - test: Week 1 - 基础设施测试 + 修复启动问题
 
 ---
 

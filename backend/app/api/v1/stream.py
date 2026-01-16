@@ -17,7 +17,7 @@ from app.core.database import get_db
 from app.core.logging import get_logger
 from app.services.session_service import SessionService
 from app.services.agent_service import AgentService
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.core.dependencies import get_current_user
 from app.models.user import User
 
@@ -189,7 +189,7 @@ async def stream_session_events(
     token: Optional[str] = Query(None, description="Auth token"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(),
+    settings: Settings = Depends(get_settings),
 ):
     """
     Stream SSE events for a session.
