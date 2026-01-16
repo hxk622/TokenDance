@@ -79,8 +79,11 @@ function renderGraph() {
     .attr('width', width)
     .attr('height', height)
 
+  // Create defs for all effects
+  const defs = svg.append('defs')
+  
   // Define arrow markers for edges
-  svg.append('defs').selectAll('marker')
+  defs.selectAll('marker')
     .data(['context', 'result'])
     .enter().append('marker')
     .attr('id', d => `arrow-${d}`)
@@ -93,6 +96,33 @@ function renderGraph() {
     .append('path')
     .attr('d', 'M0,-5L10,0L0,5')
     .attr('fill', d => d === 'context' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 217, 255, 0.8)')
+
+  // Add glow filter for active nodes
+  const filter = defs.append('filter')
+    .attr('id', 'glow')
+  filter.append('feGaussianBlur')
+    .attr('stdDeviation', '4')
+    .attr('result', 'coloredBlur')
+  const feMerge = filter.append('feMerge')
+  feMerge.append('feMergeNode').attr('in', 'coloredBlur')
+  feMerge.append('feMergeNode').attr('in', 'SourceGraphic')
+
+  // 定义渐变色用于流光效果
+  const energyGradient = defs.append('linearGradient')
+    .attr('id', 'energy-gradient')
+    .attr('gradientUnits', 'userSpaceOnUse')
+  energyGradient.append('stop')
+    .attr('offset', '0%')
+    .attr('stop-color', '#00D9FF')
+    .attr('stop-opacity', 0.2)
+  energyGradient.append('stop')
+    .attr('offset', '50%')
+    .attr('stop-color', '#00D9FF')
+    .attr('stop-opacity', 1)
+  energyGradient.append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', '#00FF88')
+    .attr('stop-opacity', 0.2)
 
   // Create force simulation
   simulation = d3.forceSimulation(nodes.value as any)
@@ -109,9 +139,10 @@ function renderGraph() {
     .selectAll('line')
     .data(edges.value)
     .enter().append('line')
-    .attr('class', 'edge')
-    .attr('stroke', d => d.type === 'context' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 217, 255, 0.8)')
+    .attr('class', d => `edge ${d.type === 'result' ? 'edge-active' : ''}`)
+    .attr('stroke', d => d.type === 'context' ? 'rgba(255, 255, 255, 0.3)' : 'url(#energy-gradient)')
     .attr('stroke-width', 2)
+    .attr('stroke-dasharray', d => d.type === 'result' ? '10 5' : 'none')
     .attr('marker-end', d => `url(#arrow-${d.type})`)
 
   // Draw nodes
@@ -149,16 +180,6 @@ function renderGraph() {
     .attr('font-weight', '600')
     .text(d => d.label)
 
-  // Add glow filter for active nodes
-  const defs = svg.select('defs')
-  const filter = defs.append('filter')
-    .attr('id', 'glow')
-  filter.append('feGaussianBlur')
-    .attr('stdDeviation', '4')
-    .attr('result', 'coloredBlur')
-  const feMerge = filter.append('feMerge')
-  feMerge.append('feMergeNode').attr('in', 'coloredBlur')
-  feMerge.append('feMergeNode').attr('in', 'SourceGraphic')
 
   // Update positions on simulation tick
   simulation!.on('tick', () => {
@@ -233,8 +254,21 @@ function updateNodeStyles() {
   transition: stroke 200ms ease-out;
 }
 
+:deep(.edge-active) {
+  animation: flow-energy 1s linear infinite;
+}
+
 :deep(.edge:hover) {
   stroke-width: 3 !important;
+}
+
+@keyframes flow-energy {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -30;
+  }
 }
 
 @keyframes pulse-breath {

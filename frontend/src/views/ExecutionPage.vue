@@ -6,7 +6,9 @@ import WorkflowGraph from '@/components/execution/WorkflowGraph.vue'
 import StreamingInfo from '@/components/execution/StreamingInfo.vue'
 import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.vue'
 import PreviewArea from '@/components/execution/PreviewArea.vue'
+import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import { useExecutionStore } from '@/stores/execution'
+import { hitlApi, type HITLRequest } from '@/api/hitl'
 
 const route = useRoute()
 const sessionId = ref(route.params.id as string)
@@ -16,7 +18,6 @@ const executionStore = useExecutionStore()
 
 // Computed from store
 const isRunning = computed(() => executionStore.isRunning)
-// const isCompleted = computed(() => executionStore.isCompleted) // reserved for future use
 const sessionStatus = computed(() => {
   if (executionStore.isLoading) return 'loading'
   if (executionStore.error) return 'error'
@@ -24,6 +25,78 @@ const sessionStatus = computed(() => {
 })
 const elapsedTime = ref('0分0秒')
 let elapsedTimer: ReturnType<typeof setInterval> | null = null
+
+// Plan Recitation: 进度跟踪
+const currentStepIndex = computed(() => {
+  const nodes = executionStore.nodes
+  const activeIndex = nodes.findIndex(n => n.status === 'active')
+  if (activeIndex >= 0) return activeIndex
+  const lastCompleted = nodes.map((n, i) => n.status === 'success' ? i : -1).filter(i => i >= 0)
+  return lastCompleted.length > 0 ? Math.max(...lastCompleted) : 0
+})
+const totalSteps = computed(() => executionStore.nodes.length)
+const currentStepLabel = computed(() => {
+  const nodes = executionStore.nodes
+  if (nodes.length === 0) return '准备中...'
+  const idx = currentStepIndex.value
+  return nodes[idx]?.label || '执行中'
+})
+const progressPercent = computed(() => {
+  const completed = executionStore.nodes.filter(n => n.status === 'success').length
+  const total = totalSteps.value
+  return total > 0 ? Math.round((completed / total) * 100) : 0
+})
+
+// HITL 干预状态
+const showHITLDialog = ref(false)
+const currentHITLRequest = ref<HITLRequest | null>(null)
+const isRequestingIntervention = ref(false)
+
+async function requestIntervention() {
+  isRequestingIntervention.value = true
+  try {
+    // 创建一个人工干预请求
+    const request = await hitlApi.create(sessionId.value, {
+      type: 'user_intervention',
+      title: '用户请求介入',
+      description: `用户在步骤 ${currentStepIndex.value + 1}/${totalSteps.value} 请求暂停并介入`,
+      context: { currentStep: currentStepLabel.value },
+      riskLevel: 'medium'
+    })
+    currentHITLRequest.value = request
+    showHITLDialog.value = true
+  } catch (error) {
+    console.error('Failed to create intervention request:', error)
+    // Fallback: 直接显示弹窗
+    currentHITLRequest.value = {
+      id: 'manual-' + Date.now(),
+      sessionId: sessionId.value,
+      type: 'user_intervention',
+      title: '用户请求介入',
+      description: '您可以在此介入当前执行流程',
+      context: {},
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    }
+    showHITLDialog.value = true
+  } finally {
+    isRequestingIntervention.value = false
+  }
+}
+
+function handleHITLClose() {
+  showHITLDialog.value = false
+  currentHITLRequest.value = null
+}
+
+function handleHITLConfirmed(approved: boolean) {
+  showHITLDialog.value = false
+  if (!approved) {
+    // 用户取消执行
+    handleStop()
+  }
+  currentHITLRequest.value = null
+}
 
 // Layout ratios - 根据任务类型动态调整
 const taskType = ref<'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'>('default')
@@ -304,7 +377,7 @@ function toggleCollapse() {
 
 <template>
   <div class="execution-page">
-    <!-- Header -->
+    <!-- Header with Plan Recitation -->
     <header class="execution-header">
       <div class="task-info">
         <h1 class="task-title">Deep Research: AI Agent 市场分析</h1>
@@ -317,8 +390,32 @@ function toggleCollapse() {
           <span class="time">已执行 {{ elapsedTime }}</span>
         </div>
       </div>
+      
+      <!-- Plan Recitation: 当前步骤指示器 -->
+      <div class="plan-progress">
+        <div class="progress-step">
+          <span class="step-label">Step {{ currentStepIndex + 1 }}/{{ totalSteps }}</span>
+          <span class="step-name">{{ currentStepLabel }}</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" :style="{ width: `${progressPercent}%` }" />
+          </div>
+          <span class="progress-percent">{{ progressPercent }}%</span>
+        </div>
+      </div>
+      
       <div class="header-actions">
-        <button class="btn-secondary" @click="handlePause" :disabled="!isRunning">暂停</button>
+        <button 
+          class="btn-intervention" 
+          @click="requestIntervention" 
+          :disabled="!isRunning || isRequestingIntervention"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          暂停并介入
+        </button>
         <button class="btn-secondary" @click="handleStop">停止</button>
       </div>
     </header>
@@ -437,6 +534,14 @@ function toggleCollapse() {
         />
       </div>
     </main>
+    
+    <!-- HITL 干预弹窗 -->
+    <HITLConfirmDialog
+      :visible="showHITLDialog"
+      :request="currentHITLRequest"
+      @close="handleHITLClose"
+      @confirmed="handleHITLConfirmed"
+    />
   </div>
 </template>
 
@@ -498,9 +603,96 @@ function toggleCollapse() {
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
 }
 
+/* Plan Recitation 进度指示器 */
+.plan-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-node-active, #00D9FF);
+  padding: 2px 8px;
+  background: rgba(0, 217, 255, 0.15);
+  border-radius: 4px;
+}
+
+.step-name {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.progress-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-bar-bg {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00D9FF, #00FF88);
+  border-radius: 2px;
+  transition: width 300ms ease-out;
+}
+
+.progress-percent {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: right;
+}
+
 .header-actions {
   display: flex;
   gap: 12px;
+}
+
+.btn-intervention {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 184, 0, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 184, 0, 0.15);
+  color: #FFB800;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.btn-intervention:hover:not(:disabled) {
+  background: rgba(255, 184, 0, 0.25);
+  border-color: #FFB800;
+}
+
+.btn-intervention:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-intervention svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-secondary {

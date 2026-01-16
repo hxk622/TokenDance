@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { CpuChipIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 
 interface Props {
   visible: boolean
@@ -55,10 +56,6 @@ const outputPreview = computed(() => {
     ? props.metadata.output.substring(0, 100) + '...'
     : props.metadata.output
 })
-
-const typeIcon = computed(() => {
-  return props.nodeType === 'manus' ? '🤖' : '✍️'
-})
 </script>
 
 <template>
@@ -74,7 +71,10 @@ const typeIcon = computed(() => {
     >
       <!-- Header -->
       <div class="tooltip-header">
-        <span class="node-type-icon">{{ typeIcon }}</span>
+        <span class="node-type-icon">
+          <CpuChipIcon v-if="nodeType === 'manus'" class="w-5 h-5" />
+          <PencilSquareIcon v-else class="w-5 h-5" />
+        </span>
         <span class="node-label">{{ label }}</span>
       </div>
 
@@ -149,7 +149,10 @@ const typeIcon = computed(() => {
 }
 
 .node-type-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
 }
 
 .node-label {

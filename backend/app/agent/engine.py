@@ -1,17 +1,20 @@
 """
-Agent Engine - 核心执行循环
+Agent Engine - 核心执行循环 (状态机驱动)
 
-实现 Agent 的主循环逻辑：
-1. 接收用户输入
-2. LLM 推理
-3. 解析工具调用
-4. 执行工具
-5. 更新记忆
-6. 返回结果
+实现铁律一：Agent = 状态机 + LLM 决策器
+
+核心设计原则：
+1. **状态机驱动**: 显式状态 + 确定性转移
+2. **Append-Only Context**: 消息只追加，不修改
+3. **Plan Recitation**: 每轮末尾追加 TODO 清单
+4. **Keep the Failures**: 保留错误记录
+5. **FailureSignal**: exit code 是最诚实的老师
+
+参考文档：docs/architecture/Agent-Runtime-Design.md
 """
 
 from typing import Optional, Dict, List, Any, AsyncGenerator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import asyncio
 
 from app.agent.context_manager import ContextManager
@@ -22,6 +25,21 @@ from app.agent.llm.base import BaseLLM, LLMResponse
 from app.agent.prompts import ERROR_RECOVERY_PROMPT, FINDINGS_REMINDER_PROMPT
 from app.filesystem import AgentFileSystem
 from app.core.logging import get_logger
+
+# 状态机和失败信号系统 (铁律一 + 铁律四)
+from app.agent.state import (
+    AgentState,
+    Signal,
+    StateMachine,
+    StateHistory,
+    InvalidStateTransition,
+)
+from app.agent.failure import (
+    FailureSignal,
+    FailureObserver,
+    FailureSummary,
+    ExitCode,
+)
 
 # Skill System imports
 from app.skills import (
@@ -46,14 +64,21 @@ class AgentResponse:
 
 class AgentEngine:
     """
-    Agent 核心引擎
+    Agent 核心引擎 (状态机驱动)
     
-    核心设计原则：
-    1. **Append-Only Context**: 消息只追加，不修改
-    2. **Plan Recitation**: 每轮末尾追加 TODO 清单
-    3. **Keep the Failures**: 保留错误记录
-    4. **2-Action Rule**: 每2次搜索操作后记录 findings
-    5. **3-Strike Protocol**: 同类错误3次触发重读计划
+    实现五条铁律：
+    1. **铁律一**: Agent = 状态机 + LLM 决策器
+    2. **铁律二**: 架构决定成功率上限，不是模型
+    3. **铁律三**: 工具是世界接口，不是插件 (4+2 核心工具)
+    4. **铁律四**: 智能来自失败，不来自理解 (FailureSignal)
+    5. **铁律五**: PolicyLayer 架构 (WorkState + ActionSpace + FailureSignal + ControlLoop)
+    
+    运行时规则：
+    - **Append-Only Context**: 消息只追加，不修改
+    - **Plan Recitation**: 每轮末尾追加 TODO 清单
+    - **Keep the Failures**: 保留错误记录
+    - **2-Action Rule**: 每2次搜索操作后记录 findings
+    - **3-Strike Protocol**: 同类错误3次触发重读计划
     """
     
     def __init__(
@@ -85,7 +110,6 @@ class AgentEngine:
         
         # 初始化工具注册表
         self.tool_registry = ToolRegistry()
-        # Note: register_builtin_tools 需要在外部调用，或者在这里单独处理
         
         # 初始化三文件管理器
         self.three_files = ThreeFilesManager(filesystem=filesystem, session_id=session_id)
@@ -100,6 +124,22 @@ class AgentEngine:
         # 初始化 Executor
         self.executor = ToolCallExecutor(tool_registry=self.tool_registry)
         
+        # =================================================================
+        # 铁律一: 状态机 
+        # =================================================================
+        self.state_machine = StateMachine(initial_state=AgentState.INIT)
+        
+        # =================================================================
+        # 铁律四: 失败观察器
+        # =================================================================
+        self.failure_observer = FailureObserver()
+        # 连接 progress.md 写入器 (Keep the Failures)
+        self.failure_observer.set_progress_writer(
+            lambda entry: self.three_files.update_progress(
+                log_entry=entry, is_error=True
+            )
+        )
+        
         # 初始化 Skill 系统
         self.skill_registry = None
         self.skill_matcher = None
@@ -111,8 +151,12 @@ class AgentEngine:
         # 状态
         self.iteration_count = 0
         self._current_skill_match: Optional[SkillMatch] = None
+        self._last_exit_code: Optional[int] = None  # 铁律四: 记录最后退出码
         
-        logger.info(f"Agent Engine initialized for session {session_id} (skills={enable_skills})")
+        logger.info(
+            f"Agent Engine initialized for session {session_id} "
+            f"(skills={enable_skills}, state_machine=enabled)"
+        )
     
     def _init_skill_system(self) -> None:
         """初始化 Skill 系统组件"""

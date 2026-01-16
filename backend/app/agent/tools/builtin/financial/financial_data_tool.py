@@ -155,9 +155,9 @@ class FinancialDataTool:
             elif data_type == "historical":
                 return await adapter.get_historical(
                     symbol,
-                    start_date=kwargs.get("start_date"),
-                    end_date=kwargs.get("end_date"),
-                    interval=kwargs.get("interval", "1d"),
+                    start_date=kwargs.pop("start_date", None),
+                    end_date=kwargs.pop("end_date", None),
+                    interval=kwargs.pop("interval", "1d"),
                     **kwargs
                 )
             elif data_type == "fundamental":

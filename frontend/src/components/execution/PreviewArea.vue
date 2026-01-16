@@ -11,6 +11,56 @@
       />
     </div>
 
+    <!-- 实时进展 Tab - 中间产出 -->
+    <div v-else-if="currentTab === 'live-progress'" class="live-progress-container">
+      <div class="live-progress-header">
+        <SparklesIcon class="w-5 h-5" />
+        <h3>实时进展</h3>
+      </div>
+      <div class="live-progress-list">
+        <div 
+          v-for="item in liveProgressItems" 
+          :key="item.id" 
+          class="progress-item"
+          :class="`progress-item--${item.type}`"
+        >
+          <div class="progress-item-icon">
+            <MagnifyingGlassIcon v-if="item.type === 'search'" class="w-4 h-4" />
+            <GlobeAltIcon v-else-if="item.type === 'page'" class="w-4 h-4" />
+            <DocumentTextIcon v-else class="w-4 h-4" />
+          </div>
+          <div class="progress-item-content">
+            <span class="progress-item-title">{{ item.title }}</span>
+            <span v-if="item.url" class="progress-item-url">{{ item.url }}</span>
+            <span v-else-if="item.subtitle" class="progress-item-subtitle">{{ item.subtitle }}</span>
+          </div>
+        </div>
+        <div v-if="liveProgressItems.length === 0" class="empty-state">
+          <SparklesIcon class="w-12 h-12" />
+          <p>执行进展将实时显示在这里</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Working Memory Tab -->
+    <div v-else-if="currentTab === 'working-memory'" class="working-memory-container">
+      <div v-if="isLoadingMemory" class="loading-state">
+        <div class="spinner" />
+        <p>加载 Working Memory...</p>
+      </div>
+      <WorkingMemory
+        v-else-if="workingMemoryData"
+        :task-plan="workingMemoryData.task_plan.content"
+        :findings="workingMemoryData.findings.content"
+        :progress="workingMemoryData.progress.content"
+      />
+      <div v-else class="empty-state">
+        <CircleStackIcon class="w-12 h-12" />
+        <p>暂无 Working Memory 数据</p>
+        <button class="refresh-btn" @click="loadWorkingMemory">刷新</button>
+      </div>
+    </div>
+
     <!-- Other tabs -->
     <div v-else class="preview-content">
       <div v-if="currentTab === 'report'" class="preview-placeholder">
@@ -54,14 +104,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import ResearchTimeline from './ResearchTimeline.vue'
+import WorkingMemory from './WorkingMemory.vue'
 import { timelineApi, type TimelineEntry } from '@/api/timeline'
+import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
+import { useExecutionStore } from '@/stores/execution'
 import {
   DocumentTextIcon,
   PresentationChartBarIcon,
   DocumentDuplicateIcon,
   XMarkIcon,
+  GlobeAltIcon,
+  MagnifyingGlassIcon,
+  CircleStackIcon,
+  SparklesIcon,
 } from '@heroicons/vue/24/outline'
 import type { TabType } from './ArtifactTabs.vue'
 
@@ -72,6 +129,76 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const executionStore = useExecutionStore()
+
+// Working Memory 状态
+const workingMemoryData = ref<WorkingMemoryResponse | null>(null)
+const isLoadingMemory = ref(false)
+
+// 实时进展数据 - 中间产出
+const liveProgressItems = computed(() => {
+  // 从执行日志中提取关键信息
+  const items: Array<{
+    id: string
+    type: 'search' | 'page' | 'finding'
+    title: string
+    subtitle?: string
+    url?: string
+    timestamp: number
+  }> = []
+  
+  executionStore.logs.forEach((log, index) => {
+    if (log.type === 'tool-call' && log.content.includes('web_search')) {
+      items.push({
+        id: `search-${index}`,
+        type: 'search',
+        title: '正在搜索...',
+        subtitle: log.content.slice(0, 100),
+        timestamp: log.timestamp
+      })
+    } else if (log.type === 'result' && log.content.includes('http')) {
+      const urlMatch = log.content.match(/https?:\/\/[^\s]+/)
+      if (urlMatch) {
+        items.push({
+          id: `page-${index}`,
+          type: 'page',
+          title: '已访问网页',
+          url: urlMatch[0],
+          timestamp: log.timestamp
+        })
+      }
+    }
+  })
+  
+  return items.slice(-10) // 只显示最近 10 条
+})
+
+// 加载 Working Memory
+async function loadWorkingMemory() {
+  if (isLoadingMemory.value) return
+  isLoadingMemory.value = true
+  try {
+    const data = await workingMemoryApi.get(props.sessionId)
+    workingMemoryData.value = data
+  } catch (error) {
+    console.error('Failed to load working memory:', error)
+  } finally {
+    isLoadingMemory.value = false
+  }
+}
+
+// 当切换到 Working Memory Tab 时加载数据
+watch(() => props.currentTab, (tab) => {
+  if (tab === 'working-memory' && !workingMemoryData.value) {
+    loadWorkingMemory()
+  }
+})
+
+onMounted(() => {
+  if (props.currentTab === 'working-memory') {
+    loadWorkingMemory()
+  }
+})
 
 // Screenshot lightbox state
 const showScreenshotLightbox = ref(false)
@@ -169,6 +296,131 @@ p {
 .diff-line.added {
   background: rgba(0, 255, 136, 0.2);
   color: #00FF88;
+}
+
+/* Live Progress 实时进展 */
+.live-progress-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.live-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--divider-color);
+  color: var(--color-node-active, #00D9FF);
+}
+
+.live-progress-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.live-progress-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.progress-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid transparent;
+}
+
+.progress-item--search {
+  border-left-color: #FFB800;
+}
+
+.progress-item--page {
+  border-left-color: #00D9FF;
+}
+
+.progress-item--finding {
+  border-left-color: #00FF88;
+}
+
+.progress-item-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.progress-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.progress-item-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.progress-item-url,
+.progress-item-subtitle {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Working Memory */
+.working-memory-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--color-node-active, #00D9FF);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.refresh-btn {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: rgba(0, 217, 255, 0.2);
+  border: 1px solid rgba(0, 217, 255, 0.5);
+  border-radius: 6px;
+  color: #00D9FF;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.refresh-btn:hover {
+  background: rgba(0, 217, 255, 0.3);
 }
 
 /* Screenshot Lightbox */
