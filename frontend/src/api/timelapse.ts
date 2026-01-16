@@ -4,7 +4,7 @@
  * 时光长廊 - 研究过程视觉记录
  */
 
-import { api } from './client'
+import api from './client'
 import type { TimeLapsePlayback, TimeLapseSession } from '@/components/execution/browser/types'
 
 export interface TimeLapseSessionSummary {
