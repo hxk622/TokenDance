@@ -7,8 +7,10 @@ import StreamingInfo from '@/components/execution/StreamingInfo.vue'
 import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.vue'
 import PreviewArea from '@/components/execution/PreviewArea.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
+import BrowserPip from '@/components/execution/BrowserPip.vue'
 import { useExecutionStore } from '@/stores/execution'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
+import { AdjustmentsHorizontalIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const sessionId = ref(route.params.id as string)
@@ -126,6 +128,11 @@ const currentTab = ref<TabType>('timeline')
 const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 
+// Browser PiP state
+const showBrowserPip = ref(true) // 默认显示
+const browserPipUrl = ref('https://www.google.com/search?q=AI+Agent+market')
+const browserPipScreenshot = ref('')
+
 // Collapse Mode state (mini-graph view)
 const isCollapsed = ref(false)
 const collapsedHeight = 80 // px for mini-graph
@@ -185,10 +192,10 @@ async function initializeExecution() {
   if (sessionId.value.startsWith('demo')) {
     // Initialize demo workflow
     executionStore.nodes = [
-      { id: '1', type: 'manus', status: 'pending', label: '搜索市场数据', x: 100, y: 100 },
-      { id: '2', type: 'manus', status: 'pending', label: '分析竞品', x: 300, y: 100 },
-      { id: '3', type: 'coworker', status: 'pending', label: '生成分析摘要', x: 500, y: 100 },
-      { id: '4', type: 'coworker', status: 'pending', label: '生成最终报告', x: 700, y: 100 },
+      { id: '1', type: 'manus', status: 'pending', label: '收集市场数据', x: 100, y: 100 },
+      { id: '2', type: 'manus', status: 'pending', label: '研究竞争对手', x: 300, y: 100 },
+      { id: '3', type: 'coworker', status: 'pending', label: '整理关键发现', x: 500, y: 100 },
+      { id: '4', type: 'coworker', status: 'pending', label: '撰写分析报告', x: 700, y: 100 },
     ]
     executionStore.edges = [
       { id: 'e1', from: '1', to: '2', type: 'context', active: false },
@@ -373,6 +380,15 @@ function toggleCollapse() {
     }
   }
 }
+
+// Browser PiP handlers
+function closeBrowserPip() {
+  showBrowserPip.value = false
+}
+
+function openBrowserUrl(url: string) {
+  window.open(url, '_blank')
+}
 </script>
 
 <template>
@@ -423,7 +439,7 @@ function toggleCollapse() {
     <!-- Focus Mode Banner -->
     <Transition name="slide-down">
       <div v-if="isFocusMode" class="focus-mode-banner">
-        <span class="focus-icon">🎯</span>
+        <AdjustmentsHorizontalIcon class="w-5 h-5 focus-icon" />
         <span class="focus-text">聚焦模式: 节点 {{ focusedNodeId }}</span>
         <button class="focus-exit-btn" @click="exitFocusMode">
           <span>退出聚焦</span>
@@ -541,6 +557,16 @@ function toggleCollapse() {
       :request="currentHITLRequest"
       @close="handleHITLClose"
       @confirmed="handleHITLConfirmed"
+    />
+    
+    <!-- 浏览器画中画 -->
+    <BrowserPip
+      :visible="showBrowserPip && isRunning"
+      :url="browserPipUrl"
+      :screenshot="browserPipScreenshot"
+      title="Manus 浏览器"
+      @close="closeBrowserPip"
+      @open-url="openBrowserUrl"
     />
   </div>
 </template>
