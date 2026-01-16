@@ -52,10 +52,26 @@ MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Genera
 > 详见 `backend/app/skills/builtin/deep_research/resources/financial_research_template.md`
 
 ## 核心架构原则
+
+### Agent Runtime 五条铁律 🆕
+
+> **来源**: OpenCode Agent 设计哲学
+> **详细设计**: [Agent-Runtime-Design.md](./docs/architecture/Agent-Runtime-Design.md)
+
+**TokenDance 不是"通用智能体"，它是 Agent Runtime** —— 一个让 LLM 从"思考者"变成"执行者"的运行时环境。
+
+1. **面向状态设计** - Agent = 状态机 + LLM决策器，不要用自然语言描述，要用状态转移图
+2. **架构决定上限** - 成功率上限由架构决定，模型只是填充者
+3. **Tool是世界接口** - 核心只有4个Tool（read_file, write_file, run_code, exit），不是"插件市场"
+4. **智能来自失败** - exit code 是最诚实的老师，让失败可被观测
+5. **策略层统一协调** - WorkState + ActionSpace + FailureSignal + ControlLoop
+
+### 原有架构原则（与五条铁律互补）
+
 - **Plan Recitation**: TODO列表追加到Context末尾，防止Lost-in-the-Middle
 - **Dual Context Streams**: 摘要入Context（Working Memory），全量存文件系统（File System）
-- **原子化拆分**: 把60%成功率的大任务切成100个99.9%成功率的小任务
-- **Keep the Failures**: 保留失败记录供学习，记录到Context Graph
+- **原子化拆分**: 把60%成功率的大任务切成100个99.9%成功率的小任务（呼应铁律二）
+- **Keep the Failures**: 保留失败记录供学习，记录到Context Graph（呼应铁律四）
 - **Skill三级加载**: L1元数据（始终加载），L2指令（触发时加载），L3资源（按需加载）
 
 ## 开发规则
@@ -313,6 +329,7 @@ docs/
 **产品与架构**:
 - `docs/product/VisionAndMission.md` - 产品愿景与使命（必读！）
 - `docs/product/PRD.md` - 产品需求文档
+- `docs/architecture/Agent-Runtime-Design.md` - **Agent Runtime 五条铁律（必读！）** 🆕
 - `docs/architecture/HLD.md` - 高层设计
 - `docs/architecture/LLD.md` - 低层设计 (API + DB Schema)
 

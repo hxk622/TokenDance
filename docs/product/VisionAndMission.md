@@ -1,8 +1,25 @@
 # TokenDance 产品愿景与使命
 
-**文档版本**: v2.0.0  
-**更新日期**: 2026-01-14  
-**核心理念**: Vibe-Agentic Workflow
+**文档版本**: v2.1.0  
+**更新日期**: 2026-01-16  
+**核心理念**: Vibe-Agentic Workflow + Agent Runtime 五条铁律
+
+---
+
+## 🛡️ Agent Runtime 五条铁律
+
+> **来源**: OpenCode Agent 设计哲学
+> **详细设计**: [Agent-Runtime-Design.md](../architecture/Agent-Runtime-Design.md)
+
+**TokenDance 不是"通用智能体"，它是 Agent Runtime** —— 一个让 LLM 从"思考者"变成"执行者"的运行时环境。
+
+| 铁律 | 核心要义 | TokenDance 落地 |
+|------|---------|---------------|
+| **1. 面向状态设计** | Agent = 状态机 + LLM决策器 | 显式 AgentState + StateTransition |
+| **2. 架构决定上限** | 模型是填充者，架构是天花板 | 原子化拆分 + 失败恢复机制 |
+| **3. Tool是世界接口** | 核心只有4个Tool | read_file, write_file, run_code, exit |
+| **4. 智能来自失败** | exit code 是最诚实的老师 | FailureSignal + Keep the Failures |
+| **5. 策略层统一** | WorkState + ActionSpace + ControlLoop | PolicyLayer 架构 |
 
 ---
 
