@@ -10,6 +10,7 @@ import logging
 from .base import BaseLLM
 from .openrouter import create_openrouter_llm
 from .anthropic import create_claude_llm
+from .vision_router import VisionRouter, VisionTaskType
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class TaskType(Enum):
     PPT_GENERATION = "ppt_generation"         # PPT 生成
     CODE_GENERATION = "code_generation"       # 代码生成
     QUICK_QA = "quick_qa"                     # 快速问答
-    MULTIMODAL = "multimodal"                 # 多模态（图像）
+    MULTIMODAL = "multimodal"                 # 多模态（图像，使用 VisionRouter 细化）
     GENERAL = "general"                       # 通用任务
 
 
@@ -125,13 +126,15 @@ class SimpleRouter:
     def select_model(
         self,
         task_type: TaskType | str,
+        vision_task_type: Optional[str] = None,
         **kwargs
     ) -> str:
         """选择最优模型
         
         Args:
             task_type: 任务类型
-            **kwargs: 其他参数（当前未使用，为未来扩展保留）
+            vision_task_type: 视觉子任务类型（当 task_type=MULTIMODAL 时使用）
+            **kwargs: 其他参数，传递给 VisionRouter
             
         Returns:
             str: 模型名称
@@ -144,6 +147,23 @@ class SimpleRouter:
                 logger.warning(f"Unknown task type: {task_type}, using GENERAL")
                 task_type = TaskType.GENERAL
         
+        # 如果是多模态任务，使用 VisionRouter
+        if task_type == TaskType.MULTIMODAL:
+            if vision_task_type:
+                model = VisionRouter.select_model(
+                    task_type=vision_task_type,
+                    **kwargs  # 传递 max_cost, min_quality 等
+                )
+                logger.info(
+                    f"Selected Vision model '{model}' for "
+                    f"vision_task_type '{vision_task_type}'"
+                )
+                return model
+            else:
+                # 默认通用视觉模型
+                return self.TASK_MODEL_MAP[TaskType.MULTIMODAL]
+        
+        # 文本任务，使用传统映射
         model = self.TASK_MODEL_MAP.get(task_type, self.TASK_MODEL_MAP[TaskType.GENERAL])
         logger.info(f"Selected model '{model}' for task type '{task_type.value}'")
         return model

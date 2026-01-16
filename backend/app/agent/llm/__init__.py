@@ -11,6 +11,7 @@ from .router import SimpleRouter, TaskType, get_llm_for_task
 from .advanced_router import AdvancedRouter, RoutingConstraints, get_llm_with_constraints
 from .adaptive_router import AdaptiveRouter
 from .unified_router import UnifiedRouter, FallbackConfig, get_router
+from .vision_router import VisionRouter, VisionTaskType, get_vision_model
 
 __all__ = [
     # 基础 LLM
@@ -28,11 +29,14 @@ __all__ = [
     "AdvancedRouter",
     "AdaptiveRouter",
     "UnifiedRouter",
+    "VisionRouter",
     "TaskType",
+    "VisionTaskType",
     "RoutingConstraints",
     "FallbackConfig",
     # 便捷函数
     "get_llm_for_task",
     "get_llm_with_constraints",
     "get_router",
+    "get_vision_model",
 ]
