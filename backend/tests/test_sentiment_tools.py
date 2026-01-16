@@ -217,7 +217,7 @@ class TestSentimentAnalyzer:
         result = analyzer._keyword_analysis(posts, "600519")
         
         assert isinstance(result, SentimentAnalysisResult)
-        assert result.total_posts == 2
+        assert result.analyzed_count == 2
         # Has both bullish and bearish content
         assert result.bullish_count >= 0
         assert result.bearish_count >= 0
@@ -237,7 +237,7 @@ class TestSentimentAnalyzer:
             )
         ]
         result = analyzer._keyword_analysis(posts_bullish, "600519")
-        assert result.sentiment_score > 0
+        assert result.overall_score > 0
         
         # Strong bearish
         posts_bearish = [
@@ -250,7 +250,7 @@ class TestSentimentAnalyzer:
             )
         ]
         result = analyzer._keyword_analysis(posts_bearish, "600519")
-        assert result.sentiment_score < 0
+        assert result.overall_score < 0
 
 
 class TestSentimentTool:
