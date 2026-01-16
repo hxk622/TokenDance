@@ -16,7 +16,8 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from enum import Enum
 
-from ..base import BaseTool, ToolResult, ToolRiskLevel
+from ..base import BaseTool, ToolResult
+from ..risk import RiskLevel
 
 
 class ExitReason(Enum):
@@ -75,7 +76,7 @@ class ExitTool(BaseTool):
         "- 3: 致命错误（不可恢复）\n\n"
         "调用 exit 后，Agent 将停止执行并返回控制权。"
     )
-    risk_level: ToolRiskLevel = ToolRiskLevel.NONE
+    risk_level: RiskLevel = RiskLevel.NONE
     
     # 退出上下文（执行后填充）
     last_exit_context: Optional[ExitContext] = None
@@ -148,7 +149,7 @@ class ExitTool(BaseTool):
         if exit_code not in [0, 1, 2, 3]:
             return ToolResult(
                 success=False,
-                output="",
+                data=None,
                 error=f"Invalid exit_code: {exit_code}. Must be 0, 1, 2, or 3.",
             )
         
@@ -202,12 +203,11 @@ class ExitTool(BaseTool):
         # 因为 exit 本身是一个有效的操作
         return ToolResult(
             success=True,
-            output=output,
-            error=None,
-            metadata={
+            data={
                 "exit_context": context.to_dict(),
                 "is_terminal": True,  # 标记这是终止操作
             },
+            summary=output,
         )
     
     def get_exit_context(self) -> Optional[ExitContext]:

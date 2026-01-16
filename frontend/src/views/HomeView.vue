@@ -8,6 +8,9 @@ const inputValue = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
+// 加载状态
+const isLoading = ref(false)
+
 // 三位一体架构 (The Trinity) - 非功能导向，而是能力导向
 const trinityCapabilities = [
   {
@@ -167,9 +170,28 @@ const handleFileSelect = (e: Event) => {
 }
 
 // Guest 试用
-const handleGuestTry = () => {
+const handleGuestTry = async () => {
+  isLoading.value = true
+  // 模拟加载延迟，实际可改为 API 调用
+  await new Promise(resolve => setTimeout(resolve, 300))
   router.push({ path: '/chat', query: { guest: 'true' } })
 }
+
+// Cmd+K 键盘快捷键
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault()
+    inputRef.value?.focus()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
+})
 </script>
 
 <template>
@@ -194,6 +216,13 @@ const handleGuestTry = () => {
         />
         <!-- 能量连线 -->
         <svg class="energy-lines" viewBox="0 0 400 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="energy-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3" />
+              <stop offset="50%" stop-color="#10b981" stop-opacity="0.6" />
+              <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.3" />
+            </linearGradient>
+          </defs>
           <path class="energy-line" d="M 50 50 Q 125 20 200 50 T 350 50" />
         </svg>
       </div>
@@ -220,11 +249,16 @@ const handleGuestTry = () => {
         <p class="hero-desc">和 Agent 一起完成任务，随时接管和调整</p>
         <!-- Guest CTA 强化 -->
         <div class="hero-cta">
-          <button class="cta-primary" @click="handleGuestTry">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button class="cta-primary" :disabled="isLoading" @click="handleGuestTry">
+            <!-- Loading Spinner -->
+            <svg v-if="isLoading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            免费试用
+            {{ isLoading ? '启动中...' : '免费试用' }}
           </button>
           <router-link to="/demo" class="cta-secondary">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -309,7 +343,7 @@ const handleGuestTry = () => {
               v-model="inputValue"
               type="text"
               class="main-input"
-              placeholder="描述你要完成的任务..."
+              placeholder="描述你要完成的任务... (Cmd+K)"
               @keydown="handleKeydown"
             />
             <button 
@@ -583,17 +617,24 @@ const handleGuestTry = () => {
 }
 
 .trinity-grid {
-  @apply grid grid-cols-3 gap-4;
+  @apply grid grid-cols-1 sm:grid-cols-3 gap-4;
 }
 
 .trinity-card {
   @apply flex flex-col items-center text-center p-4 rounded-xl
          bg-white/50 border border-gray-100
+         cursor-pointer
          transition-all duration-300;
 }
 
+.trinity-card:hover {
+  @apply bg-white border-gray-200 shadow-md;
+  transform: translateY(-2px);
+}
+
 .trinity-card-active {
-  @apply bg-white border-gray-200 shadow-sm;
+  @apply bg-white border-gray-200 shadow-lg;
+  transform: translateY(-4px);
 }
 
 .trinity-icon {

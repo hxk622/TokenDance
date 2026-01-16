@@ -289,6 +289,11 @@ class StateHistory:
     """
     records: List[StateRecord] = field(default_factory=list)
     
+    @property
+    def entries(self) -> List[StateRecord]:
+        """状态记录列表（别名，兼容测试）"""
+        return self.records
+    
     def add(
         self, 
         state: AgentState, 
@@ -361,6 +366,11 @@ class StateMachine:
     @property
     def state(self) -> AgentState:
         """当前状态"""
+        return self._state
+    
+    @property
+    def current_state(self) -> AgentState:
+        """当前状态（别名）"""
         return self._state
     
     @property

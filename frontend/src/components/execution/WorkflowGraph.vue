@@ -1,6 +1,33 @@
 <template>
   <div class="workflow-graph" ref="containerRef">
     <svg ref="svgRef" class="graph-svg"></svg>
+    
+    <!-- Node Tooltip -->
+    <NodeTooltip
+      :visible="tooltipState.visible"
+      :node-id="tooltipState.nodeId"
+      :node-type="tooltipState.nodeType"
+      :status="tooltipState.status"
+      :label="tooltipState.label"
+      :x="tooltipState.x"
+      :y="tooltipState.y"
+      :metadata="tooltipState.metadata"
+    />
+    
+    <!-- Node Context Menu -->
+    <NodeContextMenu
+      :visible="contextMenuState.visible"
+      :node="contextMenuState.node"
+      :x="contextMenuState.x"
+      :y="contextMenuState.y"
+      @close="closeContextMenu"
+      @rerun="handleNodeRerun"
+      @view-logs="handleViewLogs"
+      @copy-output="handleCopyOutput"
+      @skip="handleNodeSkip"
+      @pause="handleNodePause"
+      @resume="handleNodeResume"
+    />
   </div>
 </template>
 
@@ -8,6 +35,8 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import * as d3 from 'd3'
 import { useExecutionStore } from '@/stores/execution'
+import NodeTooltip from './workflow/NodeTooltip.vue'
+import NodeContextMenu from './workflow/NodeContextMenu.vue'
 
 interface Props {
   sessionId: string
@@ -16,6 +45,11 @@ interface Props {
 interface Emits {
   (e: 'node-click', nodeId: string): void
   (e: 'node-double-click', nodeId: string): void
+  (e: 'node-pause', nodeId: string): void
+  (e: 'node-resume', nodeId: string): void
+  (e: 'node-skip', nodeId: string): void
+  (e: 'node-rerun', nodeId: string): void
+  (e: 'view-logs', nodeId: string): void
 }
 
 defineProps<Props>()
@@ -26,6 +60,26 @@ const executionStore = useExecutionStore()
 
 const containerRef = ref<HTMLElement | null>(null)
 const svgRef = ref<SVGSVGElement | null>(null)
+
+// Tooltip state
+const tooltipState = ref({
+  visible: false,
+  nodeId: '',
+  nodeType: 'manus' as 'manus' | 'coworker',
+  status: 'inactive' as 'active' | 'success' | 'pending' | 'error' | 'inactive',
+  label: '',
+  x: 0,
+  y: 0,
+  metadata: undefined as { startTime?: number; duration?: number; output?: string } | undefined
+})
+
+// Context menu state
+const contextMenuState = ref({
+  visible: false,
+  node: null as { id: string; type: 'manus' | 'coworker'; status: string; label: string } | null,
+  x: 0,
+  y: 0
+})
 
 // Use nodes and edges from store
 const nodes = computed(() => executionStore.nodes.map(n => ({
@@ -160,6 +214,16 @@ function renderGraph() {
       event.stopPropagation()
       emit('node-double-click', d.id)
     })
+    .on('mouseenter', (event, d: any) => {
+      showTooltip(event, d)
+    })
+    .on('mouseleave', () => {
+      hideTooltip()
+    })
+    .on('contextmenu', (event, d: any) => {
+      event.preventDefault()
+      showContextMenu(event, d)
+    })
 
   // Node circles
   node.append('circle')
@@ -220,6 +284,72 @@ function updateNodeStyles() {
     .attr('stroke', (d: any) => getNodeColor(d.status))
     .attr('filter', (d: any) => d.status === 'active' ? 'url(#glow)' : 'none')
     .attr('class', (d: any) => `node-circle status-${d.status}`)
+}
+
+// Tooltip functions
+function showTooltip(event: MouseEvent, d: any) {
+  const storeNode = executionStore.nodes.find(n => n.id === d.id)
+  tooltipState.value = {
+    visible: true,
+    nodeId: d.id,
+    nodeType: d.type,
+    status: d.status,
+    label: d.label,
+    x: event.clientX,
+    y: event.clientY,
+    metadata: storeNode?.metadata
+  }
+}
+
+function hideTooltip() {
+  tooltipState.value.visible = false
+}
+
+// Context menu functions
+function showContextMenu(event: MouseEvent, d: any) {
+  contextMenuState.value = {
+    visible: true,
+    node: {
+      id: d.id,
+      type: d.type,
+      status: d.status,
+      label: d.label
+    },
+    x: event.clientX,
+    y: event.clientY
+  }
+}
+
+function closeContextMenu() {
+  contextMenuState.value.visible = false
+}
+
+// Node action handlers
+function handleNodePause(nodeId: string) {
+  emit('node-pause', nodeId)
+}
+
+function handleNodeResume(nodeId: string) {
+  emit('node-resume', nodeId)
+}
+
+function handleNodeSkip(nodeId: string) {
+  emit('node-skip', nodeId)
+}
+
+function handleNodeRerun(nodeId: string) {
+  emit('node-rerun', nodeId)
+}
+
+function handleViewLogs(nodeId: string) {
+  emit('view-logs', nodeId)
+}
+
+function handleCopyOutput(nodeId: string) {
+  const node = executionStore.nodes.find(n => n.id === nodeId)
+  if (node?.metadata?.output) {
+    navigator.clipboard.writeText(node.metadata.output)
+  }
 }
 </script>
 

@@ -85,6 +85,11 @@ class XueqiuCrawler(BaseSentimentCrawler):
         
         Xueqiu uses format: SH600519, SZ000001
         """
+        # Check if already has prefix
+        upper = symbol.upper()
+        if upper.startswith(('SH', 'SZ')):
+            return upper
+        
         symbol = self._normalize_symbol(symbol)
         
         # Determine exchange prefix

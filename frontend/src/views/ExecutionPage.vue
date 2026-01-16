@@ -10,7 +10,7 @@ import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import BrowserPip from '@/components/execution/BrowserPip.vue'
 import { useExecutionStore } from '@/stores/execution'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
-import { AdjustmentsHorizontalIcon } from '@heroicons/vue/24/outline'
+import { ViewfinderCircleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const sessionId = ref(route.params.id as string)
@@ -132,6 +132,20 @@ const focusedNodeId = ref<string | null>(null)
 const showBrowserPip = ref(true) // 默认显示
 const browserPipUrl = ref('https://www.google.com/search?q=AI+Agent+market')
 const browserPipScreenshot = ref('')
+
+// 完成庆祝状态
+const showCompletionCelebration = ref(false)
+
+// 监听任务完成
+watch(() => sessionStatus.value, (newStatus) => {
+  if (newStatus === 'completed') {
+    showCompletionCelebration.value = true
+    // 3 秒后自动关闭
+    setTimeout(() => {
+      showCompletionCelebration.value = false
+    }, 3000)
+  }
+})
 
 // Collapse Mode state (mini-graph view)
 const isCollapsed = ref(false)
@@ -389,6 +403,21 @@ function closeBrowserPip() {
 function openBrowserUrl(url: string) {
   window.open(url, '_blank')
 }
+
+// ESC 键盘快捷键退出聚焦模式
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isFocusMode.value) {
+    exitFocusMode()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
@@ -439,12 +468,23 @@ function openBrowserUrl(url: string) {
     <!-- Focus Mode Banner -->
     <Transition name="slide-down">
       <div v-if="isFocusMode" class="focus-mode-banner">
-        <AdjustmentsHorizontalIcon class="w-5 h-5 focus-icon" />
+        <ViewfinderCircleIcon class="w-5 h-5 focus-icon" />
         <span class="focus-text">聚焦模式: 节点 {{ focusedNodeId }}</span>
         <button class="focus-exit-btn" @click="exitFocusMode">
           <span>退出聚焦</span>
           <kbd>ESC</kbd>
         </button>
+      </div>
+    </Transition>
+    
+    <!-- 任务完成庆祝 -->
+    <Transition name="celebration-fade">
+      <div v-if="showCompletionCelebration" class="completion-celebration">
+        <div class="celebration-content">
+          <CheckCircleIcon class="w-16 h-16 text-green-400" />
+          <h2 class="celebration-title">任务完成！</h2>
+          <p class="celebration-desc">报告已生成，可在右侧查看</p>
+        </div>
       </div>
     </Transition>
 
@@ -855,6 +895,71 @@ function openBrowserUrl(url: string) {
   transform: translateY(-100%);
 }
 
+/* 完成庆祝动画 */
+.completion-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.celebration-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px;
+  background: rgba(28, 28, 30, 0.95);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 24px;
+  box-shadow: 0 0 60px rgba(0, 255, 136, 0.2);
+  animation: celebration-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes celebration-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.celebration-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #00FF88;
+  margin: 0;
+}
+
+.celebration-desc {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Celebration Fade Transition */
+.celebration-fade-enter-active,
+.celebration-fade-leave-active {
+  transition: all 300ms ease-out;
+}
+
+.celebration-fade-enter-from,
+.celebration-fade-leave-to {
+  opacity: 0;
+}
+
+.celebration-fade-enter-from .celebration-content,
+.celebration-fade-leave-to .celebration-content {
+  transform: scale(0.9);
+}
+
 .streaming-info-container {
   overflow: hidden;
 }
@@ -970,8 +1075,16 @@ function openBrowserUrl(url: string) {
     gap: 8px;
   }
   
+  .plan-progress {
+    display: none; /* 小屏幕隐藏进度条 */
+  }
+  
   .header-actions {
     justify-content: flex-end;
+  }
+  
+  .btn-intervention span:not(.sr-only) {
+    display: none; /* 小屏幕只显示图标 */
   }
   
   .focus-mode-banner {

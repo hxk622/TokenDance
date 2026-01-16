@@ -74,6 +74,11 @@ class GubaCrawler(BaseSentimentCrawler):
         
         Guba uses plain 6-digit codes.
         """
+        # Remove SH/SZ prefix if present
+        upper = symbol.upper()
+        if upper.startswith(('SH', 'SZ')):
+            symbol = upper[2:]
+        
         symbol = self._normalize_symbol(symbol)
         return symbol
     
