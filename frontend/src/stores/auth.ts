@@ -3,7 +3,15 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authApi, type User, type LoginRequest, type RegisterRequest, type TokenResponse } from '@/api/auth'
+import { 
+  authApi, 
+  type User, 
+  type LoginRequest, 
+  type RegisterRequest, 
+  type TokenResponse,
+  type WeChatAuthRequest,
+  type GmailAuthRequest
+} from '@/api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -17,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value && !!accessToken.value)
   const userEmail = computed(() => user.value?.email || '')
   const userName = computed(() => user.value?.username || '')
+  const displayName = computed(() => user.value?.display_name || user.value?.username || '')
 
   /**
    * Login with email and password
@@ -68,6 +77,64 @@ export const useAuthStore = defineStore('auth', () => {
       return response
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Registration failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Login with WeChat OAuth
+   */
+  async function loginWithWeChat(code: string, state?: string) {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const request: WeChatAuthRequest = { code, state }
+      const response = await authApi.loginWithWeChat(request)
+      
+      // Update state
+      user.value = response.user
+      accessToken.value = response.tokens.access_token
+      refreshToken.value = response.tokens.refresh_token
+      
+      // Persist tokens
+      localStorage.setItem('access_token', response.tokens.access_token)
+      localStorage.setItem('refresh_token', response.tokens.refresh_token)
+      
+      return response
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'WeChat login failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Login with Gmail OAuth
+   */
+  async function loginWithGmail(code: string, state?: string) {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const request: GmailAuthRequest = { code, state }
+      const response = await authApi.loginWithGmail(request)
+      
+      // Update state
+      user.value = response.user
+      accessToken.value = response.tokens.access_token
+      refreshToken.value = response.tokens.refresh_token
+      
+      // Persist tokens
+      localStorage.setItem('access_token', response.tokens.access_token)
+      localStorage.setItem('refresh_token', response.tokens.refresh_token)
+      
+      return response
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Gmail login failed'
       throw err
     } finally {
       isLoading.value = false
@@ -166,10 +233,13 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userEmail,
     userName,
+    displayName,
     
     // Actions
     login,
     register,
+    loginWithWeChat,
+    loginWithGmail,
     refreshAccessToken,
     fetchCurrentUser,
     logout,

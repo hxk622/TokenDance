@@ -28,6 +28,9 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="johndoe"
           />
+          <p class="mt-1 text-xs text-gray-500">
+            4-20 characters, letters, numbers, and underscores only
+          </p>
         </div>
 
         <!-- Email Field -->
@@ -60,9 +63,24 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="••••••••"
           />
-          <p class="mt-1 text-xs text-gray-500">
-            Minimum 8 characters
-          </p>
+          <!-- Password Requirements -->
+          <div class="mt-2 space-y-1">
+            <p class="text-xs" :class="passwordRequirements.length ? 'text-green-600' : 'text-gray-500'">
+              {{ passwordRequirements.length ? '✓' : '○' }} At least 8 characters
+            </p>
+            <p class="text-xs" :class="passwordRequirements.uppercase ? 'text-green-600' : 'text-gray-500'">
+              {{ passwordRequirements.uppercase ? '✓' : '○' }} At least 1 uppercase letter
+            </p>
+            <p class="text-xs" :class="passwordRequirements.lowercase ? 'text-green-600' : 'text-gray-500'">
+              {{ passwordRequirements.lowercase ? '✓' : '○' }} At least 1 lowercase letter
+            </p>
+            <p class="text-xs" :class="passwordRequirements.number ? 'text-green-600' : 'text-gray-500'">
+              {{ passwordRequirements.number ? '✓' : '○' }} At least 1 number
+            </p>
+            <p class="text-xs" :class="passwordRequirements.special ? 'text-green-600' : 'text-gray-500'">
+              {{ passwordRequirements.special ? '✓' : '○' }} At least 1 special character (!@#$%^&*(),.?":{}|<>)
+            </p>
+          </div>
         </div>
 
         <!-- Confirm Password Field -->
@@ -105,7 +123,7 @@
         <!-- Submit Button -->
         <button
           type="submit"
-          :disabled="isLoading || passwordMismatch || !form.agreeToTerms"
+          :disabled="isLoading || passwordMismatch || !form.agreeToTerms || !isPasswordValid"
           class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <span v-if="isLoading">Creating account...</span>
@@ -144,6 +162,21 @@ const form = ref<RegisterRequest & { confirmPassword: string; agreeToTerms: bool
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
+const passwordRequirements = computed(() => {
+  const password = form.value.password
+  return {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  }
+})
+
+const isPasswordValid = computed(() => {
+  return Object.values(passwordRequirements.value).every(req => req)
+})
+
 const passwordMismatch = computed(() => {
   return form.value.password && form.value.confirmPassword && 
          form.value.password !== form.value.confirmPassword
@@ -152,6 +185,11 @@ const passwordMismatch = computed(() => {
 async function handleRegister() {
   if (passwordMismatch.value) {
     error.value = 'Passwords do not match'
+    return
+  }
+
+  if (!isPasswordValid.value) {
+    error.value = 'Password does not meet requirements'
     return
   }
 
@@ -164,7 +202,6 @@ async function handleRegister() {
       email: form.value.email,
       password: form.value.password
     })
-    // Redirect to home page
     router.push('/')
   } catch (err: any) {
     error.value = err.response?.data?.detail || 'Registration failed. Please try again.'

@@ -1,8 +1,9 @@
-"""Authentication API endpoints."""
+"""Authentication API endpoints with multiple auth providers."""
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.dependencies import get_auth_service, get_current_user
 from app.core.logging import get_logger
+from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import (
     LoginResponse,
@@ -13,7 +14,11 @@ from app.schemas.user import (
     UserLogin,
     UserResponse,
 )
-from app.services.auth_service import AuthService
+from app.services.auth_service import (
+    AuthService,
+    WeChatAuthRequest,
+    GmailAuthRequest,
+)
 
 logger = get_logger(__name__)
 
@@ -25,7 +30,7 @@ async def register(
     user_data: UserCreate,
     auth_service: AuthService = Depends(get_auth_service),
 ):
-    """Register a new user.
+    """Register a new user with email and password.
     
     Args:
         user_data: User registration data
@@ -35,7 +40,7 @@ async def register(
         User and token pair
         
     Raises:
-        HTTPException: If email or username already exists
+        HTTPException: If email or username already exists or validation fails
     """
     try:
         user, tokens = await auth_service.register(
@@ -80,6 +85,112 @@ async def login(
         user, tokens = await auth_service.login(
             email=credentials.email,
             password=credentials.password,
+        )
+        
+        return LoginResponse(
+            user=UserResponse.model_validate(user),
+            tokens=TokenResponse(
+                access_token=tokens.access_token,
+                refresh_token=tokens.refresh_token,
+                token_type=tokens.token_type,
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+
+
+@router.get("/wechat/authorize")
+async def wechat_authorize():
+    """Get WeChat OAuth authorization URL.
+    
+    Returns:
+        Authorization URL for WeChat login
+    """
+    from app.services.wechat_oauth_service import WeChatOAuthService
+    
+    wechat_service = WeChatOAuthService()
+    auth_url = wechat_service.get_authorization_url(
+        redirect_uri=settings.WECHAT_REDIRECT_URI
+    )
+    
+    return {"authorization_url": auth_url}
+
+
+@router.post("/wechat/callback", response_model=LoginResponse)
+async def wechat_callback(
+    request: WeChatAuthRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Handle WeChat OAuth callback.
+    
+    Args:
+        request: WeChat OAuth request with authorization code
+        auth_service: Authentication service
+        
+    Returns:
+        User and token pair
+        
+    Raises:
+        HTTPException: If WeChat OAuth fails
+    """
+    try:
+        user, tokens = await auth_service.login_with_wechat(
+            code=request.code
+        )
+        
+        return LoginResponse(
+            user=UserResponse.model_validate(user),
+            tokens=TokenResponse(
+                access_token=tokens.access_token,
+                refresh_token=tokens.refresh_token,
+                token_type=tokens.token_type,
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+
+
+@router.get("/gmail/authorize")
+async def gmail_authorize():
+    """Get Gmail OAuth authorization URL.
+    
+    Returns:
+        Authorization URL for Gmail login
+    """
+    from app.services.gmail_oauth_service import GmailOAuthService
+    
+    gmail_service = GmailOAuthService()
+    auth_url = gmail_service.get_authorization_url()
+    
+    return {"authorization_url": auth_url}
+
+
+@router.post("/gmail/callback", response_model=LoginResponse)
+async def gmail_callback(
+    request: GmailAuthRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Handle Gmail OAuth callback.
+    
+    Args:
+        request: Gmail OAuth request with authorization code
+        auth_service: Authentication service
+        
+    Returns:
+        User and token pair
+        
+    Raises:
+        HTTPException: If Gmail OAuth fails
+    """
+    try:
+        user, tokens = await auth_service.login_with_gmail(
+            code=request.code
         )
         
         return LoginResponse(

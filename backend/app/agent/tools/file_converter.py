@@ -158,15 +158,14 @@ class FileConverterTool(BaseTool):
                 if client:
                     self._converter = MarkItDown(
                         llm_client=client,
-                        llm_model=self.vision_model,
-                        enable_plugins=False
+                        llm_model=self.vision_model
                     )
                     logger.info(
                         f"MarkItDown initialized with Vision model: {self.vision_model}"
                     )
                 else:
                     # 无 Vision 能力的基础版本
-                    self._converter = MarkItDown(enable_plugins=False)
+                    self._converter = MarkItDown()
                     logger.info("MarkItDown initialized (without Vision)")
                     
             except ImportError as e:

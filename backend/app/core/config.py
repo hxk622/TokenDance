@@ -101,6 +101,17 @@ class Settings(BaseSettings):
     DEFAULT_LLM_MODEL: str = "claude-3-5-sonnet-20241022"
     MAX_CONTEXT_TOKENS: int = 128000
 
+    # WeChat OAuth
+    WECHAT_APP_ID: str | None = None
+    WECHAT_APP_SECRET: str | None = None
+    WECHAT_REDIRECT_URI: str = "http://localhost:5173/auth/wechat/callback"
+
+    # Gmail OAuth
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+    GMAIL_REDIRECT_URI: str = "http://localhost:5173/auth/gmail/callback"
+    GMAIL_SCOPES: str = "openid,profile,email"
+
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 

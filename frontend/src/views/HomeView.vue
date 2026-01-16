@@ -270,9 +270,9 @@ onUnmounted(() => {
       <aside v-if="showSessionList && authStore.isAuthenticated" class="session-sidebar">
         <SessionListPanel />
       </aside>
-      
+
       <!-- Hero: 差异化 Slogan + Guest CTA -->
-      <section class="hero">
+      <section class="hero stagger-item" style="--stagger-delay: 0">
         <p class="hero-tagline">For the rest of the world</p>
         <h2 class="hero-title">让硬核 Agent 服务全世界</h2>
         <p class="hero-desc">和 Agent 一起完成任务，随时接管和调整</p>
@@ -298,15 +298,16 @@ onUnmounted(() => {
           </router-link>
         </div>
       </section>
-      
+
       <!-- 三位一体可视化 (The Trinity) -->
-      <section class="trinity-section">
+      <section class="trinity-section stagger-item" style="--stagger-delay: 1">
         <div class="trinity-grid">
-          <div 
-            v-for="(cap, index) in trinityCapabilities" 
+          <div
+            v-for="(cap, index) in trinityCapabilities"
             :key="cap.id"
             class="trinity-card"
             :class="{ 'trinity-card-active': activeOrbIndex === index }"
+            :style="{ '--card-delay': index }"
           >
             <div class="trinity-icon" :class="`trinity-icon--${cap.id}`">
               <!-- Manus: CPU -->
@@ -331,9 +332,9 @@ onUnmounted(() => {
           </div>
         </div>
       </section>
-      
+
       <!-- P0: Deep Research 入口强化 -->
-      <section class="featured-section">
+      <section class="featured-section stagger-item" style="--stagger-delay: 2">
         <button class="featured-card" @click="handleWorkflowSelect(workflows[0])">
           <div class="featured-badge">MVP 核心能力</div>
           <div class="featured-icon">
@@ -353,9 +354,9 @@ onUnmounted(() => {
           </div>
         </button>
       </section>
-      
+
       <!-- Enhanced Input -->
-      <section class="input-section">
+      <section class="input-section stagger-item" style="--stagger-delay: 3">
         <div class="input-container">
           <div class="input-wrapper">
             <!-- 附件按钮 -->
@@ -408,9 +409,9 @@ onUnmounted(() => {
           </div>
         </div>
       </section>
-      
+
       <!-- 场景引导 -->
-      <section class="suggestions-section">
+      <section class="suggestions-section stagger-item" style="--stagger-delay: 4">
         <h3 class="section-title">试试这些</h3>
         <div class="suggestions-list">
           <button
@@ -623,6 +624,7 @@ onUnmounted(() => {
 
 .trinity-name {
   @apply text-sm font-semibold text-white;
+  font-family: 'Satoshi', sans-serif;
 }
 
 .trinity-role {
@@ -668,6 +670,7 @@ onUnmounted(() => {
 
 .featured-title {
   @apply text-lg font-semibold text-white mb-1;
+  font-family: 'Satoshi', sans-serif;
 }
 
 .featured-desc {
@@ -768,6 +771,7 @@ onUnmounted(() => {
 /* Section Title */
 .section-title {
   @apply text-xs font-medium text-gray-500 uppercase tracking-wider mb-4;
+  font-family: 'Satoshi', sans-serif;
 }
 
 /* Suggestions Section - Dark Theme Default */
@@ -825,6 +829,7 @@ onUnmounted(() => {
 
 .workflow-title {
   @apply block text-base font-medium text-white;
+  font-family: 'Satoshi', sans-serif;
 }
 
 .workflow-subtitle {
@@ -882,6 +887,203 @@ onUnmounted(() => {
 
 .home-footer p {
   @apply text-sm text-gray-500;
+}
+
+/* ============================================
+   Staggered Reveal Animation System
+   ============================================ */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: stagger-reveal 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: calc(var(--stagger-delay, 0) * 0.1s);
+}
+
+@keyframes stagger-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Trinity cards have their own stagger within the section */
+.trinity-card {
+  opacity: 0;
+  transform: translateY(15px);
+  animation: card-reveal 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: calc(0.3s + var(--card-delay, 0) * 0.1s);
+}
+
+@keyframes card-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Hover Surprise Effects
+   ============================================ */
+
+/* CTA Primary - Glow pulse on hover */
+.cta-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cta-primary:hover::before {
+  opacity: 1;
+}
+
+.cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+/* CTA Secondary - Border glow */
+.cta-secondary {
+  position: relative;
+}
+
+.cta-secondary::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  filter: blur(8px);
+}
+
+.cta-secondary:hover::after {
+  opacity: 0.5;
+}
+
+.cta-secondary:hover {
+  transform: translateY(-2px);
+}
+
+/* Trinity Card - Lift and glow */
+.trinity-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.trinity-card:hover .trinity-icon {
+  transform: scale(1.1);
+}
+
+.trinity-card:hover .trinity-icon--manus {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.trinity-card:hover .trinity-icon--coworker {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+.trinity-card:hover .trinity-icon--vibe {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+}
+
+/* Featured Card - Shimmer effect */
+.featured-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.featured-card:hover::before {
+  left: 100%;
+}
+
+.featured-card:hover {
+  transform: translateY(-4px);
+}
+
+.featured-card:hover .featured-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.featured-card:hover .featured-action {
+  transform: translateX(4px);
+}
+
+/* Suggestion Items - Slide and highlight */
+.suggestion-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.suggestion-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.suggestion-item:hover::before {
+  transform: scaleY(1);
+}
+
+.suggestion-item:hover {
+  transform: translateX(8px);
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Workflow Card - Icon bounce */
+.workflow-card:hover .workflow-icon {
+  animation: icon-bounce 0.4s ease;
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.workflow-card:hover {
+  transform: translateX(4px);
+}
+
+/* Quick Action Button - Pop effect */
+.quick-action-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.quick-action-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* Session Sidebar - Dark Theme Default */

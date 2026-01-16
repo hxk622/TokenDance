@@ -14,7 +14,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Schema for user registration."""
-    password: str = Field(min_length=8, max_length=72)
+    password: str
 
 
 class UserLogin(BaseModel):
@@ -28,10 +28,15 @@ class UserResponse(BaseModel):
     id: UUID
     email: str
     username: str
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    auth_provider: str = "email_password"
     is_active: bool
     is_verified: bool
+    email_verified: bool = False
     created_at: datetime
     updated_at: datetime
+    last_login_at: Optional[datetime] = None
     personal_quota: Optional[Dict[str, Any]] = None
     usage_stats: Optional[Dict[str, Any]] = None
 

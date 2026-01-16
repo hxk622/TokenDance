@@ -1,11 +1,12 @@
 """User repository - data access for User model."""
 from typing import Optional
 from uuid import UUID
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
+from app.models.user import User, AuthProvider
 
 
 class UserRepository:
@@ -18,14 +19,20 @@ class UserRepository:
         self,
         email: str,
         username: str,
-        password_hash: str,
+        password_hash: Optional[str] = None,
+        auth_provider: str = AuthProvider.EMAIL_PASSWORD.value,
+        display_name: Optional[str] = None,
+        avatar_url: Optional[str] = None,
     ) -> User:
         """Create a new user.
         
         Args:
             email: User email (unique)
             username: Username (unique)
-            password_hash: Hashed password
+            password_hash: Hashed password (optional for OAuth users)
+            auth_provider: Authentication provider
+            display_name: Display name
+            avatar_url: Avatar URL
             
         Returns:
             Created User instance
@@ -34,6 +41,9 @@ class UserRepository:
             email=email,
             username=username,
             password_hash=password_hash,
+            auth_provider=auth_provider,
+            display_name=display_name,
+            avatar_url=avatar_url,
         )
         self.session.add(user)
         await self.session.commit()
@@ -82,6 +92,34 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_wechat_openid(self, openid: str) -> Optional[User]:
+        """Get user by WeChat OpenID.
+        
+        Args:
+            openid: WeChat OpenID
+            
+        Returns:
+            User instance or None if not found
+        """
+        result = await self.session.execute(
+            select(User).where(User.wechat_openid == openid)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_gmail_sub(self, sub: str) -> Optional[User]:
+        """Get user by Gmail subject (sub).
+        
+        Args:
+            sub: Gmail subject identifier
+            
+        Returns:
+            User instance or None if not found
+        """
+        result = await self.session.execute(
+            select(User).where(User.gmail_sub == sub)
+        )
+        return result.scalar_one_or_none()
+
     async def update(self, user: User) -> User:
         """Update user.
         
@@ -94,6 +132,90 @@ class UserRepository:
         await self.session.commit()
         await self.session.refresh(user)
         return user
+
+    async def update_wechat_info(
+        self,
+        user_id: UUID,
+        openid: str,
+        unionid: Optional[str] = None,
+        nickname: Optional[str] = None,
+        headimgurl: Optional[str] = None,
+    ) -> Optional[User]:
+        """Update user's WeChat OAuth information.
+        
+        Args:
+            user_id: User UUID
+            openid: WeChat OpenID
+            unionid: WeChat UnionID (optional)
+            nickname: WeChat nickname (optional)
+            headimgurl: WeChat avatar URL (optional)
+            
+        Returns:
+            Updated User instance or None if not found
+        """
+        result = await self.session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(
+                wechat_openid=openid,
+                wechat_unionid=unionid,
+                wechat_nickname=nickname,
+                wechat_headimgurl=headimgurl,
+                auth_provider=AuthProvider.WECHAT.value,
+            )
+        )
+        await self.session.commit()
+        
+        if result.rowcount > 0:
+            return await self.get_by_id(user_id)
+        return None
+
+    async def update_gmail_info(
+        self,
+        user_id: UUID,
+        sub: str,
+        email: str,
+        name: Optional[str] = None,
+        picture: Optional[str] = None,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> Optional[User]:
+        """Update user's Gmail OAuth information.
+        
+        Args:
+            user_id: User UUID
+            sub: Gmail subject identifier
+            email: Gmail email
+            name: Gmail name (optional)
+            picture: Gmail picture URL (optional)
+            access_token: Gmail access token (optional)
+            refresh_token: Gmail refresh token (optional)
+            expires_at: Token expiration time (optional)
+            
+        Returns:
+            Updated User instance or None if not found
+        """
+        result = await self.session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(
+                gmail_sub=sub,
+                gmail_email=email,
+                gmail_name=name,
+                gmail_picture=picture,
+                gmail_access_token=access_token,
+                gmail_refresh_token=refresh_token,
+                gmail_token_expires_at=expires_at,
+                auth_provider=AuthProvider.GMAIL.value,
+                email_verified=True,
+            )
+        )
+        await self.session.commit()
+        
+        if result.rowcount > 0:
+            return await self.get_by_id(user_id)
+        return None
 
     async def increment_workspace_count(self, user_id: UUID) -> None:
         """Increment user's workspace count.
@@ -122,7 +244,7 @@ class UserRepository:
         result = await self.session.execute(
             update(User)
             .where(User.id == user_id)
-            .values(is_verified=True)
+            .values(is_verified=True, email_verified=True)
         )
         await self.session.commit()
         return result.rowcount > 0

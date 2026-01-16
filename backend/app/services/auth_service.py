@@ -1,15 +1,18 @@
-"""Authentication service - JWT and password management."""
+"""Authentication service - JWT and password management with multiple auth providers."""
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
+import re
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.models.user import User
+from app.models.user import User, AuthProvider
 from app.repositories.user_repository import UserRepository
+from app.services.wechat_oauth_service import WeChatOAuthService
+from app.services.gmail_oauth_service import GmailOAuthService
 
 logger = get_logger(__name__)
 
@@ -36,6 +39,28 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     username: str
     password: str
+    
+    @validator('username')
+    def validate_username(cls, v):
+        """Validate username format."""
+        if not re.match(r'^[a-zA-Z0-9_]{4,20}$', v):
+            raise ValueError('Username must be 4-20 characters, letters, numbers, and underscores only')
+        return v
+    
+    @validator('password')
+    def validate_password(cls, v):
+        """Validate password strength."""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Password must contain at least one special character')
+        return v
 
 
 class LoginRequest(BaseModel):
@@ -44,11 +69,25 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class WeChatAuthRequest(BaseModel):
+    """WeChat OAuth request."""
+    code: str
+    state: Optional[str] = None
+
+
+class GmailAuthRequest(BaseModel):
+    """Gmail OAuth request."""
+    code: str
+    state: Optional[str] = None
+
+
 class AuthService:
-    """Authentication service for user registration and login."""
+    """Authentication service for user registration and login with multiple providers."""
 
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
+        self.wechat_service = WeChatOAuthService()
+        self.gmail_service = GmailOAuthService()
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -159,8 +198,8 @@ class AuthService:
         email: str,
         username: str,
         password: str,
-    ) -> tuple[User, TokenPair]:
-        """Register a new user.
+    ) -> Tuple[User, TokenPair]:
+        """Register a new user with email and password.
         
         Args:
             email: User email
@@ -191,6 +230,7 @@ class AuthService:
             email=email,
             username=username,
             password_hash=password_hash,
+            auth_provider=AuthProvider.EMAIL_PASSWORD.value,
         )
         
         # Generate tokens
@@ -204,7 +244,7 @@ class AuthService:
             refresh_token=refresh_token,
         )
 
-    async def login(self, email: str, password: str) -> tuple[User, TokenPair]:
+    async def login(self, email: str, password: str) -> Tuple[User, TokenPair]:
         """Login user with email and password.
         
         Args:
@@ -238,6 +278,176 @@ class AuthService:
         refresh_token = self.create_refresh_token(str(user.id), user.email)
         
         logger.info("user_logged_in", user_id=str(user.id), email=user.email)
+        
+        return user, TokenPair(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
+    async def login_with_wechat(self, code: str) -> Tuple[User, TokenPair]:
+        """Login or register user with WeChat OAuth.
+        
+        Args:
+            code: WeChat authorization code
+            
+        Returns:
+            Tuple of (User, TokenPair)
+            
+        Raises:
+            ValueError: If WeChat OAuth fails
+        """
+        # Get access token from WeChat
+        token_data = await self.wechat_service.get_access_token(code)
+        if not token_data:
+            raise ValueError("Failed to get WeChat access token")
+        
+        access_token = token_data.get("access_token")
+        openid = token_data.get("openid")
+        
+        # Get user info from WeChat
+        user_info = await self.wechat_service.get_user_info(access_token, openid)
+        if not user_info:
+            raise ValueError("Failed to get WeChat user info")
+        
+        # Check if user already exists by WeChat OpenID
+        user = await self.user_repo.get_by_wechat_openid(openid)
+        
+        if user:
+            # User exists, update info if needed
+            if user_info.get("nickname") != user.wechat_nickname:
+                user = await self.user_repo.update_wechat_info(
+                    user_id=user.id,
+                    openid=openid,
+                    unionid=token_data.get("unionid"),
+                    nickname=user_info.get("nickname"),
+                    headimgurl=user_info.get("headimgurl"),
+                )
+        else:
+            # Create new user
+            username = self.wechat_service.generate_username(user_info.get("nickname"))
+            email = self.wechat_service.generate_email(openid)
+            
+            # Check if username already exists
+            existing_username = await self.user_repo.get_by_username(username)
+            if existing_username:
+                username = f"{username}_{openid[:4]}"
+            
+            user = await self.user_repo.create(
+                email=email,
+                username=username,
+                auth_provider=AuthProvider.WECHAT.value,
+                display_name=user_info.get("nickname"),
+                avatar_url=user_info.get("headimgurl"),
+            )
+            
+            # Update WeChat info
+            user = await self.user_repo.update_wechat_info(
+                user_id=user.id,
+                openid=openid,
+                unionid=token_data.get("unionid"),
+                nickname=user_info.get("nickname"),
+                headimgurl=user_info.get("headimgurl"),
+            )
+        
+        # Generate tokens
+        access_token = self.create_access_token(str(user.id), user.email)
+        refresh_token = self.create_refresh_token(str(user.id), user.email)
+        
+        logger.info("user_logged_in_wechat", user_id=str(user.id), openid=openid)
+        
+        return user, TokenPair(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
+    async def login_with_gmail(self, code: str) -> Tuple[User, TokenPair]:
+        """Login or register user with Gmail OAuth.
+        
+        Args:
+            code: Gmail authorization code
+            
+        Returns:
+            Tuple of (User, TokenPair)
+            
+        Raises:
+            ValueError: If Gmail OAuth fails
+        """
+        # Get access token from Google
+        token_data = await self.gmail_service.get_access_token(code)
+        if not token_data:
+            raise ValueError("Failed to get Gmail access token")
+        
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        
+        # Get user info from Google
+        user_info = await self.gmail_service.get_user_info(access_token)
+        if not user_info:
+            raise ValueError("Failed to get Gmail user info")
+        
+        sub = user_info.get("sub")
+        gmail_email = user_info.get("email")
+        
+        # Check if user already exists by Gmail sub
+        user = await self.user_repo.get_by_gmail_sub(sub)
+        
+        if user:
+            # User exists, update info if needed
+            expires_at = None
+            if token_data.get("expires_in"):
+                expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+            
+            user = await self.user_repo.update_gmail_info(
+                user_id=user.id,
+                sub=sub,
+                email=gmail_email,
+                name=user_info.get("name"),
+                picture=user_info.get("picture"),
+                access_token=access_token,
+                refresh_token=refresh_token,
+                expires_at=expires_at,
+            )
+        else:
+            # Create new user
+            username = self.gmail_service.generate_username(
+                user_info.get("name"),
+                gmail_email
+            )
+            
+            # Check if username already exists
+            existing_username = await self.user_repo.get_by_username(username)
+            if existing_username:
+                username = f"{username}_{sub[:4]}"
+            
+            expires_at = None
+            if token_data.get("expires_in"):
+                expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+            
+            user = await self.user_repo.create(
+                email=gmail_email,
+                username=username,
+                auth_provider=AuthProvider.GMAIL.value,
+                display_name=user_info.get("name"),
+                avatar_url=user_info.get("picture"),
+            )
+            
+            # Update Gmail info
+            user = await self.user_repo.update_gmail_info(
+                user_id=user.id,
+                sub=sub,
+                email=gmail_email,
+                name=user_info.get("name"),
+                picture=user_info.get("picture"),
+                access_token=access_token,
+                refresh_token=refresh_token,
+                expires_at=expires_at,
+            )
+        
+        # Generate tokens
+        access_token = self.create_access_token(str(user.id), user.email)
+        refresh_token = self.create_refresh_token(str(user.id), user.email)
+        
+        logger.info("user_logged_in_gmail", user_id=str(user.id), sub=sub)
         
         return user, TokenPair(
             access_token=access_token,

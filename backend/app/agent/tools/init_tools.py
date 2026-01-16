@@ -96,6 +96,16 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register exit tool: {e}")
     
+    # FileConverterTool - Document to Markdown conversion (MarkItDown)
+    try:
+        from app.agent.tools.file_converter import FileConverterTool
+        file_converter = FileConverterTool()
+        registry.register(file_converter)
+        tools.append(file_converter)
+        logger.info(f"Registered tool: {file_converter.name}")
+    except Exception as e:
+        logger.error(f"Failed to register file_converter tool: {e}")
+    
     logger.info(f"Total registered tools: {len(tools)}")
     return tools
 
@@ -104,7 +114,7 @@ def get_tool_categories() -> dict:
     """Get tool categories for UI organization"""
     return {
         "Web & Research": ["web_search", "read_url"],
-        "File Operations": ["file_ops", "create_document"],
+        "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
         "Content Generation": ["image_generation", "ppt_generator", "report_generator"]
     }
@@ -118,6 +128,7 @@ def get_tool_descriptions() -> dict:
         "shell": "Execute shell commands",
         "file_ops": "Perform file operations (read, write, list, delete)",
         "create_document": "Create a new document",
+        "file_converter": "Convert files (PDF, DOCX, XLSX, etc.) to Markdown",
         "image_generation": "Generate images using AI",
         "ppt_generator": "Generate PowerPoint presentations",
         "report_generator": "Generate reports from data",

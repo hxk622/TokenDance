@@ -14,12 +14,26 @@ export interface RegisterRequest {
   password: string
 }
 
+export interface WeChatAuthRequest {
+  code: string
+  state?: string
+}
+
+export interface GmailAuthRequest {
+  code: string
+  state?: string
+}
+
 export interface User {
   id: string
   email: string
   username: string
+  display_name?: string
+  avatar_url?: string
+  auth_provider: string
   is_active: boolean
   is_verified: boolean
+  email_verified: boolean
   created_at: string
   updated_at: string
   last_login_at?: string
@@ -45,6 +59,10 @@ export interface RefreshTokenRequest {
   refresh_token: string
 }
 
+export interface AuthUrlResponse {
+  authorization_url: string
+}
+
 export const authApi = {
   /**
    * Login with email and password
@@ -59,6 +77,38 @@ export const authApi = {
    */
   async register(userData: RegisterRequest): Promise<RegisterResponse> {
     const response = await apiClient.post<RegisterResponse>('/api/v1/auth/register', userData)
+    return response.data
+  },
+
+  /**
+   * Get WeChat OAuth authorization URL
+   */
+  async getWeChatAuthUrl(): Promise<AuthUrlResponse> {
+    const response = await apiClient.get<AuthUrlResponse>('/api/v1/auth/wechat/authorize')
+    return response.data
+  },
+
+  /**
+   * Login with WeChat OAuth
+   */
+  async loginWithWeChat(request: WeChatAuthRequest): Promise<LoginResponse> {
+    const response = await apiClient.post<LoginResponse>('/api/v1/auth/wechat/callback', request)
+    return response.data
+  },
+
+  /**
+   * Get Gmail OAuth authorization URL
+   */
+  async getGmailAuthUrl(): Promise<AuthUrlResponse> {
+    const response = await apiClient.get<AuthUrlResponse>('/api/v1/auth/gmail/authorize')
+    return response.data
+  },
+
+  /**
+   * Login with Gmail OAuth
+   */
+  async loginWithGmail(request: GmailAuthRequest): Promise<LoginResponse> {
+    const response = await apiClient.post<LoginResponse>('/api/v1/auth/gmail/callback', request)
     return response.data
   },
 

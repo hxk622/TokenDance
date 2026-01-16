@@ -1,3 +1,64 @@
+<template>
+  <div class="chat-input-container">
+    <div class="max-w-4xl mx-auto">
+      <div class="relative flex items-end gap-3">
+        <!-- Text Input -->
+        <div class="flex-1 relative input-glow-wrapper">
+          <textarea
+            ref="textareaRef"
+            v-model="inputText"
+            :disabled="disabled || isStreaming"
+            @keydown="handleKeyDown"
+            @input="handleInput"
+            placeholder="Type your message..."
+            rows="1"
+            class="chat-textarea"
+            :class="{ 'is-streaming': isStreaming }"
+          />
+          <div class="input-glow"></div>
+        </div>
+
+        <!-- Send/Stop Button -->
+        <button
+          v-if="!isStreaming"
+          @click="handleSend"
+          :disabled="!canSend"
+          class="send-button"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </button>
+
+        <button
+          v-else
+          @click="handleStop"
+          class="stop-button"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Streaming indicator -->
+      <div v-if="isStreaming" class="mt-3 text-xs text-gray-400 flex items-center gap-2">
+        <span class="thinking-dots">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </span>
+        <span class="thinking-text">Agent is thinking...</span>
+      </div>
+
+      <!-- Hints -->
+      <div v-else class="mt-2 text-xs text-gray-500">
+        Press <kbd class="kbd">Enter</kbd> to send, <kbd class="kbd">Shift + Enter</kbd> for new line
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
@@ -18,10 +79,10 @@ const canSend = computed(() => inputText.value.trim().length > 0 && !props.disab
 
 function handleSend() {
   if (!canSend.value) return
-  
+
   emit('send', inputText.value.trim())
   inputText.value = ''
-  
+
   // Reset textarea height
   if (textareaRef.value) {
     textareaRef.value.style.height = 'auto'
@@ -48,62 +109,142 @@ function handleStop() {
 }
 </script>
 
-<template>
-  <div class="border-t border-border-default bg-bg-secondary p-4">
-    <div class="max-w-4xl mx-auto">
-      <div class="relative flex items-end gap-3">
-        <!-- Text Input -->
-        <div class="flex-1 relative">
-          <textarea
-            ref="textareaRef"
-            v-model="inputText"
-            :disabled="disabled || isStreaming"
-            @keydown="handleKeyDown"
-            @input="handleInput"
-            placeholder="Type your message..."
-            rows="1"
-            class="w-full resize-none rounded-2xl border border-border-default bg-bg-primary px-4 py-3 pr-12 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            :class="{ 'animate-pulse': isStreaming }"
-          />
-        </div>
+<style scoped>
+.chat-input-container {
+  @apply border-t border-gray-800 p-4;
+  background: rgba(10, 10, 11, 0.95);
+  backdrop-filter: blur(12px);
+}
 
-        <!-- Send/Stop Button -->
-        <button
-          v-if="!isStreaming"
-          @click="handleSend"
-          :disabled="!canSend"
-          class="flex-shrink-0 w-10 h-10 rounded-full bg-accent-primary text-white flex items-center justify-center hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-          </svg>
-        </button>
+.input-glow-wrapper {
+  position: relative;
+}
 
-        <button
-          v-else
-          @click="handleStop"
-          class="flex-shrink-0 w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-        >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <rect x="6" y="6" width="12" height="12" rx="2"/>
-          </svg>
-        </button>
-      </div>
+.chat-textarea {
+  @apply w-full resize-none rounded-2xl px-5 py-3.5 pr-12
+         text-sm text-white placeholder-gray-500
+         bg-gray-900 border border-gray-700
+         transition-all duration-200;
+}
 
-      <!-- Streaming indicator -->
-      <div v-if="isStreaming" class="mt-2 text-xs text-text-tertiary flex items-center gap-2">
-        <span class="flex gap-1">
-          <span class="w-1.5 h-1.5 bg-accent-primary rounded-full animate-bounce" style="animation-delay: 0ms"/>
-          <span class="w-1.5 h-1.5 bg-accent-primary rounded-full animate-bounce" style="animation-delay: 150ms"/>
-          <span class="w-1.5 h-1.5 bg-accent-primary rounded-full animate-bounce" style="animation-delay: 300ms"/>
-        </span>
-        Agent is thinking...
-      </div>
+.chat-textarea:focus {
+  @apply outline-none border-gray-600;
+}
 
-      <!-- Hints -->
-      <div v-else class="mt-2 text-xs text-text-tertiary">
-        Press Enter to send, Shift + Enter for new line
-      </div>
-    </div>
-  </div>
-</template>
+.chat-textarea:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.chat-textarea.is-streaming {
+  @apply border-indigo-500/50;
+}
+
+/* Gradient glow effect on focus */
+.input-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4, #6366f1);
+  background-size: 300% 300%;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  filter: blur(8px);
+}
+
+.chat-textarea:focus ~ .input-glow {
+  opacity: 0.4;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Send Button */
+.send-button {
+  @apply flex-shrink-0 w-11 h-11 rounded-xl
+         flex items-center justify-center
+         transition-all duration-200;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.send-button:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.send-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.send-button:disabled {
+  @apply opacity-40 cursor-not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Stop Button */
+.stop-button {
+  @apply flex-shrink-0 w-11 h-11 rounded-xl
+         flex items-center justify-center
+         transition-all duration-200;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  animation: pulse-stop 1.5s ease-in-out infinite;
+}
+
+.stop-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulse-stop {
+  0%, 100% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }
+}
+
+/* Thinking Dots */
+.thinking-dots {
+  @apply flex gap-1;
+}
+
+.dot {
+  @apply w-1.5 h-1.5 rounded-full;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  animation: thinking-bounce 1.4s ease-in-out infinite;
+}
+
+.dot:nth-child(1) { animation-delay: 0ms; }
+.dot:nth-child(2) { animation-delay: 160ms; }
+.dot:nth-child(3) { animation-delay: 320ms; }
+
+@keyframes thinking-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.thinking-text {
+  animation: thinking-fade 2s ease-in-out infinite;
+}
+
+@keyframes thinking-fade {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Keyboard hints */
+.kbd {
+  @apply px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[10px];
+}
+</style>

@@ -204,21 +204,34 @@ const handleRecommendClick = () => {
 }
 
 .smart-input {
-  @apply flex-1 px-5 py-3.5 text-base text-gray-900 placeholder-gray-400
-         bg-white border border-gray-200 rounded-xl
-         focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200/50
+  @apply flex-1 px-5 py-3.5 text-base text-white placeholder-gray-500
+         bg-gray-900 border border-gray-700 rounded-xl
+         focus:outline-none focus:border-gray-500
          transition-all duration-200;
+  position: relative;
+}
+
+.smart-input:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .input-submit {
-  @apply px-6 py-3.5 text-sm font-medium text-white
-         bg-gray-900 rounded-xl
-         hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
-         transition-colors duration-200;
+  @apply px-6 py-3.5 text-sm font-semibold text-gray-900
+         bg-white rounded-xl
+         hover:bg-gray-100 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed
+         transition-all duration-200;
+}
+
+.input-submit:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
 }
 
 .suggestions-panel {
-  @apply absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-100 shadow-lg p-4 z-10;
+  @apply absolute top-full left-0 right-0 mt-2
+         bg-gray-900 rounded-xl border border-gray-800
+         shadow-2xl shadow-black/50 p-4 z-10;
+  backdrop-filter: blur(12px);
 }
 
 .suggestion-group {
@@ -226,48 +239,60 @@ const handleRecommendClick = () => {
 }
 
 .group-title {
-  @apply text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5;
+  @apply text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5;
 }
 
 .group-title svg {
-  @apply text-gray-500;
+  @apply text-gray-600;
 }
 
 .suggestion-item {
   @apply w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left
-         transition-colors duration-200;
+         transition-all duration-200;
 }
 
 .suggestion-item:hover {
-  @apply bg-gray-50;
+  transform: translateX(4px);
 }
 
 .previous-item {
-  @apply border border-gray-100 bg-gray-50/50 hover:bg-gray-100;
+  @apply border border-gray-800 bg-gray-800/50 text-gray-300;
+}
+
+.previous-item:hover {
+  @apply bg-gray-800 border-gray-700;
 }
 
 .trending-item {
-  @apply border border-amber-100 bg-amber-50/50 hover:bg-amber-100;
+  @apply border border-amber-900/50 bg-amber-900/20 text-amber-200;
+}
+
+.trending-item:hover {
+  @apply bg-amber-900/30 border-amber-800/50;
 }
 
 .ai-item {
-  @apply border border-blue-100 bg-blue-50/50 hover:bg-blue-100;
+  @apply border border-indigo-900/50 bg-indigo-900/20 text-indigo-200;
+}
+
+.ai-item:hover {
+  @apply bg-indigo-900/30 border-indigo-800/50;
 }
 
 .item-icon {
-  @apply flex items-center justify-center w-5 h-5 text-slate-500 flex-shrink-0;
+  @apply flex items-center justify-center w-5 h-5 text-gray-400 flex-shrink-0;
 }
 
 .item-title {
-  @apply flex-1 text-sm text-gray-700 font-medium;
+  @apply flex-1 text-sm font-medium;
 }
 
 .item-time {
-  @apply text-xs text-gray-400;
+  @apply text-xs text-gray-500;
 }
 
 .item-count {
-  @apply text-xs text-amber-600 font-medium;
+  @apply text-xs text-amber-400 font-medium;
 }
 
 
