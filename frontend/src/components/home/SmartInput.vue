@@ -29,22 +29,22 @@ const emit = defineEmits<{
 const query = ref('')
 const showSuggestions = ref(false)
 
-// 默认数据
+// 默认数据 - 使用 icon 名称而非 Emoji
 const defaultPreviousTasks: PreviousTask[] = [
-  { id: '1', title: '2024 年中报告', daysAgo: 7, icon: '📊' },
-  { id: '2', title: '竞品价格分析', daysAgo: 3, icon: '💰' },
-  { id: '3', title: '市场趋势预测', daysAgo: 14, icon: '📈' }
+  { id: '1', title: '2024 年中报告', daysAgo: 7, icon: 'chart-bar' },
+  { id: '2', title: '竞品价格分析', daysAgo: 3, icon: 'currency' },
+  { id: '3', title: '市场趋势预测', daysAgo: 14, icon: 'trending-up' }
 ]
 
 const defaultTrendingTasks: TrendingTask[] = [
-  { id: '1', title: '产品路演 PPT', count: 8, icon: '📽️' },
-  { id: '2', title: '年度预算分析', count: 12, icon: '💼' },
-  { id: '3', title: '用户满意度调查', count: 5, icon: '⭐' }
+  { id: '1', title: '产品路演 PPT', count: 8, icon: 'presentation' },
+  { id: '2', title: '年度预算分析', count: 12, icon: 'briefcase' },
+  { id: '3', title: '用户满意度调查', count: 5, icon: 'clipboard-check' }
 ]
 
 const previousTasks = computed(() => props.previousTasks || defaultPreviousTasks)
 const trendingTasks = computed(() => props.trendingTasks || defaultTrendingTasks)
-const aiSuggestion = computed(() => props.aiSuggestion || '分析 2025 年 AI Agent 市场规模')
+const aiSuggestion = computed(() => props.aiSuggestion || '调研 2025 年 AI Agent 市场趋势')
 
 const handleSubmit = () => {
   if (query.value.trim()) {
@@ -68,6 +68,24 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleSubmit()
   }
 }
+
+// blur 时延迟关闭建议面板
+const handleBlur = () => {
+  window.setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+// 处理推荐任务点击
+const handleRecommendClick = () => {
+  const task: TrendingTask = {
+    id: 'recommend',
+    title: aiSuggestion.value,
+    count: 0,
+    icon: 'sparkles'
+  }
+  handleTaskSelect(task)
+}
 </script>
 
 <template>
@@ -80,7 +98,7 @@ const handleKeydown = (e: KeyboardEvent) => {
         class="smart-input"
         placeholder="描述任务，或选择下方建议..."
         @focus="showSuggestions = true"
-        @blur="setTimeout(() => (showSuggestions = false), 200)"
+        @blur="handleBlur"
         @keydown="handleKeydown"
       />
       <button class="input-submit" :disabled="!query.trim()" @click="handleSubmit">
@@ -105,7 +123,17 @@ const handleKeydown = (e: KeyboardEvent) => {
             class="suggestion-item previous-item"
             @click="handleTaskSelect(task)"
           >
-            <span class="item-icon">{{ task.icon }}</span>
+            <span class="item-icon">
+              <svg v-if="task.icon === 'chart-bar'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <svg v-else-if="task.icon === 'currency'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </span>
             <span class="item-title">{{ task.title }}</span>
             <span class="item-time">{{ task.daysAgo }}天前</span>
           </button>
@@ -125,25 +153,39 @@ const handleKeydown = (e: KeyboardEvent) => {
             class="suggestion-item trending-item"
             @click="handleTaskSelect(task)"
           >
-            <span class="item-icon">{{ task.icon }}</span>
+            <span class="item-icon">
+              <svg v-if="task.icon === 'presentation'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <svg v-else-if="task.icon === 'briefcase'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </span>
             <span class="item-title">{{ task.title }}</span>
             <span class="item-count">{{ task.count }}人</span>
           </button>
         </div>
         
-        <!-- AI 的建议 -->
+        <!-- 推荐任务 -->
         <div class="suggestion-group">
           <h5 class="group-title">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            AI 的建议
+            推荐任务
           </h5>
           <button
             class="suggestion-item ai-item"
-            @click="handleTaskSelect({ title: aiSuggestion, id: 'ai', count: 0 })"
+            @click="handleRecommendClick"
           >
-            <span class="ai-badge">✨</span>
+            <span class="item-icon">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+            </span>
             <span class="item-title">{{ aiSuggestion }}</span>
           </button>
         </div>
@@ -213,7 +255,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 .item-icon {
-  @apply text-lg flex-shrink-0;
+  @apply flex items-center justify-center w-5 h-5 text-slate-500 flex-shrink-0;
 }
 
 .item-title {
@@ -228,9 +270,6 @@ const handleKeydown = (e: KeyboardEvent) => {
   @apply text-xs text-amber-600 font-medium;
 }
 
-.ai-badge {
-  @apply text-lg;
-}
 
 .suggestions-fade-enter-active,
 .suggestions-fade-leave-active {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FileDropZone from '@/components/home/FileDropZone.vue'
 
@@ -8,34 +8,62 @@ const inputValue = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-// 工作流卡片 - 以用户任务为中心，而非功能
+// 三位一体架构 (The Trinity) - 非功能导向，而是能力导向
+const trinityCapabilities = [
+  {
+    id: 'manus',
+    name: 'Manus',
+    role: '执行大脑',
+    desc: '全自动任务链，从 0 到 1 交付',
+    icon: 'cpu'
+  },
+  {
+    id: 'coworker',
+    name: 'Coworker',
+    role: '执行双手',
+    desc: '本地文件深度操控',
+    icon: 'folder-open'
+  },
+  {
+    id: 'vibe',
+    name: 'Vibe',
+    role: '生命气息',
+    desc: '直觉交互，氛围感体验',
+    icon: 'sparkles'
+  }
+]
+
+// 工作流卡片 - 以用户任务为中心
 const workflows = [
   {
     id: 'research',
     title: '市场调研',
     subtitle: '竞品分析 · 行业报告 · 数据洞察',
     icon: 'chart-bar',
-    accent: 'indigo'
+    accent: 'indigo',
+    featured: true // Deep Research MVP 强调
   },
   {
     id: 'presentation',
     title: '演示汇报',
     subtitle: '方案展示 · 周报总结 · 培训材料',
     icon: 'presentation',
-    accent: 'amber'
+    accent: 'amber',
+    featured: false
   },
   {
     id: 'development',
     title: '开发调试',
     subtitle: '代码审查 · 性能优化 · Bug 排查',
     icon: 'code',
-    accent: 'emerald'
+    accent: 'emerald',
+    featured: false
   }
 ]
 
-// 场景引导示例
+// 场景引导示例 - 用户任务导向
 const suggestions = [
-  '帮我调研 2024 年 AI Agent 市场趋势',
+  '调研 2025 年 AI Agent 市场趋势',
   '把这份报告做成 10 页 PPT',
   '分析这份 CSV 数据并生成图表'
 ]
@@ -43,16 +71,31 @@ const suggestions = [
 // 快捷操作
 const quickActions = [
   { id: 'research', label: '深度研究', icon: 'search' },
-  { id: 'ppt', label: '生成 PPT', icon: 'presentation' },
+  { id: 'ppt', label: '演示汇报', icon: 'presentation' },
   { id: 'code', label: '代码分析', icon: 'code' }
 ]
 
-// 最近项目（模拟数据，实际应从 API 获取）
+// 最近项目
 const recentProjects = [
   { id: '1', name: '2024 Q4 竞品分析', time: '2 小时前', status: 'completed' },
   { id: '2', name: '产品路演 PPT', time: '昨天', status: 'in-progress' },
   { id: '3', name: 'API 性能优化', time: '3 天前', status: 'completed' }
 ]
+
+// 动态氛围：色球动画状态
+const activeOrbIndex = ref(0)
+let orbInterval: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  // 色球轮播动画
+  orbInterval = setInterval(() => {
+    activeOrbIndex.value = (activeOrbIndex.value + 1) % 3
+  }, 2500)
+})
+
+onUnmounted(() => {
+  if (orbInterval) clearInterval(orbInterval)
+})
 
 // 处理工作流选择
 const handleWorkflowSelect = (workflow: typeof workflows[0]) => {
@@ -131,10 +174,29 @@ const handleGuestTry = () => {
 
 <template>
   <div class="home-view">
-    <!-- Vibe Background -->
+    <!-- Vibe Background with Animated Orbs -->
     <div class="bg-vibe">
       <div class="bg-gradient" />
       <div class="bg-pattern" />
+      <!-- 动态色球 -->
+      <div class="orb-container">
+        <div 
+          class="orb orb-manus" 
+          :class="{ 'orb-active': activeOrbIndex === 0 }"
+        />
+        <div 
+          class="orb orb-coworker" 
+          :class="{ 'orb-active': activeOrbIndex === 1 }"
+        />
+        <div 
+          class="orb orb-vibe" 
+          :class="{ 'orb-active': activeOrbIndex === 2 }"
+        />
+        <!-- 能量连线 -->
+        <svg class="energy-lines" viewBox="0 0 400 100" preserveAspectRatio="none">
+          <path class="energy-line" d="M 50 50 Q 125 20 200 50 T 350 50" />
+        </svg>
+      </div>
     </div>
     
     <!-- Header -->
@@ -143,19 +205,90 @@ const handleGuestTry = () => {
         <h1 class="logo">TokenDance</h1>
       </div>
       <div class="header-right">
-        <button class="header-btn" @click="handleGuestTry">免费试用</button>
-        <button class="header-btn">文档</button>
+        <router-link to="/demo" class="header-btn">能力演示</router-link>
+        <a href="https://github.com/your-repo/tokendance" target="_blank" class="header-btn">文档</a>
         <button class="header-btn header-btn-primary">登录</button>
       </div>
     </header>
     
     <!-- Main Content -->
     <main class="home-main">
-      <!-- Hero with Vibe -->
+      <!-- Hero: 差异化 Slogan + Guest CTA -->
       <section class="hero">
-        <div class="hero-badge">Vibe-Agentic Workflow</div>
-        <h2 class="hero-title">你的智能工作台</h2>
+        <p class="hero-tagline">For the rest of the world</p>
+        <h2 class="hero-title">让硬核 Agent 服务全世界</h2>
         <p class="hero-desc">和 Agent 一起完成任务，随时接管和调整</p>
+        <!-- Guest CTA 强化 -->
+        <div class="hero-cta">
+          <button class="cta-primary" @click="handleGuestTry">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            免费试用
+          </button>
+          <router-link to="/demo" class="cta-secondary">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            查看演示
+          </router-link>
+        </div>
+      </section>
+      
+      <!-- 三位一体可视化 (The Trinity) -->
+      <section class="trinity-section">
+        <div class="trinity-grid">
+          <div 
+            v-for="(cap, index) in trinityCapabilities" 
+            :key="cap.id"
+            class="trinity-card"
+            :class="{ 'trinity-card-active': activeOrbIndex === index }"
+          >
+            <div class="trinity-icon" :class="`trinity-icon--${cap.id}`">
+              <!-- Manus: CPU -->
+              <svg v-if="cap.icon === 'cpu'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M9 9h6v6H9V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+              </svg>
+              <!-- Coworker: Folder -->
+              <svg v-else-if="cap.icon === 'folder-open'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+              </svg>
+              <!-- Vibe: Sparkles -->
+              <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+            </div>
+            <div class="trinity-content">
+              <span class="trinity-name">{{ cap.name }}</span>
+              <span class="trinity-role">{{ cap.role }}</span>
+              <span class="trinity-desc">{{ cap.desc }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- P0: Deep Research 入口强化 -->
+      <section class="featured-section">
+        <button class="featured-card" @click="handleWorkflowSelect(workflows[0])">
+          <div class="featured-badge">MVP 核心能力</div>
+          <div class="featured-icon">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <div class="featured-content">
+            <h3 class="featured-title">市场调研</h3>
+            <p class="featured-desc">多源搜索 · 信息综合 · 结构化报告</p>
+          </div>
+          <div class="featured-action">
+            <span>立即开始</span>
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </div>
+        </button>
       </section>
       
       <!-- Enhanced Input -->
@@ -231,22 +364,19 @@ const handleGuestTry = () => {
         </div>
       </section>
       
-      <!-- Workflows -->
+      <!-- Workflows (排除 featured 的 Deep Research) -->
       <section class="workflows-section">
-        <h3 class="section-title">开始一个工作流</h3>
+        <h3 class="section-title">更多工作流</h3>
         <div class="workflows-grid">
           <button
-            v-for="wf in workflows"
+            v-for="wf in workflows.filter(w => !w.featured)"
             :key="wf.id"
             class="workflow-card"
             :class="`workflow-card--${wf.accent}`"
             @click="handleWorkflowSelect(wf)"
           >
             <div class="workflow-icon">
-              <svg v-if="wf.icon === 'chart-bar'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <svg v-else-if="wf.icon === 'presentation'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg v-if="wf.icon === 'presentation'" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -350,23 +480,213 @@ const handleGuestTry = () => {
   @apply flex-1 max-w-3xl w-full mx-auto px-6 py-12;
 }
 
-/* Hero with Vibe */
-.hero {
-  @apply text-center mb-10;
+/* 动态色球 */
+.orb-container {
+  @apply absolute inset-0 pointer-events-none;
 }
 
-.hero-badge {
-  @apply inline-block px-3 py-1 mb-4
-         text-xs font-medium text-indigo-600
-         bg-indigo-50 rounded-full;
+.orb {
+  @apply absolute w-24 h-24 rounded-full opacity-30;
+  filter: blur(40px);
+  transition: all 0.8s ease-in-out;
+}
+
+.orb-manus {
+  @apply bg-indigo-500;
+  top: 15%;
+  left: 20%;
+}
+
+.orb-coworker {
+  @apply bg-emerald-500;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.orb-vibe {
+  @apply bg-cyan-500;
+  top: 15%;
+  right: 20%;
+}
+
+.orb-active {
+  @apply opacity-60;
+  transform: scale(1.3);
+  animation: orb-breath 2s ease-in-out infinite;
+}
+
+@keyframes orb-breath {
+  0%, 100% { opacity: 0.6; transform: scale(1.3); }
+  50% { opacity: 0.4; transform: scale(1.5); }
+}
+
+/* 能量连线 */
+.energy-lines {
+  @apply absolute w-full h-24 top-1/4 left-0 opacity-20;
+}
+
+.energy-line {
+  fill: none;
+  stroke: url(#energy-gradient);
+  stroke-width: 2;
+  stroke-dasharray: 8 4;
+  animation: energy-flow 3s linear infinite;
+}
+
+@keyframes energy-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -24; }
+}
+
+/* Hero */
+.hero {
+  @apply text-center mb-8;
+}
+
+.hero-tagline {
+  @apply text-sm font-medium text-indigo-500 mb-2 tracking-wide;
 }
 
 .hero-title {
-  @apply text-3xl font-semibold text-gray-900 mb-3;
+  @apply text-3xl md:text-4xl font-bold text-gray-900 mb-3;
 }
 
 .hero-desc {
-  @apply text-base text-slate-600;
+  @apply text-base text-slate-600 mb-6;
+}
+
+/* Hero CTA */
+.hero-cta {
+  @apply flex items-center justify-center gap-4;
+}
+
+.cta-primary {
+  @apply flex items-center gap-2 px-6 py-3
+         text-base font-medium text-white
+         bg-gray-900 rounded-xl
+         hover:bg-gray-800
+         cursor-pointer transition-colors duration-200;
+}
+
+.cta-secondary {
+  @apply flex items-center gap-2 px-6 py-3
+         text-base font-medium text-slate-700
+         bg-white border border-gray-200 rounded-xl
+         hover:bg-gray-50 hover:border-gray-300
+         cursor-pointer transition-all duration-200;
+}
+
+/* 三位一体可视化 */
+.trinity-section {
+  @apply mb-10;
+}
+
+.trinity-grid {
+  @apply grid grid-cols-3 gap-4;
+}
+
+.trinity-card {
+  @apply flex flex-col items-center text-center p-4 rounded-xl
+         bg-white/50 border border-gray-100
+         transition-all duration-300;
+}
+
+.trinity-card-active {
+  @apply bg-white border-gray-200 shadow-sm;
+}
+
+.trinity-icon {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center mb-3
+         transition-all duration-300;
+}
+
+.trinity-icon--manus {
+  @apply bg-indigo-50 text-indigo-600;
+}
+
+.trinity-icon--coworker {
+  @apply bg-emerald-50 text-emerald-600;
+}
+
+.trinity-icon--vibe {
+  @apply bg-cyan-50 text-cyan-600;
+}
+
+.trinity-card-active .trinity-icon--manus {
+  @apply bg-indigo-100;
+}
+
+.trinity-card-active .trinity-icon--coworker {
+  @apply bg-emerald-100;
+}
+
+.trinity-card-active .trinity-icon--vibe {
+  @apply bg-cyan-100;
+}
+
+.trinity-content {
+  @apply flex flex-col gap-0.5;
+}
+
+.trinity-name {
+  @apply text-sm font-semibold text-gray-900;
+}
+
+.trinity-role {
+  @apply text-xs text-slate-500;
+}
+
+.trinity-desc {
+  @apply text-xs text-slate-400 mt-1;
+}
+
+/* Featured Card (Deep Research 强调) */
+.featured-section {
+  @apply mb-8;
+}
+
+.featured-card {
+  @apply w-full flex items-center gap-5 p-6
+         bg-gradient-to-r from-indigo-50 to-white
+         border border-indigo-100 rounded-2xl
+         hover:shadow-md hover:border-indigo-200
+         cursor-pointer transition-all duration-200 text-left
+         relative overflow-hidden;
+}
+
+.featured-badge {
+  @apply absolute top-3 right-3
+         px-2 py-0.5 text-xs font-medium
+         text-indigo-600 bg-indigo-100 rounded-full;
+}
+
+.featured-icon {
+  @apply w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0
+         bg-indigo-100 text-indigo-600;
+}
+
+.featured-content {
+  @apply flex-1;
+}
+
+.featured-title {
+  @apply text-lg font-semibold text-gray-900 mb-1;
+}
+
+.featured-desc {
+  @apply text-sm text-slate-600;
+}
+
+.featured-action {
+  @apply flex items-center gap-2 px-4 py-2
+         text-sm font-medium text-indigo-600
+         bg-white rounded-lg border border-indigo-100
+         transition-colors duration-200;
+}
+
+.featured-card:hover .featured-action {
+  @apply bg-indigo-50 border-indigo-200;
 }
 
 /* Enhanced Input */
@@ -446,7 +766,7 @@ const handleGuestTry = () => {
 }
 
 .workflows-grid {
-  @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
 }
 
 .workflow-card {
