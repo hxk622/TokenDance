@@ -17,11 +17,11 @@ from enum import Enum
 import uuid
 import logging
 
-from ..services.findings_extractor import FindingsExtractor
-from ..services.research_to_ppt import ResearchToPPTConverter
-from ..services.research_timeline import ResearchTimelineService
-from ..agent.agents.ppt import PPTStyle
-from ..models.research_findings import ResearchFindings
+from ...services.findings_extractor import FindingsExtractor
+from ...services.research_to_ppt import ResearchToPPTConverter
+from ...services.research_timeline import ResearchTimelineService
+from ...agent.agents.ppt import PPTStyle
+from ...models.research_findings import ResearchFindings
 
 logger = logging.getLogger(__name__)
 

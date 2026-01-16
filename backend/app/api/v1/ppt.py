@@ -30,6 +30,16 @@ from ...agent.tools.builtin.ppt_ops import (
     store_outline
 )
 from ...agent.agents.ppt import PPTOutline, SlideContent, SlideType, PPTStyle
+from ...ppt.layered import (
+    LayeredSlideGenerator,
+    LayeredSlideStyle,
+    LayeredSlideContent,
+    BackgroundStyle,
+    CompositePresets
+)
+from fastapi.responses import FileResponse
+import tempfile
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -403,4 +413,188 @@ async def cleanup_old_files(background_tasks: BackgroundTasks, max_age_hours: in
     return {
         "status": "cleanup_scheduled",
         "max_age_hours": max_age_hours
+    }
+
+
+# ==================== Layered PPT API (Phase 2) ====================
+
+class LayeredSlideRequest(BaseModel):
+    """分层幻灯片请求"""
+    style: str = Field("hero_title", description="样式：hero_title/section_header/visual_impact/minimal_clean/tech_modern")
+    title: str = Field("", description="标题")
+    subtitle: str = Field("", description="副标题")
+    body: str = Field("", description="正文内容")
+    accent_color: str = Field("#4a90e2", description="强调色（Hex）")
+    base_color: str = Field("#1a1a2e", description="基础色（Hex）")
+    title_color: str = Field("#ffffff", description="标题颜色")
+    subtitle_color: str = Field("#cccccc", description="副标题颜色")
+
+
+class LayeredPresentationRequest(BaseModel):
+    """分层演示文稿请求"""
+    slides: List[LayeredSlideRequest] = Field(..., description="幻灯片列表")
+    filename: Optional[str] = Field(None, description="输出文件名")
+
+
+class LayeredStyleInfo(BaseModel):
+    """分层样式信息"""
+    id: str
+    name: str
+    description: str
+    preview_url: Optional[str] = None
+
+
+@router.get("/layered/styles", response_model=List[LayeredStyleInfo])
+async def list_layered_styles():
+    """获取可用的分层样式列表
+    
+    返回所有可用的程序化背景样式。
+    """
+    return [
+        LayeredStyleInfo(
+            id="hero_title",
+            name="Hero 标题页",
+            description="对角渐变背景 + 角落线条 + 聚光灯效果，适合开场标题"
+        ),
+        LayeredStyleInfo(
+            id="section_header",
+            name="章节标题",
+            description="径向渐变背景 + 强调条装饰，适合章节分隔"
+        ),
+        LayeredStyleInfo(
+            id="visual_impact",
+            name="视觉冲击",
+            description="Blob 背景 + 浮动形状 + 暗角效果，适合重点突出"
+        ),
+        LayeredStyleInfo(
+            id="minimal_clean",
+            name="极简风格",
+            description="浅色网格背景，适合内容密集型幻灯片"
+        ),
+        LayeredStyleInfo(
+            id="tech_modern",
+            name="科技现代",
+            description="六边形网格 + 方括号装饰，适合技术主题"
+        )
+    ]
+
+
+@router.post("/layered/generate")
+async def generate_layered_presentation(request: LayeredPresentationRequest):
+    """生成分层 PPT
+    
+    使用程序化背景生成高视觉质量的 PPTX 文件。
+    背景为图像层，文字保持可编辑。
+    
+    **样式选项**:
+    - `hero_title`: Hero 标题页（渐变 + 装饰）
+    - `section_header`: 章节标题（径向渐变 + 强调条）
+    - `visual_impact`: 视觉冲击（Blob + 浮动形状）
+    - `minimal_clean`: 极简风格（浅色网格）
+    - `tech_modern`: 科技现代（六边形 + 方括号）
+    
+    **返回**: PPTX 文件下载
+    """
+    try:
+        generator = LayeredSlideGenerator()
+        
+        # 转换请求为 LayeredSlideContent
+        contents = []
+        for slide in request.slides:
+            try:
+                style = LayeredSlideStyle(slide.style)
+            except ValueError:
+                style = LayeredSlideStyle.HERO_TITLE
+            
+            contents.append(LayeredSlideContent(
+                style=style,
+                title=slide.title,
+                subtitle=slide.subtitle,
+                body=slide.body,
+                accent_color=slide.accent_color,
+                base_color=slide.base_color,
+                title_color=slide.title_color,
+                subtitle_color=slide.subtitle_color
+            ))
+        
+        # 生成 PPTX
+        filename = request.filename or "presentation.pptx"
+        if not filename.endswith(".pptx"):
+            filename += ".pptx"
+        
+        output_path = os.path.join(tempfile.gettempdir(), filename)
+        pptx_path = generator.generate_slides(contents, output_path)
+        
+        return FileResponse(
+            path=pptx_path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
+        
+    except Exception as e:
+        logger.error(f"Layered PPT generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/layered/preview")
+async def preview_layered_slide(request: LayeredSlideRequest):
+    """预览单个分层幻灯片背景
+    
+    生成并返回背景图像的 PNG 预览。
+    
+    **返回**: PNG 图像文件
+    """
+    try:
+        generator = LayeredSlideGenerator()
+        
+        try:
+            style = LayeredSlideStyle(request.style)
+        except ValueError:
+            style = LayeredSlideStyle.HERO_TITLE
+        
+        # 生成背景图像
+        output_path = os.path.join(tempfile.gettempdir(), f"preview_{style.value}.png")
+        generator.generate_background_image(
+            style=style,
+            accent_color=request.accent_color,
+            base_color=request.base_color,
+            output_path=output_path
+        )
+        
+        return FileResponse(
+            path=output_path,
+            filename=f"{style.value}_preview.png",
+            media_type="image/png"
+        )
+        
+    except Exception as e:
+        logger.error(f"Preview generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/layered/backgrounds")
+async def list_background_styles():
+    """获取所有可用的背景样式
+    
+    返回程序化背景生成器支持的所有样式。
+    """
+    return {
+        "gradient": [
+            {"id": "linear_gradient", "name": "线性渐变"},
+            {"id": "radial_gradient", "name": "径向渐变"},
+            {"id": "diagonal_gradient", "name": "对角渐变"},
+            {"id": "mesh_gradient", "name": "网格渐变"}
+        ],
+        "geometric": [
+            {"id": "circles", "name": "圆形图案"},
+            {"id": "hexagons", "name": "六边形"},
+            {"id": "grid", "name": "网格"},
+            {"id": "dots", "name": "点阵"}
+        ],
+        "abstract": [
+            {"id": "wave", "name": "波浪"},
+            {"id": "blob", "name": "Blob 形状"},
+            {"id": "particles", "name": "粒子效果"},
+            {"id": "abstract_shapes", "name": "抽象图形"}
+        ]
     }

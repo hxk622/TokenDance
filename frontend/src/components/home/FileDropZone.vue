@@ -81,7 +81,7 @@ const handleDrop = (e: DragEvent) => {
 }
 
 .file-drop-zone.is-dragging {
-  @apply border-cyan-500 bg-cyan-50/50 scale-[1.02];
+  @apply border-cyan-500 bg-cyan-50/50 shadow-lg;
 }
 
 .drop-content {

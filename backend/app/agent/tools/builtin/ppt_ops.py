@@ -14,7 +14,8 @@ import logging
 from typing import Dict, Any, Optional, List
 from dataclasses import asdict
 
-from ..base import BaseTool, ToolResult, ToolCategory, RiskLevel
+from ..base import BaseTool, ToolResult
+from ..risk import RiskLevel
 from ....services.ppt_renderer import (
     PPTRendererService,
     get_ppt_renderer,
@@ -68,7 +69,6 @@ Input content can be:
 - Bullet points
 - Any structured content"""
     
-    category = ToolCategory.CONTENT_GENERATION
     risk_level = RiskLevel.LOW
     
     parameters = {
@@ -298,7 +298,6 @@ Use this after generating an outline to:
 - Add speaker notes
 - Suggest visualizations"""
     
-    category = ToolCategory.CONTENT_GENERATION
     risk_level = RiskLevel.LOW
     
     parameters = {
@@ -395,7 +394,6 @@ Use this to:
 - Check visual appearance
 - Verify content layout"""
     
-    category = ToolCategory.CONTENT_GENERATION
     risk_level = RiskLevel.LOW
     
     parameters = {
@@ -482,7 +480,6 @@ Supported formats:
 - html: Interactive web presentation
 - pptx: PowerPoint format (requires python-pptx)"""
     
-    category = ToolCategory.FILE_MANAGEMENT
     risk_level = RiskLevel.LOW
     
     parameters = {

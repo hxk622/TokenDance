@@ -150,6 +150,35 @@ TokenDance 是一个**人机共生的终极创作场**，将顶级 Agent 的原�
 - **浏览器操作**：集成 agent-browser（及 Playwright 兜底），支持 browser_open/browser_click/browser_screenshot 等工具，用于 Deep Research 网页采集和时光长廊截图
 - **终端脚本执行**：通过 Sandbox 内的终端执行器运行脚本（如 Python、Shell），用于自动化数据处理与科研工作流编排
 - **数据爬取与搜索**：结合 web_search/read_url/agent-browser 以及科学技能中的检索能力，实现从网页到结构化数据的爬取与搜索
+ 
+### 2.3 MVP 故事板（端到端体验）
+
+#### 场景：从市场调研到带图汇报（Deep Research + Scientific Skills + 生图 + PPT）
+
+**角色**：产品经理 / 咨询顾问 / 科研工作者  
+**目标**：围绕某个主题完成一次端到端的「研究 → 计算验证 → 可视化 → 汇报」。
+
+**Story Flow**：
+- Step 1：用户在 Workspace 中拖入一个主题文件夹或创建一个「Deep Research」任务，输入研究主题（例如「AI Agent 市场 2026」或「某药物疗效 Meta 分析」）。
+- Step 2：Manus 触发 Deep Research Skill：
+  - 使用 web_search + read_url 聚合 3–10 个高质量来源；
+  - 当遇到复杂列表页或需要结构化抓取时，使用 agent-browser 执行 browser_open/browser_click/browser_screenshot；
+  - 所有关键发现写入 findings.md，并在 Preview 中以时光长廊/时间线可视化展示。
+- Step 3：对于需要定量分析/验证的部分，Agent 调用 Scientific Skills Pack：
+  - 通过 Sandbox 在受控环境中执行代码（如 SymPy 计算、Bayesian 推断、地理空间分析等）；
+  - 结果写入 Workspace 文件（表格、公式、图形数据），并在报告中引用。
+- Step 4：用户确认研究报告后，一键触发 PPT Generation：
+  - Manus 从研究报告和科学计算结果中抽取结构和关键结论；
+  - 为封面/关键章节调用 Nano Banana 做 AI 生图（封面图、示意图、科学插图）；
+  - 生成 Marp/PPTX 形式的演示文稿，并在前端预览页中以分页方式展示。
+- Step 5：用户在 Vibe UI 中对单页进行微调（重写文案、替换图像、调整顺序），然后一键导出 PPTX/PDF，并选择是否将本次工作流沉淀为模板/Skill。
+
+**成功判定**：
+- [ ] 用户无需离开 TokenDance，即可完成一次完整的「研究 → 计算 → 生图 → PPT」流程；
+- [ ] Deep Research 的中间过程在执行时间线/时光长廊中可视化可回放；
+- [ ] 至少一个科学技能（如 SymPy 或统计相关 Skill）在流程中被调用并产生可见输出；
+- [ ] 至少一张由 Nano Banana 生成的图片被自动插入到 PPT 中；
+- [ ] 整个流程中，Manus/Coworker/MCP/Browser/Sandbox 的调用都被记录到 Context Graph 以便事后追踪。
 
 #### Agent 协作中枢（路由决策层）
 

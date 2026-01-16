@@ -4,7 +4,7 @@
  * 提供 Skill 发现、模板查询、场景预设等功能
  */
 
-import { apiClient } from './client'
+import apiClient from './client'
 
 // ==================== 类型定义 ====================
 
