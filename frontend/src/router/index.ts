@@ -54,6 +54,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/ppt/create',
+    name: 'PPTCreate',
+    component: () => import('@/views/PPTGenerateView.vue'),
+    meta: {
+      title: 'Create PPT - TokenDance',
+      requiresAuth: false
+    }
+  },
+  {
     path: '/ppt/edit/:id',
     name: 'PPTEdit',
     component: () => import('@/views/PPTEditView.vue'),

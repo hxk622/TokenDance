@@ -233,4 +233,99 @@ export const pptApi = {
   },
 }
 
+// ==================== Layered PPT API (Phase 2) ====================
+
+export type LayeredSlideStyle = 
+  | 'hero_title' 
+  | 'section_header' 
+  | 'visual_impact' 
+  | 'minimal_clean' 
+  | 'tech_modern'
+
+export interface LayeredStyleInfo {
+  id: LayeredSlideStyle
+  name: string
+  description: string
+  preview_url?: string
+}
+
+export interface LayeredSlideRequest {
+  style: LayeredSlideStyle
+  title: string
+  subtitle?: string
+  body?: string
+  accent_color?: string
+  base_color?: string
+  title_color?: string
+  subtitle_color?: string
+}
+
+export interface LayeredPresentationRequest {
+  slides: LayeredSlideRequest[]
+  filename?: string
+}
+
+export interface BackgroundStyleCategory {
+  id: string
+  name: string
+}
+
+export interface BackgroundStyles {
+  gradient: BackgroundStyleCategory[]
+  geometric: BackgroundStyleCategory[]
+  abstract: BackgroundStyleCategory[]
+}
+
+export const layeredPptApi = {
+  /**
+   * 获取可用的分层样式列表
+   */
+  async getStyles(): Promise<LayeredStyleInfo[]> {
+    const response = await axios.get(`${API_BASE}/layered/styles`)
+    return response.data
+  },
+
+  /**
+   * 获取所有背景样式
+   */
+  async getBackgroundStyles(): Promise<BackgroundStyles> {
+    const response = await axios.get(`${API_BASE}/layered/backgrounds`)
+    return response.data
+  },
+
+  /**
+   * 生成分层 PPT 并下载
+   */
+  async generateAndDownload(request: LayeredPresentationRequest): Promise<void> {
+    const response = await axios.post(`${API_BASE}/layered/generate`, request, {
+      responseType: 'blob',
+    })
+    
+    // 创建下载链接
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = request.filename || 'presentation.pptx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  },
+
+  /**
+   * 预览单个幻灯片背景
+   */
+  async previewSlide(request: LayeredSlideRequest): Promise<string> {
+    const response = await axios.post(`${API_BASE}/layered/preview`, request, {
+      responseType: 'blob',
+    })
+    
+    const blob = new Blob([response.data], { type: 'image/png' })
+    return URL.createObjectURL(blob)
+  },
+}
+
 export default pptApi
