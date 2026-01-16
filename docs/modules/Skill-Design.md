@@ -164,7 +164,7 @@ description: 深度研究能力，支持多源搜索、信息聚合、引用回�
 version: 1.0.0
 author: system
 tags: [research, search, analysis]
-allowed_tools: [web_search, read_url, create_doc]
+allowed_tools: [web_search, read_url, browser_open, browser_click, browser_screenshot, create_doc]
 max_iterations: 20
 timeout: 300
 ---
