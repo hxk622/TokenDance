@@ -53,6 +53,26 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false
     }
   },
+  {
+    path: '/ppt/edit/:id',
+    name: 'PPTEdit',
+    component: () => import('@/views/PPTEditView.vue'),
+    props: true,
+    meta: {
+      title: 'Edit PPT - TokenDance',
+      requiresAuth: false
+    }
+  },
+  {
+    path: '/ppt/preview/:id',
+    name: 'PPTPreview',
+    component: () => import('@/views/PPTEditView.vue'),  // 复用编辑页，后续可单独创建
+    props: true,
+    meta: {
+      title: 'Preview PPT - TokenDance',
+      requiresAuth: false
+    }
+  },
   // TODO: Add more routes
   // {
   //   path: '/login',
