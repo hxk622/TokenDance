@@ -341,3 +341,53 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ============================================
+   Accessibility - Reduced Motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-breath,
+  .vibe-pulse::after,
+  .vibe-energy-line,
+  .vibe-spinner,
+  .vibe-dots span,
+  .vibe-skeleton {
+    animation: none;
+  }
+
+  .vibe-hover-lift:hover {
+    transform: none;
+  }
+
+  .vibe-active-press:active {
+    transform: none;
+  }
+
+  .vibe-fade-enter-active,
+  .vibe-fade-leave-active,
+  .vibe-slide-up-enter-active,
+  .vibe-slide-up-leave-active,
+  .vibe-scale-enter-active,
+  .vibe-scale-leave-active {
+    transition: none;
+  }
+}
+
+/* ============================================
+   Accessibility - Focus States
+   ============================================ */
+
+.vibe-focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--vibe-bg-primary), 0 0 0 4px var(--vibe-primary);
+}
+
+.vibe-focus-ring:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.vibe-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--vibe-bg-primary), 0 0 0 4px var(--vibe-primary);
+}

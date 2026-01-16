@@ -390,7 +390,7 @@ onUnmounted(() => {
             class="suggestion-item"
             @click="handleSuggestionClick(suggestion)"
           >
-            <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <span>{{ suggestion }}</span>
@@ -679,7 +679,7 @@ onUnmounted(() => {
 }
 
 .trinity-desc {
-  @apply text-xs text-slate-400 mt-1;
+  @apply text-xs text-slate-500 mt-1;
 }
 
 /* Featured Card (Deep Research 强调) */
@@ -754,9 +754,9 @@ onUnmounted(() => {
 
 .main-input {
   @apply flex-1 py-3.5
-         text-base text-gray-900 placeholder-slate-400
-         bg-transparent border-none
-         focus:outline-none;
+         text-base text-gray-900 placeholder-slate-500
+         bg-transparent border-none;
+  /* Focus handled by parent .input-wrapper focus-within */
 }
 
 .input-submit {

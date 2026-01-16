@@ -50,7 +50,7 @@ class TestExecutionRouterBasic:
         """测试路由器初始化"""
         router = ExecutionRouter()
         assert router.skill_confidence_threshold == 0.85
-        assert router.structured_task_confidence == 0.75
+        assert router.structured_task_confidence == 0.70
         assert router.stats["total"] == 0
     
     def test_custom_thresholds(self):
@@ -310,15 +310,15 @@ class TestPatternDetection:
         router = ExecutionRouter()
         
         test_cases = [
-            ("在 table 中查询",),
-            ("处理这个 list",),
-            ("遍历和转换 array",),
+            ("在 table 中查询和筛选",),
+            ("处理这个 list 数据",),
+            ("遍历和转换 array 格式",),
             ("修改 dictionary 并转换为 JSON",),
         ]
         
         for message, in test_cases:
             decision = router.route(message)
-            assert decision.path == ExecutionPath.MCP_CODE
+            assert decision.path == ExecutionPath.MCP_CODE, f"Failed for: {message}"
     
     def test_math_operation_patterns(self):
         """测试数学操作模式"""

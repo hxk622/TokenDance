@@ -82,7 +82,7 @@ class ExecutionRouter:
         skill_matcher=None,
         skill_executor=None,
         skill_confidence_threshold: float = 0.85,
-        structured_task_confidence: float = 0.75,
+        structured_task_confidence: float = 0.70,
     ):
         """
         初始化路由器
