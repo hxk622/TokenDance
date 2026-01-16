@@ -111,6 +111,15 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true
     }
   },
+  {
+    path: '/financial-test',
+    name: 'FinancialTest',
+    component: () => import('@/views/FinancialTest.vue'),
+    meta: {
+      title: 'Financial Test - TokenDance',
+      requiresAuth: false
+    }
+  },
 ]
 
 const router = createRouter({

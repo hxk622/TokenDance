@@ -37,7 +37,7 @@ class AgentConfig(Base):
     # Advanced Settings
     custom_system_prompt = Column(Text, nullable=True)
     additional_context = Column(Text, nullable=True)
-    metadata = Column(JSON, nullable=True, default=dict)
+    agent_metadata = Column(JSON, nullable=True, default=dict)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
