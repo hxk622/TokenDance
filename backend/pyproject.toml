@@ -123,6 +123,18 @@ science-all = [
     "sympy>=1.12",
 ]
 
+# =============================================================================
+# Financial Data Tools
+# Install with: uv pip install -e ".[finance]"
+# =============================================================================
+finance = [
+    "openbb>=4.0.0",           # OpenBB Platform - Global financial data
+    "akshare>=1.14.0",         # A-Stock market data (China)
+    "yfinance>=0.2.36",        # Yahoo Finance (backup provider)
+    "pandas>=2.0.0",           # Data manipulation
+    "mplfinance>=0.12.10b0",   # Financial charts (K-line)
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

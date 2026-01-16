@@ -1,0 +1,154 @@
+# =============================================================================
+# TokenDance Financial Data Compliance Configuration
+# =============================================================================
+# This file controls which data sources and domains can be accessed.
+# Modify with caution - ensure compliance with local laws and platform ToS.
+# =============================================================================
+
+compliance:
+  # Global switch for web crawling (sentiment data)
+  enable_web_crawling: true
+  
+  # =============================================================================
+  # Structured Data Sources (API-based, generally safe)
+  # =============================================================================
+  structured_data:
+    openbb:
+      enabled: true
+      description: "OpenBB Platform - Global financial data"
+      providers:
+        - yfinance    # Yahoo Finance (free, no API key)
+        - fmp         # Financial Modeling Prep (API key required)
+        - fred        # Federal Reserve Economic Data (API key required)
+        - polygon     # Polygon.io (API key required)
+        - alpha_vantage  # Alpha Vantage (API key required)
+        
+    akshare:
+      enabled: true
+      description: "AkShare - China A-Stock market data"
+      
+    tushare:
+      enabled: false
+      description: "Tushare Pro - China market data (requires token)"
+      
+  # =============================================================================
+  # Unstructured Data Sources (Web crawling, requires caution)
+  # =============================================================================
+  unstructured_data:
+    # Mode: whitelist | blacklist | disabled
+    # - whitelist: Only domains in whitelist can be crawled
+    # - blacklist: All domains except blacklisted can be crawled
+    # - disabled: No crawling allowed
+    mode: whitelist
+    
+    # ---------------------------------------------------------------------
+    # Whitelist - Domains allowed for crawling
+    # Only used when mode is "whitelist"
+    # ---------------------------------------------------------------------
+    whitelist:
+      - domain: xueqiu.com
+        enabled: true
+        rate_limit: 5   # requests per minute
+        description: "雪球 - 投资者社区"
+        paths:
+          - /S/*        # Stock discussions
+          - /search/*   # Search results
+          
+      - domain: guba.eastmoney.com
+        enabled: true
+        rate_limit: 10
+        description: "东方财富股吧 - 股票论坛"
+        paths:
+          - /list,*.html
+          - /news,*.html
+          
+      - domain: finance.sina.com.cn
+        enabled: true
+        rate_limit: 20
+        description: "新浪财经 - 财经新闻"
+        paths:
+          - /stock/*
+          - /money/*
+          
+      - domain: cls.cn
+        enabled: true
+        rate_limit: 10
+        description: "财联社 - 实时财经快讯"
+        paths:
+          - /detail/*
+          - /telegraph/*
+          
+      - domain: wallstreetcn.com
+        enabled: true
+        rate_limit: 10
+        description: "华尔街见闻 - 全球财经"
+        paths:
+          - /articles/*
+          - /news/*
+          
+    # ---------------------------------------------------------------------
+    # Blacklist - Domains explicitly forbidden
+    # These will be blocked regardless of mode
+    # ---------------------------------------------------------------------
+    blacklist:
+      - domain: weibo.com
+        reason: "ToS prohibits crawling, high legal risk"
+        
+      - domain: xiaohongshu.com
+        reason: "Non-financial platform, aggressive anti-crawl"
+        
+      - domain: douyin.com
+        reason: "Video platform, anti-crawl measures"
+        
+      - domain: zhihu.com
+        reason: "ToS prohibits crawling for commercial use"
+        
+      - domain: toutiao.com
+        reason: "ByteDance platform, ToS restrictions"
+        
+  # =============================================================================
+  # Crawling Rules
+  # =============================================================================
+  crawling_rules:
+    # Respect robots.txt (recommended: true)
+    respect_robots_txt: true
+    
+    # Maximum concurrent requests
+    max_concurrent_requests: 3
+    
+    # Default delay between requests (seconds)
+    default_delay: 2
+    
+    # User agent string
+    user_agent: "TokenDance/1.0 (Financial Research Bot; +https://tokendance.ai/bot)"
+    
+    # Request timeout (seconds)
+    timeout: 30
+    
+    # Retry configuration
+    max_retries: 3
+    retry_delay: 5
+    
+  # =============================================================================
+  # Data Retention
+  # =============================================================================
+  data_retention:
+    # Raw crawled data TTL
+    raw_data_ttl_days: 7
+    
+    # Processed/analyzed data TTL
+    processed_data_ttl_days: 30
+    
+    # Cache TTL for API responses (seconds)
+    api_cache_ttl_seconds: 300  # 5 minutes
+    
+  # =============================================================================
+  # Disclaimer (Required for all outputs)
+  # =============================================================================
+  disclaimer: |
+    免责声明：
+    本工具仅用于投资研究辅助，不构成任何投资建议。
+    采集的舆情数据仅供参考，用户应自行判断其准确性和可靠性。
+    用户应自行遵守相关法律法规和平台服务条款。
+    TokenDance 不对数据的准确性、完整性和合规性承担任何责任。
+    投资有风险，入市需谨慎。
