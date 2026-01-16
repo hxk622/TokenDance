@@ -19,14 +19,27 @@ from .backgrounds import (
     BackgroundStyle,
     GradientConfig,
     GeometricConfig,
+    WaveConfig,
+    ParticleConfig,
 )
 from .decorations import (
     DecorationGenerator,
     DecorationStyle,
+    DecorationConfig,
     ShapeDecoration,
 )
-from .compositor import LayerCompositor
-from .generator import LayeredSlideGenerator
+from .compositor import (
+    LayerCompositor,
+    CompositeSpec,
+    CompositePresets,
+    LayerSpec,
+    TextZone,
+)
+from .generator import (
+    LayeredSlideGenerator,
+    LayeredSlideStyle,
+    LayeredSlideContent,
+)
 
 __all__ = [
     # Backgrounds
@@ -34,12 +47,21 @@ __all__ = [
     "BackgroundStyle",
     "GradientConfig",
     "GeometricConfig",
+    "WaveConfig",
+    "ParticleConfig",
     # Decorations
     "DecorationGenerator",
     "DecorationStyle",
+    "DecorationConfig",
     "ShapeDecoration",
     # Compositor
     "LayerCompositor",
+    "CompositeSpec",
+    "CompositePresets",
+    "LayerSpec",
+    "TextZone",
     # Generator
     "LayeredSlideGenerator",
+    "LayeredSlideStyle",
+    "LayeredSlideContent",
 ]

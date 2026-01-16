@@ -1182,7 +1182,365 @@ export interface DoneEvent {
 }
 ```
 
-## 6. 附录
+## 6. Agent 执行时序图
+
+### 6.1 完整任务执行流程
+
+从前端意图卡片到最终结果的完整时序：
+
+```
+┌────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│  Frontend  │  │   API/WS    │  │ AgentEngine │  │   Sandbox   │  │   Storage   │
+└──────┬─────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │              │              │              │              │
+       │  1. 选择意图卡片  │              │              │              │
+       │  (市场调研)     │              │              │              │
+       ├───────────────▶│              │              │              │
+       │              │              │              │              │
+       │  2. POST /chat/message       │              │              │
+       │  + template_vars             │              │              │
+       │              ├──────────────▶│              │              │
+       │              │              │              │              │
+       │              │  3. Skill 匹配 │              │              │
+       │              │  + L2 加载     │              │              │
+       │              │              │              │              │
+       │              │  4. Plan 生成  │              │              │
+       │              │  (原子化拆分)   ├────────────────────────────▶│
+       │              │              │              │  存 task_plan │
+       │◀──── SSE: thinking ────┤              │              │
+       │              │              │              │              │
+       │              │  5. Reasoning Loop           │              │
+       │              │  ┌────────────┐             │              │
+       │              │  │  Think     │             │              │
+       │              │  │     ↓      │             │              │
+       │              │  │  Decide    │             │              │
+       │              │  │     ↓      │             │              │
+       │              │  │  Act       │────────────▶│              │
+       │              │  │     ↓      │  6. 执行代码  │              │
+       │              │  │  Observe   │◀────────────┤              │
+       │              │  └────┬───────┘             │              │
+       │              │       │                    │              │
+       │◀──── SSE: tool_call ───┤                    │              │
+       │              │       │                    │              │
+       │              │  7. 2-Action Rule:          │              │
+       │              │  每2次重大操作后───────────────────▶│
+       │              │  写入 findings.md             │  存 findings │
+       │              │       │                    │              │
+       │              │  8. HITL 检查 │                    │              │
+       │◀── SSE: confirm_required ─┤                    │              │
+       │              │       │                    │              │
+       │  9. 用户确认   │       │                    │              │
+       ├──────────────▶│       │                    │              │
+       │              ├──────▶│                    │              │
+       │              │       │                    │              │
+       │              │  10. 继续执行...              │              │
+       │              │       │                    │              │
+       │              │  11. Check-and-Stop          │              │
+       │              │  (任务完成检查)  │                    │              │
+       │              │       │                    │              │
+       │              │  12. 更新 progress.md─────────────▶│
+       │              │       │                    │  存 progress │
+       │              │       │                    │              │
+       │              │  13. 生成 Artifact            │              │
+       │              │       ├────────────────────────────▶│
+       │              │       │                    │  存 MinIO    │
+       │              │       │                    │              │
+       │◀──── SSE: artifact ────┤                    │              │
+       │              │       │                    │              │
+       │              │  14. Memory 提取              │              │
+       │              │       ├────────────────────────────▶│
+       │              │       │                    │ pgvector/Neo4j│
+       │              │       │                    │              │
+       │◀──── SSE: done ───────┤                    │              │
+       │              │       │                    │              │
+       │  15. UI 渲染   │       │                    │              │
+       │  - Artifact   │       │                    │              │
+       │  - 时光长廊    │       │                    │              │
+       │  - 三文件预览  │       │                    │              │
+       │              │              │              │              │
+       ▼              ▼              ▼              ▼              ▼
+```
+
+### 6.2 关键阶段说明
+
+| 阶段 | 组件 | 操作 | 说明 |
+|------|------|------|------|
+| 1-2 | Frontend | 意图卡片 → API | 用户选择场景模板，填充变量 |
+| 3-4 | AgentEngine | Skill匹配 + Plan | L2指令加载，原子化拆分任务 |
+| 5-6 | AgentEngine + Sandbox | Reasoning Loop | Think→Decide→Act→Observe |
+| 7 | WorkingMemory | 2-Action Rule | 每2次重大操作写findings |
+| 8-9 | HITL | 风险确认 | 高风险操作用户确认 |
+| 11 | AgentEngine | Check-and-Stop | TODO全完成才结束 |
+| 12 | WorkingMemory | progress更新 | 自动记录执行日志 |
+| 13 | ArtifactService | 产出物生成 | PPT/Report/Code |
+| 14 | Memory | 经验提取 | Session结束后提取记忆 |
+| 15 | Frontend | UI渲染 | Artifact预览、时光长廊、三文件 |
+
+## 7. Memory 分层架构 (冷/热分离)
+
+### 7.1 三层存储策略
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                        Memory Architecture                         │
+├───────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ┌───────────────────┐     HOT LAYER (热层)                          │
+│   │      Redis       │     TTL: 分钟~小时级                           │
+│   │   (Working Mem)  │     存储: 当前会话状态、HITL请求、实时上下文        │
+│   └─────────┬─────────┘                                               │
+│             │                                                       │
+│             │  Session结束 / TTL过期                                  │
+│             ▼                                                       │
+│   ┌───────────────────┐     WARM LAYER (温层)                         │
+│   │   PostgreSQL     │     TTL: 天~周级                               │
+│   │   + pgvector     │     存储: 会话历史、消息、Artifact元数据          │
+│   │   (Episode Mem)  │     向量: 消息嵌入(1536d)、语义搜索               │
+│   └─────────┬─────────┘                                               │
+│             │                                                       │
+│             │  定期提取 / 重要事件触发                                 │
+│             ▼                                                       │
+│   ┌───────────────────┐     COLD LAYER (冷层)                          │
+│   │      Neo4j       │     TTL: 永久                                 │
+│   │  (Long-term Mem) │     存储: 用户偏好、知识图谱、决策轨迹             │
+│   │  (Context Graph) │     关系: 概念关联、因果链、经验网络             │
+│   └───────────────────┘                                               │
+│                                                                     │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 各层职责与协作
+
+#### Redis (热层 - Working Memory)
+
+```python
+# 存储内容
+class RedisWorkingMemory:
+    """
+    Key Schema:
+    - wm:{session_id}:context     # 当前上下文 (JSON)
+    - wm:{session_id}:todo        # TODO列表 (Plan Recitation)
+    - wm:{session_id}:findings    # 临时findings (2-Action Rule)
+    - hitl:{request_id}           # HITL请求 (TTL 5min)
+    - lock:{session_id}           # 分布式锁
+    
+    TTL: 1小时 (Session结束后延长)
+    """
+    
+    async def save_context(self, session_id: str, context: dict):
+        """Session执行期间频繁读写"""
+        await self.redis.set(
+            f"wm:{session_id}:context",
+            json.dumps(context),
+            ex=3600  # 1h TTL
+        )
+    
+    async def flush_to_postgres(self, session_id: str):
+        """Session结束时刷入PostgreSQL"""
+        context = await self.redis.get(f"wm:{session_id}:context")
+        await self.pg.update_session_context(session_id, context)
+        await self.redis.delete(f"wm:{session_id}:*")
+```
+
+#### PostgreSQL + pgvector (温层 - Episode Memory)
+
+```python
+# 存储内容
+class PostgresEpisodeMemory:
+    """
+    Tables:
+    - sessions           # 会话元数据
+    - messages           # 完整对话历史
+    - artifacts          # 产出物记录
+    - message_embeddings # 消息向量 (pgvector)
+    
+    索引策略:
+    - B-tree: session_id, user_id, created_at
+    - IVFFlat: embedding (vector_cosine_ops)
+    """
+    
+    async def semantic_search(
+        self, 
+        user_id: str, 
+        query_embedding: List[float],
+        limit: int = 10
+    ) -> List[Message]:
+        """跨Session语义搜索历史消息"""
+        return await self.db.execute("""
+            SELECT m.*, 1 - (e.embedding <=> $1) as similarity
+            FROM messages m
+            JOIN message_embeddings e ON m.id = e.message_id
+            JOIN sessions s ON m.session_id = s.id
+            WHERE s.user_id = $2
+            ORDER BY similarity DESC
+            LIMIT $3
+        """, query_embedding, user_id, limit)
+    
+    async def extract_to_neo4j(self, user_id: str, session_id: str):
+        """Session结束后提取知识到Neo4j"""
+        # 1. 获取Session摘要
+        summary = await self.get_session_summary(session_id)
+        
+        # 2. 提取关键实体和关系
+        entities = await self.llm.extract_entities(summary)
+        
+        # 3. 写入Neo4j
+        await self.neo4j.create_knowledge_nodes(user_id, entities)
+```
+
+#### Neo4j (冷层 - Long-term Memory & Context Graph)
+
+```python
+# 存储内容
+class Neo4jLongTermMemory:
+    """
+    Node Types:
+    - User           # 用户节点
+    - Preference     # 偏好 (风格、行业、工具)
+    - Knowledge      # 知识点 (概念、事实)
+    - Decision       # 决策节点 (操作、结果、原因)
+    - Skill          # 技能节点
+    
+    Relationship Types:
+    - PREFERS        # User -[:PREFERS]-> Preference
+    - KNOWS          # User -[:KNOWS]-> Knowledge
+    - DECIDED        # User -[:DECIDED]-> Decision
+    - CAUSED_BY      # Decision -[:CAUSED_BY]-> Decision
+    - RELATED_TO     # Knowledge -[:RELATED_TO]-> Knowledge
+    - USED_SKILL     # Decision -[:USED_SKILL]-> Skill
+    """
+    
+    async def record_decision(
+        self,
+        user_id: str,
+        decision: DecisionRecord
+    ):
+        """Keep the Failures: 记录所有决策（包括失败）"""
+        await self.db.run("""
+            MATCH (u:User {id: $user_id})
+            CREATE (d:Decision {
+                id: $decision_id,
+                action: $action,
+                params: $params,
+                outcome: $outcome,
+                success: $success,
+                reason: $reason,
+                timestamp: datetime()
+            })
+            CREATE (u)-[:DECIDED]->(d)
+            
+            // 如果有前置决策，建立因果链
+            WITH d
+            MATCH (prev:Decision {id: $previous_decision_id})
+            WHERE $previous_decision_id IS NOT NULL
+            CREATE (d)-[:CAUSED_BY]->(prev)
+        """, {
+            "user_id": user_id,
+            "decision_id": decision.id,
+            "action": decision.action,
+            "params": json.dumps(decision.params),
+            "outcome": decision.outcome,
+            "success": decision.success,
+            "reason": decision.reason,
+            "previous_decision_id": decision.previous_id
+        })
+    
+    async def get_similar_decisions(
+        self,
+        user_id: str,
+        action: str,
+        context: str
+    ) -> List[DecisionRecord]:
+        """查找类似情境下的历史决策（用于学习）"""
+        return await self.db.run("""
+            MATCH (u:User {id: $user_id})-[:DECIDED]->(d:Decision)
+            WHERE d.action = $action
+            RETURN d
+            ORDER BY d.timestamp DESC
+            LIMIT 10
+        """, {"user_id": user_id, "action": action})
+```
+
+### 7.3 数据流转策略
+
+```
+┌───────────────────────────────────────────────────────────┐
+│                   Memory Data Flow                              │
+└───────────────────────────────────────────────────────────┘
+
+                    ┌─────────────────┐
+                    │   User Input    │
+                    └────────┬────────┘
+                            │
+                            ▼
+              ┌─────────────────────────┐
+              │         Redis           │  ←─ 实时读写
+              │    (Working Memory)     │
+              └────────────┬────────────┘
+                           │
+          ┌──────────────┤  Session结束时
+          │              ▼
+          │  ┌─────────────────────────┐
+          │  │  PostgreSQL + pgvector  │  ←─ 持久化存储
+          │  │    (Episode Memory)    │
+          │  └────────────┬────────────┘
+          │               │
+ 语义搜索  │               │  定时提取 / 重要事件
+          │               ▼
+          │  ┌─────────────────────────┐
+          │  │         Neo4j           │  ←─ 永久知识
+          │  │ (Long-term + Graph)    │
+          │  └─────────────────────────┘
+          │               │
+          └───────────────┘  回查历史决策
+```
+
+### 7.4 读取优先级
+
+```python
+class UnifiedMemoryService:
+    """统一内存服务 - 按优先级查询"""
+    
+    async def recall(
+        self,
+        user_id: str,
+        session_id: str,
+        query: str
+    ) -> MemoryContext:
+        """Multi-layer memory recall"""
+        
+        # 1. HOT: Redis当前Session上下文
+        working = await self.redis.get_context(session_id)
+        if working:
+            return MemoryContext(source="redis", data=working)
+        
+        # 2. WARM: PostgreSQL语义搜索近期会话
+        query_embedding = await self.embed(query)
+        episodes = await self.pg.semantic_search(
+            user_id, 
+            query_embedding,
+            days=30  # 近30天
+        )
+        
+        # 3. COLD: Neo4j查询相关知识和历史决策
+        knowledge = await self.neo4j.query_related(
+            user_id,
+            entities=self.extract_entities(query)
+        )
+        decisions = await self.neo4j.get_similar_decisions(
+            user_id,
+            action=self.infer_action(query)
+        )
+        
+        return MemoryContext(
+            working=working,
+            episodes=episodes,
+            knowledge=knowledge,
+            past_decisions=decisions
+        )
+```
+
+## 8. 附录
 
 ### A. 相关文档
 

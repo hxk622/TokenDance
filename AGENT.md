@@ -26,6 +26,31 @@ MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Genera
 
 > 详见 [VisionAndMission.md](./docs/product/VisionAndMission.md)
 
+### 垂直场景战略
+
+#### 金融投研场景
+
+**一句话定位**:
+> "TokenDance 金融版：不是替你炒股，而是让投研效率提升 10 倍的协作工作台"
+
+**核心原则**:
+1. **不做报告生成器** - BettaFish 已经能做，我们要做差异化
+2. **发挥 Vibe Workflow 优势** - 让投研过程可视化、可干预、有氛围感
+3. **强调人机协作** - 不是 AI 替代分析师，而是 AI 增强分析师
+4. **合规第一** - 只做"工具"，不做"投顾"
+
+**与竞品差异**:
+- BettaFish: 报告导向（提问 → 等报告）
+- TokenDance: 协作导向（Vibe 投研工作台 - 和 AI 一起研究，实时干预）
+
+**禁止事项**:
+- ❌ 预测具体股价
+- ❌ 给出明确买卖建议
+- ❌ 承诺收益率
+- ❌ 涉及内幕信息
+
+> 详见 `backend/app/skills/builtin/deep_research/resources/financial_research_template.md`
+
 ## 核心架构原则
 - **Plan Recitation**: TODO列表追加到Context末尾，防止Lost-in-the-Middle
 - **Dual Context Streams**: 摘要入Context（Working Memory），全量存文件系统（File System）
