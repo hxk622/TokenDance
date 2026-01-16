@@ -28,6 +28,18 @@
       @pause="handleNodePause"
       @resume="handleNodeResume"
     />
+    
+    <!-- Node Hover Controls (mini-buttons) -->
+    <NodeHoverControls
+      :visible="tooltipState.visible"
+      :node-id="tooltipState.nodeId"
+      :status="tooltipState.status"
+      :x="tooltipState.x"
+      :y="tooltipState.y"
+      @pause="handleNodePause"
+      @resume="handleNodeResume"
+      @skip="handleNodeSkip"
+    />
   </div>
 </template>
 
@@ -37,6 +49,7 @@ import * as d3 from 'd3'
 import { useExecutionStore } from '@/stores/execution'
 import NodeTooltip from './workflow/NodeTooltip.vue'
 import NodeContextMenu from './workflow/NodeContextMenu.vue'
+import NodeHoverControls from './workflow/NodeHoverControls.vue'
 
 interface Props {
   sessionId: string
