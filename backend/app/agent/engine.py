@@ -16,8 +16,10 @@ Agent Engine - 核心执行循环 (状态机驱动)
 from typing import Optional, Dict, List, Any, AsyncGenerator
 from dataclasses import dataclass, field
 import asyncio
+import time
+from datetime import datetime
 
-from app.agent.context_manager import ContextManager
+from app.agent.context_manager import ContextManager, Message as CtxMessage
 from app.agent.executor import ToolCallExecutor
 from app.agent.tools.registry import ToolRegistry
 from app.agent.working_memory.three_files import ThreeFilesManager
@@ -45,6 +47,14 @@ from app.agent.failure import (
     FailureSummary,
     ExitCode,
 )
+# Root cause analysis & pattern KB
+from app.agent.failure.root_cause import RootCauseAnalyzer
+from app.agent.failure.pattern_kb import FailurePatternKB
+# Strategy adaptation
+from app.agent.strategy.adaptation import StrategyAdaptation
+# Distributed memory & feedback
+from app.agent.long_memory.distributed import DistributedMemory, Lesson
+from app.agent.feedback.loop import FeedbackLoop, UserFeedback
 
 # Skill System imports
 from app.skills import (
@@ -73,6 +83,13 @@ from app.mcp.executor import (
     ExecutionRequest,
     ExecutionLanguage,
     get_mcp_executor,
+)
+
+# Policies (Dynamic iteration, compression, token budget)
+from app.agent.policies import (
+    DynamicIterationPolicy,
+    ContextCompressor,
+    TokenBudgetManager,
 )
 
 logger = get_logger(__name__)
@@ -113,7 +130,7 @@ class AgentEngine:
         filesystem: AgentFileSystem,
         workspace_id: str,
         session_id: str,
-        max_iterations: int = 20,
+        max_iterations: int = 20,  # legacy fallback; dynamic policy preferred
         enable_skills: bool = True,
     ):
         """
@@ -165,6 +182,8 @@ class AgentEngine:
                 log_entry=entry, is_error=True
             )
         )
+        # 注册失败回调（阶段2/3集成点）
+        self.failure_observer.register_callback(lambda s: self._on_failure_signal(s))
         
         # 初始化 Skill 系统
         self.skill_registry = None
@@ -186,14 +205,39 @@ class AgentEngine:
         self.unified_context = get_unified_context(session_id=session_id)
         self.mcp_executor = get_mcp_executor()
         
+        # 阶段2/3组件
+        self.pattern_kb = FailurePatternKB(filesystem)
+        self.root_cause_analyzer = RootCauseAnalyzer()
+        self.strategy_adapter = StrategyAdaptation(self.execution_router)
+        self.distributed_memory = DistributedMemory(filesystem)
+        self.feedback_loop = FeedbackLoop(filesystem)
+        
         # 状态
         self.iteration_count = 0
         self._current_skill_match: Optional[SkillMatch] = None
         self._last_exit_code: Optional[int] = None  # 铁律四: 记录最后退出码
         
+        # -----------------------------------------------------------------
+        # Policies: 动态迭代 / Context 压缩 / Token 预算
+        # -----------------------------------------------------------------
+        self.iteration_policy = DynamicIterationPolicy(
+            base_budget=30,
+            max_iterations=100,
+            available_time_seconds=300.0,
+            context_window_limit=self.context_manager.max_context_tokens,
+        )
+        self.context_compressor = ContextCompressor(
+            context_window_limit=self.context_manager.max_context_tokens,
+        )
+        self.token_budget = TokenBudgetManager(
+            total_budget=self.context_manager.max_context_tokens,
+            reserved_ratio=0.20,
+            min_iteration_budget=2000,
+        )
+
         logger.info(
             f"Agent Engine initialized for session {session_id} "
-            f"(skills={enable_skills}, state_machine=enabled)"
+            f"(skills={enable_skills}, state_machine=enabled, dynamic_policies=on)"
         )
     
     def _init_skill_system(self) -> None:
@@ -232,6 +276,9 @@ class AgentEngine:
             AgentResponse: Agent 响应
         """
         logger.info(f"=== Agent Run Started (State Machine) ===")
+        run_started_at = time.perf_counter()
+        # 基于任务描述计算动态迭代预算（用于日志与监控）
+        _ = self.iteration_policy.calculate_budget(user_message)
         logger.info(f"User message: {user_message}")
         logger.info(f"Initial state: {self.state_machine.current_state.value}")
         
@@ -262,11 +309,23 @@ class AgentEngine:
             self.iteration_count += 1
             logger.info(f"--- Iteration {self.iteration_count} (State: {self.state_machine.current_state.value}) ---")
             
-            # 检查迭代次数限制
-            if self.iteration_count > self.max_iterations:
-                logger.warning(f"Max iterations ({self.max_iterations}) reached")
+            # 动态继续条件检查（替代硬编码 max_iterations）
+            tokens = self.context_manager.get_token_usage()
+            elapsed = time.perf_counter() - run_started_at
+            should_continue, reason = self.iteration_policy.should_continue(
+                iteration=self.iteration_count,
+                context_tokens_used=tokens.get("total", 0),
+                has_fatal_error=False,
+                elapsed_seconds=elapsed,
+            )
+            if not should_continue:
+                logger.warning(f"Stopping due to policy: {reason} "
+                               f"(elapsed={elapsed:.1f}s, tokens={tokens.get('total',0)})")
                 self.state_machine.transition(Signal.MAX_ITERATIONS)
                 break
+
+            # 当接近上下文阈值时尝试压缩
+            self._maybe_compress_context(tokens.get("total", 0))
             
             # 根据当前状态执行操作
             current_state = self.state_machine.current_state
@@ -283,10 +342,23 @@ class AgentEngine:
                 
                 # 更新 token 使用量
                 if llm_response.usage:
+                    in_tok = llm_response.usage.get("input_tokens", 0)
+                    out_tok = llm_response.usage.get("output_tokens", 0)
                     self.context_manager.update_token_usage(
-                        input_tokens=llm_response.usage.get("input_tokens", 0),
-                        output_tokens=llm_response.usage.get("output_tokens", 0)
+                        input_tokens=in_tok,
+                        output_tokens=out_tok,
                     )
+                    # 同步到 TokenBudgetManager
+                    self.token_budget.record_usage(in_tok, out_tok)
+
+                    # 检查是否需要切换到摘要模式/压缩
+                    switch, reason = self.token_budget.should_switch_to_summary_mode()
+                    if switch:
+                        logger.warning(f"Switching to summary mode: {reason}")
+                        self._maybe_compress_context(
+                            self.context_manager.get_token_usage().get("total", 0),
+                            force_aggressive=True,
+                        )
                 
                 # 提取推理过程
                 last_reasoning = self.executor.extract_reasoning(llm_response.content)
@@ -385,14 +457,25 @@ class AgentEngine:
                 pass
             
             elif current_state == AgentState.REFLECTING:
-                # 反怕状态：读取失败摘要，准备重新规划
+                # 反思状态：读取失败摘要，准备重新规划（阶段2集成）
                 failure_summary = self.failure_observer.get_failure_summary_for_context()
                 if failure_summary:
-                    # 注入失败摘要到 Context (Plan Recitation)
                     self.context_manager.add_user_message(
                         f"[System] 请根据以下失败记录调整策略:\n{failure_summary}"
                     )
-                
+                # 根因分析 + 策略自适应
+                root = self.root_cause_analyzer.analyze(self.failure_observer.all_failures)
+                if root:
+                    strategies_text = "\n".join([f"- {s}" for s in root.strategies])
+                    self.context_manager.add_user_message(
+                        f"[Analyzer] 根因: {root.category} (置信度 {root.confidence:.2f})\n建议策略:\n{strategies_text}"
+                    )
+                    decision = self.strategy_adapter.apply(root)
+                    # 记录到进度
+                    self.three_files.update_progress(
+                        log_entry=f"🧭 Strategy adapted: {decision.summary} ({decision.notes})",
+                        is_error=False,
+                    )
                 # 转移到重新规划
                 self.state_machine.transition(Signal.REFLECTION_DONE)
             
@@ -414,6 +497,8 @@ class AgentEngine:
         logger.info(f"=== Agent Run Completed (State: {final_state.value}) ===")
         
         if final_state == AgentState.SUCCESS:
+            # 阶段3：在结束时沉淀经验
+            self._store_session_lessons(final_state.value)
             return AgentResponse(
                 answer="任务已成功完成",
                 token_usage=self.context_manager.get_token_usage(),
@@ -422,12 +507,16 @@ class AgentEngine:
         elif final_state == AgentState.FAILED:
             # 生成失败报告
             stats = self.failure_observer.get_statistics()
+            # 阶段3：沉淀经验
+            self._store_session_lessons(final_state.value)
             return AgentResponse(
                 answer=f"任务执行失败。失败次数: {stats['total_failures']}",
                 token_usage=self.context_manager.get_token_usage(),
                 iterations=self.iteration_count
             )
         elif final_state == AgentState.TIMEOUT:
+            # 阶段3：沉淀经验
+            self._store_session_lessons(final_state.value)
             return AgentResponse(
                 answer="任务超时，请尝试将任务拆分为更小的子任务。",
                 token_usage=self.context_manager.get_token_usage(),
@@ -628,6 +717,89 @@ class AgentEngine:
             "last_exit_code": self._last_exit_code,
         }
     
+    def _on_failure_signal(self, signal: FailureSignal) -> None:
+        """失败回调：记录到模式库，并尝试直接给出已知修复方案"""
+        try:
+            # 记录到知识库
+            self.pattern_kb.record(signal)
+            # 如果已存在成功修复方案，直接注入提示
+            solution = self.pattern_kb.get_solution(signal)
+            if solution:
+                self.context_manager.add_user_message(
+                    f"[KB] 检测到已知失败模式，建议直接应用方案：{solution}"
+                )
+        except Exception as e:
+            logger.error(f"Failure callback error: {e}")
+
+    def _store_session_lessons(self, final_state: str) -> None:
+        """将本次会话的经验沉淀到分布式记忆"""
+        try:
+            stats = self.failure_observer.get_statistics()
+            total = stats.get("total_signals", 0)
+            failures = stats.get("total_failures", 0)
+            lesson_summary = (
+                f"本次会话结束状态: {final_state}. 操作总数 {total}, 失败 {failures}.\n"
+                f"最常见错误: {max(stats.get('by_type',{}), key=stats.get('by_type',{}).get) if stats.get('by_type') else 'N/A'}."
+            )
+            self.distributed_memory.store_lessons([
+                Lesson(
+                    title="Session Summary & Lessons",
+                    summary=lesson_summary,
+                    tags=["lessons", "robustness"],
+                    created_at=datetime.utcnow().isoformat() + "Z",  # type: ignore
+                )
+            ])
+        except Exception as e:
+            logger.error(f"Store lessons failed: {e}")
+
+    def _maybe_compress_context(self, current_tokens: int, force_aggressive: bool = False) -> None:
+        """在接近阈值时压缩上下文
+        
+        Args:
+            current_tokens: 当前使用的 token 数
+            force_aggressive: 是否强制激进压缩
+        """
+        try:
+            should, strategy = self.context_compressor.should_compress(current_tokens)
+            if force_aggressive:
+                should, strategy = True, "aggressive"
+            if not should:
+                return
+
+            # 序列化消息为 Dict 以便压缩
+            raw_messages: List[Dict[str, Any]] = []
+            for m in self.context_manager.messages:
+                raw_messages.append({
+                    "role": m.role,
+                    "content": m.content,
+                    "metadata": m.metadata or {},
+                })
+            compressed_messages, result = self.context_compressor.compress(
+                raw_messages,
+                current_tokens=current_tokens,
+                strategy=strategy,
+            )
+
+            # 反序列化写回 ContextManager
+            self.context_manager.messages = [
+                CtxMessage(role=msg.get("role","user"), content=msg.get("content",""), metadata=msg.get("metadata"))
+                for msg in compressed_messages
+            ]
+
+            # 在 progress 中记录
+            self.three_files.update_progress(
+                log_entry=(
+                    f"🪶 Context compressed via {result.strategy_used}: "
+                    f"{result.tokens_before} → {result.tokens_after} (saved {result.tokens_saved})"
+                ),
+                is_error=False,
+            )
+            logger.info(
+                f"Context compressed: {result.tokens_before}->{result.tokens_after} tokens"
+            )
+        except Exception as e:
+            logger.error(f"Context compression failed: {e}")
+
     def reset(self):
         """
         重置 Agent 状态（用于新对话）

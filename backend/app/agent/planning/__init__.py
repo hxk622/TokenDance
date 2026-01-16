@@ -12,10 +12,11 @@ Planning模块 - 计划管理
 - 工程核心：把1个60%成功率的大任务切碎成100个99.9%成功率的小任务
 """
 
-from .plan_manager import PlanManager, Task, Plan
+from .plan_manager import PlanManager, Task, Plan, TaskStatus
 
 __all__ = [
     "PlanManager",
     "Task",
     "Plan",
+    "TaskStatus",
 ]

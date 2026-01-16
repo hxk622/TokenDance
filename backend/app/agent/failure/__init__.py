@@ -23,6 +23,9 @@ from .observer import (
     FailureCallback,
 )
 
+from .root_cause import RootCauseAnalyzer, RootCause
+from .pattern_kb import FailurePatternKB, FailurePattern
+
 
 __all__ = [
     # Signal
@@ -35,4 +38,9 @@ __all__ = [
     "FailureObserver",
     "FailureReporter",
     "FailureCallback",
+    # Root cause & pattern KB (Phase 2)
+    "RootCauseAnalyzer",
+    "RootCause",
+    "FailurePatternKB",
+    "FailurePattern",
 ]

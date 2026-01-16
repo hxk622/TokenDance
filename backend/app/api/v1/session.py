@@ -7,8 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_current_user, get_permission_service
 from app.models.session import SessionStatus
+from app.models.user import User
 from app.services.session_service import SessionService
+from app.services.permission_service import PermissionService, PermissionError
 from app.schemas.session import (
     SessionCreate,
     SessionUpdate,
@@ -30,9 +33,20 @@ def get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:
 @router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session(
     data: SessionCreate,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Create a new session."""
+    # Check if user can create session in this workspace
+    try:
+        await permission_service.can_create_session(current_user, data.workspace_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     return await service.create_session(data)
 
 
@@ -42,9 +56,20 @@ async def list_sessions(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     status: Optional[SessionStatus] = Query(None, description="Filter by status"),
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """List sessions for a workspace with pagination."""
+    # Check workspace access
+    try:
+        await permission_service.check_workspace_access(current_user, workspace_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     return await service.list_sessions(
         workspace_id=workspace_id,
         limit=limit,
@@ -57,9 +82,20 @@ async def list_sessions(
 async def get_session(
     session_id: str,
     include_details: bool = Query(False, description="Include detailed info"),
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Get session by ID."""
+    # Check session access
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     session = await service.get_session(session_id, include_details=include_details)
     
     if not session:
@@ -75,9 +111,20 @@ async def get_session(
 async def update_session(
     session_id: str,
     data: SessionUpdate,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Update session."""
+    # Check session access
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     session = await service.update_session(session_id, data)
     
     if not session:
@@ -92,9 +139,20 @@ async def update_session(
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_session(
     session_id: str,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Delete session."""
+    # Check session access
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     success = await service.delete_session(session_id)
     
     if not success:
@@ -107,9 +165,20 @@ async def delete_session(
 @router.post("/{session_id}/complete", response_model=SessionResponse)
 async def complete_session(
     session_id: str,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Mark session as completed."""
+    # Check session access
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     session = await service.complete_session(session_id)
     
     if not session:
@@ -125,9 +194,20 @@ async def complete_session(
 async def get_session_messages(
     session_id: str,
     limit: Optional[int] = Query(None, ge=1, le=1000, description="Max messages to return"),
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Get messages for a session."""
+    # Check session access
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     # Verify session exists
     session = await service.get_session(session_id)
     if not session:
@@ -142,9 +222,20 @@ async def get_session_messages(
 @router.get("/{session_id}/artifacts", response_model=ArtifactList)
 async def get_session_artifacts(
     session_id: str,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
     """Get artifacts for a session."""
+    # Check session access
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    
     # Verify session exists
     session = await service.get_session(session_id)
     if not session:

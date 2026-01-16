@@ -9,7 +9,10 @@ from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.repositories.workspace_repository import WorkspaceRepository
+from app.repositories.session_repository import SessionRepository
 from app.services.auth_service import AuthService
+from app.services.permission_service import PermissionService
 
 logger = get_logger(__name__)
 
@@ -54,6 +57,42 @@ def get_auth_service(
         AuthService instance
     """
     return AuthService(user_repo)
+
+
+def get_workspace_repo(db: AsyncSession = Depends(get_db)) -> WorkspaceRepository:
+    """Get WorkspaceRepository instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        WorkspaceRepository instance
+    """
+    return WorkspaceRepository(db)
+
+
+def get_session_repo(db: AsyncSession = Depends(get_db)) -> SessionRepository:
+    """Get SessionRepository instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        SessionRepository instance
+    """
+    return SessionRepository(db)
+
+
+def get_permission_service(db: AsyncSession = Depends(get_db)) -> PermissionService:
+    """Get PermissionService instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        PermissionService instance
+    """
+    return PermissionService(db)
 
 
 async def get_current_user(

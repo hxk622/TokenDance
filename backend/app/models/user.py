@@ -1,5 +1,5 @@
 """
-User model - supports Personal mode.
+User model - supports Personal mode and Team memberships.
 """
 import uuid
 from datetime import datetime
@@ -12,6 +12,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.workspace import Workspace
+    from app.models.team import TeamMember
 
 
 class User(Base):
@@ -68,6 +69,11 @@ class User(Base):
         back_populates="owner",
         cascade="all, delete-orphan",
         overlaps="owner",
+    )
+    team_memberships: Mapped[list["TeamMember"]] = relationship(
+        "TeamMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

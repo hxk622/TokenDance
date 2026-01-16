@@ -4,7 +4,7 @@ Session Pydantic schemas for API request/response validation.
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.session import SessionStatus
 
@@ -60,8 +60,7 @@ class SessionResponse(SessionBase):
     updated_at: datetime
     completed_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SessionDetail(SessionResponse):
@@ -95,5 +94,4 @@ class SessionInDB(SessionBase):
     updated_at: datetime
     completed_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

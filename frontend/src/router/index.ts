@@ -3,11 +3,30 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: {
+      title: 'Login - TokenDance',
+      requiresAuth: false
+    }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/RegisterView.vue'),
+    meta: {
+      title: 'Register - TokenDance',
+      requiresAuth: false
+    }
+  },
+  {
     path: '/',
     name: 'Home',
     component: () => import('@/views/HomeView.vue'),
     meta: {
-      title: 'TokenDance - AI Agent Platform'
+      title: 'TokenDance - AI Agent Platform',
+      requiresAuth: true
     }
   },
   {
@@ -15,24 +34,34 @@ const routes: RouteRecordRaw[] = [
     name: 'Discover',
     component: () => import('@/views/SkillDiscovery.vue'),
     meta: {
-      title: 'Discover Skills - TokenDance'
+      title: 'Discover Skills - TokenDance',
+      requiresAuth: true
     }
   },
   {
     path: '/chat',
     name: 'Chat',
-    component: () => import('@/views/ChatView.vue')
+    component: () => import('@/views/ChatView.vue'),
+    meta: {
+      requiresAuth: true
+    }
   },
   {
     path: '/chat/:sessionId',
     name: 'ChatSession',
     component: () => import('@/views/ChatView.vue'),
-    props: true
+    props: true,
+    meta: {
+      requiresAuth: true
+    }
   },
   {
     path: '/demo',
     name: 'Demo',
-    component: () => import('@/views/DemoView.vue')
+    component: () => import('@/views/DemoView.vue'),
+    meta: {
+      requiresAuth: false
+    }
   },
   {
     path: '/execution/:id',
@@ -41,7 +70,7 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: {
       title: 'Task Execution',
-      requiresAuth: false  // MVP阶段暂不需要认证
+      requiresAuth: false
     }
   },
   {
@@ -50,7 +79,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/FilesView.vue'),
     meta: {
       title: 'Files - Coworker',
-      requiresAuth: false
+      requiresAuth: true
     }
   },
   {
@@ -59,7 +88,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PPTGenerateView.vue'),
     meta: {
       title: 'Create PPT - TokenDance',
-      requiresAuth: false
+      requiresAuth: true
     }
   },
   {
@@ -69,31 +98,19 @@ const routes: RouteRecordRaw[] = [
     props: true,
     meta: {
       title: 'Edit PPT - TokenDance',
-      requiresAuth: false
+      requiresAuth: true
     }
   },
   {
     path: '/ppt/preview/:id',
     name: 'PPTPreview',
-    component: () => import('@/views/PPTEditView.vue'),  // 复用编辑页，后续可单独创建
+    component: () => import('@/views/PPTEditView.vue'),
     props: true,
     meta: {
       title: 'Preview PPT - TokenDance',
-      requiresAuth: false
+      requiresAuth: true
     }
   },
-  // TODO: Add more routes
-  // {
-  //   path: '/login',
-  //   name: 'Login',
-  //   component: () => import('@/views/Auth/LoginView.vue')
-  // },
-  // {
-  //   path: '/workspaces',
-  //   name: 'Workspaces',
-  //   component: () => import('@/views/WorkspaceListView.vue'),
-  //   meta: { requiresAuth: true }
-  // },
 ]
 
 const router = createRouter({
@@ -102,15 +119,23 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((_to, _from, next) => {
-  // TODO: Add authentication check
-  // const authStore = useAuthStore()
-  // if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-  //   next({ name: 'Login' })
-  // } else {
-  //   next()
-  // }
-  next()
+router.beforeEach(async (to, _from, next) => {
+  // Initialize auth store
+  const { useAuthStore } = await import('@/stores/auth')
+  const authStore = useAuthStore()
+  
+  // Check if route requires authentication
+  const requiresAuth = to.meta.requiresAuth !== false
+  
+  if (requiresAuth && !authStore.isAuthenticated) {
+    // Redirect to login page
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+  } else if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
+    // Redirect authenticated users away from login/register
+    next({ name: 'Home' })
+  } else {
+    next()
+  }
 })
 
 export default router

@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import FileDropZone from '@/components/home/FileDropZone.vue'
+import SessionListPanel from '@/components/session/SessionListPanel.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useSessionStore } from '@/stores/session'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const sessionStore = useSessionStore()
+
 const inputValue = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
-
-// 加载状态
 const isLoading = ref(false)
+const showSessionList = ref(false)
 
 // 三位一体架构 (The Trinity) - 非功能导向，而是能力导向
 const trinityCapabilities = [
@@ -44,7 +49,7 @@ const workflows = [
     subtitle: '竞品分析 · 行业报告 · 数据洞察',
     icon: 'chart-bar',
     accent: 'indigo',
-    featured: true // Deep Research MVP 强调
+    featured: true
   },
   {
     id: 'presentation',
@@ -94,11 +99,21 @@ onMounted(() => {
   orbInterval = setInterval(() => {
     activeOrbIndex.value = (activeOrbIndex.value + 1) % 3
   }, 2500)
+  
+  // 加载会话列表
+  if (authStore.isAuthenticated) {
+    loadSessions()
+  }
 })
 
 onUnmounted(() => {
   if (orbInterval) clearInterval(orbInterval)
 })
+
+async function loadSessions() {
+  // TODO: 需要先创建或选择 workspace
+  // 暂时跳过
+}
 
 // 处理工作流选择
 const handleWorkflowSelect = (workflow: typeof workflows[0]) => {
@@ -172,9 +187,14 @@ const handleFileSelect = (e: Event) => {
 // Guest 试用
 const handleGuestTry = async () => {
   isLoading.value = true
-  // 模拟加载延迟，实际可改为 API 调用
   await new Promise(resolve => setTimeout(resolve, 300))
   router.push({ path: '/chat', query: { guest: 'true' } })
+}
+
+// 处理登出
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
 }
 
 // Cmd+K 键盘快捷键
@@ -234,14 +254,23 @@ onUnmounted(() => {
         <h1 class="logo">TokenDance</h1>
       </div>
       <div class="header-right">
+        <button v-if="authStore.isAuthenticated" @click="showSessionList = !showSessionList" class="header-btn">
+          会话
+        </button>
         <router-link to="/demo" class="header-btn">能力演示</router-link>
         <a href="https://github.com/your-repo/tokendance" target="_blank" class="header-btn">文档</a>
-        <button class="header-btn header-btn-primary">登录</button>
+        <button v-if="!authStore.isAuthenticated" class="header-btn header-btn-primary">登录</button>
+        <button v-else @click="handleLogout" class="header-btn">登出</button>
       </div>
     </header>
     
     <!-- Main Content -->
     <main class="home-main">
+      <!-- Session List Sidebar -->
+      <aside v-if="showSessionList && authStore.isAuthenticated" class="session-sidebar">
+        <SessionListPanel />
+      </aside>
+      
       <!-- Hero: 差异化 Slogan + Guest CTA -->
       <section class="hero">
         <p class="hero-tagline">For the rest of the world</p>
@@ -625,6 +654,16 @@ onUnmounted(() => {
   @apply text-gray-500;
 }
 
+/* Session Sidebar */
+.session-sidebar {
+  @apply fixed left-0 top-16 bottom-0 w-80 bg-white border-r border-gray-200
+         overflow-y-auto z-20 transition-transform duration-300;
+}
+
+:global(.dark) .session-sidebar {
+  @apply bg-gray-900 border-gray-800;
+}
+
 /* Vibe Background */
 .bg-vibe {
   @apply absolute inset-0 -z-10 overflow-hidden;
@@ -740,67 +779,53 @@ onUnmounted(() => {
 }
 
 .hero-tagline {
-  @apply text-sm font-medium text-indigo-500 mb-2 tracking-wide;
+  @apply text-sm font-medium text-indigo-600 mb-2;
 }
 
 .hero-title {
-  @apply text-3xl md:text-4xl font-bold text-gray-900 mb-3;
+  @apply text-4xl font-bold text-gray-900 mb-3;
 }
 
 .hero-desc {
-  @apply text-base text-slate-600 mb-6;
+  @apply text-lg text-gray-600 mb-6;
 }
 
-/* Hero CTA */
 .hero-cta {
-  @apply flex items-center justify-center gap-4;
+  @apply flex items-center justify-center gap-3;
 }
 
 .cta-primary {
-  @apply flex items-center gap-2 px-6 py-3
-         text-base font-medium text-white
-         bg-gray-900 rounded-xl
-         hover:bg-gray-800
-         cursor-pointer transition-colors duration-200;
+  @apply flex items-center gap-2 px-6 py-3 bg-gray-900 text-white 
+         rounded-lg hover:bg-gray-800 transition-colors;
 }
 
 .cta-secondary {
-  @apply flex items-center gap-2 px-6 py-3
-         text-base font-medium text-slate-700
-         bg-white border border-gray-200 rounded-xl
-         hover:bg-gray-50 hover:border-gray-300
-         cursor-pointer transition-all duration-200;
+  @apply flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 
+         text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 
+         transition-colors;
 }
 
-/* 三位一体可视化 */
+/* Trinity Section */
 .trinity-section {
-  @apply mb-10;
+  @apply mb-8;
 }
 
 .trinity-grid {
-  @apply grid grid-cols-1 sm:grid-cols-3 gap-4;
+  @apply grid grid-cols-3 gap-4;
 }
 
 .trinity-card {
-  @apply flex flex-col items-center text-center p-4 rounded-xl
-         bg-white/50 border border-gray-100
-         cursor-pointer
-         transition-all duration-300;
-}
-
-.trinity-card:hover {
-  @apply bg-white border-gray-200 shadow-md;
-  transform: translateY(-2px);
+  @apply p-4 bg-white border border-gray-200 rounded-lg
+         hover:border-gray-300 transition-all duration-300;
 }
 
 .trinity-card-active {
-  @apply bg-white border-gray-200 shadow-lg;
-  transform: translateY(-4px);
+  @apply border-indigo-300 bg-indigo-50/50;
 }
 
 .trinity-icon {
-  @apply w-12 h-12 rounded-xl flex items-center justify-center mb-3
-         transition-all duration-300;
+  @apply w-12 h-12 flex items-center justify-center text-indigo-600 
+         bg-indigo-50 rounded-lg mb-3;
 }
 
 .trinity-icon--manus {
@@ -815,57 +840,41 @@ onUnmounted(() => {
   @apply bg-cyan-50 text-cyan-600;
 }
 
-.trinity-card-active .trinity-icon--manus {
-  @apply bg-indigo-100;
-}
-
-.trinity-card-active .trinity-icon--coworker {
-  @apply bg-emerald-100;
-}
-
-.trinity-card-active .trinity-icon--vibe {
-  @apply bg-cyan-100;
-}
-
 .trinity-content {
-  @apply flex flex-col gap-0.5;
+  @apply flex flex-col;
 }
 
 .trinity-name {
-  @apply text-sm font-semibold text-gray-900;
+  @apply text-base font-semibold text-gray-900 mb-1;
 }
 
 .trinity-role {
-  @apply text-xs text-slate-500;
+  @apply text-sm text-gray-600 mb-1;
 }
 
 .trinity-desc {
-  @apply text-xs text-slate-500 mt-1;
+  @apply text-xs text-gray-500;
 }
 
-/* Featured Card (Deep Research 强调) */
+/* Featured Section */
 .featured-section {
   @apply mb-8;
 }
 
 .featured-card {
-  @apply w-full flex items-center gap-5 p-6
-         bg-gradient-to-r from-indigo-50 to-white
-         border border-indigo-100 rounded-2xl
-         hover:shadow-md hover:border-indigo-200
-         cursor-pointer transition-all duration-200 text-left
-         relative overflow-hidden;
+  @apply relative flex items-center gap-4 p-5 bg-gradient-to-br from-indigo-50 to-purple-50 
+         border border-indigo-200 rounded-xl hover:border-indigo-300 
+         transition-all duration-300;
 }
 
 .featured-badge {
-  @apply absolute top-3 right-3
-         px-2 py-0.5 text-xs font-medium
-         text-indigo-600 bg-indigo-100 rounded-full;
+  @apply absolute top-3 left-3 px-2 py-0.5 text-xs font-medium 
+         bg-indigo-100 text-indigo-700 rounded-md;
 }
 
 .featured-icon {
-  @apply w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0
-         bg-indigo-100 text-indigo-600;
+  @apply w-12 h-12 flex items-center justify-center text-indigo-600 
+         bg-indigo-100 rounded-lg flex-shrink-0;
 }
 
 .featured-content {
@@ -877,157 +886,137 @@ onUnmounted(() => {
 }
 
 .featured-desc {
-  @apply text-sm text-slate-600;
+  @apply text-sm text-gray-600;
 }
 
 .featured-action {
-  @apply flex items-center gap-2 px-4 py-2
-         text-sm font-medium text-indigo-600
-         bg-white rounded-lg border border-indigo-100
-         transition-colors duration-200;
+  @apply flex items-center gap-1 text-sm font-medium text-indigo-600 
+         bg-indigo-50 px-3 py-1.5 rounded-md;
 }
 
-.featured-card:hover .featured-action {
-  @apply bg-indigo-50 border-indigo-200;
-}
-
-/* Enhanced Input */
+/* Input Section */
 .input-section {
-  @apply mb-10;
+  @apply mb-8;
 }
 
 .input-container {
-  @apply space-y-3;
+  @apply max-w-2xl mx-auto;
 }
 
 .input-wrapper {
-  @apply flex items-center gap-2 px-2
-         bg-white border border-gray-200 rounded-xl
-         focus-within:border-gray-400 focus-within:shadow-sm
-         transition-all duration-200;
+  @apply flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 
+         rounded-lg focus-within:border-gray-400 focus-within:ring-2 
+         focus-within:ring-indigo-500/20 transition-all;
 }
 
 .attach-btn {
-  @apply p-2.5 text-slate-400 hover:text-slate-600 
-         cursor-pointer transition-colors duration-200 rounded-lg
-         hover:bg-gray-50;
+  @apply p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 
+         rounded-md transition-colors;
 }
 
 .main-input {
-  @apply flex-1 py-3.5
-         text-base text-gray-900 placeholder-slate-500
-         bg-transparent border-none;
-  /* Focus handled by parent .input-wrapper focus-within */
+  @apply flex-1 bg-transparent outline-none text-gray-900 
+         placeholder-gray-400 text-base;
 }
 
 .input-submit {
-  @apply p-3 mr-1
-         text-white bg-gray-900 rounded-lg
-         hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
-         cursor-pointer transition-colors duration-200;
+  @apply p-2 text-gray-400 hover:text-gray-600 bg-transparent 
+         rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-/* Quick Actions */
 .quick-actions {
-  @apply flex items-center gap-2;
+  @apply flex gap-2 mt-2;
 }
 
 .quick-action-btn {
-  @apply flex items-center gap-1.5 px-3 py-1.5
-         text-sm text-slate-600
-         bg-white border border-gray-200 rounded-lg
-         hover:border-gray-300 hover:bg-gray-50
-         cursor-pointer transition-all duration-200;
+  @apply flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 
+         bg-white border border-gray-200 rounded-md hover:bg-gray-50 
+         hover:border-gray-300 transition-colors;
 }
 
 /* Suggestions Section */
 .suggestions-section {
-  @apply mb-10;
+  @apply mb-8;
+}
+
+.section-title {
+  @apply text-sm font-medium text-gray-500 mb-3;
 }
 
 .suggestions-list {
-  @apply space-y-2;
+  @apply flex flex-wrap gap-2;
 }
 
 .suggestion-item {
-  @apply w-full flex items-center gap-3 px-4 py-3
-         text-sm text-slate-700
-         bg-white/60 border border-gray-100 rounded-lg
-         hover:bg-white hover:border-gray-200 hover:shadow-sm
-         cursor-pointer transition-all duration-200 text-left;
+  @apply flex items-center gap-2 px-4 py-2 text-sm text-gray-700 
+         bg-white border border-gray-200 rounded-md hover:bg-gray-50 
+         hover:border-gray-300 transition-colors;
 }
 
-/* Section Title - Fixed Contrast */
-.section-title {
-  @apply text-xs font-medium text-slate-500 uppercase tracking-wider mb-4;
-}
-
-/* Workflows */
+/* Workflows Section */
 .workflows-section {
-  @apply mb-10;
+  @apply mb-8;
 }
 
 .workflows-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  @apply grid grid-cols-2 gap-3;
 }
 
 .workflow-card {
-  @apply flex items-center gap-4 p-5
-         bg-white border border-gray-100 rounded-xl
-         hover:border-gray-200 hover:shadow-sm
-         cursor-pointer transition-all duration-200 text-left;
+  @apply relative flex items-center gap-3 p-4 bg-white border border-gray-200 
+         rounded-lg hover:border-gray-300 transition-all duration-300;
+}
+
+.workflow-card--indigo {
+  @apply hover:border-indigo-300;
+}
+
+.workflow-card--amber {
+  @apply hover:border-amber-300;
+}
+
+.workflow-card--emerald {
+  @apply hover:border-emerald-300;
 }
 
 .workflow-icon {
-  @apply w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0;
-}
-
-.workflow-card--indigo .workflow-icon {
-  @apply bg-indigo-50 text-indigo-600;
-}
-
-.workflow-card--amber .workflow-icon {
-  @apply bg-amber-50 text-amber-600;
-}
-
-.workflow-card--emerald .workflow-icon {
-  @apply bg-emerald-50 text-emerald-600;
+  @apply w-10 h-10 flex items-center justify-center text-gray-600 
+         bg-gray-100 rounded-md flex-shrink-0;
 }
 
 .workflow-content {
-  @apply flex-1 min-w-0;
+  @apply flex flex-col flex-1;
 }
 
 .workflow-title {
-  @apply block text-base font-medium text-gray-900;
+  @apply text-sm font-medium text-gray-900 mb-0.5;
 }
 
 .workflow-subtitle {
-  @apply block text-sm text-slate-500 truncate;
+  @apply text-xs text-gray-500;
 }
 
 .workflow-arrow {
-  @apply w-5 h-5 text-gray-300 flex-shrink-0 transition-colors duration-200;
+  @apply text-gray-400 flex-shrink-0;
 }
 
 .workflow-card:hover .workflow-arrow {
-  @apply text-slate-500;
+  @apply text-gray-600;
 }
 
-/* Recent */
+/* Recent Section */
 .recent-section {
-  @apply mb-10;
+  @apply mb-8;
 }
 
 .recent-list {
-  @apply space-y-2;
+  @apply flex flex-col gap-2;
 }
 
 .recent-item {
-  @apply w-full flex items-center gap-3 px-4 py-3
-         bg-white border border-gray-100 rounded-lg
-         hover:border-gray-200 hover:shadow-sm
-         cursor-pointer transition-all duration-200 text-left;
+  @apply flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 
+         rounded-lg hover:bg-gray-50 hover:border-gray-300 
+         transition-all duration-200;
 }
 
 .recent-status {
@@ -1039,15 +1028,15 @@ onUnmounted(() => {
 }
 
 .recent-status--in-progress {
-  @apply bg-amber-500;
+  @apply bg-blue-500;
 }
 
 .recent-name {
-  @apply flex-1 text-sm text-slate-700;
+  @apply flex-1 text-sm font-medium text-gray-900 truncate;
 }
 
 .recent-time {
-  @apply text-xs text-slate-500;
+  @apply text-xs text-gray-500 flex-shrink-0;
 }
 
 /* Drop Section */
@@ -1057,15 +1046,10 @@ onUnmounted(() => {
 
 /* Footer */
 .home-footer {
-  @apply py-6 text-center;
+  @apply py-6 text-center border-t border-gray-100;
 }
 
 .home-footer p {
-  @apply text-sm text-slate-500;
-}
-
-/* Hidden utility */
-.hidden {
-  display: none;
+  @apply text-sm text-gray-500;
 }
 </style>

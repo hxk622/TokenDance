@@ -10,7 +10,7 @@ Files API - 文件索引与搜索 API 端点
 """
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 import logging
 
 from ...services.file_indexer import FileIndexerService, create_file_indexer
@@ -32,13 +32,12 @@ class IndexRequest(BaseModel):
         description="要索引的文件扩展名"
     )
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "path": "/Users/user/project",
-                "extensions": [".py", ".js", ".ts", ".md"]
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "path": "/Users/user/project",
+            "extensions": [".py", ".js", ".ts", ".md"]
         }
+    })
 
 
 class SearchRequest(BaseModel):

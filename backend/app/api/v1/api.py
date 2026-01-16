@@ -3,13 +3,14 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     auth, session, chat, messages, hitl, stream, demo_stream, 
-    mcp, trust, skills, timeline, research, files, browser, ppt, financial
+    mcp, trust, skills, timeline, research, files, browser, ppt, financial, workspace
 )
 
 api_router = APIRouter()
 
 # Include all route modules
 api_router.include_router(auth.router, tags=["auth"])
+api_router.include_router(workspace.router, prefix="/workspaces", tags=["workspaces"])
 api_router.include_router(session.router, prefix="/sessions", tags=["sessions"])
 api_router.include_router(messages.router, prefix="/sessions", tags=["messages"])  # New Agent Engine integration
 api_router.include_router(stream.router, prefix="/sessions", tags=["stream"])  # SSE streaming

@@ -239,3 +239,7 @@ def create_claude_llm(
         temperature=temperature,
         base_url=base_url
     )
+
+
+# 兼容别名 - 保持向后兼容
+AnthropicLLM = ClaudeLLM

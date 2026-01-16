@@ -11,7 +11,7 @@ PPT Data Models - PPT 数据模型定义
 
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SlideType(str, Enum):
@@ -263,8 +263,7 @@ class SlideContent(BaseModel):
         description="额外元数据"
     )
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class TemplateConfig(BaseModel):

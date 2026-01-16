@@ -1,88 +1,100 @@
 /**
- * Session Store - manages session state
+ * Session store using Pinia
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { sessionApi, type Session, type SessionDetail, type Message, type Artifact } from '@/api/session'
+import { sessionApi, type Session, type SessionCreate, type SessionUpdate } from '@/api/session'
 
 export const useSessionStore = defineStore('session', () => {
   // State
   const sessions = ref<Session[]>([])
-  const currentSession = ref<SessionDetail | null>(null)
-  const messages = ref<Message[]>([])
-  const artifacts = ref<Artifact[]>([])
-  const loading = ref(false)
+  const currentSession = ref<Session | null>(null)
+  const currentWorkspaceId = ref<string | null>(localStorage.getItem('current_workspace_id'))
+  const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const total = ref(0)
+  const limit = ref(20)
+  const offset = ref(0)
 
-  // Getters
+  // Computed
   const activeSessions = computed(() => 
-    sessions.value.filter(s => s.status === 'active')
+    sessions.value.filter(s => s.status === 'ACTIVE')
+  )
+  const completedSessions = computed(() => 
+    sessions.value.filter(s => s.status === 'COMPLETED')
+  )
+  const hasMore = computed(() => 
+    offset.value + limit.value < total.value
   )
 
-  const hasCurrentSession = computed(() => currentSession.value !== null)
-
-  // Actions
-  async function fetchSessions(workspaceId: string) {
-    loading.value = true
+  /**
+   * Load sessions for current workspace
+   */
+  async function loadSessions(workspaceId: string, reset: boolean = true) {
+    if (reset) {
+      offset.value = 0
+      sessions.value = []
+    }
+    
+    isLoading.value = true
     error.value = null
     
     try {
-      const result = await sessionApi.list({ workspace_id: workspaceId })
-      sessions.value = result.items
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to fetch sessions'
+      const result = await sessionApi.listSessions(
+        workspaceId,
+        limit.value,
+        offset.value
+      )
+      
+      if (reset) {
+        sessions.value = result.items
+      } else {
+        sessions.value = [...sessions.value, ...result.items]
+      }
+      
+      total.value = result.total
+      limit.value = result.limit
+      offset.value = result.offset + result.items.length
+      
+      return result
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to load sessions'
+      throw err
     } finally {
-      loading.value = false
+      isLoading.value = false
     }
   }
 
-  async function createSession(workspaceId: string, title?: string, skillId?: string) {
-    loading.value = true
+  /**
+   * Create a new session
+   */
+  async function createSession(data: SessionCreate) {
+    isLoading.value = true
     error.value = null
     
     try {
-      const session = await sessionApi.create({
-        workspace_id: workspaceId,
-        title,
-        skill_id: skillId,
-      })
+      const session = await sessionApi.createSession(data)
       sessions.value.unshift(session)
-      await selectSession(session.id)
-      return session
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to create session'
-      throw e
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function selectSession(sessionId: string) {
-    loading.value = true
-    error.value = null
-    
-    try {
-      const session = await sessionApi.get(sessionId, true) as SessionDetail
+      total.value += 1
+      
+      // Set as current session
       currentSession.value = session
       
-      // Fetch messages and artifacts
-      const [msgResult, artResult] = await Promise.all([
-        sessionApi.getMessages(sessionId),
-        sessionApi.getArtifacts(sessionId),
-      ])
-      
-      messages.value = msgResult.items
-      artifacts.value = artResult.items
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load session'
+      return session
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to create session'
+      throw err
     } finally {
-      loading.value = false
+      isLoading.value = false
     }
   }
 
-  async function updateSessionTitle(sessionId: string, title: string) {
+  /**
+   * Update a session
+   */
+  async function updateSession(sessionId: string, data: SessionUpdate) {
     try {
-      const updated = await sessionApi.update(sessionId, { title })
+      const updated = await sessionApi.updateSession(sessionId, data)
       
       // Update in list
       const index = sessions.value.findIndex(s => s.id === sessionId)
@@ -90,106 +102,172 @@ export const useSessionStore = defineStore('session', () => {
         sessions.value[index] = updated
       }
       
-      // Update current if same
+      // Update current session if it's the one being updated
       if (currentSession.value?.id === sessionId) {
-        currentSession.value = { ...currentSession.value, title }
+        currentSession.value = updated
       }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to update session'
+      
+      return updated
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to update session'
+      throw err
     }
   }
 
+  /**
+   * Delete a session
+   */
   async function deleteSession(sessionId: string) {
     try {
-      await sessionApi.delete(sessionId)
-      sessions.value = sessions.value.filter(s => s.id !== sessionId)
+      await sessionApi.deleteSession(sessionId)
       
+      // Remove from list
+      sessions.value = sessions.value.filter(s => s.id !== sessionId)
+      total.value -= 1
+      
+      // Clear current session if it's the one being deleted
       if (currentSession.value?.id === sessionId) {
         currentSession.value = null
-        messages.value = []
-        artifacts.value = []
       }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to delete session'
+      
+      return true
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to delete session'
+      throw err
     }
   }
 
+  /**
+   * Mark session as completed
+   */
   async function completeSession(sessionId: string) {
     try {
-      const updated = await sessionApi.complete(sessionId)
+      const completed = await sessionApi.completeSession(sessionId)
       
+      // Update in list
       const index = sessions.value.findIndex(s => s.id === sessionId)
+      if (index !== -1) {
+        sessions.value[index] = completed
+      }
+      
+      // Update current session if it's the one being completed
+      if (currentSession.value?.id === sessionId) {
+        currentSession.value = completed
+      }
+      
+      return completed
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to complete session'
+      throw err
+    }
+  }
+
+  /**
+   * Set current session
+   */
+  function setCurrentSession(session: Session | null) {
+    currentSession.value = session
+    if (session) {
+      localStorage.setItem('current_session_id', session.id)
+    } else {
+      localStorage.removeItem('current_session_id')
+    }
+  }
+
+  /**
+   * Set current workspace
+   */
+  function setCurrentWorkspace(workspaceId: string | null) {
+    currentWorkspaceId.value = workspaceId
+    if (workspaceId) {
+      localStorage.setItem('current_workspace_id', workspaceId)
+    } else {
+      localStorage.removeItem('current_workspace_id')
+    }
+    
+    // Clear sessions when workspace changes
+    sessions.value = []
+    currentSession.value = null
+    total.value = 0
+    offset.value = 0
+  }
+
+  /**
+   * Load more sessions (pagination)
+   */
+  async function loadMore() {
+    if (isLoading.value || !hasMore.value || !currentWorkspaceId.value) {
+      return
+    }
+    
+    await loadSessions(currentWorkspaceId.value, false)
+  }
+
+  /**
+   * Refresh current session
+   */
+  async function refreshCurrentSession() {
+    if (!currentSession.value) {
+      return
+    }
+    
+    try {
+      const updated = await sessionApi.getSession(currentSession.value.id, true)
+      currentSession.value = updated
+      
+      // Update in list
+      const index = sessions.value.findIndex(s => s.id === updated.id)
       if (index !== -1) {
         sessions.value[index] = updated
       }
       
-      if (currentSession.value?.id === sessionId) {
-        currentSession.value = { ...currentSession.value, status: 'completed' }
-      }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to complete session'
+      return updated
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to refresh session'
+      throw err
     }
   }
 
-  // Message helpers
-  function addMessage(message: Message) {
-    messages.value.push(message)
-    
-    // Update current session message count
-    if (currentSession.value) {
-      currentSession.value.message_count = messages.value.length
-    }
-  }
-
-  function updateLastMessage(updates: Partial<Message>) {
-    const lastIndex = messages.value.length - 1
-    if (lastIndex >= 0) {
-      messages.value[lastIndex] = {
-        ...messages.value[lastIndex],
-        ...updates,
+  /**
+   * Initialize from localStorage
+   */
+  function initialize() {
+    const sessionId = localStorage.getItem('current_session_id')
+    if (sessionId) {
+      // Try to find session in list
+      const session = sessions.value.find(s => s.id === sessionId)
+      if (session) {
+        currentSession.value = session
       }
     }
-  }
-
-  function clearMessages() {
-    messages.value = []
-  }
-
-  // Artifact helpers
-  function addArtifact(artifact: Artifact) {
-    artifacts.value.unshift(artifact)
-  }
-
-  function clearCurrentSession() {
-    currentSession.value = null
-    messages.value = []
-    artifacts.value = []
   }
 
   return {
     // State
     sessions,
     currentSession,
-    messages,
-    artifacts,
-    loading,
+    currentWorkspaceId,
+    isLoading,
     error,
+    total,
+    limit,
+    offset,
     
-    // Getters
+    // Computed
     activeSessions,
-    hasCurrentSession,
+    completedSessions,
+    hasMore,
     
     // Actions
-    fetchSessions,
+    loadSessions,
     createSession,
-    selectSession,
-    updateSessionTitle,
+    updateSession,
     deleteSession,
     completeSession,
-    addMessage,
-    updateLastMessage,
-    clearMessages,
-    addArtifact,
-    clearCurrentSession,
+    setCurrentSession,
+    setCurrentWorkspace,
+    loadMore,
+    refreshCurrentSession,
+    initialize
   }
 })

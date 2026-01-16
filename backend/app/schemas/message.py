@@ -4,7 +4,7 @@ Message Pydantic schemas for API request/response validation.
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.message import MessageRole
 
@@ -84,8 +84,8 @@ class MessageResponse(MessageBase):
     tokens_used: int = 0
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)  # 
+
 
 
 class MessageList(BaseModel):

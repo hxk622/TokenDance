@@ -4,7 +4,7 @@ Artifact Pydantic schemas for API request/response validation.
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.artifact import ArtifactType
 
@@ -68,8 +68,8 @@ class ArtifactResponse(ArtifactBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)  # 
+
 
 
 class ArtifactDetail(ArtifactResponse):

@@ -12,7 +12,7 @@ Research API - 深度研究 API 端点
 """
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 import uuid
 import logging
@@ -36,14 +36,13 @@ class ResearchRequest(BaseModel):
     max_sources: int = Field(default=10, ge=1, le=20, description="最大来源数")
     include_screenshots: bool = Field(default=True, description="是否包含截图")
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "topic": "Rust 异步编程最佳实践",
-                "max_sources": 10,
-                "include_screenshots": True
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "topic": "Rust 异步编程最佳实践",
+            "max_sources": 10,
+            "include_screenshots": True
         }
+    })
 
 
 class ResearchStatus(BaseModel):
@@ -108,15 +107,14 @@ class GeneratePPTRequest(BaseModel):
     include_qa: bool = Field(default=True, description="是否包含 Q&A 页")
     max_slides: int = Field(default=20, ge=5, le=30, description="最大幻灯片数")
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "style": "business",
-                "author": "运营团队",
-                "include_sources": True,
-                "max_slides": 15
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "style": "business",
+            "author": "运营团队",
+            "include_sources": True,
+            "max_slides": 15
         }
+    })
 
 
 class SlidePreview(BaseModel):

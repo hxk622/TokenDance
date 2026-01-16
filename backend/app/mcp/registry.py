@@ -6,7 +6,7 @@ Supports loading from mcp.json configuration file.
 """
 import os
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.mcp.types import MCPTransport, MCPCapability
 from app.core.logging import get_logger
@@ -32,8 +32,7 @@ class MCPServerConfig(BaseModel):
     timeout_seconds: int = Field(default=30, description="Tool execution timeout")
     max_retries: int = Field(default=3, description="Max connection retries")
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class MCPServerRegistry:

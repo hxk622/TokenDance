@@ -2,7 +2,7 @@
 MCP Type Definitions
 """
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 
 
@@ -26,8 +26,7 @@ class MCPTool(BaseModel):
     input_schema: Dict[str, Any] = Field(..., description="JSON Schema for tool input")
     server_name: str = Field(..., description="Name of the MCP server providing this tool")
     
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
 
 class MCPToolResult(BaseModel):
