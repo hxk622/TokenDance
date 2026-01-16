@@ -76,8 +76,9 @@ class TestE2EFlow:
         workspace = Workspace(
             id=workspace_id,
             name="Test Workspace",
+            slug=f"test-workspace-{workspace_id[:8]}",
             owner_id=user.id,
-            is_active=True,
+            filesystem_path=f"/data/users/{user.id}/workspaces/{workspace_id}",
         )
         db_session.add(workspace)
         await db_session.flush()
@@ -207,7 +208,9 @@ class TestE2EFlow:
         workspace = Workspace(
             id=str(uuid.uuid4()),
             name="Status Test Workspace",
+            slug=f"status-test-{user.id[:8]}",
             owner_id=user.id,
+            filesystem_path=f"/data/users/{user.id}/workspaces/status-test",
         )
         db_session.add(workspace)
         await db_session.flush()
