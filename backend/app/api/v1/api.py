@@ -3,7 +3,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     auth, session, chat, messages, hitl, stream, demo_stream, 
-    mcp, trust, skills, timeline, research, files, browser, ppt
+    mcp, trust, skills, timeline, research, files, browser, ppt, financial
 )
 
 api_router = APIRouter()
@@ -23,4 +23,5 @@ api_router.include_router(research.router, tags=["research"])  # Deep Research A
 api_router.include_router(files.router, tags=["files"])  # File indexing & search
 api_router.include_router(browser.router, tags=["browser"])  # Browser automation
 api_router.include_router(ppt.router, tags=["ppt"])  # PPT Generation (Phase 1 & 2)
+api_router.include_router(financial.router, prefix="/financial", tags=["financial"])  # Financial Analysis
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])  # Legacy
