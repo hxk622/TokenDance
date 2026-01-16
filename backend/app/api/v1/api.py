@@ -3,7 +3,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     auth, session, chat, messages, hitl, stream, demo_stream, 
-    mcp, trust, skills, timeline, research, files, browser, ppt, financial, workspace
+    mcp, trust, skills, timeline, research, files, browser, ppt, financial, workspace, agent_config, tools, working_memory
 )
 
 api_router = APIRouter()
@@ -26,3 +26,6 @@ api_router.include_router(browser.router, tags=["browser"])  # Browser automatio
 api_router.include_router(ppt.router, tags=["ppt"])  # PPT Generation (Phase 1 & 2)
 api_router.include_router(financial.router, prefix="/financial", tags=["financial"])  # Financial Analysis
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])  # Legacy
+api_router.include_router(agent_config.router, tags=["agent-configs"])  # Agent Configuration
+api_router.include_router(tools.router, tags=["tools"])  # Tools
+api_router.include_router(working_memory.router, tags=["working-memory"])  # Working Memory

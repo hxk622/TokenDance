@@ -15,6 +15,7 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.session import Session
+    from app.models.agent_config import AgentConfig
 
 
 class WorkspaceType(PyEnum):
@@ -100,6 +101,11 @@ class Workspace(Base):
     owner: Mapped["User"] = relationship("User", back_populates="personal_workspaces")
     sessions: Mapped[list["Session"]] = relationship(
         "Session",
+        back_populates="workspace",
+        cascade="all, delete-orphan"
+    )
+    agent_configs: Mapped[list["AgentConfig"]] = relationship(
+        "AgentConfig",
         back_populates="workspace",
         cascade="all, delete-orphan"
     )

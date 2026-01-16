@@ -16,6 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.services.session_service import SessionService
+from app.services.agent_service import AgentService
+from app.core.config import Settings
+from app.core.dependencies import get_current_user
+from app.models.user import User
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -183,7 +187,9 @@ async def stream_session_events(
     session_id: str,
     request: Request,
     token: Optional[str] = Query(None, description="Auth token"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(),
 ):
     """
     Stream SSE events for a session.
@@ -202,14 +208,18 @@ async def stream_session_events(
         const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?token=${token}`);
         eventSource.addEventListener('agent_thinking', (e) => console.log(JSON.parse(e.data)));
     """
-    # TODO: Verify token authentication
-    
     # Verify session exists
     session_service = SessionService(db)
     session = await session_service.get_session(session_id)
     
     if not session:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    
+    # Initialize AgentService
+    agent_service = AgentService(db, settings, None)
+    
+    # Initialize tools
+    await agent_service.initialize_tools()
     
     logger.info(
         "sse_stream_started",

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAgentStream } from '@/composables/useAgentStream'
 import MessageList, { type Message } from '@/components/MessageList.vue'
 import InputBox from '@/components/InputBox.vue'
@@ -9,6 +10,8 @@ import WorkingMemory from '@/components/execution/WorkingMemory.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
+import { useSessionStore } from '@/stores/session'
+import { sessionApi } from '@/api/session'
 
 // Types
 interface ToolCall {
@@ -18,6 +21,13 @@ interface ToolCall {
   result?: string
   status: ToolCallStatus
 }
+
+// Router
+const route = useRoute()
+const router = useRouter()
+
+// Stores
+const sessionStore = useSessionStore()
 
 // State
 const messages = ref<Message[]>([])
@@ -37,8 +47,9 @@ const currentHITLRequest = ref<HITLRequest | null>(null)
 const showHITLDialog = ref(false)
 let hitlPollingInterval: ReturnType<typeof setInterval> | null = null
 
-// Session ID (hardcoded for now - TODO: dynamic from route/user)
-const sessionId = 'demo-session-123'
+// Session State
+const currentSessionId = computed(() => route.params.sessionId as string | undefined)
+const isNewSession = computed(() => !currentSessionId.value || currentSessionId.value === 'new')
 
 // API base URL
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -75,7 +86,6 @@ const {
   },
   
   onToolResult: (data) => {
-    // Find the matching tool call and update it
     const toolCall = toolCalls.value.find(t => t.toolName === data.tool && t.status === 'running')
     if (toolCall) {
       toolCall.result = data.result
@@ -86,7 +96,6 @@ const {
   onAnswer: (data) => {
     showThinking.value = false
     
-    // Add assistant message
     const message: Message = {
       id: `msg-${Date.now()}`,
       role: 'assistant',
@@ -95,14 +104,12 @@ const {
     }
     messages.value.push(message)
     
-    // Clear tool calls after answer
     toolCalls.value = []
   },
   
   onError: (data) => {
     showThinking.value = false
     
-    // Add error message
     const errorMessage: Message = {
       id: `err-${Date.now()}`,
       role: 'error',
@@ -111,20 +118,34 @@ const {
     }
     messages.value.push(errorMessage)
     
-    // Clear tool calls
     toolCalls.value = []
   },
   
   onDone: () => {
     showThinking.value = false
-    // Auto-refresh Working Memory after task completion
     loadWorkingMemory()
   }
 })
 
 // Methods
 const handleSendMessage = async (content: string) => {
-  // Add user message
+  let sessionId = currentSessionId.value
+  
+  if (!sessionId || sessionId === 'new') {
+    try {
+      const newSession = await sessionApi.createSession({
+        title: content.substring(0, 50),
+        workspace_id: sessionStore.currentWorkspaceId || 'default'
+      })
+      sessionId = newSession.id
+      sessionStore.setCurrentSession(newSession)
+      router.replace(`/chat/${sessionId}`)
+    } catch (error) {
+      console.error('Failed to create session:', error)
+      return
+    }
+  }
+  
   const userMessage: Message = {
     id: `msg-${Date.now()}`,
     role: 'user',
@@ -133,7 +154,6 @@ const handleSendMessage = async (content: string) => {
   }
   messages.value.push(userMessage)
   
-  // Send to API
   await streamMessage(sessionId, content)
 }
 
@@ -145,11 +165,11 @@ const toggleMemoryPanel = () => {
 }
 
 const loadWorkingMemory = async () => {
-  if (!showMemoryPanel.value) return
+  if (!showMemoryPanel.value || !currentSessionId.value || currentSessionId.value === 'new') return
   
   isLoadingMemory.value = true
   try {
-    const data = await workingMemoryApi.get(sessionId)
+    const data = await workingMemoryApi.get(currentSessionId.value)
     memoryData.value = data
   } catch (error) {
     console.error('Failed to load working memory:', error)
@@ -164,25 +184,23 @@ const refreshMemory = async () => {
 
 // HITL Methods
 const pollHITLRequests = async () => {
+  if (!currentSessionId.value || currentSessionId.value === 'new') return
+  
   try {
-    const requests = await hitlApi.listPending(sessionId)
+    const requests = await hitlApi.listPending(currentSessionId.value)
     pendingHITLRequests.value = requests
     
-    // Auto-show dialog for first pending request
     if (requests.length > 0 && !showHITLDialog.value) {
       currentHITLRequest.value = requests[0]
       showHITLDialog.value = true
     }
   } catch (error) {
-    // Silently ignore polling errors (server may be down)
     console.debug('HITL polling error:', error)
   }
 }
 
 const startHITLPolling = () => {
-  // Poll every 2 seconds
   hitlPollingInterval = setInterval(pollHITLRequests, 2000)
-  // Initial poll
   pollHITLRequests()
 }
 
@@ -202,7 +220,6 @@ const handleHITLConfirmed = (approved: boolean) => {
   showHITLDialog.value = false
   currentHITLRequest.value = null
   
-  // Add system message (using 'assistant' role for display)
   const systemMessage: Message = {
     id: `sys-${Date.now()}`,
     role: 'assistant',
@@ -213,17 +230,45 @@ const handleHITLConfirmed = (approved: boolean) => {
   }
   messages.value.push(systemMessage)
   
-  // Refresh pending list
   pollHITLRequests()
 }
 
+// Session Management
+const loadSession = async (sessionId: string) => {
+  if (sessionId === 'new') {
+    messages.value = []
+    return
+  }
+  
+  try {
+    const session = await sessionApi.getSession(sessionId, true)
+    sessionStore.setCurrentSession(session)
+    
+    messages.value = (session.messages || []).map((msg: any) => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      timestamp: new Date(msg.created_at)
+    }))
+  } catch (error) {
+    console.error('Failed to load session:', error)
+    messages.value = []
+  }
+}
+
+// Watch for session changes
+watch(currentSessionId, async (newSessionId) => {
+  if (newSessionId) {
+    await loadSession(newSessionId)
+    loadWorkingMemory()
+  }
+}, { immediate: true })
+
 // Lifecycle
 onMounted(() => {
-  // Initial load if panel is open by default
   if (showMemoryPanel.value) {
     loadWorkingMemory()
   }
-  // Start HITL polling
   startHITLPolling()
 })
 
@@ -236,7 +281,12 @@ onUnmounted(() => {
   <div class="chat-view">
     <!-- Header -->
     <header class="chat-header">
-      <h1 class="chat-title">TokenDance</h1>
+      <div class="header-left">
+        <h1 class="chat-title">TokenDance</h1>
+        <span v-if="sessionStore.currentSession" class="session-title">
+          {{ sessionStore.currentSession.title }}
+        </span>
+      </div>
       <div class="header-actions">
         <div class="status-indicator">
           <div v-if="isConnected" class="status-dot status-connected" />
@@ -332,7 +382,7 @@ onUnmounted(() => {
       @confirmed="handleHITLConfirmed"
     />
 
-    <!-- HITL Pending Badge (when dialog is closed but requests exist) -->
+    <!-- HITL Pending Badge -->
     <Transition name="bounce">
       <button
         v-if="pendingHITLRequests.length > 0 && !showHITLDialog"
@@ -358,12 +408,20 @@ onUnmounted(() => {
   @apply flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200;
 }
 
-.header-actions {
-  @apply flex items-center gap-4;
+.header-left {
+  @apply flex items-center gap-3;
 }
 
 .chat-title {
   @apply text-xl font-semibold text-gray-800;
+}
+
+.session-title {
+  @apply text-sm text-gray-500;
+}
+
+.header-actions {
+  @apply flex items-center gap-4;
 }
 
 .status-indicator {
@@ -438,7 +496,6 @@ onUnmounted(() => {
   @apply flex items-center justify-center h-full text-center px-4;
 }
 
-/* Slide transition */
 .slide-left-enter-active,
 .slide-left-leave-active {
   transition: all 0.3s ease;
@@ -454,7 +511,6 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* HITL Badge */
 .hitl-badge {
   @apply fixed bottom-24 right-6 flex items-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-full shadow-lg cursor-pointer hover:bg-amber-600 transition-all;
   animation: pulse 2s infinite;
@@ -469,7 +525,6 @@ onUnmounted(() => {
   }
 }
 
-/* Bounce transition */
 .bounce-enter-active {
   animation: bounce-in 0.3s;
 }

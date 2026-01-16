@@ -11,8 +11,16 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.repositories.session_repository import SessionRepository
+from app.repositories.agent_config_repository import (
+    AgentConfigRepository,
+    LLMProviderRepository,
+    LLMModelRepository
+)
 from app.services.auth_service import AuthService
 from app.services.permission_service import PermissionService
+from app.services.agent_config_service import AgentConfigService
+from app.services.agent_service import AgentService
+from app.core.config import Settings
 
 logger = get_logger(__name__)
 
@@ -93,6 +101,76 @@ def get_permission_service(db: AsyncSession = Depends(get_db)) -> PermissionServ
         PermissionService instance
     """
     return PermissionService(db)
+
+
+def get_agent_config_repo(db: AsyncSession = Depends(get_db)) -> AgentConfigRepository:
+    """Get AgentConfigRepository instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        AgentConfigRepository instance
+    """
+    return AgentConfigRepository(db)
+
+
+def get_llm_provider_repo(db: AsyncSession = Depends(get_db)) -> LLMProviderRepository:
+    """Get LLMProviderRepository instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        LLMProviderRepository instance
+    """
+    return LLMProviderRepository(db)
+
+
+def get_llm_model_repo(db: AsyncSession = Depends(get_db)) -> LLMModelRepository:
+    """Get LLMModelRepository instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        LLMModelRepository instance
+    """
+    return LLMModelRepository(db)
+
+
+def get_agent_config_service(
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends()
+) -> AgentConfigService:
+    """Get AgentConfigService instance.
+    
+    Args:
+        db: Database session
+        settings: Application settings
+        
+    Returns:
+        AgentConfigService instance
+    """
+    return AgentConfigService(db, settings)
+
+
+def get_agent_service(
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(),
+    config_service: AgentConfigService = Depends(get_agent_config_service)
+) -> AgentService:
+    """Get AgentService instance.
+    
+    Args:
+        db: Database session
+        settings: Application settings
+        config_service: AgentConfigService instance
+        
+    Returns:
+        AgentService instance
+    """
+    return AgentService(db, settings, config_service)
 
 
 async def get_current_user(

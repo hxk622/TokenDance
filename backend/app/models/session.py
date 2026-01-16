@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from app.models.workspace import Workspace
     from app.models.message import Message
     from app.models.artifact import Artifact
+    from app.models.agent_config import AgentConfig
+    from app.models.agent_state import AgentState
 
 
 class SessionStatus(PyEnum):
@@ -47,6 +49,12 @@ class Session(Base):
     workspace_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), 
         nullable=False, index=True
+    )
+
+    # Agent configuration
+    agent_config_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("agent_configs.id", ondelete="SET NULL"), 
+        nullable=True, index=True
     )
 
     # Basic info
@@ -91,6 +99,8 @@ class Session(Base):
 
     # Relationships
     workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="sessions")
+    agent_config: Mapped["AgentConfig"] = relationship("AgentConfig", back_populates="sessions")
+    agent_state: Mapped["AgentState"] = relationship("AgentState", back_populates="session", uselist=False)
     messages: Mapped[list["Message"]] = relationship(
         "Message", 
         back_populates="session",
