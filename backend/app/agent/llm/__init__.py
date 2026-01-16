@@ -6,7 +6,14 @@ from .anthropic import ClaudeLLM, create_claude_llm
 from .qwen import QwenLLM, create_qwen_llm
 from .openrouter import OpenRouterLLM, create_openrouter_llm
 
+# 路由器
+from .router import SimpleRouter, TaskType, get_llm_for_task
+from .advanced_router import AdvancedRouter, RoutingConstraints, get_llm_with_constraints
+from .adaptive_router import AdaptiveRouter
+from .unified_router import UnifiedRouter, FallbackConfig, get_router
+
 __all__ = [
+    # 基础 LLM
     "BaseLLM",
     "LLMMessage",
     "LLMResponse",
@@ -16,4 +23,16 @@ __all__ = [
     "create_qwen_llm",
     "OpenRouterLLM",
     "create_openrouter_llm",
+    # 路由器
+    "SimpleRouter",
+    "AdvancedRouter",
+    "AdaptiveRouter",
+    "UnifiedRouter",
+    "TaskType",
+    "RoutingConstraints",
+    "FallbackConfig",
+    # 便捷函数
+    "get_llm_for_task",
+    "get_llm_with_constraints",
+    "get_router",
 ]
