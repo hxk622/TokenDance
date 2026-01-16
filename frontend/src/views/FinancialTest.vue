@@ -75,32 +75,13 @@
       </section>
 
       <!-- Sentiment Result Display -->
-      <section v-if="store.sentimentResult" class="test-section">
-        <h2>5. 舆情分析</h2>
-        <div class="data-card">
-          <div v-if="store.sentimentResult.analysis" class="sentiment-summary">
-            <div class="data-row">
-              <span class="label">整体情绪:</span>
-              <span class="value">
-                <span class="sentiment-badge" :class="`sentiment-${store.sentimentResult.analysis.overall_label}`">
-                  {{ getSentimentLabel(store.sentimentResult.analysis.overall_label) }}
-                </span>
-              </span>
-            </div>
-            <div class="data-row">
-              <span class="label">评分:</span>
-              <span class="value">{{ store.sentimentResult.analysis.overall_score.toFixed(2) }}</span>
-            </div>
-            <div class="data-row">
-              <span class="label">数据来源:</span>
-              <span class="value">{{ store.sentimentResult.sources_used.join(', ') }}</span>
-            </div>
-            <div class="data-row">
-              <span class="label">帖子数量:</span>
-              <span class="value">{{ store.sentimentResult.posts.length }} 条</span>
-            </div>
-          </div>
-        </div>
+      <section class="test-section">
+        <h2>5. 舆情分析 - SentimentDashboard 组件</h2>
+        <SentimentDashboard
+          :sentiment="store.sentimentResult"
+          :is-loading="store.sentimentLoading"
+          :error="store.sentimentError"
+        />
       </section>
 
       <!-- API Health Check -->
@@ -153,6 +134,7 @@ import { ref } from 'vue'
 import { useFinancialStore } from '@/stores/financial'
 import financialService from '@/services/financial'
 import StockSearch from '@/components/financial/StockSearch.vue'
+import SentimentDashboard from '@/components/financial/SentimentDashboard.vue'
 
 const store = useFinancialStore()
 const testingAPI = ref(false)
