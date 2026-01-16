@@ -97,7 +97,7 @@ class OpenRouterLLM(BaseLLM):
                 json=api_params
             )
             response.raise_for_status()
-            data = response.json()
+            data = response.json()  # httpx response.json() is synchronous
         
         # 解析响应
         choice = data["choices"][0]

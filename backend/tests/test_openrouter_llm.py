@@ -91,7 +91,7 @@ class TestOpenRouterLLM:
     @pytest.mark.asyncio
     async def test_complete_success(self, llm):
         """测试完整调用成功"""
-        mock_response = {
+        mock_response_data = {
             "choices": [{
                 "message": {
                     "role": "assistant",
@@ -106,11 +106,15 @@ class TestOpenRouterLLM:
         }
         
         with patch("httpx.AsyncClient") as mock_client:
-            mock_post = AsyncMock()
-            mock_post.return_value.json.return_value = mock_response
-            mock_post.return_value.raise_for_status = MagicMock()
+            # Create mock response object
+            mock_response_obj = MagicMock()
+            mock_response_obj.json.return_value = mock_response_data
+            mock_response_obj.raise_for_status = MagicMock()
             
-            mock_client.return_value.__aenter__.return_value.post = mock_post
+            # Set up async context manager
+            mock_context = AsyncMock()
+            mock_context.post = AsyncMock(return_value=mock_response_obj)
+            mock_client.return_value.__aenter__.return_value = mock_context
             
             messages = [LLMMessage(role="user", content="Hello")]
             response = await llm.complete(messages)
@@ -123,7 +127,7 @@ class TestOpenRouterLLM:
     @pytest.mark.asyncio
     async def test_complete_with_function_call(self, llm):
         """测试带 function calling 的完整调用"""
-        mock_response = {
+        mock_response_data = {
             "choices": [{
                 "message": {
                     "role": "assistant",
@@ -142,11 +146,15 @@ class TestOpenRouterLLM:
         }
         
         with patch("httpx.AsyncClient") as mock_client:
-            mock_post = AsyncMock()
-            mock_post.return_value.json.return_value = mock_response
-            mock_post.return_value.raise_for_status = MagicMock()
+            # Create mock response object
+            mock_response_obj = MagicMock()
+            mock_response_obj.json.return_value = mock_response_data
+            mock_response_obj.raise_for_status = MagicMock()
             
-            mock_client.return_value.__aenter__.return_value.post = mock_post
+            # Set up async context manager
+            mock_context = AsyncMock()
+            mock_context.post = AsyncMock(return_value=mock_response_obj)
+            mock_client.return_value.__aenter__.return_value = mock_context
             
             messages = [LLMMessage(role="user", content="What's the weather?")]
             tools = [{
@@ -179,14 +187,19 @@ class TestOpenRouterLLM:
                 yield line
         
         with patch("httpx.AsyncClient") as mock_client:
+            # Create mock stream response
             mock_stream_response = MagicMock()
             mock_stream_response.aiter_lines = mock_aiter_lines
             mock_stream_response.raise_for_status = MagicMock()
             
+            # Set up nested async context managers
             mock_stream_context = AsyncMock()
             mock_stream_context.__aenter__.return_value = mock_stream_response
+            mock_stream_context.__aexit__.return_value = AsyncMock()
             
-            mock_client.return_value.__aenter__.return_value.stream.return_value = mock_stream_context
+            mock_context = AsyncMock()
+            mock_context.stream = MagicMock(return_value=mock_stream_context)
+            mock_client.return_value.__aenter__.return_value = mock_context
             
             messages = [LLMMessage(role="user", content="Hello")]
             chunks = []
