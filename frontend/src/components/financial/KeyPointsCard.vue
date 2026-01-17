@@ -16,13 +16,13 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
+      <AlertTriangle class="error-icon w-8 h-8 text-warning" />
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="!keyPoints || (keyPoints.bullish.length === 0 && keyPoints.bearish.length === 0)" class="empty-state">
-      <div class="empty-icon">💡</div>
+      <Lightbulb class="empty-icon w-8 h-8 text-gray-400" />
       <p>暂无核心观点</p>
       <p class="hint">AI 将自动提取帖子中的关键论据</p>
     </div>
@@ -32,7 +32,7 @@
       <!-- Bullish Points -->
       <div v-if="keyPoints.bullish.length > 0" class="points-section">
         <div class="section-header bullish">
-          <span class="section-icon">📈</span>
+          <TrendingUp class="section-icon w-5 h-5 text-green-500" />
           <h4 class="section-title">看多观点</h4>
           <span class="section-count">{{ keyPoints.bullish.length }}</span>
         </div>
@@ -60,7 +60,7 @@
                   :key="postId"
                   class="supporting-post"
                 >
-                  <span class="post-icon">📝</span>
+                  <FileText class="post-icon w-4 h-4 text-gray-400" />
                   <span class="post-id">帖子 #{{ postId.slice(0, 8) }}</span>
                 </div>
               </div>
@@ -72,7 +72,7 @@
       <!-- Bearish Points -->
       <div v-if="keyPoints.bearish.length > 0" class="points-section">
         <div class="section-header bearish">
-          <span class="section-icon">📉</span>
+          <TrendingDown class="section-icon w-5 h-5 text-red-500" />
           <h4 class="section-title">看空观点</h4>
           <span class="section-count">{{ keyPoints.bearish.length }}</span>
         </div>
@@ -100,7 +100,7 @@
                   :key="postId"
                   class="supporting-post"
                 >
-                  <span class="post-icon">📝</span>
+                  <FileText class="post-icon w-4 h-4 text-gray-400" />
                   <span class="post-id">帖子 #{{ postId.slice(0, 8) }}</span>
                 </div>
               </div>
@@ -114,6 +114,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { TrendingUp, TrendingDown, AlertTriangle, Lightbulb, FileText } from 'lucide-vue-next'
 
 interface KeyPoint {
   content: string

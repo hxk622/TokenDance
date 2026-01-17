@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * PPT Generate View - PPT 生成页面
+ * PPT Create View - PPT 撰写页面
  *
  * 功能：
  * - 选择分层样式
  * - 编辑幻灯片内容
  * - 自定义颜色
  * - 预览效果
- * - 生成并下载 PPTX
+ * - 导出 PPTX 文件
  */
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -162,7 +162,7 @@ const generatePPT = async () => {
       filename: filename.value + '.pptx',
     })
   } catch (err: any) {
-    error.value = err.response?.data?.detail || '生成失败，请重试'
+    error.value = err.response?.data?.detail || '导出失败，请重试'
     console.error(err)
   } finally {
     generating.value = false
@@ -180,16 +180,7 @@ const getStyleLabel = (style: LayeredSlideStyle): string => {
   return labels[style] || style
 }
 
-const getStyleIcon = (style: LayeredSlideStyle): string => {
-  const icons: Record<LayeredSlideStyle, string> = {
-    hero_title: '🎯',
-    section_header: '📑',
-    visual_impact: '✨',
-    minimal_clean: '📝',
-    tech_modern: '💻',
-  }
-  return icons[style] || '📄'
-}
+// Style icons now handled via Lucide components
 
 // Watch for slide changes to update preview
 watch(() => currentSlide.value, () => {
@@ -219,7 +210,7 @@ onMounted(async () => {
             >
               ← 返回
             </button>
-            <h1 class="text-xl font-semibold text-gray-900">创建演示文稿</h1>
+            <h1 class="text-xl font-semibold text-gray-900">撰写演示文稿</h1>
           </div>
           
           <div class="flex items-center gap-4">
@@ -235,7 +226,7 @@ onMounted(async () => {
             >
               <ArrowDownTrayIcon v-if="!generating" class="w-5 h-5" />
               <ArrowPathIcon v-else class="w-5 h-5 animate-spin" />
-              {{ generating ? '生成中...' : '生成 PPTX' }}
+              {{ generating ? '导出中...' : '导出 PPTX' }}
             </button>
           </div>
         </div>

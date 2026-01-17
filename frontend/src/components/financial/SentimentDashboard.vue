@@ -22,13 +22,13 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
+      <AlertTriangle class="error-icon w-8 h-8 text-warning" />
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="!sentiment" class="empty-state">
-      <div class="empty-icon">📊</div>
+      <BarChart3 class="empty-icon w-8 h-8 text-gray-400" />
       <p>暂无舆情数据</p>
       <p class="hint">选择股票后将自动加载</p>
     </div>
@@ -133,7 +133,7 @@
       <!-- Key Metrics -->
       <div class="metrics-section">
         <div class="metric-card">
-          <div class="metric-icon">📈</div>
+          <TrendingUp class="metric-icon w-5 h-5 text-green-500" />
           <div class="metric-content">
             <span class="metric-label">看多</span>
             <span class="metric-value bullish">{{ sentiment.analysis?.bullish_count || 0 }}</span>
@@ -141,7 +141,7 @@
         </div>
         
         <div class="metric-card">
-          <div class="metric-icon">📉</div>
+          <TrendingDown class="metric-icon w-5 h-5 text-red-500" />
           <div class="metric-content">
             <span class="metric-label">看空</span>
             <span class="metric-value bearish">{{ sentiment.analysis?.bearish_count || 0 }}</span>
@@ -149,7 +149,7 @@
         </div>
         
         <div class="metric-card">
-          <div class="metric-icon">➖</div>
+          <Minus class="metric-icon w-5 h-5 text-gray-500" />
           <div class="metric-content">
             <span class="metric-label">中性</span>
             <span class="metric-value neutral">{{ sentiment.analysis?.neutral_count || 0 }}</span>
@@ -163,6 +163,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SentimentResult } from '@/types/financial'
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3 } from 'lucide-vue-next'
 
 interface Props {
   sentiment: SentimentResult | null

@@ -16,6 +16,10 @@ console.log('[Main] Importing router...')
 import router from './router'
 console.log('[Main] router imported')
 
+console.log('[Main] Importing design-system.css...')
+import './assets/design-system.css'
+console.log('[Main] design-system.css imported')
+
 console.log('[Main] Importing main.css...')
 import './assets/main.css'
 console.log('[Main] main.css imported')

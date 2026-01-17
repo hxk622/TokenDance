@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component, markRaw } from 'vue'
+import { BarChart3, Presentation, Code, TrendingUp, Pin, User } from 'lucide-vue-next'
 
 export interface TeamMember {
   id: string
@@ -23,21 +24,21 @@ const props = defineProps<{
 const defaultActivities: Activity[] = [
   {
     id: '1',
-    user: { id: '1', name: '张三', avatar: '👨‍💼', role: '产品' },
+    user: { id: '1', name: '张三', avatar: 'ZS', role: '产品' },
     title: '2024 年中报告分析',
     completedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
     type: 'analysis'
   },
   {
     id: '2',
-    user: { id: '2', name: '李四', avatar: '👩‍💻', role: '技术' },
+    user: { id: '2', name: '李四', avatar: 'LS', role: '技术' },
     title: 'API 性能优化方案',
     completedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
     type: 'code'
   },
   {
     id: '3',
-    user: { id: '3', name: '王五', avatar: '👨‍🔬', role: '研究' },
+    user: { id: '3', name: '王五', avatar: 'WW', role: '研究' },
     title: '市场趋势预测 PPT',
     completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
     type: 'ppt'
@@ -56,20 +57,21 @@ const formatTime = (date: Date) => {
   return `${Math.floor(diff / 86400)}天前`
 }
 
-const getTypeIcon = (type: string) => {
-  const icons: Record<string, string> = {
-    research: '📊',
-    ppt: '📽️',
-    code: '💻',
-    analysis: '📈'
-  }
-  return icons[type] || '📌'
+const typeIcons: Record<string, Component> = {
+  research: markRaw(BarChart3),
+  ppt: markRaw(Presentation),
+  code: markRaw(Code),
+  analysis: markRaw(TrendingUp)
+}
+
+const getTypeIcon = (type: string): Component => {
+  return typeIcons[type] || Pin
 }
 </script>
 
 <template>
   <div class="team-activity">
-    <h3 class="activity-label">🤝 团队最近的工作</h3>
+    <h3 class="activity-label">团队最近的工作</h3>
     
     <div class="activity-list">
       <div v-for="item in activities" :key="item.id" class="activity-item">
@@ -83,7 +85,7 @@ const getTypeIcon = (type: string) => {
             <span class="item-role">{{ item.user.role }}</span>
           </div>
           <div class="item-action">
-            <span class="action-icon">{{ getTypeIcon(item.type) }}</span>
+            <component :is="getTypeIcon(item.type)" class="action-icon w-4 h-4" />
             <span class="action-text">刚完成</span>
             <span class="action-title">{{ item.title }}</span>
           </div>

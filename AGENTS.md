@@ -48,6 +48,10 @@ cd backend && uv sync --all-extras
 - Test class naming: `Test*`
 - Run full suite before committing: `cd backend && uv run pytest tests/`
 - Fix all type errors: `uv run mypy .`
+- **MANDATORY**: Every backend API endpoint MUST have corresponding test scripts in `backend/tests/`
+  - New API → Create test file immediately
+  - Modified API → Update tests accordingly
+  - This is STRICTLY ENFORCED for code quality
 
 ## Git & PR Guidelines
 

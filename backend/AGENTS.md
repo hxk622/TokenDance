@@ -54,6 +54,10 @@ backend/
 - **Framework**: pytest + pytest-asyncio
 - **Run before commit**: `uv run pytest tests/`
 - **Coverage**: Auto-generated to `htmlcov/`
+- **MANDATORY**: Every API endpoint MUST have corresponding tests in `tests/`
+  - New API → Create test file immediately
+  - Modified API → Update tests accordingly
+  - This is STRICTLY ENFORCED for code quality
 
 ## Code Style
 

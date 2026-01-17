@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, type Component } from 'vue'
 import type { SkillTemplate, TemplateVariable } from '@/api/skills'
+import { getCategoryIcon } from '@/components/icons'
 
 const props = defineProps<{
   template: SkillTemplate
@@ -27,20 +28,9 @@ const categoryColors: Record<string, string> = {
   other: '#6b7280'
 }
 
-// 分类图标映射
-const categoryIcons: Record<string, string> = {
-  research: '🔍',
-  writing: '✍️',
-  data: '📊',
-  visualization: '📈',
-  coding: '💻',
-  document: '📄',
-  other: '📦'
-}
-
 // 计算属性
 const categoryColor = computed(() => categoryColors[props.template.category] || '#6b7280')
-const categoryIcon = computed(() => categoryIcons[props.template.category] || '📦')
+const categoryIconComponent = computed(() => getCategoryIcon(props.template.category))
 
 const hasVariables = computed(() => props.template.variables.length > 0)
 
@@ -115,7 +105,8 @@ initializeDefaults()
               color: categoryColor
             }"
           >
-            {{ categoryIcon }} {{ template.category }}
+            <component :is="categoryIconComponent" class="w-3 h-3 inline-block mr-1" />
+            {{ template.category }}
           </span>
         </div>
       </div>

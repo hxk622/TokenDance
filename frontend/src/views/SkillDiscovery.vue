@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import { skillsApi, type SkillTemplate, type ScenePreset, type Category, type DiscoveryData } from '@/api/skills'
+import { categoryIcons, getCategoryIcon } from '@/components/icons'
 
 const router = useRouter()
 
@@ -14,15 +15,9 @@ const searchQuery = ref('')
 const searchResults = ref<SkillTemplate[]>([])
 const isSearching = ref(false)
 
-// 分类图标映射
-const categoryIcons: Record<string, string> = {
-  research: '🔍',
-  writing: '✍️',
-  data: '📊',
-  visualization: '📈',
-  coding: '💻',
-  document: '📄',
-  other: '📦'
+// 获取分类图标组件
+function getCategoryIconComponent(categoryId: string): Component {
+  return getCategoryIcon(categoryId)
 }
 
 // 分类颜色映射
@@ -191,7 +186,7 @@ onMounted(() => {
             :class="{ active: selectedCategory === cat.id }"
             @click="selectCategory(cat.id)"
           >
-            <span class="category-icon">{{ categoryIcons[cat.id] || '📦' }}</span>
+            <component :is="getCategoryIconComponent(cat.id)" class="category-icon w-4 h-4" />
             {{ cat.name }}
             <span class="category-count">{{ cat.template_count }}</span>
           </button>

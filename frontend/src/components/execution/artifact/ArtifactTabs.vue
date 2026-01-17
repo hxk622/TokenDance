@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, type Component, markRaw } from 'vue'
+import { FileText, BarChart3, Image, GitCompare, Pin } from 'lucide-vue-next'
 
 type TabType = 'report' | 'ppt' | 'file-diff' | 'image'
 
@@ -22,15 +23,15 @@ interface ArtifactTab {
   id: TabType
   type: TabType
   title: string
-  icon: string
+  icon: Component
   isPinned?: boolean
 }
 
 const tabs = ref<ArtifactTab[]>([
-  { id: 'report', type: 'report', title: '研究报告', icon: '📄' },
-  { id: 'ppt', type: 'ppt', title: 'PPT', icon: '📊' },
-  { id: 'image', type: 'image', title: '生成图像', icon: '🎨' },
-  { id: 'file-diff', type: 'file-diff', title: '文件变更', icon: '🧩' },
+  { id: 'report', type: 'report', title: '研究报告', icon: markRaw(FileText) },
+  { id: 'ppt', type: 'ppt', title: 'PPT', icon: markRaw(BarChart3) },
+  { id: 'image', type: 'image', title: '图像内容', icon: markRaw(Image) },
+  { id: 'file-diff', type: 'file-diff', title: '文件变更', icon: markRaw(GitCompare) },
 ])
 
 const current = computed({
@@ -130,9 +131,9 @@ function resetDragState() {
       @dragend="handleDragEnd"
     >
       <span class="drag-handle">⋮⋮</span>
-      <span class="icon">{{ tab.icon }}</span>
+      <component :is="tab.icon" class="icon w-4 h-4" />
       <span class="title">{{ tab.title }}</span>
-      <span v-if="tab.isPinned" class="pin">📌</span>
+      <Pin v-if="tab.isPinned" class="pin w-3 h-3" />
     </div>
   </div>
 </template>
