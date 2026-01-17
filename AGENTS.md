@@ -65,6 +65,7 @@ Co-Authored-By: Warp <agent@warp.dev>
 - Commit after completing each component/bug fix/TODO item
 - Always include co-author line
 - Run lint and tests before committing
+- **Branching**: 在 master 分支直接开发，目前不拉分支
 
 ## Project Structure
 
