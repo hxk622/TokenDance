@@ -38,6 +38,8 @@ dependencies = [
     "pdfminer-six>=20260107",
     "openpyxl>=3.1.5",
     "speechrecognition>=3.14.5",
+    # Graph RAG (Deep Research v3.0)
+    "neo4j>=5.0.0",
 ]
 
 [project.optional-dependencies]
