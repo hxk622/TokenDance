@@ -50,6 +50,15 @@ const workflows = [
     featured: true
   },
   {
+    id: 'wechat',
+    title: '公众号提取',
+    subtitle: '微信文章 · 一键转 Markdown · 免费使用',
+    icon: 'wechat',
+    accent: 'green',
+    featured: true,
+    badge: 'NEW'
+  },
+  {
     id: 'presentation',
     title: '演示汇报',
     subtitle: '方案展示 · 周报总结 · 培训材料',
@@ -70,15 +79,15 @@ const workflows = [
 // 场景引导示例 - 用户任务导向
 const suggestions = [
   '调研 2025 年 AI Agent 市场趋势',
-  '把这份报告做成 10 页 PPT',
-  '分析这份 CSV 数据并生成图表'
+  '提取这篇公众号文章的内容',
+  '把这份报告做成 10 页 PPT'
 ]
 
 // 快捷操作
 const quickActions = [
   { id: 'research', label: '深度研究', icon: 'search' },
-  { id: 'ppt', label: '演示汇报', icon: 'presentation' },
-  { id: 'code', label: '代码分析', icon: 'code' }
+  { id: 'wechat', label: '公众号提取', icon: 'wechat' },
+  { id: 'ppt', label: '演示汇报', icon: 'presentation' }
 ]
 
 // 最近项目
@@ -395,6 +404,10 @@ onUnmounted(() => {
             >
               <svg v-if="action.icon === 'search'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <svg v-else-if="action.icon === 'wechat'" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05a5.79 5.79 0 01-.271-1.74c0-3.562 3.4-6.446 7.562-6.446.197 0 .391.012.585.025-.798-3.328-4.282-5.771-8.685-5.771zm-2.11 4.96a.925.925 0 11.002-1.85.925.925 0 01-.001 1.85zm4.877 0a.925.925 0 110-1.85.925.925 0 010 1.85z" />
+                <path d="M23.636 14.576c0-3.263-3.268-5.913-7.295-5.913-4.025 0-7.293 2.65-7.293 5.913s3.268 5.912 7.293 5.912c.858 0 1.68-.11 2.454-.308a.725.725 0 01.6.082l1.6.937a.27.27 0 00.14.045.243.243 0 00.242-.244c0-.06-.024-.12-.04-.178l-.327-1.244a.496.496 0 01.179-.558c1.537-1.137 2.447-2.814 2.447-4.444zm-9.782-1.061a.777.777 0 110-1.554.777.777 0 010 1.554zm4.974 0a.777.777 0 110-1.554.777.777 0 010 1.554z" />
               </svg>
               <svg v-else-if="action.icon === 'presentation'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />

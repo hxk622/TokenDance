@@ -49,6 +49,7 @@ from .ppt_generator import (
     QuickPPTTool,
     create_ppt_tools,
 )
+from .wechat_article import WeChatArticleTool, wechat_article_tool
 
 __all__ = [
     # Core tools (4+2 model) - 铁律三
@@ -87,4 +88,7 @@ __all__ = [
     "GeneratePPTTool",
     "QuickPPTTool",
     "create_ppt_tools",
+    # WeChat article extraction
+    "WeChatArticleTool",
+    "wechat_article_tool",
 ]

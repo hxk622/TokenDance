@@ -4,8 +4,8 @@ display_name: 深度研究
 description: 深度研究能力，支持多源搜索、信息聚合、引用回溯、文档上传分析。适用于市场调研、竞品分析、学术研究、技术选型、金融投研等场景。支持上传 PDF/Excel/Word 等文档，自动转换并提取关键信息。
 version: 1.2.0
 author: system
-tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑, 金融, finance, 投研, 股票, stock, 财报, 行业分析, 估值, investment, document, pdf, excel, 文档, 上传]
-allowed_tools: [web_search, read_url, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close, file_converter]
+tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑, 金融, finance, 投研, 股票, stock, 财报, 行业分析, 估值, investment, document, pdf, excel, 文档, 上传, 微信, wechat, 公众号]
+allowed_tools: [web_search, read_url, wechat_article, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close, file_converter]
 max_iterations: 30
 timeout: 600
 enabled: true
@@ -126,6 +126,25 @@ web_search(query="AI Agent 市场规模 2024", num_results=5)
 **示例**：
 ```
 read_url(url="https://example.com/article")
+```
+
+### wechat_article
+**用途**：提取微信公众号文章内容
+
+**参数**：
+- `url`: 微信公众号文章链接 (mp.weixin.qq.com)
+- `format`: 输出格式，"markdown" (默认) 或 "html"
+- `include_images`: 是否包含图片引用 (默认 true)
+
+**最佳实践**：
+- 当用户提供微信公众号链接时，使用此工具而不是 read_url
+- 微信文章通常无法通过通用爬虫抓取
+- 输出为干净的 Markdown 格式
+
+**示例**：
+```python
+wechat_article(url="https://mp.weixin.qq.com/s/xxxxx")
+wechat_article(url="https://mp.weixin.qq.com/s/xxxxx", format="html")
 ```
 
 ### create_document

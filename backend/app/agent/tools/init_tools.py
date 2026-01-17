@@ -106,6 +106,16 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register file_converter tool: {e}")
     
+    # WeChat Article Tool - 微信公众号文章提取
+    try:
+        from app.agent.tools.builtin.wechat_article import WeChatArticleTool
+        wechat_article = WeChatArticleTool()
+        registry.register(wechat_article)
+        tools.append(wechat_article)
+        logger.info(f"Registered tool: {wechat_article.name}")
+    except Exception as e:
+        logger.error(f"Failed to register wechat_article tool: {e}")
+    
     # Financial Data Tools - 金融数据工具集
     try:
         from app.agent.tools.builtin.financial import get_financial_tools
@@ -124,7 +134,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
 def get_tool_categories() -> dict:
     """Get tool categories for UI organization"""
     return {
-        "Web & Research": ["web_search", "read_url"],
+        "Web & Research": ["web_search", "read_url", "wechat_article"],
         "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
         "Content Generation": ["image_generation", "ppt_generator", "report_generator"],
@@ -146,6 +156,7 @@ def get_tool_descriptions() -> dict:
     return {
         "web_search": "Search web using DuckDuckGo",
         "read_url": "Read and extract content from a URL",
+        "wechat_article": "Extract content from WeChat Official Account articles",
         "shell": "Execute shell commands",
         "file_ops": "Perform file operations (read, write, list, delete)",
         "create_document": "Create a new document",
