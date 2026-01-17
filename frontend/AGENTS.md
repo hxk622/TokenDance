@@ -88,7 +88,20 @@ frontend/
 - ✅ Transitions: 200-300ms ease
 - ✅ Responsive design (mobile-first)
 
-**参考:** `docs/ux/DESIGN-PRINCIPLES.md`
+**设计规范 (必须遵循):**
+
+前端设计必须严格遵循以下设计文档:
+
+- `docs/ux/DESIGN-PRINCIPLES.md` - 核心设计原则 (Transparency / Controllability / Persistence)
+- `docs/ux/DESIGN-SYSTEM.md` - 设计系统 (色彩/排版/间距/动画标准)
+- `docs/ux/EXECUTION-PAGE-LAYOUT.md` - 三栏布局规范
+
+**关键要点:**
+- 使用设计系统定义的 CSS 变量 (color/spacing/radius/transition)
+- 色球动画使用状态色: cyan (#00D9FF) / green (#00FF88) / amber (#FFB800)
+- 字体: Inter (正文) + Space Grotesk (标题)
+- 动画: 150ms/200ms/300ms + cubic-bezier 缓动函数
+- 毛玻璃效果: backdrop-filter: blur(20px) saturate(180%)
 
 ## State Management
 
