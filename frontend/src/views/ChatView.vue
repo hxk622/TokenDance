@@ -399,12 +399,20 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* ============================================
+   ChatView - Dark Theme (TokenDance Design System)
+   ============================================ */
+
 .chat-view {
-  @apply h-screen flex flex-col bg-gray-50;
+  @apply h-screen flex flex-col;
+  background: #0a0a0b;
 }
 
 .chat-header {
-  @apply flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200;
+  @apply flex items-center justify-between px-6 py-4;
+  background: rgba(20, 20, 21, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .header-left {
@@ -412,11 +420,13 @@ onUnmounted(() => {
 }
 
 .chat-title {
-  @apply text-xl font-semibold text-gray-800;
+  @apply text-xl font-semibold text-white;
+  font-family: 'Space Grotesk', sans-serif;
 }
 
 .session-title {
-  @apply text-sm text-gray-500;
+  @apply text-sm;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .header-actions {
@@ -432,23 +442,36 @@ onUnmounted(() => {
 }
 
 .status-connected {
-  @apply bg-green-500;
+  background: #00FF88;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
 }
 
 .status-disconnected {
-  @apply bg-gray-400;
+  @apply bg-gray-500;
 }
 
 .status-text {
-  @apply text-sm text-gray-600;
+  @apply text-sm;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .memory-button {
-  @apply flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors;
+  @apply flex items-center px-4 py-2 rounded-lg transition-all duration-200;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.memory-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .memory-button-active {
-  @apply bg-blue-50 border-blue-500 text-blue-700;
+  background: rgba(0, 217, 255, 0.15) !important;
+  border-color: rgba(0, 217, 255, 0.5) !important;
+  color: #00D9FF !important;
 }
 
 .main-content {
@@ -463,24 +486,39 @@ onUnmounted(() => {
   @apply w-2/3;
 }
 
+/* Memory Sidebar - Dark Theme */
 .memory-sidebar {
-  @apply w-1/3 border-l border-gray-200 bg-gray-50 flex flex-col overflow-hidden;
+  @apply w-1/3 flex flex-col overflow-hidden;
+  background: linear-gradient(180deg, 
+    rgba(28, 28, 30, 0.95) 0%, 
+    rgba(20, 20, 21, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .memory-header {
-  @apply flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white;
+  @apply flex items-center justify-between px-4 py-3;
+  background: rgba(28, 28, 30, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .memory-title {
-  @apply text-lg font-semibold text-gray-800;
+  @apply text-lg font-semibold text-white;
 }
 
 .refresh-button {
-  @apply p-2 rounded-lg hover:bg-gray-100 transition-colors;
+  @apply p-2 rounded-lg transition-all duration-200;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.refresh-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .refresh-button-loading svg {
   @apply animate-spin;
+  color: #00D9FF;
 }
 
 .loading-spinner {
@@ -488,16 +526,25 @@ onUnmounted(() => {
 }
 
 .spinner {
-  @apply w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin;
+  @apply w-8 h-8 rounded-full animate-spin;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #00D9FF;
+}
+
+.loading-spinner p {
+  @apply mt-3 text-sm;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .empty-state {
   @apply flex items-center justify-center h-full text-center px-4;
+  color: rgba(255, 255, 255, 0.4);
 }
 
+/* Transitions */
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-left-enter-from {
@@ -510,35 +557,42 @@ onUnmounted(() => {
   opacity: 0;
 }
 
+/* HITL Badge */
 .hitl-badge {
-  @apply fixed bottom-24 right-6 flex items-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-full shadow-lg cursor-pointer hover:bg-amber-600 transition-all;
-  animation: pulse 2s infinite;
+  @apply fixed bottom-24 right-6 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg cursor-pointer transition-all duration-200;
+  background: linear-gradient(135deg, #FFB800 0%, #FF8C00 100%);
+  color: #000;
+  font-weight: 600;
+  animation: hitl-pulse 2s infinite;
 }
 
-@keyframes pulse {
+.hitl-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(255, 184, 0, 0.4);
+}
+
+@keyframes hitl-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 16px rgba(255, 184, 0, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+    box-shadow: 0 4px 24px rgba(255, 184, 0, 0.6), 0 0 0 8px rgba(255, 184, 0, 0.1);
   }
 }
 
+/* Bounce Animation */
 .bounce-enter-active {
-  animation: bounce-in 0.3s;
+  animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .bounce-leave-active {
-  animation: bounce-in 0.3s reverse;
+  animation: bounce-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
 }
 
 @keyframes bounce-in {
   0% {
     transform: scale(0);
     opacity: 0;
-  }
-  50% {
-    transform: scale(1.1);
   }
   100% {
     transform: scale(1);

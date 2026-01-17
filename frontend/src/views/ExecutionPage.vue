@@ -427,17 +427,30 @@ onUnmounted(() => {
         </div>
       </div>
       
-      <!-- Plan Recitation: 当前步骤指示器 -->
+      <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
       <div class="plan-progress">
+        <!-- Circular Progress Ring -->
+        <div class="progress-ring">
+          <svg viewBox="0 0 36 36">
+            <defs>
+              <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00D9FF" />
+                <stop offset="100%" stop-color="#00FF88" />
+              </linearGradient>
+            </defs>
+            <circle class="bg" cx="18" cy="18" r="16" />
+            <circle 
+              class="fill" 
+              cx="18" cy="18" r="16"
+              :stroke-dasharray="`${progressPercent} 100`"
+            />
+          </svg>
+          <span class="percent">{{ progressPercent }}%</span>
+        </div>
+        <!-- Step Info -->
         <div class="progress-step">
           <span class="step-label">Step {{ currentStepIndex + 1 }}/{{ totalSteps }}</span>
           <span class="step-name">{{ currentStepLabel }}</span>
-        </div>
-        <div class="progress-bar-wrapper">
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" :style="{ width: `${progressPercent}%` }" />
-          </div>
-          <span class="progress-percent">{{ progressPercent }}%</span>
         </div>
       </div>
       
@@ -704,37 +717,104 @@ onUnmounted(() => {
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
 }
 
-/* Plan Recitation 进度指示器 */
+/* Plan Recitation 进度指示器 - Enhanced Design */
 .plan-progress {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 200px;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: rgba(0, 217, 255, 0.08);
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  border-radius: 12px;
+}
+
+/* Circular Progress Ring */
+.progress-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.progress-ring svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.progress-ring .bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 3;
+}
+
+.progress-ring .fill {
+  fill: none;
+  stroke: url(#progress-gradient);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  transition: stroke-dasharray 0.5s ease-out;
+}
+
+.progress-ring .percent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #00D9FF;
 }
 
 .progress-step {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .step-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-node-active, #00D9FF);
-  padding: 2px 8px;
-  background: rgba(0, 217, 255, 0.15);
-  border-radius: 4px;
+  color: #00D9FF;
+  padding: 2px 10px;
+  background: rgba(0, 217, 255, 0.2);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+}
+
+.step-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #00D9FF;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 .step-name {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Legacy progress bar (fallback) */
 .progress-bar-wrapper {
-  display: flex;
+  display: none; /* Hidden in favor of ring */
   align-items: center;
   gap: 8px;
 }
@@ -749,7 +829,7 @@ onUnmounted(() => {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--vibe-color-active), var(--vibe-color-success));
+  background: linear-gradient(90deg, #00D9FF, #00FF88);
   border-radius: 2px;
   transition: width 300ms ease-out;
   position: relative;
@@ -760,7 +840,7 @@ onUnmounted(() => {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   animation: progress-shimmer 1.5s ease-in-out infinite;
 }
 

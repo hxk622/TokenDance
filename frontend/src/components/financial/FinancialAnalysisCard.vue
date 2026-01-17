@@ -180,11 +180,16 @@ function formatNumber(value: number | null): string {
 </script>
 
 <style scoped>
+/* ============================================
+   FinancialAnalysisCard - Dark Theme
+   ============================================ */
+
 .financial-analysis-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: rgba(28, 28, 30, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   padding: 1.5rem;
+  backdrop-filter: blur(12px);
 }
 
 .card-header {
@@ -197,8 +202,9 @@ function formatNumber(value: number | null): string {
 .card-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: #ffffff;
   margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
 }
 
 .health-badge {
@@ -209,28 +215,28 @@ function formatNumber(value: number | null): string {
 }
 
 .health-excellent {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(0, 255, 136, 0.2);
+  color: #00FF88;
 }
 
 .health-good {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(0, 217, 255, 0.2);
+  color: #00D9FF;
 }
 
 .health-fair {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(255, 184, 0, 0.2);
+  color: #FFB800;
 }
 
 .health-poor {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(255, 107, 107, 0.2);
+  color: #FF6B6B;
 }
 
 .health-critical {
-  background: #fecaca;
-  color: #7f1d1d;
+  background: rgba(255, 59, 48, 0.2);
+  color: #FF3B30;
 }
 
 /* Loading */
@@ -239,14 +245,14 @@ function formatNumber(value: number | null): string {
   flex-direction: column;
   align-items: center;
   padding: 2rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #00D9FF;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -259,12 +265,13 @@ function formatNumber(value: number | null): string {
 /* Error */
 .error-state {
   padding: 1rem;
-  background: #fef2f2;
+  background: rgba(255, 59, 48, 0.15);
+  border: 1px solid rgba(255, 59, 48, 0.3);
   border-radius: 8px;
 }
 
 .error-text {
-  color: #991b1b;
+  color: #FF6B6B;
   margin: 0;
   font-size: 0.875rem;
 }
@@ -281,14 +288,15 @@ function formatNumber(value: number | null): string {
   height: 100px;
   border-radius: 50%;
   background: conic-gradient(
-    #10b981 calc(var(--score) * 3.6deg),
-    #e5e7eb calc(var(--score) * 3.6deg)
+    #00FF88 calc(var(--score) * 3.6deg),
+    rgba(255, 255, 255, 0.1) calc(var(--score) * 3.6deg)
   );
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+  box-shadow: 0 0 24px rgba(0, 255, 136, 0.2);
 }
 
 .score-circle::before {
@@ -296,7 +304,7 @@ function formatNumber(value: number | null): string {
   position: absolute;
   width: 80px;
   height: 80px;
-  background: #ffffff;
+  background: rgba(28, 28, 30, 0.95);
   border-radius: 50%;
 }
 
@@ -304,20 +312,24 @@ function formatNumber(value: number | null): string {
   position: relative;
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
+  color: #ffffff;
 }
 
 .score-label {
   position: relative;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* Dimensions */
+.dimensions-section {
+  margin-top: 1.5rem;
+}
+
 .section-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0 0 0.75rem 0;
 }
 
@@ -337,17 +349,17 @@ function formatNumber(value: number | null): string {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .bar-value {
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .bar-track {
   height: 6px;
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -355,14 +367,14 @@ function formatNumber(value: number | null): string {
 .bar-fill {
   height: 100%;
   border-radius: 3px;
-  transition: width var(--transition-slow) var(--ease-default);
+  transition: width 0.3s ease;
 }
 
-.bar-fill.excellent { background: #10b981; }
-.bar-fill.good { background: #3b82f6; }
-.bar-fill.fair { background: #f59e0b; }
-.bar-fill.poor { background: #f97316; }
-.bar-fill.critical { background: #ef4444; }
+.bar-fill.excellent { background: linear-gradient(90deg, #00FF88, #10b981); }
+.bar-fill.good { background: linear-gradient(90deg, #00D9FF, #3b82f6); }
+.bar-fill.fair { background: linear-gradient(90deg, #FFB800, #f59e0b); }
+.bar-fill.poor { background: linear-gradient(90deg, #FF8C00, #f97316); }
+.bar-fill.critical { background: linear-gradient(90deg, #FF3B30, #ef4444); }
 
 /* Metrics */
 .metrics-section {
@@ -379,25 +391,34 @@ function formatNumber(value: number | null): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.metric-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .metric-label {
   font-size: 0.625rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.4);
   margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .metric-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  color: #ffffff;
 }
 
-.metric-value.positive { color: #10b981; }
-.metric-value.negative { color: #ef4444; }
+.metric-value.positive { color: #00FF88; }
+.metric-value.negative { color: #FF6B6B; }
 
 /* Insights */
 .insights-section {
@@ -407,11 +428,17 @@ function formatNumber(value: number | null): string {
   gap: 1rem;
 }
 
+.insight-group {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
 .insight-list {
   margin: 0;
   padding-left: 1.25rem;
   font-size: 0.875rem;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .insight-list li {
@@ -419,28 +446,28 @@ function formatNumber(value: number | null): string {
 }
 
 .insight-list.risk li {
-  color: #991b1b;
+  color: #FF6B6B;
 }
 
 /* Summary */
 .summary-section {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .summary-text {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* Empty */
 .empty-state {
   padding: 2rem;
   text-align: center;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* Responsive */

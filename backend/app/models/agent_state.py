@@ -47,6 +47,7 @@ class AgentState(Base):
     # Relationships
     session = relationship("Session", back_populates="agent_state")
     agent_config = relationship("AgentConfig")
+    checkpoints = relationship("AgentCheckpoint", back_populates="agent_state", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<AgentState(session_id={self.session_id}, state={self.current_state})>"

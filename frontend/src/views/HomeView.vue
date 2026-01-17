@@ -540,16 +540,32 @@ onUnmounted(() => {
 }
 
 .hero-tagline {
-  @apply text-sm font-medium text-indigo-400 mb-2 tracking-wide;
+  @apply text-sm font-medium mb-3 tracking-wide;
+  color: #8b5cf6;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 }
 
 .hero-title {
-  @apply text-3xl md:text-4xl font-bold text-white mb-3;
-  font-family: 'Satoshi', sans-serif;
+  @apply text-3xl md:text-4xl font-bold mb-4;
+  font-family: 'Space Grotesk', sans-serif;
+  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 50%, #ffffff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: title-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes title-shimmer {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 200% center; }
 }
 
 .hero-desc {
-  @apply text-base text-gray-400 mb-6;
+  @apply text-base mb-8;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Hero CTA */
@@ -558,19 +574,21 @@ onUnmounted(() => {
 }
 
 .cta-primary {
-  @apply flex items-center gap-2 px-6 py-3
-         text-base font-medium text-gray-900
-         bg-white rounded-xl
-         hover:bg-gray-100
-         cursor-pointer transition-colors duration-200;
+  @apply flex items-center gap-2 px-7 py-3.5
+         text-base font-semibold text-gray-900
+         rounded-xl cursor-pointer;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.1);
 }
 
 .cta-secondary {
-  @apply flex items-center gap-2 px-6 py-3
-         text-base font-medium text-gray-200
-         bg-gray-800 border border-gray-700 rounded-xl
-         hover:bg-gray-700 hover:border-gray-600
-         cursor-pointer transition-all duration-200;
+  @apply flex items-center gap-2 px-7 py-3.5
+         text-base font-medium rounded-xl cursor-pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Trinity Section - Dark Theme Default */
@@ -936,7 +954,7 @@ onUnmounted(() => {
    Hover Surprise Effects
    ============================================ */
 
-/* CTA Primary - Glow pulse on hover */
+/* CTA Primary - Enhanced Glow Effect */
 .cta-primary {
   position: relative;
   overflow: hidden;
@@ -946,65 +964,144 @@ onUnmounted(() => {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+
+.cta-primary::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.4s ease;
 }
 
 .cta-primary:hover::before {
   opacity: 1;
 }
 
-.cta-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+.cta-primary:hover::after {
+  transform: translate(-50%, -50%) scale(1);
 }
 
-/* CTA Secondary - Border glow */
+.cta-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 25px rgba(255, 255, 255, 0.25),
+    0 0 40px rgba(139, 92, 246, 0.2);
+}
+
+.cta-primary:active {
+  transform: translateY(-1px);
+}
+
+/* CTA Secondary - Enhanced Border Glow */
 .cta-secondary {
   position: relative;
+  z-index: 1;
+}
+
+.cta-secondary::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
 }
 
 .cta-secondary::after {
   content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: 14px;
+  inset: -4px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
   opacity: 0;
-  z-index: -1;
+  z-index: -2;
+  filter: blur(12px);
   transition: opacity 0.3s ease;
-  filter: blur(8px);
+}
+
+.cta-secondary:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: transparent;
+  color: #ffffff;
+  transform: translateY(-3px);
+}
+
+.cta-secondary:hover::before {
+  opacity: 1;
 }
 
 .cta-secondary:hover::after {
   opacity: 0.5;
 }
 
-.cta-secondary:hover {
-  transform: translateY(-2px);
+.cta-secondary:active {
+  transform: translateY(-1px);
 }
 
-/* Trinity Card - Lift and glow */
+/* Trinity Card - Enhanced Lift, Glow and Spotlight Effect */
+.trinity-card {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  position: relative;
+}
+
+.trinity-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at var(--mouse-x) var(--mouse-y),
+    rgba(99, 102, 241, 0.15) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.trinity-card:hover::before {
+  opacity: 1;
+}
+
 .trinity-card:hover {
-  transform: translateY(-6px) !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transform: translateY(-8px) !important;
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 .trinity-card:hover .trinity-icon {
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
 
 .trinity-card:hover .trinity-icon--manus {
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 
+    0 0 24px rgba(99, 102, 241, 0.5),
+    inset 0 0 12px rgba(99, 102, 241, 0.2);
 }
 
 .trinity-card:hover .trinity-icon--coworker {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  box-shadow: 
+    0 0 24px rgba(16, 185, 129, 0.5),
+    inset 0 0 12px rgba(16, 185, 129, 0.2);
 }
 
 .trinity-card:hover .trinity-icon--vibe {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  box-shadow: 
+    0 0 24px rgba(6, 182, 212, 0.5),
+    inset 0 0 12px rgba(6, 182, 212, 0.2);
 }
 
 /* Featured Card - Shimmer effect */

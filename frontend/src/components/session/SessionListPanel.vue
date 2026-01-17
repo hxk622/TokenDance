@@ -58,8 +58,9 @@
                 </svg>
               </button>
             </div>
-          </button>
-        </div>
+          </div>
+        </button>
+      </div>
 
       <!-- Completed Sessions -->
       <div v-if="completedSessions.length > 0" class="session-group">
@@ -92,8 +93,9 @@
                 </svg>
               </button>
             </div>
-          </button>
-        </div>
+          </div>
+        </button>
+      </div>
 
       <!-- Load More -->
       <button
