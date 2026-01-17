@@ -217,14 +217,28 @@ const handleRecommendClick = () => {
 
 .input-submit {
   @apply px-6 py-3.5 text-sm font-semibold text-gray-900
-         bg-white rounded-xl
-         hover:bg-gray-100 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed
-         transition-all duration-200;
+         rounded-xl cursor-pointer;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+
+.input-submit:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .input-submit:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 16px rgba(255, 255, 255, 0.2),
+    0 0 24px rgba(139, 92, 246, 0.15);
+}
+
+.input-submit:not(:disabled):active {
+  transform: translateY(0);
 }
 
 .suggestions-panel {
@@ -247,36 +261,78 @@ const handleRecommendClick = () => {
 }
 
 .suggestion-item {
-  @apply w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left
-         transition-all duration-200;
+  @apply w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left cursor-pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.suggestion-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.previous-item::before {
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.trending-item::before {
+  background: linear-gradient(180deg, #FFB800, #FF8C00);
+}
+
+.ai-item::before {
+  background: linear-gradient(180deg, #00D9FF, #00FF88);
+}
+
+.suggestion-item:hover::before {
+  transform: scaleY(1);
 }
 
 .suggestion-item:hover {
-  transform: translateX(4px);
+  transform: translateX(6px);
 }
 
 .previous-item {
-  @apply border border-gray-800 bg-gray-800/50 text-gray-300;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .previous-item:hover {
-  @apply bg-gray-800 border-gray-700;
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .trending-item {
-  @apply border border-amber-900/50 bg-amber-900/20 text-amber-200;
+  background: rgba(255, 184, 0, 0.08);
+  border: 1px solid rgba(255, 184, 0, 0.2);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .trending-item:hover {
-  @apply bg-amber-900/30 border-amber-800/50;
+  background: rgba(255, 184, 0, 0.15);
+  border-color: rgba(255, 184, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 184, 0, 0.15);
 }
 
 .ai-item {
-  @apply border border-indigo-900/50 bg-indigo-900/20 text-indigo-200;
+  background: rgba(0, 217, 255, 0.08);
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .ai-item:hover {
-  @apply bg-indigo-900/30 border-indigo-800/50;
+  background: rgba(0, 217, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
 }
 
 .item-icon {

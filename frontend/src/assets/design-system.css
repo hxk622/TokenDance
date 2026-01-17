@@ -246,6 +246,225 @@
 }
 
 /* ============================================
+   交错动画系统 - Staggered Animation System
+   ============================================ */
+
+/* Stagger Reveal - 元素交错入场 */
+@keyframes stagger-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-reveal {
+  opacity: 0;
+  animation: stagger-reveal 0.5s var(--ease-default) forwards;
+  animation-delay: calc(var(--stagger-index, 0) * 80ms);
+}
+
+/* Stagger from left */
+@keyframes stagger-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.stagger-slide-left {
+  opacity: 0;
+  animation: stagger-slide-left 0.4s var(--ease-default) forwards;
+  animation-delay: calc(var(--stagger-index, 0) * 60ms);
+}
+
+/* Stagger scale up */
+@keyframes stagger-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.stagger-scale {
+  opacity: 0;
+  animation: stagger-scale 0.3s var(--ease-bounce) forwards;
+  animation-delay: calc(var(--stagger-index, 0) * 50ms);
+}
+
+/* ============================================
+   微交互动画 - Micro-interaction Animations
+   ============================================ */
+
+/* Button Press Effect */
+@keyframes button-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.animate-press:active {
+  animation: button-press 0.15s ease-out;
+}
+
+/* Glow Pulse */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(139, 92, 246, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  }
+}
+
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Bounce in */
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.4s var(--ease-bounce);
+}
+
+/* Slide up */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s var(--ease-default);
+}
+
+/* Spin */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Shimmer - loading placeholder effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   状态指示动画 - Status Indicator Animations
+   ============================================ */
+
+/* Status dot pulse */
+@keyframes status-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+.status-dot-active {
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+
+/* Progress ring animation */
+@keyframes progress-spin {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  50% {
+    stroke-dashoffset: 25;
+  }
+  100% {
+    stroke-dashoffset: 100;
+  }
+}
+
+.progress-ring-indeterminate {
+  animation: progress-spin 2s ease-in-out infinite;
+}
+
+/* Success checkmark */
+@keyframes check-stroke {
+  0% {
+    stroke-dashoffset: 50;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-check {
+  stroke-dasharray: 50;
+  animation: check-stroke 0.3s ease-out forwards;
+}
+
+/* ============================================
    实用类 - Utility Classes
    ============================================ */
 
