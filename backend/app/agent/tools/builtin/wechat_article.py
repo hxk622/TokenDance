@@ -46,44 +46,43 @@ class WeChatArticleTool(BaseTool):
     风险等级：NONE（纯读取操作，无副作用）
     """
 
+    # 类属性配置
+    name = "wechat_article"
+    description = (
+        "Extract content from WeChat Official Account (微信公众号) articles. "
+        "Converts article to clean Markdown or HTML format. "
+        "Use this tool when you need to read content from WeChat article links (mp.weixin.qq.com). "
+        "This tool is specifically designed for WeChat articles and provides better results than generic read_url."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "description": "The WeChat article URL (must be from mp.weixin.qq.com)"
+            },
+            "format": {
+                "type": "string",
+                "description": "Output format: 'markdown' (default) or 'html'",
+                "enum": ["markdown", "html"],
+                "default": "markdown"
+            },
+            "include_images": {
+                "type": "boolean",
+                "description": "Whether to include image references in output (default: true)",
+                "default": True
+            }
+        },
+        "required": ["url"]
+    }
+
     # 风险配置
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
     requires_confirmation = False
 
     def __init__(self):
-        super().__init__(
-            name="wechat_article",
-            description=(
-                "Extract content from WeChat Official Account (微信公众号) articles. "
-                "Converts article to clean Markdown or HTML format. "
-                "Use this tool when you need to read content from WeChat article links (mp.weixin.qq.com). "
-                "This tool is specifically designed for WeChat articles and provides better results than generic read_url."
-            ),
-            parameters_schema={
-                "type": "object",
-                "properties": {
-                    "url": {
-                        "type": "string",
-                        "description": "The WeChat article URL (must be from mp.weixin.qq.com)"
-                    },
-                    "format": {
-                        "type": "string",
-                        "description": "Output format: 'markdown' (default) or 'html'",
-                        "enum": ["markdown", "html"],
-                        "default": "markdown"
-                    },
-                    "include_images": {
-                        "type": "boolean",
-                        "description": "Whether to include image references in output (default: true)",
-                        "default": True
-                    }
-                },
-                "required": ["url"]
-            },
-            requires_confirmation=False
-        )
-
+        super().__init__()
         if not HTTPX_AVAILABLE:
             logger.warning("httpx not installed. WeChat article extraction will not work.")
 
