@@ -14,6 +14,10 @@ import type {
   HistoricalData,
   SentimentResult,
   CombinedAnalysis,
+  FinancialAnalysisResult,
+  ValuationAnalysisResult,
+  TechnicalAnalysisResult,
+  ComprehensiveAnalysisResult,
 } from '@/types/financial'
 
 interface CacheEntry<T> {
@@ -45,6 +49,10 @@ export const useFinancialStore = defineStore('financial', () => {
   const loadingHistorical = ref(false)
   const loadingSentiment = ref(false)
   const loadingCombined = ref(false)
+  const loadingFinancialAnalysis = ref(false)
+  const loadingValuationAnalysis = ref(false)
+  const loadingTechnicalAnalysis = ref(false)
+  const loadingComprehensiveAnalysis = ref(false)
   
   // Error states
   const stockInfoError = ref<string | null>(null)
@@ -52,6 +60,10 @@ export const useFinancialStore = defineStore('financial', () => {
   const historicalError = ref<string | null>(null)
   const sentimentError = ref<string | null>(null)
   const combinedError = ref<string | null>(null)
+  const financialAnalysisError = ref<string | null>(null)
+  const valuationAnalysisError = ref<string | null>(null)
+  const technicalAnalysisError = ref<string | null>(null)
+  const comprehensiveAnalysisError = ref<string | null>(null)
   
   // Cache (symbol -> data)
   const cache = ref<Map<string, CacheEntry<any>>>(new Map())
@@ -75,7 +87,11 @@ export const useFinancialStore = defineStore('financial', () => {
       loadingStockQuote.value ||
       loadingHistorical.value ||
       loadingSentiment.value ||
-      loadingCombined.value
+      loadingCombined.value ||
+      loadingFinancialAnalysis.value ||
+      loadingValuationAnalysis.value ||
+      loadingTechnicalAnalysis.value ||
+      loadingComprehensiveAnalysis.value
     )
   })
   
@@ -85,8 +101,16 @@ export const useFinancialStore = defineStore('financial', () => {
       stockQuoteError.value ||
       historicalError.value ||
       sentimentError.value ||
-      combinedError.value
+      combinedError.value ||
+      financialAnalysisError.value ||
+      valuationAnalysisError.value ||
+      technicalAnalysisError.value ||
+      comprehensiveAnalysisError.value
     )
+  })
+  
+  const hasAnalysisResults = computed(() => {
+    return financialAnalysis.value || valuationAnalysis.value || technicalAnalysis.value
   })
   
   // ==================== Cache Helpers ====================
@@ -359,6 +383,138 @@ export const useFinancialStore = defineStore('financial', () => {
     cache.value.clear()
   }
   
+  // ==================== 分析引擎 Actions ====================
+  
+  /**
+   * 运行财务分析
+   */
+  async function runFinancialAnalysis(symbol: string, market?: string) {
+    loadingFinancialAnalysis.value = true
+    financialAnalysisError.value = null
+    
+    try {
+      const response = await financialService.runFinancialAnalysis({ symbol, market })
+      
+      if (response.success && response.data) {
+        financialAnalysis.value = response.data
+      } else {
+        financialAnalysisError.value = response.error || '财务分析失败'
+      }
+    } catch (error) {
+      financialAnalysisError.value = error instanceof Error ? error.message : '未知错误'
+    } finally {
+      loadingFinancialAnalysis.value = false
+    }
+  }
+  
+  /**
+   * 运行估值分析
+   */
+  async function runValuationAnalysis(symbol: string, market?: string) {
+    loadingValuationAnalysis.value = true
+    valuationAnalysisError.value = null
+    
+    try {
+      const response = await financialService.runValuationAnalysis({ symbol, market })
+      
+      if (response.success && response.data) {
+        valuationAnalysis.value = response.data
+      } else {
+        valuationAnalysisError.value = response.error || '估值分析失败'
+      }
+    } catch (error) {
+      valuationAnalysisError.value = error instanceof Error ? error.message : '未知错误'
+    } finally {
+      loadingValuationAnalysis.value = false
+    }
+  }
+  
+  /**
+   * 运行技术分析
+   */
+  async function runTechnicalAnalysis(symbol: string, market?: string) {
+    loadingTechnicalAnalysis.value = true
+    technicalAnalysisError.value = null
+    
+    try {
+      const response = await financialService.runTechnicalAnalysis({ symbol, market })
+      
+      if (response.success && response.data) {
+        technicalAnalysis.value = response.data
+      } else {
+        technicalAnalysisError.value = response.error || '技术分析失败'
+      }
+    } catch (error) {
+      technicalAnalysisError.value = error instanceof Error ? error.message : '未知错误'
+    } finally {
+      loadingTechnicalAnalysis.value = false
+    }
+  }
+  
+  /**
+   * 运行综合分析
+   */
+  async function runComprehensiveAnalysis(
+    symbol: string,
+    market?: string,
+    includeTechnical = true
+  ) {
+    loadingComprehensiveAnalysis.value = true
+    comprehensiveAnalysisError.value = null
+    
+    // 同时设置各个子分析的 loading
+    loadingFinancialAnalysis.value = true
+    loadingValuationAnalysis.value = true
+    if (includeTechnical) loadingTechnicalAnalysis.value = true
+    
+    try {
+      const response = await financialService.runComprehensiveAnalysis({
+        symbol,
+        market,
+        include_technical: includeTechnical,
+      })
+      
+      if (response.success && response.data) {
+        comprehensiveAnalysis.value = response.data
+        
+        // 更新各个子分析结果
+        if (response.data.financial && !('error' in response.data.financial)) {
+          financialAnalysis.value = response.data.financial as FinancialAnalysisResult
+        }
+        if (response.data.valuation && !('error' in response.data.valuation)) {
+          valuationAnalysis.value = response.data.valuation as ValuationAnalysisResult
+        }
+        if (response.data.technical && !('error' in response.data.technical)) {
+          technicalAnalysis.value = response.data.technical as TechnicalAnalysisResult
+        }
+      } else {
+        comprehensiveAnalysisError.value = response.error || '综合分析失败'
+      }
+    } catch (error) {
+      comprehensiveAnalysisError.value = error instanceof Error ? error.message : '未知错误'
+    } finally {
+      loadingComprehensiveAnalysis.value = false
+      loadingFinancialAnalysis.value = false
+      loadingValuationAnalysis.value = false
+      loadingTechnicalAnalysis.value = false
+    }
+  }
+  
+  /**
+   * 清除分析结果
+   */
+  function clearAnalysisResults() {
+    financialAnalysis.value = null
+    valuationAnalysis.value = null
+    technicalAnalysis.value = null
+    comprehensiveAnalysis.value = null
+    
+    financialAnalysisError.value = null
+    valuationAnalysisError.value = null
+    technicalAnalysisError.value = null
+    comprehensiveAnalysisError.value = null
+  }
+  
   // Load watch list on init
   loadWatchList()
   
@@ -372,12 +528,22 @@ export const useFinancialStore = defineStore('financial', () => {
     combinedAnalysis,
     watchList,
     
+    // 分析引擎结果
+    financialAnalysis,
+    valuationAnalysis,
+    technicalAnalysis,
+    comprehensiveAnalysis,
+    
     // Loading states
     loadingStockInfo,
     loadingStockQuote,
     loadingHistorical,
     loadingSentiment,
     loadingCombined,
+    loadingFinancialAnalysis,
+    loadingValuationAnalysis,
+    loadingTechnicalAnalysis,
+    loadingComprehensiveAnalysis,
     isLoading,
     
     // Error states
@@ -386,11 +552,16 @@ export const useFinancialStore = defineStore('financial', () => {
     historicalError,
     sentimentError,
     combinedError,
+    financialAnalysisError,
+    valuationAnalysisError,
+    technicalAnalysisError,
+    comprehensiveAnalysisError,
     hasError,
     
     // Getters
     hasStockData,
     hasSentimentData,
+    hasAnalysisResults,
     
     // Actions
     fetchStockInfo,
@@ -403,5 +574,12 @@ export const useFinancialStore = defineStore('financial', () => {
     removeFromWatchList,
     loadWatchList,
     clearCache,
+    
+    // 分析引擎 Actions
+    runFinancialAnalysis,
+    runValuationAnalysis,
+    runTechnicalAnalysis,
+    runComprehensiveAnalysis,
+    clearAnalysisResults,
   }
 })

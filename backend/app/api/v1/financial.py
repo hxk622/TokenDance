@@ -12,6 +12,19 @@ from datetime import datetime
 from app.agent.tools.builtin.financial import FinancialDataTool
 from app.agent.tools.builtin.financial.sentiment import get_sentiment_tool
 
+# 懒加载分析服务
+def _get_financial_analyzer():
+    from app.services.financial import get_financial_analyzer
+    return get_financial_analyzer()
+
+def _get_valuation_analyzer():
+    from app.services.financial import get_valuation_analyzer
+    return get_valuation_analyzer()
+
+def _get_technical_indicators():
+    from app.services.financial import get_technical_indicators
+    return get_technical_indicators()
+
 router = APIRouter()
 
 
@@ -56,6 +69,19 @@ class CombinedAnalysisRequest(BaseModel):
     sentiment_sources: Optional[list[str]] = Field(None, description="Sentiment sources")
     sentiment_limit: int = Field(20, description="Sentiment posts limit", ge=1, le=100)
     historical_days: int = Field(30, description="Historical data days", ge=1, le=365)
+
+
+class AnalysisRequest(BaseModel):
+    """分析引擎请求"""
+    symbol: str = Field(..., description="股票代码 (e.g., '600519', 'AAPL')")
+    market: Optional[str] = Field(None, description="市场 (cn/us/hk)。若不提供则自动识别")
+
+
+class ComprehensiveAnalysisRequest(BaseModel):
+    """综合分析请求"""
+    symbol: str = Field(..., description="股票代码")
+    market: Optional[str] = Field(None, description="市场")
+    include_technical: bool = Field(True, description="是否包含技术分析")
 
 
 # ==================== Endpoints ====================
@@ -296,3 +322,210 @@ async def health_check():
         "service": "financial",
         "timestamp": datetime.now().isoformat()
     }
+
+
+# ==================== 分析引擎 API ====================
+
+@router.post("/analysis/financial")
+async def run_financial_analysis(request: AnalysisRequest):
+    """
+    运行财务分析。
+    
+    分析维度:
+    - 盈利能力 (ROE, ROA, 毛利率, 净利率)
+    - 成长能力 (营收增速, 利润增速)
+    - 偿债能力 (资产负债率, 流动比率, 速动比率)
+    - 运营效率 (应收周转, 存货周转)
+    - 现金流 (经营现金流, 自由现金流)
+    
+    Returns:
+    - overall_score: 综合评分 (0-100)
+    - health_level: 健康度等级
+    - dimension_scores: 各维度得分
+    - strengths: 优势
+    - key_risks: 风险
+    """
+    try:
+        analyzer = _get_financial_analyzer()
+        market = request.market or _detect_market(request.symbol)
+        
+        result = await analyzer.analyze(
+            symbol=request.symbol,
+            market=market
+        )
+        
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "disclaimer": "本分析仅供参考，不构成投资建议。"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analysis/valuation")
+async def run_valuation_analysis(request: AnalysisRequest):
+    """
+    运行估值分析。
+    
+    分析内容:
+    - 相对估值 (PE/PB/PS/EV-EBITDA/PEG)
+    - 历史估值对比
+    - 行业估值对比
+    - DCF 简化模型
+    
+    Returns:
+    - valuation_level: 估值水平 (extremely_low/low/fair/high/extremely_high)
+    - current_price: 当前价格
+    - target_price_range: 目标价格区间
+    - key_points: 关键点
+    - risks: 风险提示
+    """
+    try:
+        analyzer = _get_valuation_analyzer()
+        market = request.market or _detect_market(request.symbol)
+        
+        result = await analyzer.analyze(
+            symbol=request.symbol,
+            market=market
+        )
+        
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "disclaimer": "估值分析仅供参考，不代表任何价格预测。"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analysis/technical")
+async def run_technical_analysis(request: AnalysisRequest):
+    """
+    运行技术分析。
+    
+    分析指标:
+    - 趋势指标 (MACD, SMA/EMA, ADX)
+    - 动量指标 (RSI, KDJ, Williams %R, CCI)
+    - 波动率指标 (布林带, ATR)
+    - 成交量指标 (OBV)
+    
+    Returns:
+    - overall_signal: 综合信号 (strong_buy/buy/neutral/sell/strong_sell)
+    - score: 技术评分 (0-100)
+    - buy_signals: 买入信号
+    - sell_signals: 卖出信号
+    - support_levels: 支撑位
+    - resistance_levels: 阻力位
+    """
+    try:
+        service = _get_technical_indicators()
+        market = request.market or _detect_market(request.symbol)
+        
+        result = await service.analyze(
+            symbol=request.symbol,
+            market=market
+        )
+        
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "disclaimer": "技术分析仅供参考，历史表现不代表未来结果。"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analysis/comprehensive")
+async def run_comprehensive_analysis(request: ComprehensiveAnalysisRequest):
+    """
+    运行综合分析（财务 + 估值 + 技术）。
+    
+    一次性运行所有分析模块，返回综合结果。
+    
+    Returns:
+    - financial: 财务分析结果
+    - valuation: 估值分析结果
+    - technical: 技术分析结果 (若 include_technical=true)
+    - summary: 综合摘要
+    """
+    try:
+        market = request.market or _detect_market(request.symbol)
+        
+        results = {
+            "symbol": request.symbol,
+            "market": market,
+            "financial": None,
+            "valuation": None,
+            "technical": None,
+            "summary": "",
+            "generated_at": datetime.now().isoformat(),
+        }
+        
+        # 运行财务分析
+        try:
+            financial_analyzer = _get_financial_analyzer()
+            financial_result = await financial_analyzer.analyze(request.symbol, market)
+            results["financial"] = financial_result.to_dict()
+        except Exception as e:
+            results["financial"] = {"error": str(e)}
+        
+        # 运行估值分析
+        try:
+            valuation_analyzer = _get_valuation_analyzer()
+            valuation_result = await valuation_analyzer.analyze(request.symbol, market)
+            results["valuation"] = valuation_result.to_dict()
+        except Exception as e:
+            results["valuation"] = {"error": str(e)}
+        
+        # 运行技术分析
+        if request.include_technical:
+            try:
+                technical_service = _get_technical_indicators()
+                technical_result = await technical_service.analyze(request.symbol, market)
+                results["technical"] = technical_result.to_dict()
+            except Exception as e:
+                results["technical"] = {"error": str(e)}
+        
+        # 生成综合摘要
+        summaries = []
+        if results["financial"] and not results["financial"].get("error"):
+            summaries.append(results["financial"].get("summary", ""))
+        if results["valuation"] and not results["valuation"].get("error"):
+            summaries.append(results["valuation"].get("summary", ""))
+        if results["technical"] and not results["technical"].get("error"):
+            summaries.append(results["technical"].get("summary", ""))
+        
+        results["summary"] = " ".join(filter(None, summaries))
+        
+        return {
+            "success": True,
+            "data": results,
+            "disclaimer": "本分析仅供参考，不构成投资建议。投资有风险，入市需谨慎。"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _detect_market(symbol: str) -> str:
+    """根据股票代码识别市场"""
+    import re
+    
+    # 6位数字 = A股
+    if re.match(r'^\d{6}$', symbol):
+        return 'cn'
+    
+    # 1-5位数字 + .HK = 港股
+    if re.match(r'^\d{1,5}\.HK$', symbol.upper()):
+        return 'hk'
+    
+    # 1-5位字母 = 美股
+    if re.match(r'^[A-Z]{1,5}$', symbol.upper()):
+        return 'us'
+    
+    # 默认返回 A 股
+    return 'cn'

@@ -93,6 +93,41 @@
           :sentiment-result="store.sentimentResult"
           :is-loading="store.isLoading"
         />
+        
+        <!-- 分析引擎区域 -->
+        <div v-if="store.stockInfo" class="analysis-engine-section">
+          <div class="analysis-header">
+            <h3 class="analysis-title">🧠 AI 分析引擎</h3>
+            <button
+              class="analyze-button"
+              :disabled="isAnalyzing"
+              @click="runAnalysis"
+            >
+              {{ isAnalyzing ? '分析中...' : '一键分析' }}
+            </button>
+          </div>
+          
+          <!-- 分析结果卡片 -->
+          <div class="analysis-cards">
+            <FinancialAnalysisCard
+              :result="store.financialAnalysis"
+              :is-loading="store.loadingFinancialAnalysis"
+              :error="store.financialAnalysisError"
+            />
+            
+            <ValuationCard
+              :result="store.valuationAnalysis"
+              :is-loading="store.loadingValuationAnalysis"
+              :error="store.valuationAnalysisError"
+            />
+            
+            <TechnicalAnalysisCard
+              :result="store.technicalAnalysis"
+              :is-loading="store.loadingTechnicalAnalysis"
+              :error="store.technicalAnalysisError"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Right Column: Sentiment Analysis -->
@@ -138,6 +173,9 @@ import PostStream from '@/components/financial/PostStream.vue'
 import KeyPointsCard from '@/components/financial/KeyPointsCard.vue'
 import CombinedChart from '@/components/financial/CombinedChart.vue'
 import ComparisonCard from '@/components/financial/ComparisonCard.vue'
+import FinancialAnalysisCard from '@/components/financial/FinancialAnalysisCard.vue'
+import ValuationCard from '@/components/financial/ValuationCard.vue'
+import TechnicalAnalysisCard from '@/components/financial/TechnicalAnalysisCard.vue'
 
 const store = useFinancialStore()
 
@@ -245,6 +283,19 @@ watch(
     }
   }
 )
+
+// 分析引擎
+const isAnalyzing = computed(() => {
+  return store.loadingComprehensiveAnalysis ||
+    store.loadingFinancialAnalysis ||
+    store.loadingValuationAnalysis ||
+    store.loadingTechnicalAnalysis
+})
+
+async function runAnalysis() {
+  if (!store.stockInfo?.symbol) return
+  await store.runComprehensiveAnalysis(store.stockInfo.symbol)
+}
 </script>
 
 <style scoped>
@@ -476,6 +527,56 @@ watch(
   background: #ffffff;
   border-color: #d1d5db;
   color: #111827;
+}
+
+/* 分析引擎区域 */
+.analysis-engine-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.analysis-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.analyze-button {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.analyze-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.analyze-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.analysis-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 /* Footer */

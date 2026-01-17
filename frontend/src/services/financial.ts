@@ -17,6 +17,13 @@ import type {
   SentimentSearchRequest,
   CombinedAnalysisRequest,
   APIResponse,
+  // 分析引擎类型
+  AnalysisRequest,
+  ComprehensiveAnalysisRequest,
+  FinancialAnalysisResult,
+  ValuationAnalysisResult,
+  TechnicalAnalysisResult,
+  ComprehensiveAnalysisResult,
 } from '@/types/financial'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
@@ -137,6 +144,59 @@ export const financialService = {
   async healthCheck(): Promise<APIResponse<{ status: string; service: string }>> {
     return apiCall(`${FINANCIAL_API}/health`, {
       method: 'GET',
+    })
+  },
+
+  // ==================== 分析引擎 API ====================
+
+  /**
+   * 运行财务分析
+   * 分析维度: 盈利能力/成长能力/偿债能力/运营效率/现金流
+   */
+  async runFinancialAnalysis(
+    request: AnalysisRequest
+  ): Promise<APIResponse<FinancialAnalysisResult>> {
+    return apiCall<FinancialAnalysisResult>(`${FINANCIAL_API}/analysis/financial`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
+
+  /**
+   * 运行估值分析
+   * 分析内容: PE/PB/PS/历史估值/行业对比/DCF
+   */
+  async runValuationAnalysis(
+    request: AnalysisRequest
+  ): Promise<APIResponse<ValuationAnalysisResult>> {
+    return apiCall<ValuationAnalysisResult>(`${FINANCIAL_API}/analysis/valuation`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
+
+  /**
+   * 运行技术分析
+   * 分析指标: MACD/RSI/KDJ/布林带/OBV
+   */
+  async runTechnicalAnalysis(
+    request: AnalysisRequest
+  ): Promise<APIResponse<TechnicalAnalysisResult>> {
+    return apiCall<TechnicalAnalysisResult>(`${FINANCIAL_API}/analysis/technical`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
+
+  /**
+   * 运行综合分析 (财务 + 估值 + 技术)
+   */
+  async runComprehensiveAnalysis(
+    request: ComprehensiveAnalysisRequest
+  ): Promise<APIResponse<ComprehensiveAnalysisResult>> {
+    return apiCall<ComprehensiveAnalysisResult>(`${FINANCIAL_API}/analysis/comprehensive`, {
+      method: 'POST',
+      body: JSON.stringify(request),
     })
   },
 }
