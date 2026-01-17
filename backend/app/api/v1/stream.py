@@ -44,6 +44,10 @@ class SSEEventType(str, Enum):
     NODE_COMPLETED = "node_completed"
     NODE_FAILED = "node_failed"
     
+    # Skill events
+    SKILL_MATCHED = "skill_matched"
+    SKILL_COMPLETED = "skill_completed"
+    
     # File events
     FILE_CREATED = "file_created"
     FILE_MODIFIED = "file_modified"
@@ -73,6 +77,19 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
         "session_id": session_id,
         "timestamp": time.time(),
     })
+    
+    # Simulate skill matching
+    yield format_sse(SSEEventType.SKILL_MATCHED, {
+        "skill_id": "deep_research",
+        "skill_name": "deep_research",
+        "display_name": "Deep Research",
+        "description": "深度研究技能，用于复杂信息检索和分析",
+        "icon": "search",
+        "color": "blue",
+        "confidence": 0.92,
+        "timestamp": time.time(),
+    })
+    await asyncio.sleep(0.3)
     
     # Simulate workflow execution
     nodes = [
@@ -150,6 +167,14 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
     yield format_sse(SSEEventType.AGENT_MESSAGE, {
         "content": "任务执行完成！已生成研究报告。",
         "role": "assistant",
+        "timestamp": time.time(),
+    })
+    
+    # Skill completed
+    yield format_sse(SSEEventType.SKILL_COMPLETED, {
+        "skill_id": "deep_research",
+        "status": "success",
+        "duration_ms": 3500,
         "timestamp": time.time(),
     })
     
