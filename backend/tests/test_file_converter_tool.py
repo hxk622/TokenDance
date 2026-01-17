@@ -7,7 +7,7 @@ Tests the file conversion functionality using MarkItDown.
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -63,10 +63,10 @@ class TestFileConverterTool:
         """Test supported file formats list."""
         supported_formats = tool.get_supported_formats()
         all_formats = [
-            ext for formats in supported_formats.values() 
+            ext for formats in supported_formats.values()
             for ext in formats
         ]
-        
+
         # Check key formats are supported
         assert ".pdf" in all_formats
         assert ".docx" in all_formats
@@ -78,7 +78,7 @@ class TestFileConverterTool:
     def test_text_file_conversion(self, tool, sample_txt_file):
         """Test converting a text file."""
         result = tool.execute(file_path=sample_txt_file)
-        
+
         assert result is not None
         assert isinstance(result, str)
         assert "# Test Document" in result
@@ -91,7 +91,7 @@ class TestFileConverterTool:
     def test_json_file_conversion(self, tool, sample_json_file):
         """Test converting a JSON file."""
         result = tool.execute(file_path=sample_json_file)
-        
+
         assert result is not None
         assert isinstance(result, str)
         assert "name" in result.lower() or "test" in result.lower()
@@ -100,7 +100,7 @@ class TestFileConverterTool:
     def test_csv_file_conversion(self, tool, sample_csv_file):
         """Test converting a CSV file."""
         result = tool.execute(file_path=sample_csv_file)
-        
+
         assert result is not None
         assert isinstance(result, str)
         # CSV should be converted to markdown table
@@ -117,7 +117,7 @@ class TestFileConverterTool:
         """Test handling of unsupported file format."""
         with tempfile.NamedTemporaryFile(suffix=".xyz", delete=False) as f:
             temp_path = f.name
-        
+
         try:
             with pytest.raises(ValueError) as exc_info:
                 tool.execute(file_path=temp_path)
@@ -129,12 +129,12 @@ class TestFileConverterTool:
         """Test that MarkItDown is lazily initialized."""
         # Should not be initialized on tool creation
         assert not hasattr(tool, "_converter") or tool._converter is None
-        
+
         # Should initialize on first use
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("test")
             temp_path = f.name
-        
+
         try:
             tool.execute(file_path=temp_path)
             assert hasattr(tool, "_converter")
@@ -145,7 +145,7 @@ class TestFileConverterTool:
     def test_markdown_header_format(self, tool, sample_txt_file):
         """Test that output includes proper markdown header."""
         result = tool.execute(file_path=sample_txt_file)
-        
+
         # Check header format
         lines = result.split("\n")
         assert any("---" in line for line in lines[:5])  # Front matter separator
@@ -157,7 +157,7 @@ class TestFileConverterTool:
         # Empty path
         with pytest.raises((ValueError, FileNotFoundError)):
             tool.execute(file_path="")
-        
+
         # None path
         with pytest.raises((ValueError, TypeError)):
             tool.execute(file_path=None)  # type: ignore
@@ -166,10 +166,10 @@ class TestFileConverterTool:
         """测试处理 MarkItDown 转换错误。"""
         # Force initialize the converter first
         _ = tool._get_markitdown()
-        
+
         # Then mock the convert method to raise an exception
         tool._converter.convert = Mock(side_effect=Exception("Conversion failed"))
-        
+
         with pytest.raises(Exception) as exc_info:
             tool.execute(file_path=sample_txt_file)
         assert "Conversion failed" in str(exc_info.value) or "failed" in str(exc_info.value).lower()
@@ -180,7 +180,7 @@ class TestFileConverterTool:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, dir=".") as f:
             f.write("relative test")
             temp_path = Path(f.name).name  # Get just the filename
-        
+
         try:
             result = tool.execute(file_path=temp_path)
             assert result is not None
@@ -196,7 +196,7 @@ class TestFileConverterTool:
             for i in range(1000):
                 f.write(f"Line {i}: " + "A" * 90 + "\n")
             temp_path = f.name
-        
+
         try:
             result = tool.execute(file_path=temp_path)
             assert result is not None
@@ -207,11 +207,11 @@ class TestFileConverterTool:
     def test_special_characters_in_content(self, tool):
         """Test handling of special characters in file content."""
         special_content = "# 测试文档\n\n这是一个包含特殊字符的文档：\n- Émoji: 🎉\n- Unicode: ≈ ≠ ∞\n"
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
             f.write(special_content)
             temp_path = f.name
-        
+
         try:
             result = tool.execute(file_path=temp_path)
             assert result is not None

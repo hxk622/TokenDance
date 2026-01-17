@@ -4,9 +4,9 @@ API Integration Tests
 测试 API 端点与 Agent Engine 的集成
 """
 
-import pytest
-import asyncio
 import os
+
+import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
@@ -51,12 +51,12 @@ async def test_session(test_client, test_workspace_id):
             "title": "API Integration Test"
         }
     )
-    
+
     assert response.status_code == 201
     session = response.json()
-    
+
     yield session
-    
+
     # 清理: 删除 session
     test_client.delete(f"/api/v1/sessions/{session['id']}")
 
@@ -73,10 +73,10 @@ def test_create_session(test_client, test_workspace_id):
             "title": "Test Session"
         }
     )
-    
+
     assert response.status_code == 201
     data = response.json()
-    
+
     assert "id" in data
     assert data["workspace_id"] == test_workspace_id
     assert data["title"] == "Test Session"
@@ -87,10 +87,10 @@ def test_list_sessions(test_client, test_workspace_id, test_session):
     response = test_client.get(
         f"/api/v1/sessions?workspace_id={test_workspace_id}"
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert "items" in data
     assert len(data["items"]) > 0
 
@@ -98,12 +98,12 @@ def test_list_sessions(test_client, test_workspace_id, test_session):
 def test_get_session(test_client, test_session):
     """测试获取 Session 详情"""
     session_id = test_session["id"]
-    
+
     response = test_client.get(f"/api/v1/sessions/{session_id}")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["id"] == session_id
 
 
@@ -112,7 +112,7 @@ def test_get_session(test_client, test_session):
 def test_send_message_no_stream(test_client, test_session):
     """测试发送消息（非流式）"""
     session_id = test_session["id"]
-    
+
     response = test_client.post(
         f"/api/v1/sessions/{session_id}/messages",
         json={
@@ -120,10 +120,10 @@ def test_send_message_no_stream(test_client, test_session):
             "stream": False
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert "content" in data
     assert "4" in data["content"]
     assert data["role"] == "assistant"
@@ -134,7 +134,7 @@ def test_send_message_no_stream(test_client, test_session):
 async def test_send_message_stream(async_client, test_session):
     """测试发送消息（流式）"""
     session_id = test_session["id"]
-    
+
     async with async_client.stream(
         "POST",
         f"/api/v1/sessions/{session_id}/messages",
@@ -145,7 +145,7 @@ async def test_send_message_stream(async_client, test_session):
     ) as response:
         assert response.status_code == 200
         assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
-        
+
         events = []
         async for line in response.aiter_lines():
             if line.startswith("event:"):
@@ -154,10 +154,10 @@ async def test_send_message_stream(async_client, test_session):
                 import json
                 event_data = json.loads(line.split(":", 1)[1])
                 events.append((event_type, event_data))
-        
+
         # 验证事件序列
         event_types = [e[0] for e in events]
-        
+
         assert "start" in event_types
         assert "answer" in event_types or "reasoning" in event_types
         assert "done" in event_types
@@ -166,7 +166,7 @@ async def test_send_message_stream(async_client, test_session):
 def test_get_messages(test_client, test_session):
     """测试获取消息历史"""
     session_id = test_session["id"]
-    
+
     # 先发送一条消息
     test_client.post(
         f"/api/v1/sessions/{session_id}/messages",
@@ -175,13 +175,13 @@ def test_get_messages(test_client, test_session):
             "stream": False
         }
     )
-    
+
     # 获取消息历史
     response = test_client.get(f"/api/v1/sessions/{session_id}/messages")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert "items" in data
     # 应该至少有2条消息（用户+助手）
     assert len(data["items"]) >= 2
@@ -190,7 +190,7 @@ def test_get_messages(test_client, test_session):
 def test_get_working_memory(test_client, test_session):
     """测试获取 Working Memory"""
     session_id = test_session["id"]
-    
+
     # 先发送一条消息触发 Agent
     test_client.post(
         f"/api/v1/sessions/{session_id}/messages",
@@ -199,19 +199,19 @@ def test_get_working_memory(test_client, test_session):
             "stream": False
         }
     )
-    
+
     # 获取 Working Memory
     response = test_client.get(
         f"/api/v1/sessions/{session_id}/working-memory"
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert "task_plan" in data
     assert "findings" in data
     assert "progress" in data
-    
+
     # 验证三个文件都有内容
     assert "content" in data["task_plan"]
     assert "content" in data["findings"]
@@ -223,10 +223,10 @@ def test_get_working_memory(test_client, test_session):
 def test_session_not_found(test_client):
     """测试 Session 不存在的情况"""
     response = test_client.get("/api/v1/sessions/nonexistent_id")
-    
+
     assert response.status_code == 404
     data = response.json()
-    
+
     assert "error" in data
 
 
@@ -239,14 +239,14 @@ def test_send_message_to_nonexistent_session(test_client):
             "stream": False
         }
     )
-    
+
     assert response.status_code == 404
 
 
 def test_invalid_request_body(test_client, test_session):
     """测试无效的请求体"""
     session_id = test_session["id"]
-    
+
     response = test_client.post(
         f"/api/v1/sessions/{session_id}/messages",
         json={
@@ -254,10 +254,10 @@ def test_invalid_request_body(test_client, test_session):
             "stream": True
         }
     )
-    
+
     assert response.status_code == 422
     data = response.json()
-    
+
     assert "error" in data
     assert data["error"]["type"] == "ValidationError"
 
@@ -268,9 +268,9 @@ def test_invalid_request_body(test_client, test_session):
 def test_concurrent_messages(test_client, test_session):
     """测试并发发送消息"""
     session_id = test_session["id"]
-    
+
     import concurrent.futures
-    
+
     def send_message(n):
         response = test_client.post(
             f"/api/v1/sessions/{session_id}/messages",
@@ -280,11 +280,11 @@ def test_concurrent_messages(test_client, test_session):
             }
         )
         return response.status_code
-    
+
     # 并发发送3条消息
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         results = list(executor.map(send_message, ["Python", "FastAPI", "Vue"]))
-    
+
     # 所有请求都应该成功
     assert all(status == 200 for status in results)
 
@@ -294,7 +294,7 @@ def test_concurrent_messages(test_client, test_session):
 if __name__ == "__main__":
     """
     运行方式：
-    
+
     pytest backend/test_api_integration.py -v
     pytest backend/test_api_integration.py::test_send_message_stream -v -s
     """

@@ -14,8 +14,8 @@ WorkState 管理：
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Any, Optional
 from enum import Enum
+from typing import Any
 
 
 class TaskPhase(Enum):
@@ -36,15 +36,15 @@ class TaskContext:
     description: str
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    
+
     # 任务元数据
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
+    metadata: dict[str, Any] = field(default_factory=dict)
+
     # 相关文件
-    related_files: List[str] = field(default_factory=list)
-    
+    related_files: list[str] = field(default_factory=list)
+
     # 依赖任务
-    dependencies: List[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -55,11 +55,11 @@ class ResourceUsage:
     tool_calls: int = 0
     llm_calls: int = 0
     elapsed_time_seconds: float = 0.0
-    
+
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
@@ -75,65 +75,65 @@ class ProgressCheckpoint:
     """进度检查点"""
     name: str
     completed: bool = False
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     notes: str = ""
 
 
 @dataclass
 class WorkState:
     """工作状态
-    
+
     存储 Agent 当前的工作状态，用于：
     1. 状态恢复（如果 Agent 被中断）
     2. 进度追踪
     3. 资源监控
     """
-    
+
     # 会话信息
     session_id: str
     workspace_id: str
-    
+
     # 任务阶段
     phase: TaskPhase = TaskPhase.INIT
-    
+
     # 任务上下文
-    current_task: Optional[TaskContext] = None
-    
+    current_task: TaskContext | None = None
+
     # 资源使用
     resource_usage: ResourceUsage = field(default_factory=ResourceUsage)
-    
+
     # 进度检查点
-    checkpoints: List[ProgressCheckpoint] = field(default_factory=list)
-    
+    checkpoints: list[ProgressCheckpoint] = field(default_factory=list)
+
     # 当前目标（来自 task_plan.md）
     current_goal: str = ""
-    
+
     # 当前步骤（来自 TODO 列表）
     current_step: int = 0
     total_steps: int = 0
-    
+
     # 工作目录
     working_directory: str = ""
-    
+
     # 时间戳
     started_at: datetime = field(default_factory=datetime.now)
     last_activity_at: datetime = field(default_factory=datetime.now)
-    
+
     def update_activity(self) -> None:
         """更新最后活动时间"""
         self.last_activity_at = datetime.now()
-    
+
     def set_phase(self, phase: TaskPhase) -> None:
         """设置任务阶段"""
         self.phase = phase
         self.update_activity()
-    
+
     def add_checkpoint(self, name: str, notes: str = "") -> ProgressCheckpoint:
         """添加进度检查点"""
         checkpoint = ProgressCheckpoint(name=name, notes=notes)
         self.checkpoints.append(checkpoint)
         return checkpoint
-    
+
     def complete_checkpoint(self, name: str) -> bool:
         """完成检查点"""
         for cp in self.checkpoints:
@@ -143,26 +143,26 @@ class WorkState:
                 self.update_activity()
                 return True
         return False
-    
+
     def get_progress_percentage(self) -> float:
         """获取进度百分比"""
         if self.total_steps == 0:
             return 0.0
         return (self.current_step / self.total_steps) * 100
-    
-    def get_completed_checkpoints(self) -> List[ProgressCheckpoint]:
+
+    def get_completed_checkpoints(self) -> list[ProgressCheckpoint]:
         """获取已完成的检查点"""
         return [cp for cp in self.checkpoints if cp.completed]
-    
-    def get_pending_checkpoints(self) -> List[ProgressCheckpoint]:
+
+    def get_pending_checkpoints(self) -> list[ProgressCheckpoint]:
         """获取待完成的检查点"""
         return [cp for cp in self.checkpoints if not cp.completed]
-    
+
     def is_terminal(self) -> bool:
         """检查是否是终止状态"""
         return self.phase in [TaskPhase.COMPLETED, TaskPhase.FAILED]
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "session_id": self.session_id,
@@ -192,16 +192,16 @@ class WorkState:
 
 class WorkStateManager:
     """工作状态管理器
-    
+
     管理 Agent 的工作状态生命周期
     """
-    
+
     def __init__(self, session_id: str, workspace_id: str):
         self.state = WorkState(
             session_id=session_id,
             workspace_id=workspace_id,
         )
-    
+
     def start_task(self, task_id: str, description: str) -> None:
         """开始任务"""
         self.state.current_task = TaskContext(
@@ -209,60 +209,60 @@ class WorkStateManager:
             description=description,
         )
         self.state.set_phase(TaskPhase.PLANNING)
-    
+
     def start_execution(self) -> None:
         """开始执行"""
         self.state.set_phase(TaskPhase.EXECUTING)
-    
+
     def set_goal(self, goal: str) -> None:
         """设置当前目标"""
         self.state.current_goal = goal
         self.state.update_activity()
-    
+
     def set_progress(self, current: int, total: int) -> None:
         """设置进度"""
         self.state.current_step = current
         self.state.total_steps = total
         self.state.update_activity()
-    
+
     def add_tokens(self, input_tokens: int, output_tokens: int) -> None:
         """添加 token 使用量"""
         self.state.resource_usage.input_tokens += input_tokens
         self.state.resource_usage.output_tokens += output_tokens
         self.state.resource_usage.llm_calls += 1
-    
+
     def add_tool_call(self) -> None:
         """添加工具调用计数"""
         self.state.resource_usage.tool_calls += 1
-    
+
     def complete_task(self) -> None:
         """完成任务"""
         self.state.set_phase(TaskPhase.COMPLETED)
         if self.state.current_task:
             self.state.current_task.updated_at = datetime.now()
-    
+
     def fail_task(self, reason: str = "") -> None:
         """任务失败"""
         self.state.set_phase(TaskPhase.FAILED)
         if self.state.current_task:
             self.state.current_task.metadata["failure_reason"] = reason
-    
+
     def pause_task(self) -> None:
         """暂停任务"""
         self.state.set_phase(TaskPhase.PAUSED)
-    
+
     def resume_task(self) -> None:
         """恢复任务"""
         self.state.set_phase(TaskPhase.EXECUTING)
-    
+
     def get_state(self) -> WorkState:
         """获取当前状态"""
         return self.state
-    
-    def get_summary(self) -> Dict[str, Any]:
+
+    def get_summary(self) -> dict[str, Any]:
         """获取状态摘要"""
         return self.state.to_dict()
-    
+
     def reset(self) -> None:
         """重置状态"""
         session_id = self.state.session_id

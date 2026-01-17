@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, Text, Integer
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,7 +26,7 @@ class MessageRole(PyEnum):
 class Message(Base):
     """
     Message model - a single message in a chat session.
-    
+
     Features:
     - Supports different roles (user, assistant, system, tool)
     - Stores thinking/reasoning process
@@ -70,7 +70,7 @@ class Message(Base):
 
     # Token tracking
     tokens_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    
+
     # For Dual Context Streams - reference to full result in file system
     full_result_ref: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
@@ -131,7 +131,7 @@ class Message(Base):
             "role": self.role.value,
             "content": self.content or ""
         }
-        
+
         # Add tool calls for assistant messages
         if self.role == MessageRole.ASSISTANT and self.tool_calls:
             base["tool_calls"] = [
@@ -145,9 +145,9 @@ class Message(Base):
                 }
                 for tc in self.tool_calls
             ]
-        
+
         # Add tool_call_id for tool messages
         if self.role == MessageRole.TOOL and self.tool_call_id:
             base["tool_call_id"] = self.tool_call_id
-        
+
         return base

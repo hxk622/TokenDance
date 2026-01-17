@@ -2,7 +2,6 @@
 End-to-End (E2E) Test Suite
 Tests the complete flow from user registration to message streaming.
 """
-import asyncio
 import uuid
 from datetime import datetime
 
@@ -10,13 +9,12 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.core.database import engine, Base, async_session_maker
+from app.core.database import Base, async_session_maker, engine
 from app.main import app
+from app.models.message import Message, MessageRole
+from app.models.session import Session, SessionStatus
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.models.session import Session, SessionStatus
-from app.models.message import Message, MessageRole
 
 
 @pytest.fixture(scope="function")
@@ -25,11 +23,11 @@ async def db_session():
     # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     # Create session
     async with async_session_maker() as session:
         yield session
-    
+
     # Drop all tables after test
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -43,7 +41,7 @@ def client():
 
 class TestE2EFlow:
     """Test complete end-to-end flow."""
-    
+
     @pytest.mark.asyncio
     async def test_complete_flow(self, db_session: AsyncSession):
         """
@@ -55,7 +53,7 @@ class TestE2EFlow:
         5. Verify message storage
         6. Verify working memory creation
         """
-        
+
         # Step 1: Create user
         user_id = str(uuid.uuid4())
         user = User(
@@ -68,9 +66,9 @@ class TestE2EFlow:
         )
         db_session.add(user)
         await db_session.flush()
-        
+
         print(f"✓ Step 1: User created (id={user.id})")
-        
+
         # Step 2: Create workspace
         workspace_id = str(uuid.uuid4())
         workspace = Workspace(
@@ -82,9 +80,9 @@ class TestE2EFlow:
         )
         db_session.add(workspace)
         await db_session.flush()
-        
+
         print(f"✓ Step 2: Workspace created (id={workspace.id})")
-        
+
         # Step 3: Create session
         session_id = str(uuid.uuid4())
         session = Session(
@@ -95,9 +93,9 @@ class TestE2EFlow:
         )
         db_session.add(session)
         await db_session.flush()
-        
+
         print(f"✓ Step 3: Session created (id={session.id})")
-        
+
         # Step 4: Create user message
         user_message_id = str(uuid.uuid4())
         user_message = Message(
@@ -108,9 +106,9 @@ class TestE2EFlow:
         )
         db_session.add(user_message)
         await db_session.flush()
-        
+
         print(f"✓ Step 4: User message created (id={user_message.id})")
-        
+
         # Step 5: Simulate agent response
         assistant_message_id = str(uuid.uuid4())
         assistant_message = Message(
@@ -123,53 +121,53 @@ class TestE2EFlow:
         )
         db_session.add(assistant_message)
         await db_session.flush()
-        
+
         print(f"✓ Step 5: Assistant message created (id={assistant_message.id})")
-        
+
         # Step 6: Verify data integrity
         await db_session.commit()
-        
+
         # Reload and verify
         await db_session.refresh(user)
         await db_session.refresh(workspace)
         await db_session.refresh(session)
-        
+
         assert user.email == f"test_{user_id}@example.com"
         assert workspace.name == "Test Workspace"
         assert workspace.owner_id == user.id
         assert session.title == "E2E Test Session"
         assert session.workspace_id == workspace.id
-        
+
         print("✓ Step 6: Data integrity verified")
-        
+
         # Verify message count
-        from sqlalchemy import select, func
-        
+        from sqlalchemy import func, select
+
         message_count = await db_session.scalar(
             select(func.count()).select_from(Message).where(Message.session_id == session.id)
         )
         assert message_count == 2, f"Expected 2 messages, got {message_count}"
-        
+
         print("✓ Step 7: Message count verified (2 messages)")
-        
+
         # Verify message roles
         messages = await db_session.scalars(
             select(Message).where(Message.session_id == session.id).order_by(Message.created_at)
         )
         message_list = list(messages)
-        
+
         assert len(message_list) == 2
         assert message_list[0].role == MessageRole.USER
         assert message_list[1].role == MessageRole.ASSISTANT
-        
+
         print("✓ Step 8: Message roles verified")
-        
+
         print("\n✅ E2E Test Passed!")
-    
+
     @pytest.mark.asyncio
     async def test_workspace_quota(self, db_session: AsyncSession):
         """Test workspace quota enforcement."""
-        
+
         # Create user with limited quota
         user_id = str(uuid.uuid4())
         user = User(
@@ -182,20 +180,20 @@ class TestE2EFlow:
         )
         db_session.add(user)
         await db_session.commit()
-        
+
         # User should be able to create workspace
         assert user.can_create_workspace()
-        
+
         # Update usage
         user.usage_stats["current_workspaces"] = 2
         assert not user.can_create_workspace()
-        
+
         print("✓ Workspace quota enforcement verified")
-    
+
     @pytest.mark.asyncio
     async def test_session_status_transitions(self, db_session: AsyncSession):
         """Test session status transitions."""
-        
+
         # Create user and workspace
         user = User(
             id=str(uuid.uuid4()),
@@ -204,7 +202,7 @@ class TestE2EFlow:
             password_hash="hashed_password",
         )
         db_session.add(user)
-        
+
         workspace = Workspace(
             id=str(uuid.uuid4()),
             name="Status Test Workspace",
@@ -214,7 +212,7 @@ class TestE2EFlow:
         )
         db_session.add(workspace)
         await db_session.flush()
-        
+
         # Create session
         session = Session(
             id=str(uuid.uuid4()),
@@ -224,19 +222,19 @@ class TestE2EFlow:
         )
         db_session.add(session)
         await db_session.commit()
-        
+
         # Verify initial status
         assert session.status == SessionStatus.ACTIVE
         assert session.completed_at is None
-        
+
         # Complete session
         session.status = SessionStatus.COMPLETED
         session.completed_at = datetime.utcnow()
         await db_session.commit()
-        
+
         assert session.status == SessionStatus.COMPLETED
         assert session.completed_at is not None
-        
+
         print("✓ Session status transitions verified")
 
 
@@ -246,7 +244,7 @@ def run_e2e_tests():
     print("Running E2E Tests")
     print("=" * 60)
     print()
-    
+
     pytest.main([__file__, "-v", "-s"])
 
 

@@ -1,7 +1,6 @@
 """
 Workspace API endpoints.
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,15 +9,15 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_permission_service
 from app.models.user import User
 from app.models.workspace import WorkspaceType
-from app.services.workspace_service import WorkspaceService
-from app.services.permission_service import PermissionService, PermissionError
 from app.schemas.workspace import (
     WorkspaceCreate,
-    WorkspaceUpdate,
-    WorkspaceResponse,
     WorkspaceDetail,
     WorkspaceList,
+    WorkspaceResponse,
+    WorkspaceUpdate,
 )
+from app.services.permission_service import PermissionError, PermissionService
+from app.services.workspace_service import WorkspaceService
 
 router = APIRouter()
 
@@ -43,8 +42,8 @@ async def create_workspace(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     return await service.create_workspace(
         owner_id=str(current_user.id),
         name=data.name,
@@ -85,16 +84,16 @@ async def get_workspace(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     workspace = await service.get_workspace(workspace_id, include_details=include_details)
-    
+
     if not workspace:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Workspace {workspace_id} not found",
         )
-    
+
     return workspace
 
 
@@ -118,16 +117,16 @@ async def update_workspace(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     workspace = await service.update_workspace(workspace_id, data)
-    
+
     if not workspace:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Workspace {workspace_id} not found",
         )
-    
+
     return workspace
 
 
@@ -150,10 +149,10 @@ async def delete_workspace(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     success = await service.delete_workspace(workspace_id)
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -176,6 +175,6 @@ async def get_workspace_sessions(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     return await service.get_workspace_sessions(workspace_id)

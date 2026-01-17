@@ -244,7 +244,7 @@ onMounted(() => {
                 class="template-category"
                 :style="{ backgroundColor: categoryColors[template.category] + '20', color: categoryColors[template.category] }"
               >
-                {{ categoryIcons[template.category] }} {{ template.category }}
+                {{ categoryIcons[template.category as keyof typeof categoryIcons] }} {{ template.category }}
               </span>
             </div>
             <h3 class="template-name">{{ template.name }}</h3>

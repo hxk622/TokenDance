@@ -5,22 +5,22 @@ Revises: 3c6d9e0f2g4h
 Create Date: 2026-01-16 12:00:00.000000
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '4d7e0f1h5i6j'
-down_revision: Union[str, Sequence[str], None] = '3b6c9d0e2f4g'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '3b6c9d0e2f4g'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     """Upgrade schema."""
-    
+
     # Create llm_providers table
     op.create_table('llm_providers',
         sa.Column('id', sa.String(length=50), nullable=False),
@@ -44,7 +44,7 @@ def upgrade() -> None:
         sa.UniqueConstraint('name')
     )
     op.create_index(op.f('ix_llm_providers_name'), 'llm_providers', ['name'], unique=True)
-    
+
     # Create llm_models table
     op.create_table('llm_models',
         sa.Column('id', sa.String(length=100), nullable=False),
@@ -70,7 +70,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_llm_models_provider_id'), 'llm_models', ['provider_id'], unique=False)
     op.create_index(op.f('ix_llm_models_name'), 'llm_models', ['name'], unique=True)
-    
+
     # Create agent_configs table
     op.create_table('agent_configs',
         sa.Column('id', sa.String(length=36), nullable=False),
@@ -104,7 +104,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['updated_by'], ['users.id'], )
     )
     op.create_index(op.f('ix_agent_configs_workspace_id'), 'agent_configs', ['workspace_id'], unique=False)
-    
+
     # Add agent_config_id column to sessions table
     op.add_column('sessions',
         sa.Column('agent_config_id', sa.String(length=36), nullable=True)
@@ -120,21 +120,21 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    
+
     # Remove agent_config_id from sessions
     op.drop_index(op.f('ix_sessions_agent_config_id'), table_name='sessions')
     op.drop_constraint('fk_sessions_agent_config_id', 'sessions', type_='foreignkey')
     op.drop_column('sessions', 'agent_config_id')
-    
+
     # Drop agent_configs table
     op.drop_index(op.f('ix_agent_configs_workspace_id'), table_name='agent_configs')
     op.drop_table('agent_configs')
-    
+
     # Drop llm_models table
     op.drop_index(op.f('ix_llm_models_name'), table_name='llm_models')
     op.drop_index(op.f('ix_llm_models_provider_id'), table_name='llm_models')
     op.drop_table('llm_models')
-    
+
     # Drop llm_providers table
     op.drop_index(op.f('ix_llm_providers_name'), table_name='llm_providers')
     op.drop_table('llm_providers')

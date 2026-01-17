@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Financial Services - 金融分析服务模块
 
@@ -11,56 +10,53 @@ Financial Services - 金融分析服务模块
         get_financial_analyzer,
         get_valuation_analyzer,
     )
-    
+
     # 财务分析
     analyzer = get_financial_analyzer()
     result = await analyzer.analyze("AAPL")
-    
+
     # 估值分析
     valuation = get_valuation_analyzer()
     result = await valuation.analyze("AAPL")
 """
 
 from app.services.financial.analyzer import (
-    FinancialAnalyzer,
-    FinancialAnalysisResult,
-    ProfitabilityMetrics,
-    GrowthMetrics,
-    SolvencyMetrics,
-    EfficiencyMetrics,
     CashFlowMetrics,
+    EfficiencyMetrics,
+    FinancialAnalysisResult,
+    FinancialAnalyzer,
+    GrowthMetrics,
     HealthLevel,
+    ProfitabilityMetrics,
+    SolvencyMetrics,
     get_financial_analyzer,
 )
-
-from app.services.financial.valuation import (
-    ValuationAnalyzer,
-    ValuationResult,
-    RelativeValuation,
-    HistoricalValuation,
-    IndustryComparison,
-    DCFValuation,
-    ValuationLevel,
-    get_valuation_analyzer,
-)
-
-from app.services.financial.technical import (
-    TechnicalIndicators,
-    TechnicalAnalysisResult,
-    TrendIndicators,
-    MomentumIndicators,
-    VolatilityIndicators,
-    VolumeIndicators,
-    TrendSignal,
-    get_technical_indicators,
-)
-
 from app.services.financial.cache import (
+    CACHE_TTL,
     AnalysisCache,
+    benchmark_analysis,
     get_analysis_cache,
     run_parallel_analysis,
-    benchmark_analysis,
-    CACHE_TTL,
+)
+from app.services.financial.technical import (
+    MomentumIndicators,
+    TechnicalAnalysisResult,
+    TechnicalIndicators,
+    TrendIndicators,
+    TrendSignal,
+    VolatilityIndicators,
+    VolumeIndicators,
+    get_technical_indicators,
+)
+from app.services.financial.valuation import (
+    DCFValuation,
+    HistoricalValuation,
+    IndustryComparison,
+    RelativeValuation,
+    ValuationAnalyzer,
+    ValuationLevel,
+    ValuationResult,
+    get_valuation_analyzer,
 )
 
 __all__ = [

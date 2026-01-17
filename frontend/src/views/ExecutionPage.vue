@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ResizableDivider from '@/components/execution/ResizableDivider.vue'
 import WorkflowGraph from '@/components/execution/WorkflowGraph.vue'
 import StreamingInfo from '@/components/execution/StreamingInfo.vue'
@@ -8,12 +8,47 @@ import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.
 import PreviewArea from '@/components/execution/PreviewArea.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import BrowserPip from '@/components/execution/BrowserPip.vue'
+import AnySidebar from '@/components/common/AnySidebar.vue'
+import AnyHeader from '@/components/common/AnyHeader.vue'
+import AnyButton from '@/components/common/AnyButton.vue'
 import { useExecutionStore } from '@/stores/execution'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
-import { ViewfinderCircleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { 
+  Home, History, FolderOpen, Settings, Search, LayoutGrid,
+  PauseCircle, StopCircle, ChevronDown, ChevronUp, X, Check
+} from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const sessionId = ref(route.params.id as string)
+
+// Sidebar state
+const sidebarCollapsed = ref(true) // Default collapsed for execution page
+const sidebarSections = [
+  {
+    id: 'main',
+    items: [
+      { id: 'home', label: '首页', icon: Home },
+      { id: 'history', label: '历史', icon: History },
+      { id: 'files', label: '文件', icon: FolderOpen },
+    ]
+  }
+]
+
+const handleNavClick = (item: { id: string }) => {
+  switch (item.id) {
+    case 'home':
+      router.push('/')
+      break
+    case 'history':
+      router.push('/chat')
+      break
+  }
+}
+
+const handleNewClick = () => {
+  router.push('/')
+}
 
 // Pinia Store
 const executionStore = useExecutionStore()
@@ -413,220 +448,232 @@ onUnmounted(() => {
 
 <template>
   <div class="execution-page">
-    <!-- Header with Plan Recitation -->
-    <header class="execution-header">
-      <div class="task-info">
-        <h1 class="task-title">Deep Research: AI Agent 市场分析</h1>
-        <div class="status-indicator">
-          <span :class="['status-badge', sessionStatus]">
-            {{ sessionStatus === 'running' ? '执行中' : 
-               sessionStatus === 'completed' ? '已完成' : 
-               sessionStatus === 'error' ? '错误' : '准备中' }}
-          </span>
-          <span class="time">已执行 {{ elapsedTime }}</span>
-        </div>
-      </div>
-      
-      <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
-      <div class="plan-progress">
-        <!-- Circular Progress Ring -->
-        <div class="progress-ring">
-          <svg viewBox="0 0 36 36">
-            <defs>
-              <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00D9FF" />
-                <stop offset="100%" stop-color="#00FF88" />
-              </linearGradient>
-            </defs>
-            <circle class="bg" cx="18" cy="18" r="16" />
-            <circle 
-              class="fill" 
-              cx="18" cy="18" r="16"
-              :stroke-dasharray="`${progressPercent} 100`"
-            />
-          </svg>
-          <span class="percent">{{ progressPercent }}%</span>
-        </div>
-        <!-- Step Info -->
-        <div class="progress-step">
-          <span class="step-label">Step {{ currentStepIndex + 1 }}/{{ totalSteps }}</span>
-          <span class="step-name">{{ currentStepLabel }}</span>
-        </div>
-      </div>
-      
-      <div class="header-actions">
-        <button 
-          class="btn-intervention" 
-          @click="requestIntervention" 
-          :disabled="!isRunning || isRequestingIntervention"
-        >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          暂停并介入
+    <!-- Sidebar -->
+    <AnySidebar
+      v-model:collapsed="sidebarCollapsed"
+      :sections="sidebarSections"
+      :show-footer="true"
+      @nav-click="handleNavClick"
+      @new-click="handleNewClick"
+    >
+      <template #footer>
+        <button class="any-sidebar__footer-btn" title="设置">
+          <Settings class="w-5 h-5" />
         </button>
-        <button class="btn-secondary" @click="handleStop">停止</button>
-      </div>
-    </header>
+      </template>
+    </AnySidebar>
 
-    <!-- Focus Mode Banner with Breadcrumb -->
-    <Transition name="slide-down">
-      <div v-if="isFocusMode" class="focus-mode-banner glass-panel-medium">
-        <div class="focus-left">
-          <ViewfinderCircleIcon class="focus-icon vibe-breathing-active" />
-          <div class="focus-breadcrumb">
-            <button class="breadcrumb-item" @click="exitFocusMode">
-              执行流程
-            </button>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-current">
-              节点 {{ focusedNodeId }}
+    <!-- Main execution area -->
+    <div class="execution-main" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+      <!-- Header with Plan Recitation -->
+      <header class="execution-header">
+        <div class="task-info">
+          <h1 class="task-title">Deep Research: AI Agent 市场分析</h1>
+          <div class="status-indicator">
+            <span :class="['status-badge', sessionStatus]">
+              {{ sessionStatus === 'running' ? '执行中' : 
+                 sessionStatus === 'completed' ? '已完成' : 
+                 sessionStatus === 'error' ? '错误' : '准备中' }}
             </span>
+            <span class="time">已执行 {{ elapsedTime }}</span>
           </div>
         </div>
-        <div class="focus-right">
-          <span class="focus-hint">按 ESC 退出</span>
-          <button class="focus-exit-btn glass-button" @click="exitFocusMode">
-            <svg class="exit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+        
+        <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
+        <div class="plan-progress">
+          <!-- Circular Progress Ring -->
+          <div class="progress-ring">
+            <svg viewBox="0 0 36 36">
+              <defs>
+                <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#00D9FF" />
+                  <stop offset="100%" stop-color="#00FF88" />
+                </linearGradient>
+              </defs>
+              <circle class="bg" cx="18" cy="18" r="16" />
+              <circle 
+                class="fill" 
+                cx="18" cy="18" r="16"
+                :stroke-dasharray="`${progressPercent} 100`"
+              />
             </svg>
-            <span>退出聚焦</span>
-          </button>
+            <span class="percent">{{ progressPercent }}%</span>
+          </div>
+          <!-- Step Info -->
+          <div class="progress-step">
+            <span class="step-label">Step {{ currentStepIndex + 1 }}/{{ totalSteps }}</span>
+            <span class="step-name">{{ currentStepLabel }}</span>
+          </div>
         </div>
-      </div>
-    </Transition>
-    
-    <!-- 任务完成庆祝 -->
-    <Transition name="celebration-fade">
-      <div v-if="showCompletionCelebration" class="completion-celebration">
-        <div class="celebration-content">
-          <CheckCircleIcon class="w-16 h-16 text-green-400" />
-          <h2 class="celebration-title">任务完成！</h2>
-          <p class="celebration-desc">报告已生成，可在右侧查看</p>
+        
+        <div class="header-actions">
+          <AnyButton 
+            variant="secondary"
+            @click="requestIntervention" 
+            :disabled="!isRunning || isRequestingIntervention"
+          >
+            <PauseCircle class="w-4 h-4" />
+            <span>暂停并介入</span>
+          </AnyButton>
+          <AnyButton variant="ghost" @click="handleStop">
+            <StopCircle class="w-4 h-4" />
+            <span>停止</span>
+          </AnyButton>
         </div>
-      </div>
-    </Transition>
+      </header>
 
-    <!-- Panel Toggle (Compact Mode) -->
-    <div v-if="isCompactMode" class="panel-toggle">
-      <button 
-        :class="['toggle-btn', { active: activePanel === 'left' }]" 
-        @click="activePanel = 'left'"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-        <span>执行跟踪</span>
-      </button>
-      <button 
-        :class="['toggle-btn', { active: activePanel === 'right' }]" 
-        @click="activePanel = 'right'"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-        <span>成果预览</span>
-      </button>
-    </div>
+      <!-- Focus Mode Banner with Breadcrumb -->
+      <Transition name="slide-down">
+        <div v-if="isFocusMode" class="focus-mode-banner">
+          <div class="focus-left">
+            <Search class="focus-icon" />
+            <div class="focus-breadcrumb">
+              <button class="breadcrumb-item" @click="exitFocusMode">
+                执行流程
+              </button>
+              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-current">
+                节点 {{ focusedNodeId }}
+              </span>
+            </div>
+          </div>
+          <div class="focus-right">
+            <span class="focus-hint">按 ESC 退出</span>
+            <AnyButton variant="ghost" size="sm" @click="exitFocusMode">
+              <X class="w-4 h-4" />
+              <span>退出聚焦</span>
+            </AnyButton>
+          </div>
+        </div>
+      </Transition>
+      
+      <!-- 任务完成庆祝 -->
+      <Transition name="celebration-fade">
+        <div v-if="showCompletionCelebration" class="completion-celebration">
+          <div class="celebration-content">
+            <Check class="celebration-icon" />
+            <h2 class="celebration-title">任务完成！</h2>
+            <p class="celebration-desc">报告已生成，可在右侧查看</p>
+          </div>
+        </div>
+      </Transition>
 
-    <!-- Main Content -->
-    <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
-      <!-- Left Panel: Execution Area -->
-      <div 
-        class="left-panel" 
-        :class="{ hidden: isCompactMode && activePanel !== 'left' }"
-        :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
-      >
-        <!-- Collapse Toggle Button -->
+      <!-- Panel Toggle (Compact Mode) -->
+      <div v-if="isCompactMode" class="panel-toggle">
         <button 
-          class="collapse-toggle"
-          :class="{ collapsed: isCollapsed }"
-          @click="toggleCollapse"
-          :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+          :class="['toggle-btn', { active: activePanel === 'left' }]" 
+          @click="activePanel = 'left'"
         >
-          <span class="collapse-icon">{{ isCollapsed ? '▼' : '▲' }}</span>
+          <LayoutGrid class="w-4 h-4" />
+          <span>执行跟踪</span>
         </button>
-
-        <!-- Top: Workflow Graph -->
-        <div 
-          class="workflow-graph-container" 
-          :class="{ collapsed: isCollapsed }"
-          :style="{ height: isCollapsed ? `${collapsedHeight}px` : `${topHeight}%` }"
+        <button 
+          :class="['toggle-btn', { active: activePanel === 'right' }]" 
+          @click="activePanel = 'right'"
         >
-          <WorkflowGraph 
-            :session-id="sessionId" 
-            :mini-mode="isCollapsed || isCompactMode"
-            @node-click="handleNodeClick"
-            @node-double-click="handleNodeDoubleClick"
+          <FolderOpen class="w-4 h-4" />
+          <span>成果预览</span>
+        </button>
+      </div>
+
+      <!-- Main Content -->
+      <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
+        <!-- Left Panel: Execution Area -->
+        <div 
+          class="left-panel" 
+          :class="{ hidden: isCompactMode && activePanel !== 'left' }"
+          :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
+        >
+          <!-- Collapse Toggle Button -->
+          <button 
+            class="collapse-toggle"
+            :class="{ collapsed: isCollapsed }"
+            @click="toggleCollapse"
+            :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+          >
+            <component :is="isCollapsed ? ChevronDown : ChevronUp" class="w-4 h-4" />
+          </button>
+
+          <!-- Top: Workflow Graph -->
+          <div 
+            class="workflow-graph-container" 
+            :class="{ collapsed: isCollapsed }"
+            :style="{ height: isCollapsed ? `${collapsedHeight}px` : `${topHeight}%` }"
+          >
+            <WorkflowGraph 
+              :session-id="sessionId" 
+              :mini-mode="isCollapsed || isCompactMode"
+              @node-click="handleNodeClick"
+              @node-double-click="handleNodeDoubleClick"
+            />
+          </div>
+
+          <!-- Vertical Divider (hidden when collapsed) -->
+          <ResizableDivider
+            v-if="!isCollapsed && !isCompactMode"
+            direction="vertical"
+            @resize="handleVerticalDrag"
+            @reset="resetVerticalRatio"
           />
+
+          <!-- Bottom: Streaming Info -->
+          <div 
+            class="streaming-info-container" 
+            :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
+          >
+            <StreamingInfo 
+              ref="streamingInfoRef"
+              :session-id="sessionId" 
+            />
+          </div>
         </div>
 
-        <!-- Vertical Divider (hidden when collapsed) -->
+        <!-- Horizontal Divider (hidden in compact mode) -->
         <ResizableDivider
-          v-if="!isCollapsed && !isCompactMode"
-          direction="vertical"
-          @resize="handleVerticalDrag"
-          @reset="resetVerticalRatio"
+          v-if="!isCompactMode"
+          direction="horizontal"
+          @resize="handleHorizontalDrag"
+          @reset="resetHorizontalRatio"
         />
 
-        <!-- Bottom: Streaming Info -->
+        <!-- Right Panel: Preview Area -->
         <div 
-          class="streaming-info-container" 
-          :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
+          class="right-panel" 
+          :class="{ hidden: isCompactMode && activePanel !== 'right' }"
+          :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
         >
-          <StreamingInfo 
-            ref="streamingInfoRef"
+          <ArtifactTabs 
             :session-id="sessionId" 
+            :task-type="taskType"
+            v-model:current-tab="currentTab"
+            @tab-change="handleTabChange"
+          />
+          <PreviewArea 
+            :session-id="sessionId" 
+            :current-tab="currentTab"
+            :is-executing="isRunning"
           />
         </div>
-      </div>
-
-      <!-- Horizontal Divider (hidden in compact mode) -->
-      <ResizableDivider
-        v-if="!isCompactMode"
-        direction="horizontal"
-        @resize="handleHorizontalDrag"
-        @reset="resetHorizontalRatio"
+      </main>
+      
+      <!-- HITL 干预弹窗 -->
+      <HITLConfirmDialog
+        :visible="showHITLDialog"
+        :request="currentHITLRequest"
+        @close="handleHITLClose"
+        @confirmed="handleHITLConfirmed"
       />
-
-      <!-- Right Panel: Preview Area -->
-      <div 
-        class="right-panel" 
-        :class="{ hidden: isCompactMode && activePanel !== 'right' }"
-        :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
-      >
-        <ArtifactTabs 
-          :session-id="sessionId" 
-          :task-type="taskType"
-          v-model:current-tab="currentTab"
-          @tab-change="handleTabChange"
-        />
-        <PreviewArea 
-          :session-id="sessionId" 
-          :current-tab="currentTab"
-          :is-executing="isRunning"
-        />
-      </div>
-    </main>
-    
-    <!-- HITL 干预弹窗 -->
-    <HITLConfirmDialog
-      :visible="showHITLDialog"
-      :request="currentHITLRequest"
-      @close="handleHITLClose"
-      @confirmed="handleHITLConfirmed"
-    />
-    
-    <!-- 浏览器画中画 -->
-    <BrowserPip
-      :visible="showBrowserPip && isRunning"
-      :url="browserPipUrl"
-      :screenshot="browserPipScreenshot"
-      title="Manus 浏览器"
-      @close="closeBrowserPip"
-      @open-url="openBrowserUrl"
-    />
+      
+      <!-- 浏览器画中画 -->
+      <BrowserPip
+        :visible="showBrowserPip && isRunning"
+        :url="browserPipUrl"
+        :screenshot="browserPipScreenshot"
+        title="Manus 浏览器"
+        @close="closeBrowserPip"
+        @open-url="openBrowserUrl"
+      />
+    </div>
   </div>
 </template>
 
@@ -634,23 +681,39 @@ onUnmounted(() => {
 .execution-page {
   width: 100vw;
   min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  min-height: 100dvh;
+  display: flex;
+  background: var(--exec-bg-primary);
+  color: var(--exec-text-primary);
+}
+
+/* Execution-specific CSS Variables (dark theme) */
+.execution-page {
+  --exec-bg-primary: #121212;
+  --exec-bg-secondary: #1c1c1e;
+  --exec-bg-tertiary: #2c2c2e;
+  --exec-text-primary: #ffffff;
+  --exec-text-secondary: rgba(255, 255, 255, 0.6);
+  --exec-text-muted: rgba(255, 255, 255, 0.4);
+  --exec-border: rgba(255, 255, 255, 0.1);
+  --exec-border-hover: rgba(255, 255, 255, 0.2);
+  --exec-accent: #00D9FF;
+  --exec-success: #00FF88;
+  --exec-warning: #FFB800;
+  --exec-error: #FF3B30;
+}
+
+/* Main area with sidebar offset */
+.execution-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  background: rgba(18, 18, 18, 0.95);
-  color: #ffffff;
+  margin-left: 200px;
+  transition: margin-left var(--any-duration-normal) var(--any-ease-default);
 }
 
-/* Global cursor-pointer for interactive elements */
-.execution-page button,
-.execution-page [role="button"],
-.execution-page .clickable {
-  cursor: pointer;
-}
-
-/* Global hover scale for buttons */
-.execution-page button:not(:disabled):active {
-  transform: scale(0.98);
+.execution-main.sidebar-collapsed {
+  margin-left: 56px;
 }
 
 /* Header - Glass morphism */
@@ -660,8 +723,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(28, 28, 30, 0.75);
+  border-bottom: 1px solid var(--exec-border);
+  background: var(--exec-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
@@ -676,6 +739,7 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
+  color: var(--exec-text-primary);
 }
 
 .status-indicator {
@@ -686,14 +750,14 @@ onUnmounted(() => {
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--any-radius-full);
   font-size: 12px;
   font-weight: 500;
 }
 
 .status-badge.running {
   background: rgba(0, 217, 255, 0.2);
-  color: var(--vibe-color-active);
+  color: var(--exec-accent);
   animation: status-pulse 2s ease-in-out infinite;
 }
 
@@ -704,17 +768,17 @@ onUnmounted(() => {
 
 .status-badge.completed {
   background: rgba(0, 255, 136, 0.2);
-  color: var(--vibe-color-success);
+  color: var(--exec-success);
 }
 
 .status-badge.error {
   background: rgba(255, 59, 48, 0.2);
-  color: var(--vibe-color-error);
+  color: var(--exec-error);
 }
 
 .time {
   font-size: 14px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  color: var(--exec-text-secondary);
 }
 
 /* Plan Recitation 进度指示器 - Enhanced Design */
@@ -725,7 +789,7 @@ onUnmounted(() => {
   padding: 8px 16px;
   background: rgba(0, 217, 255, 0.08);
   border: 1px solid rgba(0, 217, 255, 0.2);
-  border-radius: 12px;
+  border-radius: var(--any-radius-lg);
 }
 
 /* Circular Progress Ring */
@@ -744,7 +808,7 @@ onUnmounted(() => {
 
 .progress-ring .bg {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: var(--exec-border);
   stroke-width: 3;
 }
 
@@ -755,7 +819,7 @@ onUnmounted(() => {
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 0;
-  transition: stroke-dasharray 0.5s ease-out;
+  transition: stroke-dasharray var(--any-duration-slow) var(--any-ease-default);
 }
 
 .progress-ring .percent {
@@ -764,9 +828,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: #00D9FF;
+  color: var(--exec-accent);
+  letter-spacing: -0.02em;
 }
 
 .progress-step {
@@ -778,10 +843,10 @@ onUnmounted(() => {
 .step-label {
   font-size: 11px;
   font-weight: 600;
-  color: #00D9FF;
+  color: var(--exec-accent);
   padding: 2px 10px;
   background: rgba(0, 217, 255, 0.2);
-  border-radius: 6px;
+  border-radius: var(--any-radius-sm);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -792,7 +857,7 @@ onUnmounted(() => {
   content: '';
   width: 6px;
   height: 6px;
-  background: #00D9FF;
+  background: var(--exec-accent);
   border-radius: 50%;
   animation: pulse-dot 1.5s ease-in-out infinite;
 }
@@ -804,12 +869,43 @@ onUnmounted(() => {
 
 .step-name {
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--exec-text-primary);
   font-weight: 500;
-  max-width: 160px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Responsive Header adjustments */
+@media (max-width: 768px) {
+  .execution-header {
+    height: auto;
+    min-height: 64px;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  
+  .task-info {
+    width: 100%;
+    order: 1;
+  }
+  
+  .plan-progress {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .header-actions {
+    order: 2;
+    margin-left: auto;
+  }
+  
+  .step-name {
+    max-width: 200px;
+  }
 }
 
 /* Legacy progress bar (fallback) */
@@ -858,53 +954,8 @@ onUnmounted(() => {
 
 .header-actions {
   display: flex;
-  gap: 12px;
-}
-
-.btn-intervention {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid rgba(255, 184, 0, 0.5);
-  border-radius: 8px;
-  background: rgba(255, 184, 0, 0.15);
-  color: #FFB800;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 120ms ease-out;
-}
-
-.btn-intervention:hover:not(:disabled) {
-  background: rgba(255, 184, 0, 0.25);
-  border-color: #FFB800;
-}
-
-.btn-intervention:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-intervention svg {
-  width: 16px;
-  height: 16px;
-}
-
-.btn-secondary {
-  padding: 8px 16px;
-  border: 1px solid var(--divider-color);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 120ms ease-out;
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--divider-hover, rgba(0, 217, 255, 0.5));
+  gap: 8px;
 }
 
 /* Main Content */
@@ -925,8 +976,8 @@ onUnmounted(() => {
 
 .workflow-graph-container {
   overflow: hidden;
-  border-bottom: 1px solid var(--divider-color);
-  transition: height 200ms ease-out;
+  border-bottom: 1px solid var(--exec-border);
+  transition: height var(--any-duration-normal) var(--any-ease-default);
 }
 
 .workflow-graph-container.collapsed {
@@ -939,48 +990,30 @@ onUnmounted(() => {
   top: 8px;
   right: 8px;
   z-index: 10;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(28, 28, 30, 0.9);
-  border: 1px solid var(--divider-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  background: var(--exec-bg-secondary);
+  border: 1px solid var(--exec-border);
+  border-radius: var(--any-radius-md);
+  color: var(--exec-text-secondary);
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
 .collapse-toggle:hover {
   background: rgba(0, 217, 255, 0.2);
-  border-color: var(--color-node-active, #00D9FF);
-  color: var(--color-node-active, #00D9FF);
-}
-
-.collapse-toggle:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(18, 18, 18, 0.95), 0 0 0 4px #00D9FF;
-}
-
-.collapse-toggle:focus:not(:focus-visible) {
-  box-shadow: none;
-}
-
-.collapse-toggle:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(18, 18, 18, 0.95), 0 0 0 4px #00D9FF;
+  border-color: var(--exec-accent);
+  color: var(--exec-accent);
 }
 
 .collapse-toggle.collapsed {
   background: rgba(0, 217, 255, 0.15);
 }
 
-.collapse-icon {
-  font-size: 10px;
-}
-
-/* Focus Mode Banner - Enhanced */
+/* Focus Mode Banner */
 .focus-mode-banner {
   display: flex;
   align-items: center;
@@ -999,7 +1032,7 @@ onUnmounted(() => {
 .focus-icon {
   width: 20px;
   height: 20px;
-  color: var(--vibe-color-active);
+  color: var(--exec-accent);
 }
 
 .focus-breadcrumb {
@@ -1010,28 +1043,28 @@ onUnmounted(() => {
 
 .breadcrumb-item {
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--exec-bg-tertiary);
   border: none;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.7);
+  border-radius: var(--any-radius-sm);
+  color: var(--exec-text-secondary);
   font-size: 13px;
   cursor: pointer;
-  transition: all 120ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
 .breadcrumb-item:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  background: var(--exec-border-hover);
+  color: var(--exec-text-primary);
 }
 
 .breadcrumb-separator {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--exec-text-muted);
 }
 
 .breadcrumb-current {
   font-size: 13px;
   font-weight: 600;
-  color: var(--vibe-color-active);
+  color: var(--exec-accent);
 }
 
 .focus-right {
@@ -1042,20 +1075,7 @@ onUnmounted(() => {
 
 .focus-hint {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.focus-exit-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 13px;
-}
-
-.exit-icon {
-  width: 14px;
-  height: 14px;
+  color: var(--exec-text-muted);
 }
 
 /* Slide Down Transition */
@@ -1070,7 +1090,7 @@ onUnmounted(() => {
   transform: translateY(-100%);
 }
 
-/* 完成庆祝动画 - Enhanced with Confetti */
+/* 完成庆祝动画 */
 .completion-celebration {
   position: fixed;
   inset: 0;
@@ -1083,28 +1103,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* Confetti particles */
-.completion-celebration::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: 
-    radial-gradient(circle at 20% 30%, var(--vibe-color-success) 2px, transparent 2px),
-    radial-gradient(circle at 80% 20%, var(--vibe-color-active) 2px, transparent 2px),
-    radial-gradient(circle at 40% 70%, #FFB800 2px, transparent 2px),
-    radial-gradient(circle at 70% 60%, #FF6B6B 2px, transparent 2px),
-    radial-gradient(circle at 10% 80%, var(--vibe-color-success) 2px, transparent 2px),
-    radial-gradient(circle at 90% 90%, var(--vibe-color-active) 2px, transparent 2px);
-  background-size: 100px 100px;
-  animation: confetti-fall 3s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes confetti-fall {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
 .celebration-content {
   position: relative;
   z-index: 1;
@@ -1113,72 +1111,43 @@ onUnmounted(() => {
   align-items: center;
   gap: 20px;
   padding: 56px 72px;
-  background: rgba(28, 28, 30, 0.95);
+  background: var(--exec-bg-secondary);
   border: 1px solid rgba(0, 255, 136, 0.4);
-  border-radius: 24px;
+  border-radius: var(--any-radius-xl);
   box-shadow: 
     0 0 80px rgba(0, 255, 136, 0.25),
     0 0 120px rgba(0, 217, 255, 0.15);
-  animation: celebration-pop 0.5s var(--vibe-ease-bounce);
+  animation: celebration-pop 0.5s var(--any-ease-bounce);
 }
 
 @keyframes celebration-pop {
   0% {
     opacity: 0;
-    transform: scale(0.6) rotate(-2deg);
-  }
-  50% {
-    transform: scale(1.05) rotate(1deg);
+    transform: scale(0.6);
   }
   100% {
     opacity: 1;
-    transform: scale(1) rotate(0);
+    transform: scale(1);
   }
 }
 
 .celebration-icon {
   width: 64px;
   height: 64px;
-  color: var(--vibe-color-success);
-  animation: success-bounce 0.6s var(--vibe-ease-bounce) 0.3s both;
-}
-
-@keyframes success-bounce {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
+  color: var(--exec-success);
 }
 
 .celebration-title {
   font-size: 32px;
   font-weight: 700;
-  color: var(--vibe-color-success);
+  color: var(--exec-success);
   margin: 0;
-  text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
 }
 
 .celebration-desc {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--exec-text-secondary);
   margin: 0;
-}
-
-.celebration-dismiss {
-  margin-top: 8px;
-  padding: 10px 28px;
-  background: var(--vibe-color-success);
-  border: none;
-  border-radius: 10px;
-  color: #000;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 150ms ease-out;
-}
-
-.celebration-dismiss:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
 }
 
 /* Celebration Fade Transition */
@@ -1246,7 +1215,7 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-secondary, rgba(28, 28, 30, 0.9));
+  background: var(--exec-bg-secondary);
 }
 
 /* Panel Toggle (Compact Mode) */
@@ -1254,8 +1223,8 @@ onUnmounted(() => {
   display: flex;
   padding: 8px 16px;
   gap: 8px;
-  background: rgba(28, 28, 30, 0.9);
-  border-bottom: 1px solid var(--divider-color);
+  background: var(--exec-bg-secondary);
+  border-bottom: 1px solid var(--exec-border);
 }
 
 .toggle-btn {
@@ -1265,24 +1234,24 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--divider-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  background: var(--exec-bg-tertiary);
+  border: 1px solid var(--exec-border);
+  border-radius: var(--any-radius-md);
+  color: var(--exec-text-secondary);
   font-size: 13px;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
 .toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--exec-border-hover);
+  border-color: var(--exec-border-hover);
 }
 
 .toggle-btn.active {
   background: rgba(0, 217, 255, 0.15);
   border-color: rgba(0, 217, 255, 0.5);
-  color: var(--color-node-active, #00D9FF);
+  color: var(--exec-accent);
 }
 
 .toggle-btn svg {
@@ -1369,14 +1338,4 @@ onUnmounted(() => {
   }
 }
 
-/* CSS Variables */
-:root {
-  --bg-primary: rgba(18, 18, 18, 0.95);
-  --bg-secondary: rgba(28, 28, 30, 0.9);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --divider-color: rgba(255, 255, 255, 0.1);
-  --divider-hover: rgba(0, 217, 255, 0.5);
-  --color-node-active: #00D9FF;
-}
 </style>

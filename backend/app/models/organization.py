@@ -6,13 +6,12 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
     from app.models.team import Team
 
 
@@ -26,7 +25,7 @@ class OrgStatus(PyEnum):
 class Organization(Base):
     """
     Organization model - top-level entity for multi-tenancy.
-    
+
     Features:
     - Resource quotas for the entire organization
     - Settings and preferences

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 多搜索源提供者 (Search Providers)
 
@@ -11,13 +10,13 @@
 - 主源失败 -> 自动切换备用源
 - 所有源失败 -> 返回空结果 + 错误信息
 """
+import asyncio
 import logging
 import os
-import asyncio
-from typing import List, Dict, Any, Optional, Callable
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +36,8 @@ class SearchResult:
     link: str
     snippet: str
     source: SearchProviderType
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "title": self.title,
             "link": self.link,
@@ -49,14 +48,14 @@ class SearchResult:
 
 class BaseSearchProvider(ABC):
     """搜索提供者基类"""
-    
+
     provider_type: SearchProviderType
-    
+
     @abstractmethod
-    async def search(self, query: str, max_results: int = 5) -> List[SearchResult]:
+    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
         """执行搜索"""
         pass
-    
+
     @abstractmethod
     def is_available(self) -> bool:
         """检查是否可用"""
@@ -65,9 +64,9 @@ class BaseSearchProvider(ABC):
 
 class DuckDuckGoProvider(BaseSearchProvider):
     """DuckDuckGo 搜索提供者"""
-    
+
     provider_type = SearchProviderType.DUCKDUCKGO
-    
+
     def __init__(self):
         try:
             from duckduckgo_search import DDGS
@@ -77,14 +76,14 @@ class DuckDuckGoProvider(BaseSearchProvider):
             self._ddgs_class = None
             self._available = False
             logger.warning("duckduckgo-search not installed")
-    
+
     def is_available(self) -> bool:
         return self._available
-    
-    async def search(self, query: str, max_results: int = 5) -> List[SearchResult]:
+
+    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
         if not self._available:
             raise RuntimeError("DuckDuckGo provider not available")
-        
+
         loop = asyncio.get_event_loop()
         results = await loop.run_in_executor(
             None,
@@ -93,8 +92,8 @@ class DuckDuckGoProvider(BaseSearchProvider):
             max_results
         )
         return results
-    
-    def _search_sync(self, query: str, max_results: int) -> List[SearchResult]:
+
+    def _search_sync(self, query: str, max_results: int) -> list[SearchResult]:
         with self._ddgs_class() as ddgs:
             raw_results = ddgs.text(
                 keywords=query,
@@ -102,7 +101,7 @@ class DuckDuckGoProvider(BaseSearchProvider):
                 safesearch="moderate",
                 max_results=max_results
             )
-            
+
             return [
                 SearchResult(
                     title=r.get("title", ""),
@@ -116,25 +115,25 @@ class DuckDuckGoProvider(BaseSearchProvider):
 
 class BraveSearchProvider(BaseSearchProvider):
     """Brave Search 提供者"""
-    
+
     provider_type = SearchProviderType.BRAVE
-    
+
     def __init__(self):
         self.api_key = os.getenv("BRAVE_SEARCH_API_KEY")
         self._available = bool(self.api_key)
-        
+
         if not self._available:
             logger.debug("Brave Search API key not configured")
-    
+
     def is_available(self) -> bool:
         return self._available
-    
-    async def search(self, query: str, max_results: int = 5) -> List[SearchResult]:
+
+    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
         if not self._available:
             raise RuntimeError("Brave Search provider not available")
-        
+
         import httpx
-        
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 "https://api.search.brave.com/res/v1/web/search",
@@ -149,7 +148,7 @@ class BraveSearchProvider(BaseSearchProvider):
             )
             response.raise_for_status()
             data = response.json()
-            
+
             results = []
             for item in data.get("web", {}).get("results", [])[:max_results]:
                 results.append(SearchResult(
@@ -158,31 +157,31 @@ class BraveSearchProvider(BaseSearchProvider):
                     snippet=item.get("description", ""),
                     source=self.provider_type
                 ))
-            
+
             return results
 
 
 class SerperProvider(BaseSearchProvider):
     """Serper (Google) 搜索提供者"""
-    
+
     provider_type = SearchProviderType.SERPER
-    
+
     def __init__(self):
         self.api_key = os.getenv("SERPER_API_KEY")
         self._available = bool(self.api_key)
-        
+
         if not self._available:
             logger.debug("Serper API key not configured")
-    
+
     def is_available(self) -> bool:
         return self._available
-    
-    async def search(self, query: str, max_results: int = 5) -> List[SearchResult]:
+
+    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
         if not self._available:
             raise RuntimeError("Serper provider not available")
-        
+
         import httpx
-        
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 "https://google.serper.dev/search",
@@ -197,7 +196,7 @@ class SerperProvider(BaseSearchProvider):
             )
             response.raise_for_status()
             data = response.json()
-            
+
             results = []
             for item in data.get("organic", [])[:max_results]:
                 results.append(SearchResult(
@@ -206,22 +205,22 @@ class SerperProvider(BaseSearchProvider):
                     snippet=item.get("snippet", ""),
                     source=self.provider_type
                 ))
-            
+
             return results
 
 
 class MultiSourceSearcher:
     """多源搜索器
-    
+
     特性:
     - 自动降级
     - 并行搜索 (可选)
     - 结果合并去重
     """
-    
+
     def __init__(
         self,
-        providers: Optional[List[BaseSearchProvider]] = None,
+        providers: list[BaseSearchProvider] | None = None,
         parallel: bool = False
     ):
         """
@@ -235,23 +234,23 @@ class MultiSourceSearcher:
                 BraveSearchProvider(),
                 SerperProvider()
             ]
-        
+
         self.providers = [p for p in providers if p.is_available()]
         self.parallel = parallel
-        
+
         logger.info(f"MultiSourceSearcher initialized with {len(self.providers)} providers")
-    
+
     async def search(
         self,
         query: str,
         max_results: int = 5
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """执行搜索
-        
+
         Args:
             query: 搜索查询
             max_results: 每个源的最大结果数
-            
+
         Returns:
             Dict: {
                 "success": bool,
@@ -269,25 +268,25 @@ class MultiSourceSearcher:
                 "fallback_used": False,
                 "errors": ["No search providers available"]
             }
-        
+
         if self.parallel:
             return await self._search_parallel(query, max_results)
         else:
             return await self._search_with_fallback(query, max_results)
-    
+
     async def _search_with_fallback(
         self,
         query: str,
         max_results: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """带降级的顺序搜索"""
         errors = []
         fallback_used = False
-        
+
         for i, provider in enumerate(self.providers):
             try:
                 results = await provider.search(query, max_results)
-                
+
                 return {
                     "success": True,
                     "results": [r.to_dict() for r in results],
@@ -295,14 +294,14 @@ class MultiSourceSearcher:
                     "fallback_used": i > 0,
                     "errors": errors
                 }
-            
+
             except Exception as e:
                 error_msg = f"{provider.provider_type.value}: {str(e)}"
                 errors.append(error_msg)
                 logger.warning(f"Search provider failed: {error_msg}")
                 fallback_used = True
                 continue
-        
+
         # 所有源都失败
         return {
             "success": False,
@@ -311,38 +310,38 @@ class MultiSourceSearcher:
             "fallback_used": fallback_used,
             "errors": errors
         }
-    
+
     async def _search_parallel(
         self,
         query: str,
         max_results: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """并行搜索所有源"""
         tasks = [
             self._safe_search(provider, query, max_results)
             for provider in self.providers
         ]
-        
+
         results_list = await asyncio.gather(*tasks)
-        
+
         # 合并去重
         all_results = []
         seen_urls = set()
         errors = []
         successful_provider = None
-        
+
         for provider, results, error in results_list:
             if error:
                 errors.append(f"{provider.provider_type.value}: {error}")
             elif results:
                 if successful_provider is None:
                     successful_provider = provider.provider_type.value
-                
+
                 for r in results:
                     if r.link not in seen_urls:
                         seen_urls.add(r.link)
                         all_results.append(r.to_dict())
-        
+
         return {
             "success": len(all_results) > 0,
             "results": all_results[:max_results * 2],  # 返回更多结果
@@ -350,7 +349,7 @@ class MultiSourceSearcher:
             "fallback_used": len(errors) > 0,
             "errors": errors
         }
-    
+
     async def _safe_search(
         self,
         provider: BaseSearchProvider,
@@ -366,7 +365,7 @@ class MultiSourceSearcher:
 
 
 # 便捷函数
-_global_searcher: Optional[MultiSourceSearcher] = None
+_global_searcher: MultiSourceSearcher | None = None
 
 
 def get_multi_source_searcher() -> MultiSourceSearcher:

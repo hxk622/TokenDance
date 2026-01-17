@@ -18,13 +18,11 @@ ShellTool - 终端命令执行工具
 import asyncio
 import os
 import shlex
-import subprocess
-from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
 from ..base import BaseTool, ToolResult
-from ..risk import RiskLevel, OperationCategory
+from ..risk import OperationCategory, RiskLevel
 
 
 class ShellToolArgs(BaseModel):
@@ -96,7 +94,7 @@ class ShellTool(BaseTool):
         "wget | sh",
     ]
 
-    def __init__(self, workspace_path: Optional[str] = None):
+    def __init__(self, workspace_path: str | None = None):
         """
         初始化ShellTool
 
@@ -139,7 +137,7 @@ class ShellTool(BaseTool):
 
         return RiskLevel.HIGH
 
-    def get_operation_categories(self, **kwargs) -> List[OperationCategory]:
+    def get_operation_categories(self, **kwargs) -> list[OperationCategory]:
         """根据命令返回操作类别"""
         risk = self.get_risk_level(**kwargs)
 
@@ -156,7 +154,7 @@ class ShellTool(BaseTool):
         risk = self.get_risk_level(**kwargs)
 
         return f"执行 Shell 命令:\n```\n{command}\n```\n风险等级: {risk.value}"
-    
+
     async def execute(
         self,
         command: str,
@@ -165,12 +163,12 @@ class ShellTool(BaseTool):
     ) -> ToolResult:
         """
         执行shell命令
-        
+
         Args:
             command: 要执行的命令
             timeout: 超时时间（秒）
             max_output_length: 最大输出长度
-            
+
         Returns:
             ToolResult: 执行结果
         """
@@ -182,26 +180,26 @@ class ShellTool(BaseTool):
                 error=f"命令被拒绝: {safety_check['reason']}",
                 data={"command": command}
             )
-        
+
         # 2. 执行命令
         try:
             result = await self._run_command(command, timeout)
-            
+
             # 3. 处理输出
             stdout = result["stdout"]
             stderr = result["stderr"]
             exit_code = result["exit_code"]
-            
+
             # 截断输出
             if len(stdout) > max_output_length:
                 stdout = stdout[:max_output_length] + f"\n\n... (输出过长，已截断，总长度: {len(result['stdout'])} 字符)"
-            
+
             if len(stderr) > max_output_length:
-                stderr = stderr[:max_output_length] + f"\n\n... (错误输出过长，已截断)"
-            
+                stderr = stderr[:max_output_length] + "\n\n... (错误输出过长，已截断)"
+
             # 4. 返回结果
             success = exit_code == 0
-            
+
             return ToolResult(
                 success=success,
                 data={
@@ -213,8 +211,8 @@ class ShellTool(BaseTool):
                 },
                 error=stderr if not success else None
             )
-            
-        except asyncio.TimeoutError:
+
+        except TimeoutError:
             return ToolResult(
                 success=False,
                 error=f"命令执行超时 ({timeout}秒)",
@@ -226,11 +224,11 @@ class ShellTool(BaseTool):
                 error=f"命令执行失败: {str(e)}",
                 data={"command": command}
             )
-    
+
     def _check_command_safety(self, command: str) -> dict:
         """
         检查命令安全性
-        
+
         Returns:
             dict: {"safe": bool, "reason": str}
         """
@@ -241,28 +239,28 @@ class ShellTool(BaseTool):
                     "safe": False,
                     "reason": f"命令包含危险模式: {pattern}"
                 }
-        
+
         # 2. 解析命令，提取主命令
         try:
             parts = shlex.split(command)
             if not parts:
                 return {"safe": False, "reason": "空命令"}
-            
+
             main_command = parts[0]
-            
+
             # 提取命令名（去掉路径）
             command_name = os.path.basename(main_command)
-            
+
         except ValueError as e:
             return {"safe": False, "reason": f"命令解析失败: {str(e)}"}
-        
+
         # 3. 检查是否在白名单中
         if command_name not in self.WHITELIST_COMMANDS:
             return {
                 "safe": False,
                 "reason": f"命令 '{command_name}' 不在白名单中。允许的命令: {', '.join(sorted(self.WHITELIST_COMMANDS))}"
             }
-        
+
         # 4. 特殊命令的额外检查
         if command_name == "git":
             # git命令允许大部分操作，但禁止push等写操作
@@ -271,7 +269,7 @@ class ShellTool(BaseTool):
                     "safe": False,
                     "reason": "不允许git push等写操作"
                 }
-        
+
         if command_name == "find":
             # find命令禁止 -exec 和 -delete
             if "-exec" in parts or "-delete" in parts:
@@ -279,17 +277,17 @@ class ShellTool(BaseTool):
                     "safe": False,
                     "reason": "find命令不允许使用 -exec 或 -delete"
                 }
-        
+
         return {"safe": True, "reason": ""}
-    
+
     async def _run_command(self, command: str, timeout: int) -> dict:
         """
         异步执行命令
-        
+
         Args:
             command: 命令字符串
             timeout: 超时时间
-            
+
         Returns:
             dict: {"stdout": str, "stderr": str, "exit_code": int}
         """
@@ -300,24 +298,24 @@ class ShellTool(BaseTool):
             stderr=asyncio.subprocess.PIPE,
             cwd=self.workspace_path,
         )
-        
+
         # 等待执行完成（带超时）
         try:
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
                 process.communicate(),
                 timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # 超时，杀死进程
             process.kill()
             await process.wait()
             raise
-        
+
         # 解码输出
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
         exit_code = process.returncode
-        
+
         return {
             "stdout": stdout,
             "stderr": stderr,

@@ -5,7 +5,7 @@ BasicAgent 集成测试
 """
 import asyncio
 import tempfile
-from pathlib import Path
+
 
 # Mock imports (since we don't have DB/LLM setup)
 class MockLLM:
@@ -25,47 +25,42 @@ async def test_basic_agent():
     print("=" * 60)
     print("BasicAgent 集成测试")
     print("=" * 60)
-    
-    from app.agent import (
-        AgentContext,
-        WorkingMemory,
-        BasicAgent,
-        create_working_memory
-    )
+
+    from app.agent import AgentContext, BasicAgent, create_working_memory
     from app.agent.tools import ToolRegistry
-    
+
     # 创建临时工作目录
     with tempfile.TemporaryDirectory() as tmpdir:
         workspace_path = tmpdir
         session_id = "test_session_basic_agent"
-        
-        print(f"\n1. 初始化组件")
+
+        print("\n1. 初始化组件")
         print(f"   Workspace: {workspace_path}")
-        
+
         # 创建 WorkingMemory
         memory = await create_working_memory(
             workspace_path=workspace_path,
             session_id=session_id,
             initial_task="Test BasicAgent functionality"
         )
-        print(f"   ✅ WorkingMemory 创建")
-        
+        print("   ✅ WorkingMemory 创建")
+
         # 创建 AgentContext
         context = AgentContext(
             session_id=session_id,
             user_id="test_user",
             workspace_id="test_workspace"
         )
-        print(f"   ✅ AgentContext 创建")
-        
+        print("   ✅ AgentContext 创建")
+
         # 创建 ToolRegistry (空)
         tools = ToolRegistry()
-        print(f"   ✅ ToolRegistry 创建")
-        
+        print("   ✅ ToolRegistry 创建")
+
         # 创建 MockLLM
         llm = MockLLM()
-        print(f"   ✅ MockLLM 创建")
-        
+        print("   ✅ MockLLM 创建")
+
         # 创建 BasicAgent
         agent = BasicAgent(
             context=context,
@@ -76,65 +71,65 @@ async def test_basic_agent():
             max_iterations=5
         )
         print(f"   ✅ BasicAgent 创建: {agent}")
-        
+
         # 运行 Agent
-        print(f"\n2. 运行 Agent")
+        print("\n2. 运行 Agent")
         user_input = "Hello, BasicAgent! How are you?"
         print(f"   User Input: {user_input}")
-        
+
         event_count = 0
         event_types = []
-        
+
         try:
             async for event in agent.run(user_input):
                 event_count += 1
                 event_types.append(event.type.value)
-                
+
                 print(f"\n   [{event_count}] Event: {event.type.value}")
-                
+
                 if event.type.value == 'thinking':
                     content = event.data.get('content', '')
                     print(f"       Thinking: {content.strip()}")
-                
+
                 elif event.type.value == 'content':
                     content = event.data.get('content', '')
                     print(f"       Content: {content}")
-                
+
                 elif event.type.value == 'done':
                     print(f"       Status: {event.data.get('status')}")
                     print(f"       Iterations: {event.data.get('iterations')}")
                     print(f"       Tokens: {event.data.get('tokens_used')}")
-                
+
                 elif event.type.value == 'error':
                     print(f"       Error: {event.data}")
-            
-            print(f"\n3. Agent 执行完成")
+
+            print("\n3. Agent 执行完成")
             print(f"   总事件数: {event_count}")
             print(f"   事件类型: {', '.join(set(event_types))}")
-            
+
         except Exception as e:
             print(f"\n❌ Agent 执行失败: {e}")
             import traceback
             traceback.print_exc()
             return False
-        
+
         # 检查 Working Memory 文件
-        print(f"\n4. 检查 Working Memory 文件")
-        
+        print("\n4. 检查 Working Memory 文件")
+
         stats = memory.get_statistics()
-        print(f"   统计信息:")
+        print("   统计信息:")
         print(f"     - Iterations: {stats['action_counter']}")
         print(f"     - Errors: {stats['error_tracker']}")
-        
+
         # 读取 progress.md
         progress = await memory.read_progress()
-        print(f"\n   progress.md (最后 300 字符):")
+        print("\n   progress.md (最后 300 字符):")
         print(f"   {progress[-300:]}")
-        
-        print(f"\n" + "=" * 60)
-        print(f"✅ 测试通过！")
+
+        print("\n" + "=" * 60)
+        print("✅ 测试通过！")
         print("=" * 60)
-        
+
         return True
 
 

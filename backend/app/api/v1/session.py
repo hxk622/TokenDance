@@ -1,7 +1,6 @@
 """
 Session API endpoints.
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,17 +9,17 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_permission_service
 from app.models.session import SessionStatus
 from app.models.user import User
-from app.services.session_service import SessionService
-from app.services.permission_service import PermissionService, PermissionError
+from app.schemas.artifact import ArtifactList
+from app.schemas.message import MessageList
 from app.schemas.session import (
     SessionCreate,
-    SessionUpdate,
-    SessionResponse,
     SessionDetail,
     SessionList,
+    SessionResponse,
+    SessionUpdate,
 )
-from app.schemas.message import MessageList
-from app.schemas.artifact import ArtifactList
+from app.services.permission_service import PermissionError, PermissionService
+from app.services.session_service import SessionService
 
 router = APIRouter()
 
@@ -45,8 +44,8 @@ async def create_session(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     return await service.create_session(data)
 
 
@@ -55,7 +54,7 @@ async def list_sessions(
     workspace_id: str = Query(..., description="Workspace ID"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    status: Optional[SessionStatus] = Query(None, description="Filter by status"),
+    status: SessionStatus | None = Query(None, description="Filter by status"),
     current_user: User = Depends(get_current_user),
     permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
@@ -68,8 +67,8 @@ async def list_sessions(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     return await service.list_sessions(
         workspace_id=workspace_id,
         limit=limit,
@@ -94,16 +93,16 @@ async def get_session(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     session = await service.get_session(session_id, include_details=include_details)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     return session
 
 
@@ -123,16 +122,16 @@ async def update_session(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     session = await service.update_session(session_id, data)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     return session
 
 
@@ -151,10 +150,10 @@ async def delete_session(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     success = await service.delete_session(session_id)
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -177,23 +176,23 @@ async def complete_session(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     session = await service.complete_session(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     return session
 
 
 @router.get("/{session_id}/messages", response_model=MessageList)
 async def get_session_messages(
     session_id: str,
-    limit: Optional[int] = Query(None, ge=1, le=1000, description="Max messages to return"),
+    limit: int | None = Query(None, ge=1, le=1000, description="Max messages to return"),
     current_user: User = Depends(get_current_user),
     permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
@@ -206,8 +205,8 @@ async def get_session_messages(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     # Verify session exists
     session = await service.get_session(session_id)
     if not session:
@@ -215,7 +214,7 @@ async def get_session_messages(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     return await service.get_session_messages(session_id, limit=limit)
 
 
@@ -234,8 +233,8 @@ async def get_session_artifacts(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
-        )
-    
+        ) from e
+
     # Verify session exists
     session = await service.get_session(session_id)
     if not session:
@@ -243,5 +242,5 @@ async def get_session_artifacts(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     return await service.get_session_artifacts(session_id)

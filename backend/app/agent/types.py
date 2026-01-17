@@ -1,10 +1,11 @@
 """
 Agent Engine 核心类型定义
 """
-from enum import Enum
-from typing import Any, Dict, List, Optional
-from datetime import datetime
 from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -40,23 +41,23 @@ class ToolSchema(BaseModel):
     """工具 Schema - 给 LLM 使用"""
     name: str
     description: str
-    parameters: Dict[str, Any]  # JSON Schema format
+    parameters: dict[str, Any]  # JSON Schema format
 
 
 class SSEEvent(BaseModel):
     """SSE 事件"""
     type: SSEEventType
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 
 @dataclass
 class AgentAction:
     """Agent 决策结果"""
     type: ActionType
-    tool_name: Optional[str] = None
-    tool_args: Optional[Dict[str, Any]] = None
-    answer: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
+    tool_name: str | None = None
+    tool_args: dict[str, Any] | None = None
+    answer: str | None = None
+    data: dict[str, Any] | None = None
 
 
 @dataclass
@@ -72,7 +73,7 @@ class TodoItem:
 @dataclass
 class Plan:
     """执行计划"""
-    todos: List[TodoItem]
+    todos: list[TodoItem]
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -82,9 +83,9 @@ class ToolCallRecord:
     """工具调用记录"""
     id: str
     name: str
-    args: Dict[str, Any]
+    args: dict[str, Any]
     status: ToolStatus
-    result: Optional[str] = None
-    error: Optional[str] = None
+    result: str | None = None
+    error: str | None = None
     started_at: datetime = field(default_factory=datetime.now)
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None

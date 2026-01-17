@@ -5,17 +5,17 @@ Revises: 1e4feadf5716
 Create Date: 2026-01-12 08:00:00.000000
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '2a5b8c9d1e3f'
-down_revision: Union[str, Sequence[str], None] = '1e4feadf5716'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '1e4feadf5716'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -117,7 +117,7 @@ def downgrade() -> None:
     op.drop_table('messages')
     op.drop_index(op.f('ix_sessions_workspace_id'), table_name='sessions')
     op.drop_table('sessions')
-    
+
     # Drop enums
     op.execute('DROP TYPE IF EXISTS sessionstatus')
     op.execute('DROP TYPE IF EXISTS messagerole')

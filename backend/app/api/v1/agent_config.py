@@ -1,4 +1,4 @@
-from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,16 +7,16 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.repositories.agent_config_repository import (
     AgentConfigRepository,
+    LLMModelRepository,
     LLMProviderRepository,
-    LLMModelRepository
 )
 from app.schemas.agent_config import (
     AgentConfigCreate,
-    AgentConfigUpdate,
-    AgentConfigResponse,
     AgentConfigListResponse,
+    AgentConfigResponse,
+    AgentConfigUpdate,
+    LLMModelResponse,
     LLMProviderResponse,
-    LLMModelResponse
 )
 from app.services.permission_service import PermissionService
 
@@ -31,25 +31,25 @@ async def create_agent_config(
 ):
     """Create a new agent configuration"""
     permission_service = PermissionService(db)
-    
+
     # Check workspace access
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=config_data.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     repo = AgentConfigRepository(db)
     config = await repo.create(
         created_by=current_user.id,
         **config_data.model_dump()
     )
-    
+
     return config
 
 
@@ -63,26 +63,26 @@ async def list_agent_configs(
 ):
     """List agent configurations for a workspace"""
     permission_service = PermissionService(db)
-    
+
     # Check workspace access
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     repo = AgentConfigRepository(db)
     items, total = await repo.get_by_workspace(
         workspace_id=workspace_id,
         limit=limit,
         offset=offset
     )
-    
+
     return AgentConfigListResponse(
         items=items,
         total=total,
@@ -100,26 +100,26 @@ async def get_agent_config(
     """Get agent configuration by ID"""
     repo = AgentConfigRepository(db)
     config = await repo.get_by_id(config_id)
-    
+
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Agent configuration not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=config.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     return config
 
 
@@ -133,33 +133,33 @@ async def update_agent_config(
     """Update agent configuration"""
     repo = AgentConfigRepository(db)
     config = await repo.get_by_id(config_id)
-    
+
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Agent configuration not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=config.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Update configuration
     updated_config = await repo.update(
         config_id,
         updated_by=current_user.id,
         **config_data.model_dump(exclude_unset=True)
     )
-    
+
     return updated_config
 
 
@@ -172,28 +172,28 @@ async def delete_agent_config(
     """Delete agent configuration"""
     repo = AgentConfigRepository(db)
     config = await repo.get_by_id(config_id)
-    
+
     if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Agent configuration not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=config.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     success = await repo.delete(config_id)
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -201,7 +201,7 @@ async def delete_agent_config(
         )
 
 
-@router.get("/providers", response_model=List[LLMProviderResponse])
+@router.get("/providers", response_model=list[LLMProviderResponse])
 async def list_llm_providers(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -221,17 +221,17 @@ async def get_llm_provider(
     """Get LLM provider by ID"""
     repo = LLMProviderRepository(db)
     provider = await repo.get_by_id(provider_id)
-    
+
     if not provider:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="LLM provider not found"
         )
-    
+
     return provider
 
 
-@router.get("/providers/{provider_id}/models", response_model=List[LLMModelResponse])
+@router.get("/providers/{provider_id}/models", response_model=list[LLMModelResponse])
 async def list_llm_models(
     provider_id: str,
     current_user: User = Depends(get_current_user),
@@ -243,7 +243,7 @@ async def list_llm_models(
     return models
 
 
-@router.get("/models", response_model=List[LLMModelResponse])
+@router.get("/models", response_model=list[LLMModelResponse])
 async def list_all_llm_models(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

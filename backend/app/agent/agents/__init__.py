@@ -10,9 +10,9 @@ Agent 实现模块
 - PlanAgent: 计划执行（待实现）
 """
 from .basic import BasicAgent, create_basic_agent
-from .research import ResearchAgent, create_research_agent
 from .deep_research import DeepResearchAgent, create_deep_research_agent
 from .ppt import PPTAgent, create_ppt_agent
+from .research import ResearchAgent, create_research_agent
 
 __all__ = [
     "BasicAgent",

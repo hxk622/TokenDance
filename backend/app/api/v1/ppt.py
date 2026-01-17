@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 PPT Generation API - PPT 生成 API 端点
 
@@ -9,37 +8,29 @@ PPT Generation API - PPT 生成 API 端点
 - GET /api/v1/ppt/templates - 获取可用模板
 - GET /api/v1/ppt/health - 健康检查
 """
-from typing import Optional, List
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field
 import logging
+import os
+import tempfile
 
-from ...services.ppt_renderer import (
-    get_ppt_renderer,
-    check_renderer_health,
-    ExportFormat,
-    PPTRenderConfig,
-    MarpTheme
-)
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+
 from ...agent.tools.builtin.ppt_ops import (
-    GeneratePPTOutlineTool,
-    FillPPTContentTool,
-    RenderPPTTool,
     ExportPPTTool,
+    GeneratePPTOutlineTool,
+    RenderPPTTool,
     get_outline,
-    store_outline
 )
-from ...agent.agents.ppt import PPTOutline, SlideContent, SlideType, PPTStyle
 from ...ppt.layered import (
+    LayeredSlideContent,
     LayeredSlideGenerator,
     LayeredSlideStyle,
-    LayeredSlideContent,
-    BackgroundStyle,
-    CompositePresets
 )
-from fastapi.responses import FileResponse
-import tempfile
-import os
+from ...services.ppt_renderer import (
+    check_renderer_health,
+    get_ppt_renderer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +42,7 @@ router = APIRouter(prefix="/ppt", tags=["PPT Generation"])
 class GenerateOutlineRequest(BaseModel):
     """生成大纲请求"""
     content: str = Field(..., description="输入内容（研究报告、文本等）")
-    title: Optional[str] = Field(None, description="演示标题")
+    title: str | None = Field(None, description="演示标题")
     slide_count: int = Field(12, ge=5, le=50, description="目标幻灯片数量")
     style: str = Field("business", description="风格：business/tech/minimal/academic/creative")
 
@@ -70,7 +61,7 @@ class OutlineResponse(BaseModel):
     style: str
     slide_count: int
     estimated_duration: str
-    slides: List[SlideInfo]
+    slides: list[SlideInfo]
 
 
 class RenderRequest(BaseModel):
@@ -82,31 +73,31 @@ class RenderRequest(BaseModel):
 class RenderResponse(BaseModel):
     """渲染响应"""
     success: bool
-    preview_url: Optional[str] = None
-    markdown: Optional[str] = None
-    file_size: Optional[int] = None
-    render_time: Optional[float] = None
-    note: Optional[str] = None
+    preview_url: str | None = None
+    markdown: str | None = None
+    file_size: int | None = None
+    render_time: float | None = None
+    note: str | None = None
 
 
 class ExportRequest(BaseModel):
     """导出请求"""
     outline_id: str = Field(..., description="大纲 ID")
     format: str = Field("pdf", description="导出格式：pdf/html/pptx")
-    filename: Optional[str] = Field(None, description="输出文件名")
+    filename: str | None = Field(None, description="输出文件名")
 
 
 class ExportResponse(BaseModel):
     """导出响应"""
     success: bool
-    download_url: Optional[str] = None
-    file_path: Optional[str] = None
-    file_size: Optional[int] = None
-    format: Optional[str] = None
-    render_time: Optional[float] = None
-    markdown: Optional[str] = None
-    note: Optional[str] = None
-    instructions: Optional[str] = None
+    download_url: str | None = None
+    file_path: str | None = None
+    file_size: int | None = None
+    format: str | None = None
+    render_time: float | None = None
+    markdown: str | None = None
+    note: str | None = None
+    instructions: str | None = None
 
 
 class TemplateInfo(BaseModel):
@@ -115,7 +106,7 @@ class TemplateInfo(BaseModel):
     name: str
     description: str
     style: str
-    tags: List[str]
+    tags: list[str]
 
 
 class HealthResponse(BaseModel):
@@ -124,7 +115,7 @@ class HealthResponse(BaseModel):
     status: str
     marp_cli: bool
     workspace: str
-    themes_available: List[str]
+    themes_available: list[str]
 
 
 # ==================== API 端点 ====================
@@ -132,15 +123,15 @@ class HealthResponse(BaseModel):
 @router.post("/outline", response_model=OutlineResponse)
 async def generate_outline(request: GenerateOutlineRequest):
     """生成 PPT 大纲
-    
+
     从输入内容（研究报告、文本等）生成结构化的 PPT 大纲。
-    
+
     **输入内容示例**:
     - Deep Research 生成的研究报告
     - Markdown 格式的文档
     - 普通文本内容
     - 要点列表
-    
+
     **返回**:
     - 大纲 ID（用于后续操作）
     - 幻灯片结构预览
@@ -154,10 +145,10 @@ async def generate_outline(request: GenerateOutlineRequest):
             slide_count=request.slide_count,
             style=request.style
         )
-        
+
         if not result.success:
             raise HTTPException(status_code=500, detail=result.error)
-        
+
         data = result.data
         return OutlineResponse(
             outline_id=data["outline_id"],
@@ -167,7 +158,7 @@ async def generate_outline(request: GenerateOutlineRequest):
             estimated_duration=data["estimated_duration"],
             slides=[SlideInfo(**s) for s in data["slides"]]
         )
-        
+
     except Exception as e:
         logger.error(f"Outline generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -176,9 +167,9 @@ async def generate_outline(request: GenerateOutlineRequest):
 @router.post("/render", response_model=RenderResponse)
 async def render_preview(request: RenderRequest):
     """渲染 PPT 预览
-    
+
     将大纲渲染为 HTML 格式，可在浏览器中预览。
-    
+
     **主题选项**:
     - `default`: Marp 默认主题
     - `gaia`: 简约风格
@@ -186,7 +177,7 @@ async def render_preview(request: RenderRequest):
     - `business`: 商务风格（自定义）
     - `tech`: 科技风格（自定义）
     - `minimal`: 极简风格（自定义）
-    
+
     **返回**:
     - 预览 URL（如果 Marp CLI 可用）
     - Markdown 源码（作为后备）
@@ -197,10 +188,10 @@ async def render_preview(request: RenderRequest):
             outline_id=request.outline_id,
             theme=request.theme
         )
-        
+
         if not result.success:
             raise HTTPException(status_code=500, detail=result.error)
-        
+
         data = result.data
         return RenderResponse(
             success=True,
@@ -210,7 +201,7 @@ async def render_preview(request: RenderRequest):
             render_time=data.get("render_time"),
             note=data.get("note")
         )
-        
+
     except Exception as e:
         logger.error(f"Render failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -219,14 +210,14 @@ async def render_preview(request: RenderRequest):
 @router.post("/export", response_model=ExportResponse)
 async def export_presentation(request: ExportRequest):
     """导出 PPT 文件
-    
+
     将演示文稿导出为可下载的文件。
-    
+
     **支持格式**:
     - `pdf`: 最适合分享和打印
     - `html`: 交互式网页演示
     - `pptx`: PowerPoint 格式（需要 python-pptx）
-    
+
     **返回**:
     - 下载 URL
     - 文件大小
@@ -239,10 +230,10 @@ async def export_presentation(request: ExportRequest):
             format=request.format,
             filename=request.filename
         )
-        
+
         if not result.success:
             raise HTTPException(status_code=500, detail=result.error)
-        
+
         data = result.data
         return ExportResponse(
             success=True,
@@ -255,7 +246,7 @@ async def export_presentation(request: ExportRequest):
             note=data.get("note"),
             instructions=data.get("instructions")
         )
-        
+
     except Exception as e:
         logger.error(f"Export failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -264,13 +255,13 @@ async def export_presentation(request: ExportRequest):
 @router.get("/outline/{outline_id}")
 async def get_outline_details(outline_id: str):
     """获取大纲详情
-    
+
     获取已生成大纲的完整信息。
     """
     outline = get_outline(outline_id)
     if not outline:
         raise HTTPException(status_code=404, detail=f"Outline not found: {outline_id}")
-    
+
     return {
         "outline_id": outline.id,
         "title": outline.title,
@@ -296,13 +287,13 @@ async def get_outline_details(outline_id: str):
 @router.get("/outline/{outline_id}/markdown")
 async def get_outline_markdown(outline_id: str):
     """获取大纲的 Markdown 源码
-    
+
     返回可直接用于 Marp 的 Markdown 内容。
     """
     outline = get_outline(outline_id)
     if not outline:
         raise HTTPException(status_code=404, detail=f"Outline not found: {outline_id}")
-    
+
     return {
         "outline_id": outline.id,
         "title": outline.title,
@@ -310,10 +301,10 @@ async def get_outline_markdown(outline_id: str):
     }
 
 
-@router.get("/templates", response_model=List[TemplateInfo])
+@router.get("/templates", response_model=list[TemplateInfo])
 async def list_templates():
     """获取可用模板列表
-    
+
     返回所有可用的 PPT 模板。
     """
     templates = [
@@ -359,7 +350,7 @@ async def list_templates():
 @router.get("/themes")
 async def list_themes():
     """获取可用主题列表
-    
+
     返回所有可用的视觉主题。
     """
     return {
@@ -379,14 +370,14 @@ async def list_themes():
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """PPT 服务健康检查
-    
+
     检查 PPT 渲染服务的状态：
     - Marp CLI 是否可用
     - 工作目录是否正常
     - 可用主题列表
     """
     health = await check_renderer_health()
-    
+
     return HealthResponse(
         service=health["service"],
         status=health["status"],
@@ -399,17 +390,17 @@ async def health_check():
 @router.post("/cleanup")
 async def cleanup_old_files(background_tasks: BackgroundTasks, max_age_hours: int = 24):
     """清理旧的 PPT 文件
-    
+
     删除超过指定时间的临时文件。
-    
+
     **参数**:
     - max_age_hours: 最大保留时间（小时），默认 24
     """
     renderer = get_ppt_renderer()
-    
+
     # 在后台执行清理
     background_tasks.add_task(renderer.cleanup_old_files, max_age_hours)
-    
+
     return {
         "status": "cleanup_scheduled",
         "max_age_hours": max_age_hours
@@ -432,8 +423,8 @@ class LayeredSlideRequest(BaseModel):
 
 class LayeredPresentationRequest(BaseModel):
     """分层演示文稿请求"""
-    slides: List[LayeredSlideRequest] = Field(..., description="幻灯片列表")
-    filename: Optional[str] = Field(None, description="输出文件名")
+    slides: list[LayeredSlideRequest] = Field(..., description="幻灯片列表")
+    filename: str | None = Field(None, description="输出文件名")
 
 
 class LayeredStyleInfo(BaseModel):
@@ -441,13 +432,13 @@ class LayeredStyleInfo(BaseModel):
     id: str
     name: str
     description: str
-    preview_url: Optional[str] = None
+    preview_url: str | None = None
 
 
-@router.get("/layered/styles", response_model=List[LayeredStyleInfo])
+@router.get("/layered/styles", response_model=list[LayeredStyleInfo])
 async def list_layered_styles():
     """获取可用的分层样式列表
-    
+
     返回所有可用的程序化背景样式。
     """
     return [
@@ -482,22 +473,22 @@ async def list_layered_styles():
 @router.post("/layered/generate")
 async def generate_layered_presentation(request: LayeredPresentationRequest):
     """生成分层 PPT
-    
+
     使用程序化背景生成高视觉质量的 PPTX 文件。
     背景为图像层，文字保持可编辑。
-    
+
     **样式选项**:
     - `hero_title`: Hero 标题页（渐变 + 装饰）
     - `section_header`: 章节标题（径向渐变 + 强调条）
     - `visual_impact`: 视觉冲击（Blob + 浮动形状）
     - `minimal_clean`: 极简风格（浅色网格）
     - `tech_modern`: 科技现代（六边形 + 方括号）
-    
+
     **返回**: PPTX 文件下载
     """
     try:
         generator = LayeredSlideGenerator()
-        
+
         # 转换请求为 LayeredSlideContent
         contents = []
         for slide in request.slides:
@@ -505,7 +496,7 @@ async def generate_layered_presentation(request: LayeredPresentationRequest):
                 style = LayeredSlideStyle(slide.style)
             except ValueError:
                 style = LayeredSlideStyle.HERO_TITLE
-            
+
             contents.append(LayeredSlideContent(
                 style=style,
                 title=slide.title,
@@ -516,21 +507,21 @@ async def generate_layered_presentation(request: LayeredPresentationRequest):
                 title_color=slide.title_color,
                 subtitle_color=slide.subtitle_color
             ))
-        
+
         # 生成 PPTX
         filename = request.filename or "presentation.pptx"
         if not filename.endswith(".pptx"):
             filename += ".pptx"
-        
+
         output_path = os.path.join(tempfile.gettempdir(), filename)
         pptx_path = generator.generate_slides(contents, output_path)
-        
+
         return FileResponse(
             path=pptx_path,
             filename=filename,
             media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
-        
+
     except Exception as e:
         logger.error(f"Layered PPT generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -539,19 +530,19 @@ async def generate_layered_presentation(request: LayeredPresentationRequest):
 @router.post("/layered/preview")
 async def preview_layered_slide(request: LayeredSlideRequest):
     """预览单个分层幻灯片背景
-    
+
     生成并返回背景图像的 PNG 预览。
-    
+
     **返回**: PNG 图像文件
     """
     try:
         generator = LayeredSlideGenerator()
-        
+
         try:
             style = LayeredSlideStyle(request.style)
         except ValueError:
             style = LayeredSlideStyle.HERO_TITLE
-        
+
         # 生成背景图像
         output_path = os.path.join(tempfile.gettempdir(), f"preview_{style.value}.png")
         generator.generate_background_image(
@@ -560,13 +551,13 @@ async def preview_layered_slide(request: LayeredSlideRequest):
             base_color=request.base_color,
             output_path=output_path
         )
-        
+
         return FileResponse(
             path=output_path,
             filename=f"{style.value}_preview.png",
             media_type="image/png"
         )
-        
+
     except Exception as e:
         logger.error(f"Preview generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -575,7 +566,7 @@ async def preview_layered_slide(request: LayeredSlideRequest):
 @router.get("/layered/backgrounds")
 async def list_background_styles():
     """获取所有可用的背景样式
-    
+
     返回程序化背景生成器支持的所有样式。
     """
     return {

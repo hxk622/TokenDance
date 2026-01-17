@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 Web Search 工具
 
 使用 DuckDuckGo 进行网页搜索（免费、无需 API Key）
 """
-import logging
-from typing import Any, Dict, List, Optional
 import asyncio
+import logging
+from typing import Any
 
 try:
     from duckduckgo_search import DDGS
@@ -15,7 +14,7 @@ except ImportError:
     DDGS_AVAILABLE = False
 
 from ..base import BaseTool
-from ..risk import RiskLevel, OperationCategory
+from ..risk import OperationCategory, RiskLevel
 
 logger = logging.getLogger(__name__)
 
@@ -72,18 +71,18 @@ class WebSearchTool(BaseTool):
             },
             requires_confirmation=False  # 搜索不需要确认
         )
-        
+
         if not DDGS_AVAILABLE:
             logger.warning("duckduckgo-search not installed. Web search will not work.")
-    
-    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
         """执行网页搜索
-        
+
         Args:
             query: 搜索关键词
             max_results: 最大结果数（默认 5）
             region: 地区代码（默认 'wt-wt' 全球）
-            
+
         Returns:
             Dict: 搜索结果
                 - success: bool
@@ -100,20 +99,20 @@ class WebSearchTool(BaseTool):
                 "error": "duckduckgo-search not installed. Install with: pip install duckduckgo-search",
                 "results": []
             }
-        
+
         query = kwargs.get("query", "")
         max_results = kwargs.get("max_results", 5)
         region = kwargs.get("region", "wt-wt")
-        
+
         if not query:
             return {
                 "success": False,
                 "error": "Query parameter is required",
                 "results": []
             }
-        
+
         logger.info(f"Searching web: '{query}' (max_results={max_results}, region={region})")
-        
+
         try:
             # DuckDuckGo 搜索（同步调用，需要在线程池中运行）
             loop = asyncio.get_event_loop()
@@ -124,16 +123,16 @@ class WebSearchTool(BaseTool):
                 max_results,
                 region
             )
-            
+
             logger.info(f"Found {len(results)} results for query: '{query}'")
-            
+
             return {
                 "success": True,
                 "query": query,
                 "count": len(results),
                 "results": results
             }
-        
+
         except Exception as e:
             logger.error(f"Web search failed: {e}", exc_info=True)
             return {
@@ -142,15 +141,15 @@ class WebSearchTool(BaseTool):
                 "query": query,
                 "results": []
             }
-    
+
     def _search_sync(self, query: str, max_results: int, region: str) -> list:
         """同步搜索方法（在线程池中调用）
-        
+
         Args:
             query: 搜索关键词
             max_results: 最大结果数
             region: 地区代码
-            
+
         Returns:
             List[Dict]: 搜索结果列表
         """
@@ -163,7 +162,7 @@ class WebSearchTool(BaseTool):
                     safesearch='moderate',
                     max_results=max_results
                 )
-                
+
                 # 格式化结果
                 formatted_results = []
                 for result in raw_results:
@@ -172,52 +171,52 @@ class WebSearchTool(BaseTool):
                         "link": result.get("href", ""),
                         "snippet": result.get("body", "")
                     })
-                
+
                 return formatted_results
-        
+
         except Exception as e:
             logger.error(f"DuckDuckGo search error: {e}")
             raise
-    
-    def format_result(self, result: Dict[str, Any]) -> str:
+
+    def format_result(self, result: dict[str, Any]) -> str:
         """格式化搜索结果为可读文本
-        
+
         Args:
             result: execute() 返回的结果
-            
+
         Returns:
             str: 格式化的文本
         """
         if not result.get("success"):
             error = result.get("error", "Unknown error")
             return f"❌ Search failed: {error}"
-        
+
         results = result.get("results", [])
         query = result.get("query", "")
         count = result.get("count", 0)
-        
+
         if count == 0:
             return f"🔍 No results found for: '{query}'"
-        
+
         # 格式化每个结果
         formatted = f"🔍 Found {count} results for: '{query}'\n\n"
-        
+
         for i, item in enumerate(results, 1):
             title = item.get("title", "No title")
             link = item.get("link", "")
             snippet = item.get("snippet", "No snippet")
-            
+
             formatted += f"{i}. **{title}**\n"
             formatted += f"   {link}\n"
             formatted += f"   {snippet[:200]}{'...' if len(snippet) > 200 else ''}\n\n"
-        
+
         return formatted.strip()
 
 
 # 便捷函数
 def create_web_search_tool() -> WebSearchTool:
     """创建 web_search 工具实例
-    
+
     Returns:
         WebSearchTool: 搜索工具实例
     """

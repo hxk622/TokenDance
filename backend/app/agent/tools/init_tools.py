@@ -1,18 +1,17 @@
 """Initialize and register all built-in tools"""
-from typing import List
 import logging
 
-from app.agent.tools.registry import ToolRegistry
 from app.agent.tools.base import BaseTool
+from app.agent.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
 
-def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
+def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
     """Register all built-in tools to registry"""
-    
+
     tools = []
-    
+
     # Import and register built-in tools
     try:
         from app.agent.tools.builtin.web_search import WebSearchTool
@@ -22,7 +21,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {web_search.name}")
     except Exception as e:
         logger.error(f"Failed to register web_search tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.read_url import ReadUrlTool
         read_url = ReadUrlTool()
@@ -31,7 +30,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {read_url.name}")
     except Exception as e:
         logger.error(f"Failed to register read_url tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.shell import ShellTool
         shell = ShellTool()
@@ -40,7 +39,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {shell.name}")
     except Exception as e:
         logger.error(f"Failed to register shell tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.file_ops import FileOpsTool
         from app.filesystem import AgentFileSystem
@@ -50,7 +49,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {file_ops.name}")
     except Exception as e:
         logger.error(f"Failed to register file_ops tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.create_document import CreateDocumentTool
         create_doc = CreateDocumentTool()
@@ -59,7 +58,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {create_doc.name}")
     except Exception as e:
         logger.error(f"Failed to register create_document tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.image_generation import ImageGenerationTool
         image_gen = ImageGenerationTool()
@@ -68,7 +67,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {image_gen.name}")
     except Exception as e:
         logger.error(f"Failed to register image_generation tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.ppt_generator import PPTGeneratorTool
         ppt_gen = PPTGeneratorTool()
@@ -77,7 +76,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {ppt_gen.name}")
     except Exception as e:
         logger.error(f"Failed to register ppt_generator tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.report_generator import ReportGeneratorTool
         report_gen = ReportGeneratorTool()
@@ -86,7 +85,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {report_gen.name}")
     except Exception as e:
         logger.error(f"Failed to register report_generator tool: {e}")
-    
+
     try:
         from app.agent.tools.builtin.exit_tool import ExitTool
         exit_tool = ExitTool()
@@ -95,7 +94,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {exit_tool.name}")
     except Exception as e:
         logger.error(f"Failed to register exit tool: {e}")
-    
+
     # FileConverterTool - Document to Markdown conversion (MarkItDown)
     try:
         from app.agent.tools.file_converter import FileConverterTool
@@ -105,7 +104,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {file_converter.name}")
     except Exception as e:
         logger.error(f"Failed to register file_converter tool: {e}")
-    
+
     # WeChat Article Tool - 微信公众号文章提取
     try:
         from app.agent.tools.builtin.wechat_article import WeChatArticleTool
@@ -115,7 +114,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
         logger.info(f"Registered tool: {wechat_article.name}")
     except Exception as e:
         logger.error(f"Failed to register wechat_article tool: {e}")
-    
+
     # Financial Data Tools - 金融数据工具集
     try:
         from app.agent.tools.builtin.financial import get_financial_tools
@@ -126,7 +125,7 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
             logger.info(f"Registered financial tool: {tool.name}")
     except Exception as e:
         logger.error(f"Failed to register financial tools: {e}")
-    
+
     logger.info(f"Total registered tools: {len(tools)}")
     return tools
 

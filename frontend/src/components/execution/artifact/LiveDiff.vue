@@ -22,45 +22,8 @@ const diffEditor = shallowRef<monaco.editor.IStandaloneDiffEditor | null>(null)
 const currentDiff = ref<FileDiff>({
   path: 'src/components/Button.vue',
   action: 'modified',
-  originalContent: `<script setup lang="ts">
-import { computed } from 'vue'
-
-const props = defineProps<{
-  label: string
-  disabled?: boolean
-}>()
-
-const buttonClass = computed(() => ({
-  'btn-disabled': props.disabled
-}))
-</script>
-
-<template>
-  <button :class="buttonClass">
-    {{ label }}
-  </button>
-</template>`,
-  modifiedContent: `<script setup lang="ts">
-import { computed } from 'vue'
-
-const props = defineProps<{
-  label: string
-  disabled?: boolean
-  variant?: 'primary' | 'secondary'
-}>()
-
-const buttonClass = computed(() => ({
-  'btn-disabled': props.disabled,
-  'btn-primary': props.variant === 'primary',
-  'btn-secondary': props.variant === 'secondary'
-}))
-</script>
-
-<template>
-  <button :class="buttonClass">
-    {{ label }}
-  </button>
-</template>`,
+  originalContent: '<' + 'script setup lang="ts">\nimport { computed } from \'vue\'\n\nconst props = defineProps<{\n  label: string\n  disabled?: boolean\n}>()\n\nconst buttonClass = computed(() => ({\n  \'btn-disabled\': props.disabled\n}))\n<' + '/script>\n\n<' + 'template>\n  <button :class="buttonClass">\n    {{ label }}\n  </button>\n<' + '/template>',
+  modifiedContent: '<' + 'script setup lang="ts">\nimport { computed } from \'vue\'\n\nconst props = defineProps<{\n  label: string\n  disabled?: boolean\n  variant?: \'primary\' | \'secondary\'\n}>()\n\nconst buttonClass = computed(() => ({\n  \'btn-disabled\': props.disabled,\n  \'btn-primary\': props.variant === \'primary\',\n  \'btn-secondary\': props.variant === \'secondary\'\n}))\n<' + '/script>\n\n<' + 'template>\n  <button :class="buttonClass">\n    {{ label }}\n  </button>\n<' + '/template>',
 })
 
 // Fallback diff lines (when Monaco is disabled or fails to load)
@@ -149,7 +112,7 @@ function updateDiffModel() {
     scss: 'scss',
     html: 'html',
   }
-  const language = languageMap[ext] || 'plaintext'
+  const language: string = languageMap[ext] || 'plaintext'
   
   const originalModel = monaco.editor.createModel(currentDiff.value.originalContent, language)
   const modifiedModel = monaco.editor.createModel(currentDiff.value.modifiedContent, language)
@@ -274,7 +237,7 @@ defineExpose({
         <div class="code-view">
           <div
             v-for="line in diffLines"
-            :key="`original-${line.lineNumber}`"
+            :key="'original-' + line.lineNumber"
             :class="['code-line', line.status]"
           >
             <span class="line-number">{{ line.lineNumber }}</span>
@@ -290,7 +253,7 @@ defineExpose({
         <div class="code-view">
           <div
             v-for="line in diffLines"
-            :key="`modified-${line.lineNumber}`"
+            :key="'modified-' + line.lineNumber"
             :class="['code-line', line.status]"
           >
             <span class="line-number">{{ line.lineNumber }}</span>

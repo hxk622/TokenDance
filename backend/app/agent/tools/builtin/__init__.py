@@ -15,33 +15,29 @@ Built-in Tools - 内置工具集
 - report_generator: 研究报告生成
 - ppt_generator: PPT 演示文稿生成
 """
-from .exit_tool import (
-    ExitTool,
-    ExitReason,
-    ExitContext,
-    create_success_exit,
-    create_failure_exit,
-    create_need_user_exit,
-    create_fatal_exit,
-)
-from .web_search import WebSearchTool, create_web_search_tool
-from .read_url import ReadUrlTool, create_read_url_tool
-from .shell import ShellTool
-from .file_ops import FileOpsTool, create_file_ops_tool
-from .report_generator import ReportGeneratorTool, create_report_generator_tool
 from .browser_ops import (
-    BrowserOpenTool,
     BrowserClickTool,
-    BrowserFillTool,
-    BrowserSnapshotTool,
-    BrowserScreenshotTool,
     BrowserCloseTool,
-    create_browser_tools,
+    BrowserFillTool,
+    BrowserOpenTool,
+    BrowserScreenshotTool,
+    BrowserSnapshotTool,
     cleanup_browser_session,
+    create_browser_tools,
 )
+from .exit_tool import (
+    ExitContext,
+    ExitReason,
+    ExitTool,
+    create_failure_exit,
+    create_fatal_exit,
+    create_need_user_exit,
+    create_success_exit,
+)
+from .file_ops import FileOpsTool, create_file_ops_tool
 from .image_generation import (
-    GenerateImageTool,
     EditImageTool,
+    GenerateImageTool,
     create_image_generation_tools,
 )
 from .ppt_generator import (
@@ -49,6 +45,10 @@ from .ppt_generator import (
     QuickPPTTool,
     create_ppt_tools,
 )
+from .read_url import ReadUrlTool, create_read_url_tool
+from .report_generator import ReportGeneratorTool, create_report_generator_tool
+from .shell import ShellTool
+from .web_search import WebSearchTool, create_web_search_tool
 from .wechat_article import WeChatArticleTool, wechat_article_tool
 
 __all__ = [

@@ -1,16 +1,14 @@
 """
 Session repository - database access layer for sessions.
 """
-from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.session import Session, SessionStatus
 from app.models.message import Message
-from app.models.artifact import Artifact
+from app.models.session import Session, SessionStatus
 
 
 class SessionRepository:
@@ -23,7 +21,7 @@ class SessionRepository:
         self,
         workspace_id: str,
         title: str = "New Chat",
-        skill_id: Optional[str] = None,
+        skill_id: str | None = None,
     ) -> Session:
         """Create a new session."""
         session = Session(
@@ -43,7 +41,7 @@ class SessionRepository:
         session_id: str,
         include_messages: bool = False,
         include_artifacts: bool = False,
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Get session by ID with optional eager loading."""
         query = select(Session).where(Session.id == session_id)
 
@@ -61,7 +59,7 @@ class SessionRepository:
         workspace_id: str,
         limit: int = 20,
         offset: int = 0,
-        status: Optional[SessionStatus] = None,
+        status: SessionStatus | None = None,
     ) -> tuple[list[Session], int]:
         """
         Get sessions by workspace with pagination.
@@ -94,7 +92,7 @@ class SessionRepository:
         self,
         session_id: str,
         **updates,
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Update session fields."""
         session = await self.get_by_id(session_id)
         if not session:
@@ -112,7 +110,7 @@ class SessionRepository:
         self,
         session_id: str,
         status: SessionStatus,
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Update session status."""
         return await self.update(session_id, status=status)
 
@@ -120,7 +118,7 @@ class SessionRepository:
         self,
         session_id: str,
         todo_list: list[dict],
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Update session TODO list (for Plan Recitation)."""
         return await self.update(session_id, todo_list=todo_list)
 
@@ -128,7 +126,7 @@ class SessionRepository:
         self,
         session_id: str,
         tokens: int,
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Add tokens to session total."""
         session = await self.get_by_id(session_id)
         if not session:

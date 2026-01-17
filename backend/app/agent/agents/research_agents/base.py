@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Research Agent 基类和协议
 
@@ -10,13 +9,13 @@ Research Agent 基类和协议
 """
 
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Callable, Awaitable
-from enum import Enum
-from datetime import datetime
 import uuid
-
+from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class TaskPriority(Enum):
 class AgentTask:
     """
     Agent 任务
-    
+
     Attributes:
         id: 任务唯一标识
         type: 任务类型
@@ -66,15 +65,15 @@ class AgentTask:
     """
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     type: str = ""
-    input_data: Dict[str, Any] = field(default_factory=dict)
-    context: Dict[str, Any] = field(default_factory=dict)
+    input_data: dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
     priority: TaskPriority = TaskPriority.NORMAL
     timeout: float = 60.0
     created_at: datetime = field(default_factory=datetime.now)
-    parent_task_id: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    parent_task_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": self.type,
@@ -92,7 +91,7 @@ class AgentTask:
 class AgentResult:
     """
     Agent 执行结果
-    
+
     Attributes:
         task_id: 对应的任务 ID
         status: 执行状态
@@ -105,18 +104,18 @@ class AgentResult:
     """
     task_id: str
     status: TaskStatus
-    output_data: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    output_data: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
     execution_time: float = 0.0
-    agent_role: Optional[AgentRole] = None
-    next_actions: List[str] = field(default_factory=list)
+    agent_role: AgentRole | None = None
+    next_actions: list[str] = field(default_factory=list)
     confidence: float = 1.0
-    
+
     @property
     def is_success(self) -> bool:
         return self.status == TaskStatus.COMPLETED
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "task_id": self.task_id,
             "status": self.status.value,
@@ -133,18 +132,18 @@ class AgentResult:
 class HandoffMessage:
     """
     Agent 间通信消息
-    
+
     用于 Agent 之间传递任务和结果
     """
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     from_agent: AgentRole = AgentRole.ORCHESTRATOR
     to_agent: AgentRole = AgentRole.SEARCHER
     message_type: str = "task"  # task, result, query, notification
-    payload: Dict[str, Any] = field(default_factory=dict)
+    payload: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.now)
-    correlation_id: Optional[str] = None  # 关联 ID (用于追踪对话)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    correlation_id: str | None = None  # 关联 ID (用于追踪对话)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "from_agent": self.from_agent.value,
@@ -159,20 +158,20 @@ class HandoffMessage:
 class BaseResearchAgent(ABC):
     """
     Research Agent 基类
-    
+
     所有专业化 Agent 都继承此类
     """
-    
+
     def __init__(
         self,
         role: AgentRole,
         llm_client: Any = None,
         model: str = "gpt-4o-mini",
-        name: Optional[str] = None
+        name: str | None = None
     ):
         """
         初始化 Agent
-        
+
         Args:
             role: Agent 角色
             llm_client: LLM 客户端
@@ -183,59 +182,59 @@ class BaseResearchAgent(ABC):
         self.llm_client = llm_client
         self.model = model
         self.name = name or f"{role.value}_agent"
-        
+
         # 状态
         self._is_running = False
-        self._current_task: Optional[AgentTask] = None
-        
+        self._current_task: AgentTask | None = None
+
         # 消息处理器
-        self._message_handlers: Dict[str, Callable] = {}
-        
+        self._message_handlers: dict[str, Callable] = {}
+
         # 能力描述 (用于 Orchestrator 路由)
-        self._capabilities: List[str] = []
-        
+        self._capabilities: list[str] = []
+
         logger.info(f"Initialized {self.name}")
-    
+
     @property
-    def capabilities(self) -> List[str]:
+    def capabilities(self) -> list[str]:
         """Agent 能力列表"""
         return self._capabilities
-    
+
     @property
     def is_busy(self) -> bool:
         """是否正在执行任务"""
         return self._is_running
-    
+
     # ==================== 抽象方法 ====================
-    
+
     @abstractmethod
     async def execute(self, task: AgentTask) -> AgentResult:
         """
         执行任务 (子类必须实现)
-        
+
         Args:
             task: 要执行的任务
-            
+
         Returns:
             执行结果
         """
         pass
-    
+
     @abstractmethod
     def can_handle(self, task: AgentTask) -> bool:
         """
         判断是否能处理某任务 (子类必须实现)
-        
+
         Args:
             task: 待判断的任务
-            
+
         Returns:
             是否能处理
         """
         pass
-    
+
     # ==================== 公共方法 ====================
-    
+
     async def run(self, task: AgentTask) -> AgentResult:
         """
         运行任务 (带状态管理和错误处理)
@@ -243,7 +242,7 @@ class BaseResearchAgent(ABC):
         self._is_running = True
         self._current_task = task
         start_time = datetime.now()
-        
+
         try:
             logger.info(f"{self.name} starting task {task.id}")
             result = await self.execute(task)
@@ -251,7 +250,7 @@ class BaseResearchAgent(ABC):
             result.agent_role = self.role
             logger.info(f"{self.name} completed task {task.id} in {result.execution_time:.2f}s")
             return result
-            
+
         except Exception as e:
             logger.error(f"{self.name} failed task {task.id}: {e}")
             return AgentResult(
@@ -261,31 +260,31 @@ class BaseResearchAgent(ABC):
                 execution_time=(datetime.now() - start_time).total_seconds(),
                 agent_role=self.role,
             )
-            
+
         finally:
             self._is_running = False
             self._current_task = None
-    
-    async def handle_message(self, message: HandoffMessage) -> Optional[HandoffMessage]:
+
+    async def handle_message(self, message: HandoffMessage) -> HandoffMessage | None:
         """
         处理来自其他 Agent 的消息
         """
         handler = self._message_handlers.get(message.message_type)
         if handler:
             return await handler(message)
-        
+
         logger.warning(f"{self.name} received unhandled message type: {message.message_type}")
         return None
-    
+
     def register_handler(
         self,
         message_type: str,
-        handler: Callable[[HandoffMessage], Awaitable[Optional[HandoffMessage]]]
+        handler: Callable[[HandoffMessage], Awaitable[HandoffMessage | None]]
     ) -> None:
         """注册消息处理器"""
         self._message_handlers[message_type] = handler
-    
-    def get_status(self) -> Dict[str, Any]:
+
+    def get_status(self) -> dict[str, Any]:
         """获取 Agent 状态"""
         return {
             "name": self.name,
@@ -294,59 +293,59 @@ class BaseResearchAgent(ABC):
             "current_task": self._current_task.id if self._current_task else None,
             "capabilities": self._capabilities,
         }
-    
+
     # ==================== 辅助方法 ====================
-    
+
     async def _call_llm(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
         json_mode: bool = False
     ) -> str:
         """
         调用 LLM
-        
+
         Args:
             prompt: 用户提示
             system_prompt: 系统提示
             temperature: 温度
             max_tokens: 最大 token
             json_mode: 是否启用 JSON 模式
-            
+
         Returns:
             LLM 响应文本
         """
         if not self.llm_client:
             raise ValueError(f"{self.name} has no LLM client")
-        
+
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
-        
+
         kwargs = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-        
+
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
-        
+
         response = await self.llm_client.chat.completions.create(**kwargs)
         return response.choices[0].message.content
-    
+
     def _create_result(
         self,
         task: AgentTask,
         status: TaskStatus,
-        output_data: Dict[str, Any],
-        error: Optional[str] = None,
+        output_data: dict[str, Any],
+        error: str | None = None,
         confidence: float = 1.0,
-        next_actions: Optional[List[str]] = None
+        next_actions: list[str] | None = None
     ) -> AgentResult:
         """创建结果的辅助方法"""
         return AgentResult(
@@ -365,23 +364,23 @@ class BaseResearchAgent(ABC):
 class HandoffProtocol:
     """
     Agent 间通信协议
-    
+
     定义标准的消息类型和数据格式
     """
-    
+
     # 消息类型
     MSG_TYPE_TASK = "task"              # 任务分配
     MSG_TYPE_RESULT = "result"          # 结果返回
     MSG_TYPE_QUERY = "query"            # 查询请求
     MSG_TYPE_NOTIFICATION = "notification"  # 通知
     MSG_TYPE_HANDOFF = "handoff"        # 任务移交
-    
+
     @staticmethod
     def create_task_message(
         from_agent: AgentRole,
         to_agent: AgentRole,
         task: AgentTask,
-        correlation_id: Optional[str] = None
+        correlation_id: str | None = None
     ) -> HandoffMessage:
         """创建任务消息"""
         return HandoffMessage(
@@ -391,13 +390,13 @@ class HandoffProtocol:
             payload={"task": task.to_dict()},
             correlation_id=correlation_id,
         )
-    
+
     @staticmethod
     def create_result_message(
         from_agent: AgentRole,
         to_agent: AgentRole,
         result: AgentResult,
-        correlation_id: Optional[str] = None
+        correlation_id: str | None = None
     ) -> HandoffMessage:
         """创建结果消息"""
         return HandoffMessage(
@@ -407,14 +406,14 @@ class HandoffProtocol:
             payload={"result": result.to_dict()},
             correlation_id=correlation_id,
         )
-    
+
     @staticmethod
     def create_query_message(
         from_agent: AgentRole,
         to_agent: AgentRole,
         query_type: str,
-        query_data: Dict[str, Any],
-        correlation_id: Optional[str] = None
+        query_data: dict[str, Any],
+        correlation_id: str | None = None
     ) -> HandoffMessage:
         """创建查询消息"""
         return HandoffMessage(
@@ -427,15 +426,15 @@ class HandoffProtocol:
             },
             correlation_id=correlation_id,
         )
-    
+
     @staticmethod
     def create_handoff_message(
         from_agent: AgentRole,
         to_agent: AgentRole,
         task: AgentTask,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         reason: str,
-        correlation_id: Optional[str] = None
+        correlation_id: str | None = None
     ) -> HandoffMessage:
         """创建任务移交消息"""
         return HandoffMessage(
@@ -455,7 +454,7 @@ class HandoffProtocol:
 
 class TaskFactory:
     """任务工厂"""
-    
+
     @staticmethod
     def create_search_task(
         query: str,
@@ -473,7 +472,7 @@ class TaskFactory:
                 **kwargs,
             },
         )
-    
+
     @staticmethod
     def create_read_task(
         url: str,
@@ -489,12 +488,12 @@ class TaskFactory:
                 **kwargs,
             },
         )
-    
+
     @staticmethod
     def create_analyze_task(
         content: str,
         analysis_type: str = "general",  # general, comparison, trend
-        question: Optional[str] = None,
+        question: str | None = None,
         **kwargs
     ) -> AgentTask:
         """创建分析任务"""
@@ -507,11 +506,11 @@ class TaskFactory:
                 **kwargs,
             },
         )
-    
+
     @staticmethod
     def create_verify_task(
         claim: str,
-        evidence: Optional[List[str]] = None,
+        evidence: list[str] | None = None,
         **kwargs
     ) -> AgentTask:
         """创建验证任务"""
@@ -523,12 +522,12 @@ class TaskFactory:
                 **kwargs,
             },
         )
-    
+
     @staticmethod
     def create_synthesize_task(
-        findings: List[Dict[str, Any]],
+        findings: list[dict[str, Any]],
         format_type: str = "report",  # report, summary, outline
-        question: Optional[str] = None,
+        question: str | None = None,
         **kwargs
     ) -> AgentTask:
         """创建综合任务"""

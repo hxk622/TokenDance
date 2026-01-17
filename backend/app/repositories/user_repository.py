@@ -1,12 +1,11 @@
 """User repository - data access for User model."""
-from typing import Optional
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, AuthProvider
+from app.models.user import AuthProvider, User
 
 
 class UserRepository:
@@ -19,13 +18,13 @@ class UserRepository:
         self,
         email: str,
         username: str,
-        password_hash: Optional[str] = None,
+        password_hash: str | None = None,
         auth_provider: str = AuthProvider.EMAIL_PASSWORD.value,
-        display_name: Optional[str] = None,
-        avatar_url: Optional[str] = None,
+        display_name: str | None = None,
+        avatar_url: str | None = None,
     ) -> User:
         """Create a new user.
-        
+
         Args:
             email: User email (unique)
             username: Username (unique)
@@ -33,7 +32,7 @@ class UserRepository:
             auth_provider: Authentication provider
             display_name: Display name
             avatar_url: Avatar URL
-            
+
         Returns:
             Created User instance
         """
@@ -50,12 +49,12 @@ class UserRepository:
         await self.session.refresh(user)
         return user
 
-    async def get_by_id(self, user_id: UUID) -> Optional[User]:
+    async def get_by_id(self, user_id: UUID) -> User | None:
         """Get user by ID.
-        
+
         Args:
             user_id: User UUID
-            
+
         Returns:
             User instance or None if not found
         """
@@ -64,12 +63,12 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_email(self, email: str) -> Optional[User]:
+    async def get_by_email(self, email: str) -> User | None:
         """Get user by email.
-        
+
         Args:
             email: User email
-            
+
         Returns:
             User instance or None if not found
         """
@@ -78,12 +77,12 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_username(self, username: str) -> Optional[User]:
+    async def get_by_username(self, username: str) -> User | None:
         """Get user by username.
-        
+
         Args:
             username: Username
-            
+
         Returns:
             User instance or None if not found
         """
@@ -92,12 +91,12 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_wechat_openid(self, openid: str) -> Optional[User]:
+    async def get_by_wechat_openid(self, openid: str) -> User | None:
         """Get user by WeChat OpenID.
-        
+
         Args:
             openid: WeChat OpenID
-            
+
         Returns:
             User instance or None if not found
         """
@@ -106,12 +105,12 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_gmail_sub(self, sub: str) -> Optional[User]:
+    async def get_by_gmail_sub(self, sub: str) -> User | None:
         """Get user by Gmail subject (sub).
-        
+
         Args:
             sub: Gmail subject identifier
-            
+
         Returns:
             User instance or None if not found
         """
@@ -122,10 +121,10 @@ class UserRepository:
 
     async def update(self, user: User) -> User:
         """Update user.
-        
+
         Args:
             user: User instance with updated fields
-            
+
         Returns:
             Updated User instance
         """
@@ -137,19 +136,19 @@ class UserRepository:
         self,
         user_id: UUID,
         openid: str,
-        unionid: Optional[str] = None,
-        nickname: Optional[str] = None,
-        headimgurl: Optional[str] = None,
-    ) -> Optional[User]:
+        unionid: str | None = None,
+        nickname: str | None = None,
+        headimgurl: str | None = None,
+    ) -> User | None:
         """Update user's WeChat OAuth information.
-        
+
         Args:
             user_id: User UUID
             openid: WeChat OpenID
             unionid: WeChat UnionID (optional)
             nickname: WeChat nickname (optional)
             headimgurl: WeChat avatar URL (optional)
-            
+
         Returns:
             Updated User instance or None if not found
         """
@@ -165,7 +164,7 @@ class UserRepository:
             )
         )
         await self.session.commit()
-        
+
         if result.rowcount > 0:
             return await self.get_by_id(user_id)
         return None
@@ -175,14 +174,14 @@ class UserRepository:
         user_id: UUID,
         sub: str,
         email: str,
-        name: Optional[str] = None,
-        picture: Optional[str] = None,
-        access_token: Optional[str] = None,
-        refresh_token: Optional[str] = None,
-        expires_at: Optional[datetime] = None,
-    ) -> Optional[User]:
+        name: str | None = None,
+        picture: str | None = None,
+        access_token: str | None = None,
+        refresh_token: str | None = None,
+        expires_at: datetime | None = None,
+    ) -> User | None:
         """Update user's Gmail OAuth information.
-        
+
         Args:
             user_id: User UUID
             sub: Gmail subject identifier
@@ -192,7 +191,7 @@ class UserRepository:
             access_token: Gmail access token (optional)
             refresh_token: Gmail refresh token (optional)
             expires_at: Token expiration time (optional)
-            
+
         Returns:
             Updated User instance or None if not found
         """
@@ -212,14 +211,14 @@ class UserRepository:
             )
         )
         await self.session.commit()
-        
+
         if result.rowcount > 0:
             return await self.get_by_id(user_id)
         return None
 
     async def increment_workspace_count(self, user_id: UUID) -> None:
         """Increment user's workspace count.
-        
+
         Args:
             user_id: User UUID
         """
@@ -234,10 +233,10 @@ class UserRepository:
 
     async def verify_email(self, user_id: UUID) -> bool:
         """Mark user's email as verified.
-        
+
         Args:
             user_id: User UUID
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -251,10 +250,10 @@ class UserRepository:
 
     async def deactivate(self, user_id: UUID) -> bool:
         """Deactivate user account.
-        
+
         Args:
             user_id: User UUID
-            
+
         Returns:
             True if successful, False otherwise
         """

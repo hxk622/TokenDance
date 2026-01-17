@@ -6,11 +6,10 @@ Feedback Loop - 用户反馈学习回路（占位实现）
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Optional
 from datetime import datetime
+from typing import Literal
 
 from app.filesystem.agent_fs import AgentFileSystem
-
 
 FeedbackType = Literal["misunderstanding", "wrong_tool", "incomplete", "other"]
 
@@ -28,7 +27,7 @@ class FeedbackLoop:
 
     def record(self, feedback: UserFeedback) -> None:
         """将反馈以一条 Lesson 的形式写入 learnings.md"""
-        from app.agent.memory.distributed import Lesson, DistributedMemory
+        from app.agent.memory.distributed import DistributedMemory, Lesson
 
         dm = DistributedMemory(self.fs)
         dm.store_lessons([

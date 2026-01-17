@@ -1,15 +1,14 @@
 """Permission service - Row-Level Security for multi-tenancy."""
-from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
+from app.models.session import Session
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.models.session import Session
-from app.repositories.workspace_repository import WorkspaceRepository
 from app.repositories.session_repository import SessionRepository
+from app.repositories.workspace_repository import WorkspaceRepository
 
 logger = get_logger(__name__)
 
@@ -35,20 +34,20 @@ class PermissionService:
     ) -> Workspace:
         """
         Check if user has access to a workspace.
-        
+
         Args:
             user: Current authenticated user
             workspace_id: Workspace ID to check
             require_owner: If True, user must be the owner
-            
+
         Returns:
             Workspace object if access granted
-            
+
         Raises:
             PermissionError: If access denied
         """
         workspace = await self.workspace_repo.get_by_id(workspace_id)
-        
+
         if not workspace:
             logger.warning(
                 "workspace_not_found",
@@ -56,7 +55,7 @@ class PermissionService:
                 workspace_id=workspace_id,
             )
             raise PermissionError(f"Workspace {workspace_id} not found")
-        
+
         # For Personal workspaces, check ownership
         if workspace.is_personal:
             if workspace.owner_id != str(user.id):
@@ -76,7 +75,7 @@ class PermissionService:
                 workspace_id=workspace_id,
             )
             raise PermissionError("Team workspaces are not yet implemented")
-        
+
         return workspace
 
     async def check_session_access(
@@ -87,20 +86,20 @@ class PermissionService:
     ) -> Session:
         """
         Check if user has access to a session.
-        
+
         Args:
             user: Current authenticated user
             session_id: Session ID to check
             require_owner: If True, user must be the workspace owner
-            
+
         Returns:
             Session object if access granted
-            
+
         Raises:
             PermissionError: If access denied
         """
         session = await self.session_repo.get_by_id(session_id)
-        
+
         if not session:
             logger.warning(
                 "session_not_found",
@@ -108,23 +107,23 @@ class PermissionService:
                 session_id=session_id,
             )
             raise PermissionError(f"Session {session_id} not found")
-        
+
         # Check workspace access first
-        workspace = await self.check_workspace_access(
+        await self.check_workspace_access(
             user,
             session.workspace_id,
             require_owner=require_owner,
         )
-        
+
         return session
 
     async def can_create_workspace(self, user: User) -> bool:
         """
         Check if user can create a new workspace.
-        
+
         Args:
             user: Current authenticated user
-            
+
         Returns:
             True if user can create workspace
         """
@@ -139,32 +138,32 @@ class PermissionService:
             raise PermissionError(
                 f"You have reached your workspace limit ({user.personal_quota['max_workspaces']})"
             )
-        
+
         return True
 
     async def can_create_session(self, user: User, workspace_id: str) -> bool:
         """
         Check if user can create a new session in a workspace.
-        
+
         Args:
             user: Current authenticated user
             workspace_id: Workspace ID
-            
+
         Returns:
             True if user can create session
         """
         # Check workspace access
         await self.check_workspace_access(user, workspace_id)
-        
+
         return True
 
     async def check_user_is_active(self, user: User) -> None:
         """
         Check if user account is active.
-        
+
         Args:
             user: Current authenticated user
-            
+
         Raises:
             PermissionError: If user is inactive
         """
@@ -178,10 +177,10 @@ class PermissionService:
     async def check_user_is_verified(self, user: User) -> None:
         """
         Check if user email is verified.
-        
+
         Args:
             user: Current authenticated user
-            
+
         Raises:
             PermissionError: If user is not verified
         """
@@ -195,10 +194,10 @@ class PermissionService:
     def raise_permission_error(self, message: str = "Permission denied") -> None:
         """
         Raise a permission error as HTTPException.
-        
+
         Args:
             message: Error message
-            
+
         Raises:
             HTTPException: With 403 status code
         """

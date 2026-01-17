@@ -169,7 +169,6 @@ import { useExecutionStore } from '@/stores/execution'
 import { BrowserOperationLog, TimeLapseGallery } from './browser'
 import type { BrowserOperation, TimeLapsePlayback } from './browser/types'
 import CoworkerFileTree from './workflow/CoworkerFileTree.vue'
-// @ts-expect-error - vue-tsc fails to detect default export in script setup components with monaco-editor
 import LiveDiff from './artifact/LiveDiff.vue'
 import { useScrollSync } from '@/composables/useScrollSync'
 import {

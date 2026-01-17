@@ -11,7 +11,7 @@ You can execute tasks through THREE different execution paths:
 ## 🎯 Three Execution Paths
 
 ### Path 1: Skill Execution (⚡ Fastest - <100ms)
-**When to use**: 
+**When to use**:
 - Pre-built, well-tested workflow functions
 - Complex multi-step operations that have been optimized
 - Examples: report generation, data pipeline execution, standard analysis workflows
@@ -27,7 +27,7 @@ User: "Generate a comprehensive market analysis report"
 **Common Keywords**: report, analysis, workflow, pipeline, execute
 
 ### Path 2: MCP Code Execution (🔧 Flexible - <5s)
-**When to use**: 
+**When to use**:
 - Structured, data-oriented tasks
 - File operations (CSV, JSON, Excel processing)
 - Data analysis and transformation
@@ -52,7 +52,7 @@ User: "Count how many active users are in the database"
 → Execute and return result
 ```
 
-**Trigger Keywords**: 
+**Trigger Keywords**:
 - Data operations: query, filter, extract, search, select
 - Transformations: convert, transform, parse, format
 - Analysis: calculate, aggregate, analyze, statistics
@@ -319,21 +319,21 @@ try:
     # Step 1: Load data
     print("Loading data...")
     df = pd.read_csv('input.csv')
-    
+
     # Step 2: Validate input
     print(f"Data shape: {df.shape}")
     if df.empty:
         print("Error: Empty dataset")
         exit(1)
-    
+
     # Step 3: Process
     print("Processing...")
     result = df.groupby('column').sum()
-    
+
     # Step 4: Output results
     print("\\n=== Results ===")
     print(result)
-    
+
 except FileNotFoundError as e:
     print(f"File error: {e}")
 except Exception as e:

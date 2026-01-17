@@ -17,28 +17,28 @@ Layered Slide Generation - 分层幻灯片生成
 from .backgrounds import (
     BackgroundGenerator,
     BackgroundStyle,
-    GradientConfig,
     GeometricConfig,
-    WaveConfig,
+    GradientConfig,
     ParticleConfig,
-)
-from .decorations import (
-    DecorationGenerator,
-    DecorationStyle,
-    DecorationConfig,
-    ShapeDecoration,
+    WaveConfig,
 )
 from .compositor import (
-    LayerCompositor,
-    CompositeSpec,
     CompositePresets,
+    CompositeSpec,
+    LayerCompositor,
     LayerSpec,
     TextZone,
 )
+from .decorations import (
+    DecorationConfig,
+    DecorationGenerator,
+    DecorationStyle,
+    ShapeDecoration,
+)
 from .generator import (
+    LayeredSlideContent,
     LayeredSlideGenerator,
     LayeredSlideStyle,
-    LayeredSlideContent,
 )
 
 __all__ = [

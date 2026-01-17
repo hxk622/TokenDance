@@ -5,22 +5,22 @@ Revises: 4d7e0f1h5i6j
 Create Date: 2026-01-16 14:00:00.000000
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '5e8f2g6i7j8k'
-down_revision: Union[str, Sequence[str], None] = '4d7e0f1h5i6j'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '4d7e0f1h5i6j'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     """Upgrade schema."""
-    
+
     # Create agent_states table
     op.create_table('agent_states',
         sa.Column('id', sa.String(length=36), nullable=False),
@@ -50,7 +50,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_agent_states_session_id'), 'agent_states', ['session_id'], unique=True)
     op.create_index(op.f('ix_agent_states_agent_config_id'), 'agent_states', ['agent_config_id'], unique=False)
-    
+
     # Create agent_checkpoints table
     op.create_table('agent_checkpoints',
         sa.Column('id', sa.String(length=36), nullable=False),
@@ -70,11 +70,11 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    
+
     # Drop agent_checkpoints table
     op.drop_index(op.f('ix_agent_checkpoints_agent_state_id'), table_name='agent_checkpoints')
     op.drop_table('agent_checkpoints')
-    
+
     # Drop agent_states table
     op.drop_index(op.f('ix_agent_states_agent_config_id'), table_name='agent_states')
     op.drop_index(op.f('ix_agent_states_session_id'), table_name='agent_states')

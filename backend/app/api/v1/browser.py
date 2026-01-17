@@ -4,9 +4,9 @@ Browser Automation API
 浏览器自动化相关的 API 端点
 """
 
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
 
 from app.services.browser_automation import (
     check_browser_health,
@@ -38,15 +38,15 @@ class SessionStatsResponse(BaseModel):
     """会话统计响应"""
     active_sessions: int
     max_sessions: int
-    agent_browser_available: Optional[bool]
-    sessions: List[SessionInfo]
+    agent_browser_available: bool | None
+    sessions: list[SessionInfo]
 
 
 @router.get("/health", response_model=HealthResponse)
 async def browser_health():
     """
     浏览器服务健康检查
-    
+
     返回浏览器自动化服务的可用性状态：
     - healthy: agent-browser 和 Playwright 都可用
     - degraded: 只有 Playwright 可用（降级模式）
@@ -60,12 +60,12 @@ async def browser_health():
 async def session_stats():
     """
     获取浏览器会话统计
-    
+
     返回当前活跃的浏览器会话信息
     """
     manager = get_session_manager()
     stats = manager.get_stats()
-    
+
     return SessionStatsResponse(
         active_sessions=stats["active_sessions"],
         max_sessions=stats["max_sessions"],
@@ -80,7 +80,7 @@ async def session_stats():
 async def close_session(task_id: str):
     """
     关闭指定任务的浏览器会话
-    
+
     Args:
         task_id: 任务 ID
     """

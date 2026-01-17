@@ -4,17 +4,16 @@
 提供工作空间信任配置的 CRUD 操作和审计日志查询。
 """
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.tools.risk import OperationCategory
 from app.core.database import get_db
-from app.models.trust_config import TrustConfig, TrustAuditLog
+from app.models.trust_config import TrustAuditLog
 from app.services.trust_service import TrustService
-from app.agent.tools.risk import RiskLevel, OperationCategory
 
 router = APIRouter(prefix="/trust", tags=["trust"])
 
@@ -41,19 +40,19 @@ class TrustConfigResponse(BaseModel):
 
 class TrustConfigUpdate(BaseModel):
     """信任配置更新请求"""
-    auto_approve_level: Optional[str] = Field(
+    auto_approve_level: str | None = Field(
         None,
         description="自动授权的最高风险等级: none, low, medium, high"
     )
-    pre_authorized_operations: Optional[list[str]] = Field(
+    pre_authorized_operations: list[str] | None = Field(
         None,
         description="预授权的操作类别列表"
     )
-    blacklisted_operations: Optional[list[str]] = Field(
+    blacklisted_operations: list[str] | None = Field(
         None,
         description="黑名单操作类别列表"
     )
-    enabled: Optional[bool] = Field(
+    enabled: bool | None = Field(
         None,
         description="是否启用信任机制"
     )
@@ -68,14 +67,14 @@ class TrustAuditLogResponse(BaseModel):
     """审计日志响应"""
     id: str
     workspace_id: str
-    session_id: Optional[str]
+    session_id: str | None
     tool_name: str
     operation_category: str
     risk_level: str
     decision: str
-    decision_reason: Optional[str]
-    operation_summary: Optional[str]
-    user_feedback: Optional[str]
+    decision_reason: str | None
+    operation_summary: str | None
+    user_feedback: str | None
     remember_choice: bool
     created_at: datetime
 
@@ -208,8 +207,8 @@ async def get_audit_logs(
     workspace_id: str,
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
-    session_id: Optional[str] = Query(None, description="按会话 ID 过滤"),
-    decision: Optional[str] = Query(None, description="按决策类型过滤"),
+    session_id: str | None = Query(None, description="按会话 ID 过滤"),
+    decision: str | None = Query(None, description="按决策类型过滤"),
     db: AsyncSession = Depends(get_db),
 ) -> TrustAuditLogList:
     """获取审计日志列表"""

@@ -6,9 +6,9 @@ Used for frontend-backend integration testing.
 """
 import asyncio
 import json
-import time
 import random
-from typing import AsyncGenerator
+import time
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -27,17 +27,17 @@ def format_sse(event: str, data: dict) -> str:
 async def demo_execution_stream() -> AsyncGenerator[str, None]:
     """
     Demo agent execution stream with realistic workflow.
-    
+
     Simulates a research task with multiple agents.
     """
-    
+
     # Session started
     yield format_sse("session_started", {
         "session_id": "demo-session-001",
         "timestamp": time.time(),
     })
     await asyncio.sleep(0.3)
-    
+
     # Define demo workflow
     workflow = [
         {
@@ -63,7 +63,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             },
         },
         {
-            "id": "2", 
+            "id": "2",
             "type": "manus",
             "label": "分析竞品",
             "thoughts": [
@@ -86,7 +86,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
         },
         {
             "id": "3",
-            "type": "coworker", 
+            "type": "coworker",
             "label": "生成分析摘要",
             "thoughts": [
                 "现在我需要整理分析结果...",
@@ -110,7 +110,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             ],
         },
     ]
-    
+
     for node in workflow:
         # Node started
         yield format_sse("node_started", {
@@ -121,7 +121,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             "timestamp": time.time(),
         })
         await asyncio.sleep(0.4)
-        
+
         # Agent thinking (stream thoughts)
         for thought in node["thoughts"]:
             yield format_sse("agent_thinking", {
@@ -130,7 +130,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
                 "timestamp": time.time(),
             })
             await asyncio.sleep(random.uniform(0.3, 0.6))
-        
+
         # Tool call (for manus type)
         if "tool" in node:
             tool = node["tool"]
@@ -141,7 +141,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
                 "timestamp": time.time(),
             })
             await asyncio.sleep(random.uniform(0.5, 1.0))
-            
+
             yield format_sse("agent_tool_result", {
                 "tool_name": tool["name"],
                 "success": True,
@@ -150,7 +150,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
                 "timestamp": time.time(),
             })
             await asyncio.sleep(0.3)
-        
+
         # File operations (for coworker type)
         if "files" in node:
             for file_op in node["files"]:
@@ -162,7 +162,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
                     "timestamp": time.time(),
                 })
                 await asyncio.sleep(0.3)
-        
+
         # Node completed
         yield format_sse("node_completed", {
             "node_id": node["id"],
@@ -173,7 +173,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             "timestamp": time.time(),
         })
         await asyncio.sleep(0.4)
-    
+
     # Final agent message
     yield format_sse("agent_message", {
         "content": "✅ 任务执行完成！我已经完成了AI Agent市场分析，生成了以下文件：\n\n"
@@ -185,7 +185,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
         "timestamp": time.time(),
     })
     await asyncio.sleep(0.3)
-    
+
     # Session completed
     yield format_sse("session_completed", {
         "session_id": "demo-session-001",
@@ -199,10 +199,10 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
 async def demo_stream(request: Request):
     """
     Demo SSE stream endpoint.
-    
+
     No authentication or database required.
     Perfect for frontend integration testing.
-    
+
     Usage:
         const es = new EventSource('/api/v1/demo/stream');
         es.onmessage = (e) => console.log(e);
@@ -212,7 +212,7 @@ async def demo_stream(request: Request):
         "demo_stream_started",
         client_ip=request.client.host if request.client else "unknown",
     )
-    
+
     async def event_generator():
         try:
             async for event in demo_execution_stream():
@@ -225,7 +225,7 @@ async def demo_stream(request: Request):
         except Exception as e:
             logger.error("demo_stream_error", error=str(e))
             yield format_sse("error", {"message": str(e)})
-    
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",

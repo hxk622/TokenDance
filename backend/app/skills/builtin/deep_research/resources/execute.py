@@ -30,7 +30,7 @@ def check_dependencies() -> tuple[bool, str | None]:
         import httpx  # noqa: F401
     except ImportError:
         missing.append("httpx")
-    
+
     if missing:
         return False, f"Missing dependencies: {', '.join(missing)}"
     return True, None
@@ -38,33 +38,33 @@ def check_dependencies() -> tuple[bool, str | None]:
 
 def generate_search_queries(query: str, context: dict[str, Any]) -> list[str]:
     """根据用户查询生成搜索关键词
-    
+
     Args:
         query: 用户原始查询
         context: 执行上下文
-        
+
     Returns:
         搜索关键词列表
     """
     # 基础查询
     queries = [query]
-    
+
     # 提取关键词并生成变体
     # TODO: 使用 NLP 或 LLM 生成更精准的查询
     words = query.replace("？", " ").replace("?", " ").split()
     if len(words) > 3:
         # 生成简化查询
         queries.append(" ".join(words[:3]))
-    
+
     return queries
 
 
 def execute_web_search(queries: list[str]) -> list[dict[str, Any]]:
     """执行 Web 搜索
-    
+
     Args:
         queries: 搜索关键词列表
-        
+
     Returns:
         搜索结果列表
     """
@@ -93,10 +93,10 @@ def execute_web_search(queries: list[str]) -> list[dict[str, Any]]:
 
 def execute_academic_search(query: str) -> list[dict[str, Any]]:
     """执行学术搜索
-    
+
     Args:
         query: 搜索关键词
-        
+
     Returns:
         学术论文列表
     """
@@ -122,16 +122,16 @@ def aggregate_results(
     academic_results: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """聚合搜索结果
-    
+
     Args:
         web_results: Web 搜索结果
         academic_results: 学术搜索结果
-        
+
     Returns:
         聚合后的结果
     """
     all_sources = []
-    
+
     # 处理 Web 结果
     for result in web_results:
         for item in result.get("items", []):
@@ -141,7 +141,7 @@ def aggregate_results(
                 "url": item.get("url", ""),
                 "snippet": item.get("snippet", ""),
             })
-    
+
     # 处理学术结果
     for result in academic_results:
         for item in result.get("items", []):
@@ -153,7 +153,7 @@ def aggregate_results(
                 "year": item.get("year"),
                 "abstract": item.get("abstract", ""),
             })
-    
+
     return {
         "total_sources": len(all_sources),
         "sources": all_sources,
@@ -162,11 +162,11 @@ def aggregate_results(
 
 def generate_summary(query: str, aggregated: dict[str, Any]) -> str:
     """生成研究总结
-    
+
     Args:
         query: 原始查询
         aggregated: 聚合后的结果
-        
+
     Returns:
         研究总结文本
     """
@@ -181,33 +181,33 @@ def execute_research(
     parameters: dict[str, Any],
 ) -> dict[str, Any]:
     """执行深度研究
-    
+
     Args:
         query: 用户查询
         context: 执行上下文
         parameters: 额外参数
-        
+
     Returns:
         研究结果
     """
     logger.info(f"Starting deep research for: {query}")
-    
+
     # 1. 生成搜索查询
     search_queries = generate_search_queries(query, context)
     logger.info(f"Generated {len(search_queries)} search queries")
-    
+
     # 2. 执行多源搜索
     web_results = execute_web_search(search_queries)
     academic_results = execute_academic_search(query)
     logger.info("Search completed")
-    
+
     # 3. 聚合结果
     aggregated = aggregate_results(web_results, academic_results)
     logger.info(f"Aggregated {aggregated['total_sources']} sources")
-    
+
     # 4. 生成总结
     summary = generate_summary(query, aggregated)
-    
+
     # 5. 构建最终结果
     result = {
         "query": query,
@@ -221,16 +221,16 @@ def execute_research(
         "sources": aggregated["sources"][:10],  # 限制返回的来源数量
         "total_sources": aggregated["total_sources"],
     }
-    
+
     return result
 
 
 def main(input_data: dict[str, Any]) -> dict[str, Any]:
     """主函数
-    
+
     Args:
         input_data: 从 stdin 接收的 JSON 数据
-        
+
     Returns:
         执行结果 JSON
     """
@@ -242,28 +242,28 @@ def main(input_data: dict[str, Any]) -> dict[str, Any]:
             "error": error,
             "tokens_used": 0,
         }
-    
+
     try:
         query = input_data.get("query", "")
         context = input_data.get("context", {})
         parameters = input_data.get("parameters", {})
-        
+
         if not query:
             return {
                 "status": "failed",
                 "error": "Query is required",
                 "tokens_used": 0,
             }
-        
+
         # 执行研究
         result = execute_research(query, context, parameters)
-        
+
         return {
             "status": "success",
             "data": result,
             "tokens_used": 1500,  # 预估 Token 消耗（实际应从 LLM API 获取）
         }
-    
+
     except Exception as e:
         logger.exception("Research execution failed")
         return {
@@ -277,9 +277,9 @@ if __name__ == "__main__":
     # 从 stdin 读取输入
     input_json = sys.stdin.read()
     input_data = json.loads(input_json)
-    
+
     # 执行
     result = main(input_data)
-    
+
     # 输出结果到 stdout
     print(json.dumps(result, ensure_ascii=False, indent=2))

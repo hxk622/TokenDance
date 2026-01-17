@@ -17,14 +17,14 @@ PPT Generation Module - AI PPT 生成模块
     pptx_path = await generator.generate(slides, output_path="output.pptx")
 """
 
+from .generator import PPTGenerator
 from .models import (
-    SlideType,
-    SlideContent,
-    PresentationSpec,
     BrandKit,
+    PresentationSpec,
+    SlideContent,
+    SlideType,
     TemplateConfig,
 )
-from .generator import PPTGenerator
 from .template_engine import TemplateEngine
 
 __all__ = [

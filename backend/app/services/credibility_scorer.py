@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 来源可信度评分器 (Credibility Scorer)
 
@@ -18,11 +17,11 @@
 """
 import logging
 import re
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from urllib.parse import urlparse
+from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +53,8 @@ class CredibilityScore:
     domain: str
     is_trusted: bool            # 是否可信 (>60分)
     reasoning: str
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "url": self.url,
             "total_score": round(self.total_score, 1),
@@ -74,7 +73,7 @@ class CredibilityScore:
 
 class CredibilityScorer:
     """可信度评分器"""
-    
+
     # 高权威域名 (40分)
     HIGH_AUTHORITY_DOMAINS = {
         # 学术
@@ -87,7 +86,7 @@ class CredibilityScorer:
         'docs.python.org', 'docs.microsoft.com', 'developer.mozilla.org',
         'cloud.google.com', 'aws.amazon.com', 'docs.github.com',
     }
-    
+
     # 中高权威域名 (30分)
     MEDIUM_HIGH_DOMAINS = {
         # 主流媒体
@@ -101,20 +100,20 @@ class CredibilityScorer:
         # 百科
         'wikipedia.org', 'britannica.com',
     }
-    
+
     # 中等权威域名 (20分)
     MEDIUM_DOMAINS = {
         'reddit.com', 'quora.com', 'dev.to', 'hashnode.com',
         'towardsdatascience.com', 'hackernews.com',
     }
-    
+
     # 低可信域名 (5分)
     LOW_TRUST_PATTERNS = [
         r'\.blogspot\.', r'\.wordpress\.com', r'\.tumblr\.com',
         r'\.weebly\.com', r'\.wix\.com',
         r'forum\.', r'bbs\.', r'tieba\.baidu\.com',
     ]
-    
+
     # 来源类型评分
     SOURCE_TYPE_SCORES = {
         SourceType.ACADEMIC: 20,
@@ -128,57 +127,57 @@ class CredibilityScorer:
         SourceType.FORUM: 3,
         SourceType.UNKNOWN: 5,
     }
-    
+
     def __init__(self, freshness_weight: float = 1.0):
         """
         Args:
             freshness_weight: 时效性权重 (默认 1.0)
         """
         self.freshness_weight = freshness_weight
-    
+
     def score(
         self,
         url: str,
-        content: Optional[str] = None,
-        publish_date: Optional[datetime] = None,
-        title: Optional[str] = None
+        content: str | None = None,
+        publish_date: datetime | None = None,
+        title: str | None = None
     ) -> CredibilityScore:
         """评估来源可信度
-        
+
         Args:
             url: 来源 URL
             content: 内容 (可选，用于内容质量评估)
             publish_date: 发布日期 (可选)
             title: 标题 (可选)
-            
+
         Returns:
             CredibilityScore: 评分结果
         """
         # 解析 URL
         parsed = urlparse(url)
         domain = parsed.netloc.lower().lstrip('www.')
-        
+
         # 1. 域名权威性评分
         domain_score = self._score_domain(domain, url)
-        
+
         # 2. 来源类型识别和评分
         source_type = self._identify_source_type(domain, url)
         source_type_score = self.SOURCE_TYPE_SCORES.get(source_type, 5)
-        
+
         # 3. 时效性评分
         freshness_score = self._score_freshness(publish_date, content)
-        
+
         # 4. 内容质量评分
         content_score = self._score_content(content, title)
-        
+
         # 计算总分
         total_score = domain_score + source_type_score + freshness_score + content_score
-        
+
         # 生成推理
         reasoning = self._generate_reasoning(
             domain, source_type, domain_score, freshness_score, content_score
         )
-        
+
         score = CredibilityScore(
             url=url,
             total_score=total_score,
@@ -191,110 +190,110 @@ class CredibilityScorer:
             is_trusted=total_score >= 60,
             reasoning=reasoning
         )
-        
+
         logger.debug(f"Credibility score for {domain}: {total_score:.1f}")
         return score
-    
+
     def _score_domain(self, domain: str, url: str) -> float:
         """域名权威性评分 (0-40)"""
-        
+
         # 检查高权威域名
         for trusted in self.HIGH_AUTHORITY_DOMAINS:
             if domain == trusted or domain.endswith('.' + trusted):
                 return 40
-        
+
         # 检查中高权威域名
         for trusted in self.MEDIUM_HIGH_DOMAINS:
             if domain == trusted or domain.endswith('.' + trusted):
                 return 30
-        
+
         # 检查中等域名
         for trusted in self.MEDIUM_DOMAINS:
             if domain == trusted or domain.endswith('.' + trusted):
                 return 20
-        
+
         # 检查政府域名
         if domain.endswith('.gov') or domain.endswith('.gov.cn'):
             return 38
-        
+
         # 检查教育域名
         if domain.endswith('.edu') or domain.endswith('.edu.cn') or domain.endswith('.ac.uk'):
             return 35
-        
+
         # 检查低可信模式
         for pattern in self.LOW_TRUST_PATTERNS:
             if re.search(pattern, url.lower()):
                 return 5
-        
+
         # 默认分数
         return 15
-    
+
     def _identify_source_type(self, domain: str, url: str) -> SourceType:
         """识别来源类型"""
         url_lower = url.lower()
         domain_lower = domain.lower()
-        
+
         # 学术来源
         academic_patterns = ['arxiv', 'pubmed', 'ieee', 'acm.org', 'nature.com', 'science.org']
         if any(p in domain_lower for p in academic_patterns):
             return SourceType.ACADEMIC
-        
+
         # 政府来源
         if '.gov' in domain_lower:
             return SourceType.GOVERNMENT
-        
+
         # 官方文档
         if domain_lower.startswith('docs.') or 'documentation' in url_lower:
             return SourceType.OFFICIAL
-        
+
         # 主流媒体
         major_news = ['reuters', 'bbc', 'nytimes', 'guardian', 'wsj', 'bloomberg']
         if any(n in domain_lower for n in major_news):
             return SourceType.NEWS_MAJOR
-        
+
         # 科技媒体
         tech_news = ['techcrunch', 'wired', 'verge', 'arstechnica', 'venturebeat']
         if any(n in domain_lower for n in tech_news):
             return SourceType.NEWS_TECH
-        
+
         # 专业平台
         professional = ['github', 'stackoverflow', 'gitlab']
         if any(p in domain_lower for p in professional):
             return SourceType.PROFESSIONAL
-        
+
         # 百科
         if 'wikipedia' in domain_lower or 'britannica' in domain_lower:
             return SourceType.ENCYCLOPEDIA
-        
+
         # 博客
         blog_patterns = ['blog', 'medium.com', '.blogspot.', '.wordpress.']
         if any(p in url_lower for p in blog_patterns):
             return SourceType.BLOG
-        
+
         # 论坛
         forum_patterns = ['forum', 'reddit', 'quora', 'bbs', 'tieba']
         if any(p in url_lower for p in forum_patterns):
             return SourceType.FORUM
-        
+
         return SourceType.UNKNOWN
-    
+
     def _score_freshness(
         self,
-        publish_date: Optional[datetime],
-        content: Optional[str]
+        publish_date: datetime | None,
+        content: str | None
     ) -> float:
         """时效性评分 (0-20)"""
-        
+
         # 如果没有日期，尝试从内容提取
         if publish_date is None and content:
             publish_date = self._extract_date_from_content(content)
-        
+
         if publish_date is None:
             return 10  # 默认中等分数
-        
+
         now = datetime.now()
         age_days = (now - publish_date).days
-        
+
         # 时效性评分规则
         if age_days <= 30:  # 1 个月内
             return 20
@@ -308,8 +307,8 @@ class CredibilityScorer:
             return 8
         else:
             return 5
-    
-    def _extract_date_from_content(self, content: str) -> Optional[datetime]:
+
+    def _extract_date_from_content(self, content: str) -> datetime | None:
         """从内容提取日期"""
         # 匹配常见日期格式
         patterns = [
@@ -317,7 +316,7 @@ class CredibilityScorer:
             r'(\d{4})/(\d{2})/(\d{2})',  # 2024/01/15
             r'(\w+)\s+(\d{1,2}),?\s+(\d{4})',  # January 15, 2024
         ]
-        
+
         for pattern in patterns:
             match = re.search(pattern, content)
             if match:
@@ -331,20 +330,20 @@ class CredibilityScorer:
                             )
                 except:
                     pass
-        
+
         return None
-    
+
     def _score_content(
         self,
-        content: Optional[str],
-        title: Optional[str]
+        content: str | None,
+        title: str | None
     ) -> float:
         """内容质量评分 (0-20)"""
         if not content:
             return 10  # 默认分数
-        
+
         score = 10  # 基础分
-        
+
         # 长度因素 (内容充实)
         if len(content) > 5000:
             score += 3
@@ -352,27 +351,27 @@ class CredibilityScorer:
             score += 2
         elif len(content) < 500:
             score -= 2
-        
+
         # 包含数据/引用 (更可靠)
         if re.search(r'\d+[%$€¥]|\d+\.\d+', content):
             score += 2
-        
+
         if re.search(r'\[\d+\]|references|citations', content.lower()):
             score += 2
-        
+
         # 包含代码块 (技术内容)
         if '```' in content or '<code>' in content:
             score += 1
-        
+
         # 标题质量
         if title:
             # 避免 clickbait
             clickbait_patterns = ['you won\'t believe', 'shocking', '!!!', 'BREAKING']
             if any(p.lower() in title.lower() for p in clickbait_patterns):
                 score -= 3
-        
+
         return max(0, min(20, score))
-    
+
     def _generate_reasoning(
         self,
         domain: str,
@@ -383,7 +382,7 @@ class CredibilityScorer:
     ) -> str:
         """生成评分推理"""
         parts = []
-        
+
         # 域名评价
         if domain_score >= 35:
             parts.append(f"High authority domain ({domain})")
@@ -393,7 +392,7 @@ class CredibilityScorer:
             parts.append(f"Standard domain ({domain})")
         else:
             parts.append(f"Low authority domain ({domain})")
-        
+
         # 类型评价
         type_desc = {
             SourceType.ACADEMIC: "Academic source",
@@ -408,7 +407,7 @@ class CredibilityScorer:
             SourceType.UNKNOWN: "Unknown type",
         }
         parts.append(type_desc.get(source_type, "Unknown"))
-        
+
         # 时效性评价
         if freshness_score >= 18:
             parts.append("Very recent")
@@ -416,18 +415,18 @@ class CredibilityScorer:
             parts.append("Reasonably fresh")
         else:
             parts.append("May be outdated")
-        
+
         return ". ".join(parts) + "."
-    
+
     def rank_sources(
         self,
-        sources: List[Dict[str, Any]]
-    ) -> List[Tuple[Dict[str, Any], CredibilityScore]]:
+        sources: list[dict[str, Any]]
+    ) -> list[tuple[dict[str, Any], CredibilityScore]]:
         """对来源列表进行可信度排序
-        
+
         Args:
             sources: 来源列表 (每项包含 url, content, title 等)
-            
+
         Returns:
             排序后的 (来源, 评分) 列表
         """
@@ -439,21 +438,21 @@ class CredibilityScorer:
                 title=source.get('title', '')
             )
             scored.append((source, score))
-        
+
         # 按总分降序排序
         scored.sort(key=lambda x: x[1].total_score, reverse=True)
-        
+
         return scored
 
 
 # 便捷函数
-def score_source(url: str, content: Optional[str] = None) -> CredibilityScore:
+def score_source(url: str, content: str | None = None) -> CredibilityScore:
     """评估单个来源的可信度"""
     scorer = CredibilityScorer()
     return scorer.score(url, content)
 
 
-def rank_sources(sources: List[Dict[str, Any]]) -> List[Tuple[Dict[str, Any], CredibilityScore]]:
+def rank_sources(sources: list[dict[str, Any]]) -> list[tuple[dict[str, Any], CredibilityScore]]:
     """对来源进行可信度排序"""
     scorer = CredibilityScorer()
     return scorer.rank_sources(sources)

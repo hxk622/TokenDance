@@ -5,10 +5,14 @@ import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
 import { chatApi } from '@/api/chat'
 import { 
-  Search, FileText, Presentation, BarChart3, Code, 
+  Search, FileText, Presentation, BarChart3, 
   Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
-  Languages, MoreHorizontal
+  Languages, MoreHorizontal, Bell, PlusCircle, FolderOpen,
+  History, Settings, LayoutGrid
 } from 'lucide-vue-next'
+import AnySidebar from '@/components/common/AnySidebar.vue'
+import AnyHeader from '@/components/common/AnyHeader.vue'
+import AnyButton from '@/components/common/AnyButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -19,6 +23,20 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
 const activeCategory = ref('all')
+const sidebarCollapsed = ref(false)
+
+// Sidebar navigation sections
+const sidebarSections = [
+  {
+    id: 'main',
+    items: [
+      { id: 'search', label: '搜索', icon: Search },
+      { id: 'templates', label: '模板', icon: LayoutGrid },
+      { id: 'files', label: '文件', icon: FolderOpen },
+      { id: 'history', label: '历史', icon: History },
+    ]
+  }
+]
 
 // 快捷操作芯片 - AnyGen 风格
 const quickChips = [
@@ -34,7 +52,7 @@ const quickChips = [
 // 模板分类
 const categories = [
   { id: 'all', label: '全部模板' },
-  { id: 'hot', label: '热门推荐', badge: '🔥' },
+  { id: 'hot', label: '热门推荐', badge: 'HOT' },
   { id: 'marketing', label: '市场增长' },
   { id: 'product', label: '产品研究' },
   { id: 'gtm', label: '市场进入' },
@@ -43,61 +61,63 @@ const categories = [
   { id: 'my', label: '我的模板', icon: Sparkles },
 ]
 
-// 模板卡片
+// 模板卡片 - AnyGen 风格（预览图 + 标题 + 标签）
 const templates = [
   { 
-    id: 'ppt-basic', 
-    title: 'PPT 制作', 
-    desc: '快速生成专业演示文稿',
+    id: 'ppt-upload', 
+    title: 'Upload a PPTX as a template', 
+    tag: null,
+    uses: null,
     category: 'all',
     icon: Presentation,
-    color: 'orange',
-    image: null
+    bgColor: '#FFF7ED',
+    iconColor: '#EA580C'
   },
   { 
-    id: 'market-research', 
-    title: '市场调研报告', 
-    desc: '竞品分析与行业洞察',
-    category: 'product',
-    icon: BarChart3,
-    color: 'blue',
-    image: null
+    id: 'blank-doc', 
+    title: 'Create a blank doc', 
+    tag: null,
+    uses: null,
+    category: 'all',
+    icon: FileText,
+    bgColor: '#F1F5F9',
+    iconColor: '#475569'
   },
   { 
     id: 'okr-review', 
-    title: 'OKR 回顾', 
-    desc: '季度目标复盘与总结',
+    title: 'Team OKR Retrospective', 
+    tag: 'Slides',
+    uses: '10,388 uses',
     category: 'career',
-    icon: FileText,
-    color: 'indigo',
-    image: null
+    icon: null,
+    preview: 'okr'
   },
   { 
     id: 'news-digest', 
-    title: '新闻摘要', 
-    desc: '自动整理行业资讯',
+    title: 'AI Daily Digest', 
+    tag: 'Doc',
+    uses: '14,473 uses',
     category: 'hot',
-    icon: Globe,
-    color: 'cyan',
-    image: null
+    icon: null,
+    preview: 'news'
   },
   { 
-    id: 'meeting-agenda', 
-    title: '会议议程', 
-    desc: '结构化会议议程生成',
-    category: 'all',
-    icon: Users,
-    color: 'purple',
-    image: null
+    id: 'marketing-plan', 
+    title: 'Marketing Plan', 
+    tag: 'Slides',
+    uses: '2,545 uses',
+    category: 'marketing',
+    icon: null,
+    preview: 'marketing'
   },
   { 
-    id: 'code-review', 
-    title: '代码审查', 
-    desc: '自动化代码质量检查',
-    category: 'all',
-    icon: Code,
-    color: 'emerald',
-    image: null
+    id: 'quarterly-review', 
+    title: 'Quarterly Business Review', 
+    tag: 'Slides',
+    uses: '8,234 uses',
+    category: 'career',
+    icon: null,
+    preview: 'quarterly'
   },
 ]
 
@@ -197,9 +217,9 @@ const handleTemplateClick = async (template: typeof templates[0]) => {
     })
     
     // 发送初始消息，带上模板指令
-    chatApi.sendMessageStream(
-      session.id,
-      { content: `请帮我${template.title}: ${template.desc}` },
+      chatApi.sendMessageStream(
+        session.id,
+        { content: `请帮我${template.title}` },
       () => {},
       (err) => console.error('Initial message error:', err)
     )
@@ -256,6 +276,26 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+// Sidebar navigation handler
+const handleNavClick = (item: { id: string }) => {
+  switch (item.id) {
+    case 'search':
+      inputRef.value?.focus()
+      break
+    case 'history':
+      router.push('/chat')
+      break
+    case 'settings':
+      // TODO: Open settings
+      break
+  }
+}
+
+// Sidebar new button handler
+const handleNewClick = () => {
+  inputRef.value?.focus()
+}
+
 // Cmd+K 键盘快捷键
 function handleGlobalKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -271,25 +311,50 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
 })
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeydown)
-})
 </script>
 
 <template>
   <div class="home-view">
-    <!-- 背景 -->
-    <div class="bg-layer">
-      <div class="bg-gradient" />
-      <div class="bg-pattern" />
-    </div>
+    <!-- 左侧边栏 - AnyGen 风格 -->
+    <AnySidebar
+      v-model:collapsed="sidebarCollapsed"
+      :sections="sidebarSections"
+      :show-footer="true"
+      @nav-click="handleNavClick"
+      @new-click="handleNewClick"
+    >
+      <template #footer>
+        <button class="any-sidebar__footer-btn" @click="handleLogout" title="退出登录">
+          <Settings class="w-5 h-5" />
+        </button>
+      </template>
+    </AnySidebar>
     
-    <!-- Main Content - AnyGen 风格中央布局 -->
-    <main class="home-main">
+    <!-- Header - AnyGen 风格右上角 -->
+    <AnyHeader :sidebar-collapsed="sidebarCollapsed">
+      <template #right>
+        <!-- 通知铃铛 -->
+        <button class="header-icon-btn" title="通知">
+          <Bell class="w-5 h-5" />
+          <span class="notification-badge">4</span>
+        </button>
+        <!-- 积分/Token -->
+        <div class="credits-badge">
+          <Sparkles class="w-4 h-4" />
+          <span>1,200</span>
+        </div>
+        <!-- 用户头像 -->
+        <button class="avatar-btn">
+          <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
+        </button>
+      </template>
+    </AnyHeader>
+    
+    <!-- Main Content -->
+    <main class="home-main" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- Hero: 大标题 -->
       <section class="hero-section">
-        <h1 class="hero-title">我能帮你做什么？</h1>
+        <h1 class="hero-title">How can I help you today?</h1>
       </section>
 
       <!-- 核心输入框 - AnyGen 风格 -->
@@ -313,22 +378,22 @@ onUnmounted(() => {
           <!-- 工具栏 -->
           <div class="input-toolbar">
             <div class="toolbar-left">
-              <button class="tool-btn" @click="handleAttachClick" title="添加文件">
+              <AnyButton variant="ghost" size="sm" @click="handleAttachClick" title="添加文件">
                 <Plus class="w-5 h-5" />
-              </button>
+              </AnyButton>
               <input type="file" ref="fileInputRef" class="hidden" multiple @change="handleFileSelect" />
-              <button class="tool-btn" title="添加协作者">
+              <AnyButton variant="ghost" size="sm" title="添加协作者">
                 <Users class="w-5 h-5" />
-              </button>
+              </AnyButton>
             </div>
             <div class="toolbar-right">
-              <button class="tool-btn" title="语音输入">
+              <AnyButton variant="ghost" size="sm" title="语音输入">
                 <Mic class="w-5 h-5" />
-              </button>
+              </AnyButton>
               <button 
                 class="submit-btn"
                 :class="{ active: inputValue.trim() }"
-                :disabled="!inputValue.trim()"
+                :disabled="!inputValue.trim() || isLoading"
                 @click="handleSubmit"
               >
                 <ArrowUp class="w-5 h-5" />
@@ -345,6 +410,7 @@ onUnmounted(() => {
             v-for="chip in quickChips.slice(0, 5)"
             :key="chip.id"
             class="chip"
+            :disabled="isLoading"
             @click="handleChipClick(chip)"
           >
             <component :is="chip.icon" class="w-4 h-4" />
@@ -356,6 +422,7 @@ onUnmounted(() => {
             v-for="chip in quickChips.slice(5)"
             :key="chip.id"
             class="chip"
+            :disabled="isLoading"
             @click="handleChipClick(chip)"
           >
             <component :is="chip.icon" class="w-4 h-4" />
@@ -392,15 +459,25 @@ onUnmounted(() => {
             v-for="tpl in filteredTemplates"
             :key="tpl.id"
             class="template-card"
-            :class="`template-card--${tpl.color}`"
+            :disabled="isLoading"
             @click="handleTemplateClick(tpl)"
           >
-            <div class="template-icon">
-              <component :is="tpl.icon" class="w-8 h-8" />
+            <!-- 预览图区域 -->
+            <div class="template-preview" :class="{ 'has-preview': tpl.preview }">
+              <!-- 图标类型（无预览图） -->
+              <div v-if="tpl.icon" class="template-icon-wrapper" :style="{ background: tpl.bgColor }">
+                <component :is="tpl.icon" class="w-10 h-10" :style="{ color: tpl.iconColor }" />
+              </div>
+              <!-- 预览图类型 -->
+              <div v-else class="template-thumbnail" :class="`thumbnail--${tpl.preview}`"></div>
             </div>
-            <div class="template-content">
+            <!-- 文字信息 -->
+            <div class="template-info">
               <span class="template-title">{{ tpl.title }}</span>
-              <span class="template-desc">{{ tpl.desc }}</span>
+              <div v-if="tpl.tag" class="template-meta">
+                <span class="template-tag" :class="`tag--${tpl.tag.toLowerCase()}`">{{ tpl.tag }}</span>
+                <span class="template-uses">{{ tpl.uses }}</span>
+              </div>
             </div>
           </button>
         </div>
@@ -416,30 +493,60 @@ onUnmounted(() => {
 
 .home-view {
   @apply relative min-h-screen;
-  background: #fafafa;
+  background: var(--any-bg-secondary);
 }
 
-/* Background Layer */
-.bg-layer {
-  @apply absolute inset-0 -z-10 overflow-hidden;
+/* Header icon buttons */
+.header-icon-btn {
+  @apply relative p-2 rounded-full cursor-pointer;
+  color: var(--any-text-secondary);
+  transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
-.bg-gradient {
-  @apply absolute inset-0;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+.header-icon-btn:hover {
+  color: var(--any-text-primary);
+  background: var(--any-bg-tertiary);
 }
 
-.bg-pattern {
-  @apply absolute inset-0 opacity-[0.4];
-  background-image: radial-gradient(circle at center, #e5e5e5 1px, transparent 1px);
-  background-size: 24px 24px;
+.notification-badge {
+  @apply absolute -top-0.5 -right-0.5
+         min-w-[18px] h-[18px] px-1
+         flex items-center justify-center
+         text-xs font-medium text-white
+         bg-red-500 rounded-full;
+}
+
+.credits-badge {
+  @apply flex items-center gap-1.5 px-3 py-1.5
+         text-sm rounded-full;
+  color: var(--any-text-secondary);
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+}
+
+.avatar-btn {
+  @apply w-9 h-9 flex items-center justify-center
+         text-sm font-medium text-white
+         bg-purple-500 rounded-full
+         cursor-pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.avatar-btn:hover {
+  @apply bg-purple-600;
 }
 
 /* Main Content */
 .home-main {
   @apply max-w-4xl w-full mx-auto px-6;
-  padding-top: 12vh;
+  margin-left: 56px;
+  padding-top: max(12vh, 80px);
   padding-bottom: 4rem;
+  transition: margin-left var(--any-duration-normal) var(--any-ease-default);
+}
+
+.home-main.sidebar-collapsed {
+  margin-left: 56px;
 }
 
 /* Hero Section */
@@ -448,33 +555,44 @@ onUnmounted(() => {
 }
 
 .hero-title {
-  @apply text-3xl md:text-4xl font-semibold text-gray-900;
+  @apply text-3xl md:text-4xl font-semibold;
+  color: var(--any-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* ============================================
    Input Box - AnyGen Style
    ============================================ */
 .input-section {
-  @apply mb-6;
+  @apply mb-6 flex justify-center;
 }
 
 .input-box {
-  @apply bg-white rounded-2xl border border-gray-200 shadow-sm;
+  @apply rounded-2xl shadow-sm;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  width: 100%;
+  max-width: 720px;
   padding: 16px 20px;
-  transition: all 0.2s ease;
+  transition: all var(--any-duration-normal) var(--any-ease-default);
 }
 
 .input-box:focus-within {
-  @apply border-gray-300 shadow-md;
+  border-color: var(--any-border-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .main-textarea {
-  @apply w-full text-base text-gray-900 placeholder-gray-400
-         bg-transparent border-none resize-none;
+  @apply w-full text-base bg-transparent border-none resize-none;
+  color: var(--any-text-primary);
   min-height: 24px;
   max-height: 120px;
   line-height: 1.5;
+}
+
+.main-textarea::placeholder {
+  color: var(--any-text-muted);
 }
 
 .main-textarea:focus {
@@ -482,7 +600,7 @@ onUnmounted(() => {
 }
 
 .input-toolbar {
-  @apply flex items-center justify-between mt-3 pt-3 border-t border-gray-100;
+  @apply flex items-center justify-between mt-4 pt-3;
 }
 
 .toolbar-left,
@@ -490,62 +608,67 @@ onUnmounted(() => {
   @apply flex items-center gap-2;
 }
 
-.tool-btn {
-  @apply p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100
-         rounded-lg cursor-pointer transition-all duration-150;
-}
-
 .submit-btn {
-  @apply p-2.5 rounded-full cursor-pointer transition-all duration-150;
-  background: #e5e5e5;
-  color: #9ca3af;
+  @apply p-2.5 rounded-full cursor-pointer;
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-muted);
+  transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
 .submit-btn.active {
-  background: #111827;
+  background: var(--any-text-primary);
   color: white;
 }
 
 .submit-btn:disabled {
-  @apply cursor-not-allowed;
+  @apply cursor-not-allowed opacity-50;
 }
 
 /* ============================================
    Quick Chips - AnyGen Style
    ============================================ */
 .chips-section {
-  @apply mb-8;
+  @apply mb-16;
 }
 
 .chips-row {
-  @apply flex flex-wrap items-center justify-center gap-2 mb-2;
+  @apply flex flex-wrap items-center justify-center gap-2.5 mb-2.5;
 }
 
 .chip {
   @apply flex items-center gap-2 px-4 py-2
-         text-sm text-gray-600
-         bg-white border border-gray-200 rounded-full
-         hover:border-gray-300 hover:bg-gray-50
-         cursor-pointer transition-all duration-150;
+         text-sm rounded-full cursor-pointer;
+  color: var(--any-text-secondary);
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
-.chip:hover {
-  @apply shadow-sm;
+.chip:hover:not(:disabled) {
+  border-color: var(--any-border-hover);
+  background: var(--any-bg-tertiary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.chip:disabled {
+  @apply opacity-50 cursor-not-allowed;
 }
 
 .chip-more {
-  @apply text-gray-500;
+  color: var(--any-text-muted);
 }
 
 /* ============================================
    Categories Tabs - AnyGen Style
    ============================================ */
 .categories-section {
-  @apply mb-6 border-b border-gray-200;
+  @apply mb-6;
+  border-bottom: 1px solid var(--any-border);
+  padding-left: 40px;
 }
 
 .categories-scroll {
-  @apply flex items-center gap-1 overflow-x-auto pb-0;
+  @apply flex items-center gap-0 overflow-x-auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -555,19 +678,29 @@ onUnmounted(() => {
 }
 
 .category-tab {
-  @apply flex items-center gap-1.5 px-4 py-3
-         text-sm text-gray-500 whitespace-nowrap
+  @apply flex items-center gap-1.5 px-5 py-3
+         text-sm whitespace-nowrap
          border-b-2 border-transparent
-         hover:text-gray-700
-         cursor-pointer transition-all duration-150;
+         cursor-pointer;
+  color: var(--any-text-muted);
+  margin-bottom: -1px;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.category-tab:hover {
+  color: var(--any-text-secondary);
 }
 
 .category-tab.active {
-  @apply text-gray-900 border-gray-900 font-medium;
+  @apply font-medium;
+  color: var(--any-text-primary);
+  border-color: var(--any-text-primary);
 }
 
 .category-badge {
-  @apply text-xs;
+  @apply text-xs px-1.5 py-0.5 rounded;
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
 /* ============================================
@@ -575,611 +708,107 @@ onUnmounted(() => {
    ============================================ */
 .templates-section {
   @apply py-6;
+  padding-left: 40px;
+  padding-right: 40px;
 }
 
 .templates-grid {
-  @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4;
+  @apply grid gap-5;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+@media (min-width: 1400px) {
+  .templates-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 .template-card {
-  @apply flex flex-col p-4 bg-white rounded-xl border border-gray-200
-         hover:border-gray-300 hover:shadow-md
-         cursor-pointer transition-all duration-200 text-left;
-  min-height: 140px;
+  @apply flex flex-col bg-transparent
+         cursor-pointer text-left;
+  transition: all var(--any-duration-normal) var(--any-ease-default);
 }
 
-.template-card:hover {
-  transform: translateY(-2px);
+.template-card:disabled {
+  @apply opacity-50 cursor-not-allowed;
 }
 
-.template-icon {
-  @apply w-12 h-12 rounded-xl flex items-center justify-center mb-3;
-}
-
-.template-card--orange .template-icon {
-  @apply bg-orange-100 text-orange-600;
-}
-
-.template-card--blue .template-icon {
-  @apply bg-blue-100 text-blue-600;
-}
-
-.template-card--indigo .template-icon {
-  @apply bg-indigo-100 text-indigo-600;
-}
-
-.template-card--cyan .template-icon {
-  @apply bg-cyan-100 text-cyan-600;
-}
-
-.template-card--purple .template-icon {
-  @apply bg-purple-100 text-purple-600;
-}
-
-.template-card--emerald .template-icon {
-  @apply bg-emerald-100 text-emerald-600;
-}
-
-.template-content {
-  @apply flex flex-col gap-1;
-}
-
-.template-title {
-  @apply text-sm font-medium text-gray-900;
-}
-
-.template-desc {
-  @apply text-xs text-gray-500 line-clamp-2;
-}
-
-/* Hidden utility */
-.hidden {
-  display: none;
-}
-
-/* Suggestions Section - Dark Theme Default */
-.suggestions-section {
-  @apply mb-10;
-}
-
-.suggestions-list {
-  @apply space-y-2;
-}
-
-.suggestion-item {
-  @apply w-full flex items-center gap-3 px-4 py-3
-         text-sm text-gray-300
-         bg-gray-900/60 border border-gray-800 rounded-lg
-         hover:bg-gray-900 hover:border-gray-700
-         cursor-pointer transition-all duration-200 text-left;
-}
-
-/* Workflows Section - Dark Theme Default */
-.workflows-section {
-  @apply mb-10;
-}
-
-.workflows-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
-}
-
-.workflow-card {
-  @apply flex items-center gap-4 p-5
-         bg-gray-900 border border-gray-800 rounded-xl
-         hover:border-gray-700
-         cursor-pointer transition-all duration-200 text-left;
-}
-
-.workflow-icon {
-  @apply w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0;
-}
-
-.workflow-card--indigo .workflow-icon {
-  @apply bg-indigo-900/50 text-indigo-400;
-}
-
-.workflow-card--amber .workflow-icon {
-  @apply bg-amber-900/50 text-amber-400;
-}
-
-.workflow-card--emerald .workflow-icon {
-  @apply bg-emerald-900/50 text-emerald-400;
-}
-
-.workflow-content {
-  @apply flex-1 min-w-0;
-}
-
-.workflow-title {
-  @apply block text-base font-medium text-white;
-  font-family: 'Satoshi', sans-serif;
-}
-
-.workflow-subtitle {
-  @apply block text-sm text-gray-400 truncate;
-}
-
-.workflow-arrow {
-  @apply w-5 h-5 text-gray-600 flex-shrink-0 transition-colors duration-200;
-}
-
-.workflow-card:hover .workflow-arrow {
-  @apply text-gray-400;
-}
-
-/* Recent Section - Dark Theme Default */
-.recent-section {
-  @apply mb-10;
-}
-
-.recent-list {
-  @apply space-y-2;
-}
-
-.recent-item {
-  @apply w-full flex items-center gap-3 px-4 py-3
-         bg-gray-900 border border-gray-800 rounded-lg
-         hover:border-gray-700
-         cursor-pointer transition-all duration-200 text-left;
-}
-
-.recent-status {
-  @apply w-2 h-2 rounded-full flex-shrink-0;
-}
-
-.recent-status--completed {
-  @apply bg-emerald-500;
-}
-
-.recent-status--in-progress {
-  @apply bg-amber-500;
-}
-
-.recent-name {
-  @apply flex-1 text-sm text-gray-300;
-}
-
-.recent-time {
-  @apply text-xs text-gray-500;
-}
-
-/* Footer - Dark Theme Default */
-.home-footer {
-  @apply py-6 text-center border-t border-gray-800/50;
-  background: linear-gradient(180deg, transparent, rgba(20, 20, 21, 0.5));
-}
-
-.home-footer p {
-  @apply text-sm text-gray-500;
-}
-
-/* ============================================
-   Staggered Reveal Animation System
-   ============================================ */
-.stagger-item {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: stagger-reveal 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  animation-delay: calc(var(--stagger-delay, 0) * 0.1s);
-}
-
-@keyframes stagger-reveal {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Trinity cards have their own stagger within the section */
-.trinity-card {
-  opacity: 0;
-  transform: translateY(15px);
-  animation: card-reveal 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  animation-delay: calc(0.3s + var(--card-delay, 0) * 0.1s);
-}
-
-@keyframes card-reveal {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ============================================
-   Hover Surprise Effects
-   ============================================ */
-
-/* CTA Primary - Enhanced Glow Effect */
-.cta-primary {
-  position: relative;
-  overflow: hidden;
-}
-
-.cta-primary::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.cta-primary::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 120%;
-  height: 120%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.4s ease;
-}
-
-.cta-primary:hover::before {
-  opacity: 1;
-}
-
-.cta-primary:hover::after {
-  transform: translate(-50%, -50%) scale(1);
-}
-
-.cta-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 
-    0 8px 25px rgba(255, 255, 255, 0.25),
-    0 0 40px rgba(139, 92, 246, 0.2);
-}
-
-.cta-primary:active {
-  transform: translateY(-1px);
-}
-
-/* CTA Secondary - Enhanced Border Glow */
-.cta-secondary {
-  position: relative;
-  z-index: 1;
-}
-
-.cta-secondary::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 13px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
-  opacity: 0;
-  z-index: -1;
-  transition: opacity 0.3s ease;
-}
-
-.cta-secondary::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
-  opacity: 0;
-  z-index: -2;
-  filter: blur(12px);
-  transition: opacity 0.3s ease;
-}
-
-.cta-secondary:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: transparent;
-  color: #ffffff;
-  transform: translateY(-3px);
-}
-
-.cta-secondary:hover::before {
-  opacity: 1;
-}
-
-.cta-secondary:hover::after {
-  opacity: 0.5;
-}
-
-.cta-secondary:active {
-  transform: translateY(-1px);
-}
-
-/* Trinity Card - Enhanced Lift, Glow and Spotlight Effect */
-.trinity-card {
-  --mouse-x: 50%;
-  --mouse-y: 50%;
-  position: relative;
-}
-
-.trinity-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  background: radial-gradient(
-    circle at var(--mouse-x) var(--mouse-y),
-    rgba(99, 102, 241, 0.15) 0%,
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.trinity-card:hover::before {
-  opacity: 1;
-}
-
-.trinity-card:hover {
-  transform: translateY(-8px) !important;
-  box-shadow: 
-    0 16px 48px rgba(0, 0, 0, 0.5),
-    0 0 1px rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.trinity-card:hover .trinity-icon {
-  transform: scale(1.15);
-}
-
-.trinity-card:hover .trinity-icon--manus {
-  box-shadow: 
-    0 0 24px rgba(99, 102, 241, 0.5),
-    inset 0 0 12px rgba(99, 102, 241, 0.2);
-}
-
-.trinity-card:hover .trinity-icon--coworker {
-  box-shadow: 
-    0 0 24px rgba(16, 185, 129, 0.5),
-    inset 0 0 12px rgba(16, 185, 129, 0.2);
-}
-
-.trinity-card:hover .trinity-icon--vibe {
-  box-shadow: 
-    0 0 24px rgba(6, 182, 212, 0.5),
-    inset 0 0 12px rgba(6, 182, 212, 0.2);
-}
-
-/* Featured Card - Shimmer effect */
-.featured-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.featured-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  transition: left 0.5s ease;
-}
-
-.featured-card:hover::before {
-  left: 100%;
-}
-
-.featured-card:hover {
+.template-card:hover:not(:disabled) .template-preview {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   transform: translateY(-4px);
 }
 
-.featured-card:hover .featured-icon {
-  transform: scale(1.1) rotate(5deg);
+/* 预览图区域 */
+.template-preview {
+  @apply w-full flex items-center justify-center overflow-hidden;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-lg);
+  aspect-ratio: 4 / 3;
+  transition: all var(--any-duration-normal) var(--any-ease-bounce);
 }
 
-.featured-card:hover .featured-action {
-  transform: translateX(4px);
+.template-preview.has-preview {
+  @apply p-0;
 }
 
-/* Suggestion Items - Slide and highlight */
-.suggestion-item {
-  position: relative;
-  overflow: hidden;
+/* 图标类型卡片 */
+.template-icon-wrapper {
+  @apply w-20 h-20 rounded-2xl flex items-center justify-center;
 }
 
-.suggestion-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #6366f1, #8b5cf6);
-  transform: scaleY(0);
-  transition: transform 0.2s ease;
+/* 缩略图类型卡片 */
+.template-thumbnail {
+  @apply w-full h-full;
+  background-size: cover;
+  background-position: center;
 }
 
-.suggestion-item:hover::before {
-  transform: scaleY(1);
+.thumbnail--okr {
+  background: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
 }
 
-.suggestion-item:hover {
-  transform: translateX(8px);
-  background: rgba(99, 102, 241, 0.1) !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+.thumbnail--news {
+  background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
 }
 
-/* Workflow Card - Icon bounce */
-.workflow-card:hover .workflow-icon {
-  animation: icon-bounce 0.4s ease;
+.thumbnail--marketing {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
 }
 
-@keyframes icon-bounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+.thumbnail--quarterly {
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
 }
 
-.workflow-card:hover {
-  transform: translateX(4px);
+/* 文字信息 */
+.template-info {
+  @apply py-3;
 }
 
-/* Quick Action Button - Pop effect */
-.quick-action-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.template-title {
+  @apply text-sm font-medium block mb-1;
+  color: var(--any-text-primary);
 }
 
-.quick-action-btn:active {
-  transform: translateY(0) scale(0.98);
+.template-meta {
+  @apply flex items-center gap-2;
 }
 
-/* Session Sidebar - Dark Theme Default */
-.session-sidebar {
-  @apply fixed left-0 top-16 bottom-0 w-80 bg-gray-900 border-r border-gray-800
-         overflow-y-auto z-20 transition-transform duration-300;
+.template-tag {
+  @apply text-xs px-2 py-0.5 rounded;
 }
 
-/* Vibe Background */
-.bg-vibe {
-  @apply absolute inset-0 -z-10 overflow-hidden;
+.tag--slides {
+  @apply bg-blue-100 text-blue-600;
 }
 
-.bg-gradient {
-  @apply absolute inset-0;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(139, 92, 246, 0.08), transparent),
-    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(6, 182, 212, 0.06), transparent);
+.tag--doc {
+  @apply bg-purple-100 text-purple-600;
 }
 
-.bg-pattern {
-  @apply absolute inset-0 opacity-[0.02];
-  background-image:
-    radial-gradient(circle at center, #fff 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-/* Main */
-.home-main {
-  @apply flex-1 max-w-3xl w-full mx-auto px-6 py-12;
-}
-
-/* 动态色球 - 差异化动画 */
-.orb-container {
-  @apply absolute inset-0 pointer-events-none;
-}
-
-.orb {
-  @apply absolute w-24 h-24 rounded-full opacity-30;
-  filter: blur(40px);
-  transition: all 0.8s ease-in-out;
-}
-
-/* Manus: 执行大脑 - 脉冲式呼吸，模拟"思考" */
-.orb-manus {
-  @apply bg-indigo-500;
-  top: 15%;
-  left: 20%;
-}
-
-.orb-manus.orb-active {
-  @apply opacity-70;
-  animation: orb-manus-think 2s ease-in-out infinite;
-}
-
-@keyframes orb-manus-think {
-  0%, 100% {
-    opacity: 0.7;
-    transform: scale(1.2);
-    filter: blur(40px) brightness(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.4);
-    filter: blur(50px) brightness(1.2);
-  }
-}
-
-/* Coworker: 执行双手 - 轻微旋转+缩放，模拟"操作" */
-.orb-coworker {
-  @apply bg-emerald-500;
-  top: 25%;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.orb-coworker.orb-active {
-  @apply opacity-60;
-  animation: orb-coworker-work 3s ease-in-out infinite;
-}
-
-@keyframes orb-coworker-work {
-  0%, 100% {
-    opacity: 0.6;
-    transform: translateX(-50%) scale(1.2) rotate(0deg);
-  }
-  25% {
-    opacity: 0.5;
-    transform: translateX(-50%) scale(1.35) rotate(5deg);
-  }
-  50% {
-    opacity: 0.7;
-    transform: translateX(-50%) scale(1.3) rotate(0deg);
-  }
-  75% {
-    opacity: 0.5;
-    transform: translateX(-50%) scale(1.35) rotate(-5deg);
-  }
-}
-
-/* Vibe: 生命气息 - 不规则漂浮，模拟"灵动" */
-.orb-vibe {
-  @apply bg-cyan-500;
-  top: 15%;
-  right: 20%;
-}
-
-.orb-vibe.orb-active {
-  @apply opacity-60;
-  animation: orb-vibe-float 4s ease-in-out infinite;
-}
-
-@keyframes orb-vibe-float {
-  0%, 100% {
-    opacity: 0.6;
-    transform: translate(0, 0) scale(1.2);
-  }
-  25% {
-    opacity: 0.5;
-    transform: translate(10px, -15px) scale(1.35);
-  }
-  50% {
-    opacity: 0.7;
-    transform: translate(-5px, 5px) scale(1.25);
-  }
-  75% {
-    opacity: 0.5;
-    transform: translate(-10px, -10px) scale(1.4);
-  }
-}
-
-/* 能量连线 */
-.energy-lines {
-  @apply absolute w-full h-24 top-1/4 left-0 opacity-30;
-}
-
-.energy-line {
-  fill: none;
-  stroke: url(#energy-gradient);
-  stroke-width: 2;
-  stroke-dasharray: 8 4;
-  animation: energy-flow 3s linear infinite;
-}
-
-@keyframes energy-flow {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -24; }
-}
-
-/* Drop Section */
-.drop-section {
-  @apply mb-8;
+.template-uses {
+  @apply text-xs;
+  color: var(--any-text-muted);
 }
 
 /* Hidden utility */

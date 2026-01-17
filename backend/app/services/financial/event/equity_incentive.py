@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 EquityIncentiveService - 股权激励分析服务
 
@@ -10,9 +9,9 @@ EquityIncentiveService - 股权激励分析服务
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from typing import Any, Dict, List, Optional
+from datetime import date, datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +42,10 @@ class VestingCondition:
     condition_type: str  # 业绩条件类型
     target_metric: str   # 目标指标
     target_value: float  # 目标值
-    current_value: Optional[float] = None
-    achievement_pct: Optional[float] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    current_value: float | None = None
+    achievement_pct: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "condition_type": self.condition_type,
             "target_metric": self.target_metric,
@@ -63,10 +62,10 @@ class VestingSchedule:
     vesting_date: date   # 解锁日期
     shares: int          # 解锁股数
     exercise_price: float  # 行权价
-    conditions: List[VestingCondition] = field(default_factory=list)
+    conditions: list[VestingCondition] = field(default_factory=list)
     status: IncentiveStatus = IncentiveStatus.VESTING
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "tranche": self.tranche,
             "vesting_date": self.vesting_date.isoformat(),
@@ -86,26 +85,26 @@ class EquityIncentivePlan:
     plan_name: str
     incentive_type: IncentiveType
     status: IncentiveStatus
-    
+
     # 计划信息
     announce_date: date
-    grant_date: Optional[date] = None
+    grant_date: date | None = None
     total_shares: int = 0
     exercise_price: float = 0.0
     current_price: float = 0.0
-    
+
     # 参与者
     total_participants: int = 0
     executive_participants: int = 0
-    
+
     # 解锁计划
-    vesting_schedules: List[VestingSchedule] = field(default_factory=list)
-    
+    vesting_schedules: list[VestingSchedule] = field(default_factory=list)
+
     # 分析
     price_premium: float = 0.0  # 当前价格相对行权价溢价
     dilution_pct: float = 0.0   # 稀释比例
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -132,15 +131,15 @@ class IncentiveAnalysisResult:
     symbol: str
     name: str
     analysis_date: datetime
-    active_plans: List[EquityIncentivePlan] = field(default_factory=list)
-    historical_plans: List[EquityIncentivePlan] = field(default_factory=list)
-    
+    active_plans: list[EquityIncentivePlan] = field(default_factory=list)
+    historical_plans: list[EquityIncentivePlan] = field(default_factory=list)
+
     # 统计
     total_active_shares: int = 0
     total_dilution_pct: float = 0.0
     upcoming_vestings: int = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -155,10 +154,10 @@ class IncentiveAnalysisResult:
 
 class EquityIncentiveService:
     """股权激励分析服务"""
-    
+
     def __init__(self):
-        self._cache: Dict[str, IncentiveAnalysisResult] = {}
-    
+        self._cache: dict[str, IncentiveAnalysisResult] = {}
+
     async def analyze_incentive_plans(
         self,
         symbol: str,
@@ -166,18 +165,18 @@ class EquityIncentiveService:
         """分析股权激励计划"""
         if symbol in self._cache:
             return self._cache[symbol]
-        
+
         try:
             # 获取活跃计划
             active = await self._get_active_plans(symbol)
-            
+
             # 获取历史计划
             historical = await self._get_historical_plans(symbol)
-            
+
             # 计算统计
             total_shares = sum(p.total_shares for p in active)
             total_dilution = sum(p.dilution_pct for p in active)
-            
+
             # 计算即将解锁
             upcoming = 0
             for plan in active:
@@ -185,7 +184,7 @@ class EquityIncentiveService:
                     if schedule.status == IncentiveStatus.VESTING:
                         if (schedule.vesting_date - date.today()).days <= 90:
                             upcoming += 1
-            
+
             result = IncentiveAnalysisResult(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -196,10 +195,10 @@ class EquityIncentiveService:
                 total_dilution_pct=round(total_dilution, 2),
                 upcoming_vestings=upcoming,
             )
-            
+
             self._cache[symbol] = result
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze incentive plans for {symbol}: {e}")
             return IncentiveAnalysisResult(
@@ -207,40 +206,40 @@ class EquityIncentiveService:
                 name="",
                 analysis_date=datetime.now(),
             )
-    
+
     async def get_recent_incentive_announcements(
         self,
-        incentive_type: Optional[IncentiveType] = None,
+        incentive_type: IncentiveType | None = None,
         limit: int = 20,
-    ) -> List[EquityIncentivePlan]:
+    ) -> list[EquityIncentivePlan]:
         """获取近期股权激励公告"""
         plans = await self._get_market_plans()
-        
+
         if incentive_type:
             plans = [p for p in plans if p.incentive_type == incentive_type]
-        
+
         plans.sort(key=lambda x: x.announce_date, reverse=True)
         return plans[:limit]
-    
+
     async def get_upcoming_vestings(
         self,
         days: int = 30,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """获取即将解锁的股权激励"""
         return await self._get_vesting_calendar(days)
-    
-    async def _get_active_plans(self, symbol: str) -> List[EquityIncentivePlan]:
+
+    async def _get_active_plans(self, symbol: str) -> list[EquityIncentivePlan]:
         """获取活跃激励计划"""
         import random
         from datetime import timedelta
-        
+
         plans = []
         current_price = random.uniform(20, 200)
-        
+
         # 模拟一个活跃计划
         exercise_price = current_price * random.uniform(0.6, 0.9)
         total_shares = random.randint(1000000, 10000000)
-        
+
         vesting_schedules = []
         for i in range(3):
             vesting_schedules.append(VestingSchedule(
@@ -259,12 +258,12 @@ class EquityIncentiveService:
                 ],
                 status=IncentiveStatus.VESTING,
             ))
-        
+
         plans.append(EquityIncentivePlan(
             symbol=symbol,
             name=self._get_stock_name(symbol),
             plan_id=f"{symbol}_2024_01",
-            plan_name=f"2024年股票期权激励计划",
+            plan_name="2024年股票期权激励计划",
             incentive_type=IncentiveType.STOCK_OPTION,
             status=IncentiveStatus.GRANTED,
             announce_date=date.today() - timedelta(days=random.randint(30, 180)),
@@ -278,16 +277,15 @@ class EquityIncentiveService:
             price_premium=round((current_price - exercise_price) / exercise_price * 100, 2),
             dilution_pct=round(random.uniform(0.5, 3), 2),
         ))
-        
+
         return plans
-    
-    async def _get_historical_plans(self, symbol: str) -> List[EquityIncentivePlan]:
+
+    async def _get_historical_plans(self, symbol: str) -> list[EquityIncentivePlan]:
         """获取历史激励计划"""
         import random
-        from datetime import timedelta
-        
+
         plans = []
-        
+
         for i in range(2):
             year = date.today().year - i - 1
             plans.append(EquityIncentivePlan(
@@ -305,24 +303,24 @@ class EquityIncentiveService:
                 total_participants=random.randint(30, 300),
                 executive_participants=random.randint(3, 15),
             ))
-        
+
         return plans
-    
-    async def _get_market_plans(self) -> List[EquityIncentivePlan]:
+
+    async def _get_market_plans(self) -> list[EquityIncentivePlan]:
         """获取市场股权激励公告"""
         import random
         from datetime import timedelta
-        
+
         stocks = [
             ("600519", "贵州茅台"), ("000858", "五粮液"),
             ("600036", "招商银行"), ("000333", "美的集团"),
         ]
-        
+
         plans = []
         for symbol, name in stocks:
             current_price = random.uniform(20, 200)
             exercise_price = current_price * random.uniform(0.6, 0.9)
-            
+
             plans.append(EquityIncentivePlan(
                 symbol=symbol,
                 name=name,
@@ -335,18 +333,18 @@ class EquityIncentiveService:
                 exercise_price=round(exercise_price, 2),
                 current_price=round(current_price, 2),
             ))
-        
+
         return plans
-    
-    async def _get_vesting_calendar(self, days: int) -> List[Dict[str, Any]]:
+
+    async def _get_vesting_calendar(self, days: int) -> list[dict[str, Any]]:
         """获取解锁日历"""
         import random
         from datetime import timedelta
-        
+
         stocks = [
             ("600519", "贵州茅台"), ("000858", "五粮液"),
         ]
-        
+
         calendar = []
         for symbol, name in stocks:
             calendar.append({
@@ -357,9 +355,9 @@ class EquityIncentiveService:
                 "exercise_price": round(random.uniform(20, 100), 2),
                 "plan_name": f"{date.today().year - 1}年股票期权激励计划",
             })
-        
+
         return calendar
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         """获取股票名称"""
         names = {
@@ -372,7 +370,7 @@ class EquityIncentiveService:
 
 
 # 全局单例
-_equity_incentive_service: Optional[EquityIncentiveService] = None
+_equity_incentive_service: EquityIncentiveService | None = None
 
 
 def get_equity_incentive_service() -> EquityIncentiveService:

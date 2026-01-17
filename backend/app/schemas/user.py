@@ -1,6 +1,6 @@
 """User-related Pydantic schemas."""
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -28,17 +28,17 @@ class UserResponse(BaseModel):
     id: UUID
     email: str
     username: str
-    display_name: Optional[str] = None
-    avatar_url: Optional[str] = None
+    display_name: str | None = None
+    avatar_url: str | None = None
     auth_provider: str = "email_password"
     is_active: bool
     is_verified: bool
     email_verified: bool = False
     created_at: datetime
     updated_at: datetime
-    last_login_at: Optional[datetime] = None
-    personal_quota: Optional[Dict[str, Any]] = None
-    usage_stats: Optional[Dict[str, Any]] = None
+    last_login_at: datetime | None = None
+    personal_quota: dict[str, Any] | None = None
+    usage_stats: dict[str, Any] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Knowledge Graph 数据模型
 
@@ -11,11 +10,11 @@ Knowledge Graph 数据模型
 - ClaimVerification: 声明验证结果
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Tuple
-from enum import Enum
-from datetime import datetime
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class EntityType(Enum):
@@ -38,23 +37,23 @@ class RelationType(Enum):
     FOUNDED = "founded"             # A founded B
     AUTHORED = "authored"           # A authored B
     LEADS = "leads"                 # A leads B
-    
+
     # 概念关系
     IS_A = "is_a"                   # A is a type of B
     PART_OF = "part_of"             # A is part of B
     RELATED_TO = "related_to"       # A is related to B
     COMPARED_TO = "compared_to"     # A compared to B
     DEPENDS_ON = "depends_on"       # A depends on B
-    
+
     # 时间关系
     PRECEDED_BY = "preceded_by"     # A preceded by B
     FOLLOWED_BY = "followed_by"     # A followed by B
     CONCURRENT_WITH = "concurrent_with"  # A concurrent with B
-    
+
     # 来源关系
     CITED_IN = "cited_in"           # A is cited in B
     EXTRACTED_FROM = "extracted_from"  # A extracted from B
-    
+
     # 证据关系 (用于交叉验证)
     SUPPORTS = "supports"           # A supports claim B
     CONTRADICTS = "contradicts"     # A contradicts B
@@ -74,7 +73,7 @@ class ConfidenceLevel(Enum):
 class Entity:
     """
     知识图谱实体
-    
+
     Attributes:
         id: 唯一标识符
         name: 实体名称
@@ -89,19 +88,19 @@ class Entity:
     id: str
     name: str
     type: EntityType
-    properties: Dict[str, Any] = field(default_factory=dict)
-    embedding: Optional[List[float]] = None
-    source_ids: List[str] = field(default_factory=list)
+    properties: dict[str, Any] = field(default_factory=dict)
+    embedding: list[float] | None = None
+    source_ids: list[str] = field(default_factory=list)
     confidence: float = 1.0
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    
+
     @classmethod
     def create(
         cls,
         name: str,
         entity_type: EntityType,
-        source_id: Optional[str] = None,
+        source_id: str | None = None,
         **properties
     ) -> "Entity":
         """工厂方法: 创建新实体"""
@@ -112,24 +111,24 @@ class Entity:
             properties=properties,
             source_ids=[source_id] if source_id else [],
         )
-    
+
     def merge_with(self, other: "Entity") -> None:
         """合并另一个实体的信息 (实体消歧后)"""
         # 合并来源
         for sid in other.source_ids:
             if sid not in self.source_ids:
                 self.source_ids.append(sid)
-        
+
         # 合并属性 (新属性优先)
         for key, value in other.properties.items():
             if key not in self.properties:
                 self.properties[key] = value
-        
+
         # 更新置信度 (更多来源 = 更高置信度)
         self.confidence = min(1.0, self.confidence + 0.1)
         self.updated_at = datetime.now()
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典 (用于序列化)"""
         return {
             "id": self.id,
@@ -141,9 +140,9 @@ class Entity:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Entity":
+    def from_dict(cls, data: dict[str, Any]) -> "Entity":
         """从字典创建实体"""
         return cls(
             id=data["id"],
@@ -161,7 +160,7 @@ class Entity:
 class Relation:
     """
     知识图谱关系
-    
+
     Attributes:
         id: 唯一标识符
         source_entity_id: 源实体 ID
@@ -177,12 +176,12 @@ class Relation:
     source_entity_id: str
     target_entity_id: str
     type: RelationType
-    properties: Dict[str, Any] = field(default_factory=dict)
+    properties: dict[str, Any] = field(default_factory=dict)
     evidence: str = ""
     source_id: str = ""
     confidence: float = 1.0
     created_at: datetime = field(default_factory=datetime.now)
-    
+
     @classmethod
     def create(
         cls,
@@ -203,8 +202,8 @@ class Relation:
             evidence=evidence,
             source_id=doc_source_id,
         )
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "id": self.id,
@@ -217,9 +216,9 @@ class Relation:
             "confidence": self.confidence,
             "created_at": self.created_at.isoformat(),
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Relation":
+    def from_dict(cls, data: dict[str, Any]) -> "Relation":
         """从字典创建关系"""
         return cls(
             id=data["id"],
@@ -241,11 +240,11 @@ class ResearchSource:
     url: str
     title: str
     snippet: str
-    content: Optional[str] = None
+    content: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     credibility_score: float = 0.5
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "url": self.url,
@@ -261,64 +260,64 @@ class ResearchSource:
 class ResearchKnowledgeGraph:
     """
     研究知识图谱
-    
+
     包含实体、关系和来源的完整图谱结构
     支持内存操作和 Neo4j 持久化
     """
-    entities: Dict[str, Entity] = field(default_factory=dict)
-    relations: List[Relation] = field(default_factory=list)
-    sources: Dict[str, ResearchSource] = field(default_factory=dict)
-    
+    entities: dict[str, Entity] = field(default_factory=dict)
+    relations: list[Relation] = field(default_factory=list)
+    sources: dict[str, ResearchSource] = field(default_factory=dict)
+
     # 索引结构 (加速查询)
-    _name_to_entity: Dict[str, str] = field(default_factory=dict)  # name -> entity_id
-    _adjacency: Dict[str, List[Tuple[str, str]]] = field(default_factory=dict)  # entity_id -> [(relation_id, target_id)]
-    
+    _name_to_entity: dict[str, str] = field(default_factory=dict)  # name -> entity_id
+    _adjacency: dict[str, list[tuple[str, str]]] = field(default_factory=dict)  # entity_id -> [(relation_id, target_id)]
+
     def add_entity(self, entity: Entity) -> str:
         """添加实体"""
         self.entities[entity.id] = entity
-        
+
         # 更新名称索引
         name_key = entity.name.lower().strip()
         self._name_to_entity[name_key] = entity.id
-        
+
         # 初始化邻接表
         if entity.id not in self._adjacency:
             self._adjacency[entity.id] = []
-        
+
         return entity.id
-    
+
     def add_relation(self, relation: Relation) -> str:
         """添加关系"""
         self.relations.append(relation)
-        
+
         # 更新邻接表 (双向)
         if relation.source_entity_id not in self._adjacency:
             self._adjacency[relation.source_entity_id] = []
         self._adjacency[relation.source_entity_id].append(
             (relation.id, relation.target_entity_id)
         )
-        
+
         # 反向边 (用于双向遍历)
         if relation.target_entity_id not in self._adjacency:
             self._adjacency[relation.target_entity_id] = []
         self._adjacency[relation.target_entity_id].append(
             (relation.id, relation.source_entity_id)
         )
-        
+
         return relation.id
-    
+
     def add_source(self, source: ResearchSource) -> str:
         """添加来源"""
         self.sources[source.id] = source
         return source.id
-    
-    def get_entity_by_name(self, name: str) -> Optional[Entity]:
+
+    def get_entity_by_name(self, name: str) -> Entity | None:
         """按名称查找实体"""
         name_key = name.lower().strip()
         entity_id = self._name_to_entity.get(name_key)
         return self.entities.get(entity_id) if entity_id else None
-    
-    def get_neighbors(self, entity_id: str) -> List[Tuple[Relation, Entity]]:
+
+    def get_neighbors(self, entity_id: str) -> list[tuple[Relation, Entity]]:
         """获取实体的所有邻居"""
         neighbors = []
         for relation_id, neighbor_id in self._adjacency.get(entity_id, []):
@@ -328,48 +327,48 @@ class ResearchKnowledgeGraph:
             if relation and neighbor:
                 neighbors.append((relation, neighbor))
         return neighbors
-    
-    def find_similar_entity(self, name: str, threshold: float = 0.8) -> Optional[Entity]:
+
+    def find_similar_entity(self, name: str, threshold: float = 0.8) -> Entity | None:
         """
         查找相似实体 (用于实体消歧)
         使用简单的字符串匹配，可扩展为向量相似度
         """
         name_lower = name.lower().strip()
-        
+
         # 精确匹配
         if name_lower in self._name_to_entity:
             return self.entities[self._name_to_entity[name_lower]]
-        
+
         # 模糊匹配 (Jaccard 相似度)
         name_tokens = set(name_lower.split())
         best_match = None
         best_score = 0.0
-        
+
         for existing_name, entity_id in self._name_to_entity.items():
             existing_tokens = set(existing_name.split())
             if not existing_tokens:
                 continue
-            
+
             intersection = len(name_tokens & existing_tokens)
             union = len(name_tokens | existing_tokens)
             score = intersection / union if union > 0 else 0
-            
+
             if score > best_score and score >= threshold:
                 best_score = score
                 best_match = self.entities[entity_id]
-        
+
         return best_match
-    
-    def get_statistics(self) -> Dict[str, Any]:
+
+    def get_statistics(self) -> dict[str, Any]:
         """获取图谱统计信息"""
         entity_types = {}
         for entity in self.entities.values():
             entity_types[entity.type.value] = entity_types.get(entity.type.value, 0) + 1
-        
+
         relation_types = {}
         for relation in self.relations:
             relation_types[relation.type.value] = relation_types.get(relation.type.value, 0) + 1
-        
+
         return {
             "total_entities": len(self.entities),
             "total_relations": len(self.relations),
@@ -377,24 +376,24 @@ class ResearchKnowledgeGraph:
             "entity_types": entity_types,
             "relation_types": relation_types,
         }
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """序列化为字典"""
         return {
             "entities": {eid: e.to_dict() for eid, e in self.entities.items()},
             "relations": [r.to_dict() for r in self.relations],
             "sources": {sid: s.to_dict() for sid, s in self.sources.items()},
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ResearchKnowledgeGraph":
+    def from_dict(cls, data: dict[str, Any]) -> "ResearchKnowledgeGraph":
         """从字典反序列化"""
         graph = cls()
-        
+
         for entity_data in data.get("entities", {}).values():
             entity = Entity.from_dict(entity_data)
             graph.add_entity(entity)
-        
+
         for relation_data in data.get("relations", []):
             relation = Relation.from_dict(relation_data)
             graph.relations.append(relation)
@@ -407,7 +406,7 @@ class ResearchKnowledgeGraph:
                 graph._adjacency.setdefault(relation.target_entity_id, []).append(
                     (relation.id, relation.source_entity_id)
                 )
-        
+
         return graph
 
 
@@ -415,27 +414,27 @@ class ResearchKnowledgeGraph:
 class ReasoningPath:
     """
     推理路径
-    
+
     记录从起始实体到目标实体的推理链
     """
-    entities: List[Entity]
-    relations: List[Relation]
+    entities: list[Entity]
+    relations: list[Relation]
     score: float = 0.0  # 路径质量评分
-    
+
     def __str__(self) -> str:
         """可读的路径表示"""
         if not self.entities:
             return "(empty path)"
-        
+
         parts = [self.entities[0].name]
         for i, relation in enumerate(self.relations):
             if i + 1 < len(self.entities):
                 parts.append(f" --[{relation.type.value}]--> ")
                 parts.append(self.entities[i + 1].name)
-        
+
         return "".join(parts)
-    
-    def get_evidence(self) -> List[str]:
+
+    def get_evidence(self) -> list[str]:
         """获取路径上的所有证据"""
         return [r.evidence for r in self.relations if r.evidence]
 
@@ -446,12 +445,12 @@ class MultiHopResult:
     多跳查询结果
     """
     answer: str                           # 综合答案
-    paths: List[ReasoningPath]            # 推理路径
+    paths: list[ReasoningPath]            # 推理路径
     confidence: float                     # 整体置信度
-    entities_involved: List[Entity] = field(default_factory=list)  # 涉及的实体
-    sources_used: List[str] = field(default_factory=list)          # 使用的来源
-    
-    def to_dict(self) -> Dict[str, Any]:
+    entities_involved: list[Entity] = field(default_factory=list)  # 涉及的实体
+    sources_used: list[str] = field(default_factory=list)          # 使用的来源
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "answer": self.answer,
             "paths": [str(p) for p in self.paths],
@@ -469,16 +468,16 @@ class ClaimVerification:
     claim: str                                    # 原始声明
     verdict: str                                  # 判定: confirmed, contradicted, uncertain
     confidence: float                             # 置信度
-    supporting_evidence: List[Tuple[str, str]] = field(default_factory=list)    # (来源, 证据)
-    contradicting_evidence: List[Tuple[str, str]] = field(default_factory=list) # (来源, 证据)
+    supporting_evidence: list[tuple[str, str]] = field(default_factory=list)    # (来源, 证据)
+    contradicting_evidence: list[tuple[str, str]] = field(default_factory=list) # (来源, 证据)
     explanation: str = ""                         # 解释
-    
+
     @property
     def has_conflict(self) -> bool:
         """是否存在矛盾"""
         return len(self.supporting_evidence) > 0 and len(self.contradicting_evidence) > 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "claim": self.claim,
             "verdict": self.verdict,

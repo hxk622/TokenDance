@@ -9,23 +9,20 @@ Failure Module - 失败信号系统
 - FailureSummary: 失败摘要（用于 Plan Recitation）
 """
 
-from .signal import (
-    FailureSignal,
-    FailureSummary,
-    FailureSource,
-    FailureType,
-    ExitCode,
-)
-
 from .observer import (
+    FailureCallback,
     FailureObserver,
     FailureReporter,
-    FailureCallback,
 )
-
-from .root_cause import RootCauseAnalyzer, RootCause
-from .pattern_kb import FailurePatternKB, FailurePattern
-
+from .pattern_kb import FailurePattern, FailurePatternKB
+from .root_cause import RootCause, RootCauseAnalyzer
+from .signal import (
+    ExitCode,
+    FailureSignal,
+    FailureSource,
+    FailureSummary,
+    FailureType,
+)
 
 __all__ = [
     # Signal

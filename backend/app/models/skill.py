@@ -1,11 +1,9 @@
 """
 Skill model - registry for available skills.
 """
-import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Boolean, JSON, String, Text, Integer, Float
+from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -14,10 +12,10 @@ from app.core.database import Base
 class Skill(Base):
     """
     Skill model - registry entry for an available skill.
-    
+
     Skills are loaded from SKILL.md files in the skills/ directory.
     This table serves as a cache/registry for quick lookup.
-    
+
     Features:
     - Three-level lazy loading metadata (L1/L2/L3)
     - Version tracking
@@ -110,12 +108,12 @@ class Skill(Base):
     def increment_usage(self, tokens_used: int = 0, success: bool = True) -> None:
         """Update usage statistics."""
         self.usage_count += 1
-        
+
         # Update average tokens
         if tokens_used > 0:
             total_tokens = self.avg_tokens_used * (self.usage_count - 1) + tokens_used
             self.avg_tokens_used = total_tokens // self.usage_count
-        
+
         # Update success rate
         if self.usage_count > 1:
             current_successes = self.success_rate * (self.usage_count - 1)

@@ -1,66 +1,63 @@
-from typing import Optional, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from typing import Any
 
-from app.repositories.agent_state_repository import (
-    AgentStateRepository,
-    AgentCheckpointRepository
-)
-from app.models.agent_state import AgentState
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.agent.working_memory.three_files import ThreeFilesManager
 from app.filesystem import AgentFileSystem
+from app.models.agent_state import AgentState
+from app.repositories.agent_state_repository import AgentCheckpointRepository, AgentStateRepository
 
 
 class AgentStateService:
     """Service for managing Agent state persistence"""
-    
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.state_repo = AgentStateRepository(db)
         self.checkpoint_repo = AgentCheckpointRepository(db)
-    
+
     async def initialize_state(
         self,
         session_id: str,
-        agent_config_id: Optional[str] = None
+        agent_config_id: str | None = None
     ) -> AgentState:
         """Initialize agent state for a session"""
-        
+
         # Check if state already exists
         existing_state = await self.state_repo.get_by_session(session_id)
         if existing_state:
             return existing_state
-        
+
         # Create new state
         state = await self.state_repo.create(
             session_id=session_id,
             agent_config_id=agent_config_id,
             current_state="IDLE"
         )
-        
+
         return state
-    
+
     async def update_execution_state(
         self,
         session_id: str,
         current_state: str,
         iteration: int,
-        state_data: Optional[Dict[str, Any]] = None
+        state_data: dict[str, Any] | None = None
     ) -> AgentState:
         """Update agent execution state"""
-        
+
         state = await self.state_repo.update_state(
             session_id=session_id,
             current_state=current_state,
             iteration_count=iteration,
             state_data=state_data
         )
-        
+
         if not state:
             raise ValueError(f"Agent state not found for session {session_id}")
-        
+
         return state
-    
+
     async def record_token_usage(
         self,
         session_id: str,
@@ -68,66 +65,66 @@ class AgentStateService:
         output_tokens: int
     ) -> AgentState:
         """Record token usage"""
-        
+
         state = await self.state_repo.update_token_usage(
             session_id=session_id,
             input_tokens=input_tokens,
             output_tokens=output_tokens
         )
-        
+
         if not state:
             raise ValueError(f"Agent state not found for session {session_id}")
-        
+
         return state
-    
+
     async def record_tool_call(
         self,
         session_id: str,
         success: bool
     ) -> AgentState:
         """Record tool call statistics"""
-        
+
         state = await self.state_repo.update_tool_stats(
             session_id=session_id,
             success=success
         )
-        
+
         if not state:
             raise ValueError(f"Agent state not found for session {session_id}")
-        
+
         return state
-    
+
     async def record_error(
         self,
         session_id: str,
         error_message: str
     ) -> AgentState:
         """Record an error"""
-        
+
         state = await self.state_repo.record_error(
             session_id=session_id,
             error_message=error_message
         )
-        
+
         if not state:
             raise ValueError(f"Agent state not found for session {session_id}")
-        
+
         return state
-    
+
     async def create_checkpoint(
         self,
         session_id: str,
         iteration: int,
         checkpoint_type: str = "auto",
-        reason: Optional[str] = None
+        reason: str | None = None
     ) -> AgentState:
         """Create a checkpoint"""
-        
+
         # Get agent state
         state = await self.state_repo.get_by_session(session_id)
         if not state:
             raise ValueError(f"Agent state not found for session {session_id}")
-        
+
         # Capture context snapshot
         context_snapshot = {
             "current_state": state.current_state,
@@ -148,11 +145,11 @@ class AgentStateService:
                 "last_error_time": state.last_error_time.isoformat() if state.last_error_time else None
             }
         }
-        
+
         # Capture working memory snapshot
         filesystem = AgentFileSystem()
         memory_manager = ThreeFilesManager(filesystem, session_id)
-        
+
         try:
             memory_data = memory_manager.read_all()
             working_memory_snapshot = {
@@ -162,9 +159,9 @@ class AgentStateService:
             }
         except Exception:
             working_memory_snapshot = None
-        
+
         # Create checkpoint
-        checkpoint = await self.checkpoint_repo.create(
+        await self.checkpoint_repo.create(
             agent_state_id=state.id,
             iteration=iteration,
             checkpoint_type=checkpoint_type,
@@ -172,39 +169,39 @@ class AgentStateService:
             working_memory_snapshot=working_memory_snapshot,
             reason=reason
         )
-        
+
         return state
-    
+
     async def complete_session(
         self,
         session_id: str,
-        total_execution_time: Optional[float] = None
+        total_execution_time: float | None = None
     ) -> AgentState:
         """Mark session as completed"""
-        
+
         state = await self.state_repo.complete_session(
             session_id=session_id,
             total_execution_time=total_execution_time
         )
-        
+
         if not state:
             raise ValueError(f"Agent state not found for session {session_id}")
-        
+
         return state
-    
-    async def get_state_summary(self, session_id: str) -> Optional[Dict[str, Any]]:
+
+    async def get_state_summary(self, session_id: str) -> dict[str, Any] | None:
         """Get agent state summary"""
-        
+
         state = await self.state_repo.get_by_session(session_id)
         if not state:
             return None
-        
+
         # Get recent checkpoints
         checkpoints = await self.checkpoint_repo.get_by_agent_state(
             agent_state_id=state.id,
             limit=5
         )
-        
+
         return {
             "session_id": session_id,
             "current_state": state.current_state,
@@ -248,18 +245,18 @@ class AgentStateService:
                 for cp in checkpoints
             ]
         }
-    
+
     async def cleanup_old_checkpoints(
         self,
         session_id: str,
         keep_last_n: int = 5
     ) -> int:
         """Clean up old checkpoints"""
-        
+
         state = await self.state_repo.get_by_session(session_id)
         if not state:
             return 0
-        
+
         return await self.checkpoint_repo.delete_old_checkpoints(
             agent_state_id=state.id,
             keep_last_n=keep_last_n

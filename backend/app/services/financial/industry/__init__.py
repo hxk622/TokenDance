@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Industry 行业分析模块
 
@@ -8,21 +7,21 @@ Industry 行业分析模块
 3. 行业轮动分析
 4. 板块地图
 """
-from .peer_comparison import (
-    PeerComparisonService,
-    PeerComparisonResult,
-    CompanyMetrics,
-    get_peer_comparison_service,
-)
 from .industry_ranking import (
     IndustryRankingService,
     RankingResult,
     get_industry_ranking_service,
 )
+from .peer_comparison import (
+    CompanyMetrics,
+    PeerComparisonResult,
+    PeerComparisonService,
+    get_peer_comparison_service,
+)
 from .rotation_analysis import (
-    RotationAnalysisService,
-    RotationAnalysisResult,
     MomentumSignal,
+    RotationAnalysisResult,
+    RotationAnalysisService,
     get_rotation_analysis_service,
 )
 from .sector_map import (

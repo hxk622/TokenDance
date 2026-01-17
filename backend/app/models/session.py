@@ -6,17 +6,17 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, Text, Integer
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.workspace import Workspace
-    from app.models.message import Message
-    from app.models.artifact import Artifact
     from app.models.agent_config import AgentConfig
     from app.models.agent_state import AgentState
+    from app.models.artifact import Artifact
+    from app.models.message import Message
+    from app.models.workspace import Workspace
 
 
 class SessionStatus(PyEnum):
@@ -30,7 +30,7 @@ class SessionStatus(PyEnum):
 class Session(Base):
     """
     Session model - a chat conversation within a workspace.
-    
+
     Features:
     - Linked to a workspace
     - Tracks current skill activation
@@ -47,13 +47,13 @@ class Session(Base):
 
     # Workspace relationship
     workspace_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), 
+        String(36), ForeignKey("workspaces.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
 
     # Agent configuration
     agent_config_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("agent_configs.id", ondelete="SET NULL"), 
+        String(36), ForeignKey("agent_configs.id", ondelete="SET NULL"),
         nullable=True, index=True
     )
 
@@ -70,10 +70,10 @@ class Session(Base):
 
     # Context management
     context_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     # Plan Recitation - TODO list for the session
     todo_list: Mapped[list | None] = mapped_column(
-        JSON, 
+        JSON,
         default=None,
         nullable=True
     )
@@ -102,7 +102,7 @@ class Session(Base):
     agent_config: Mapped["AgentConfig"] = relationship("AgentConfig", back_populates="sessions")
     agent_state: Mapped["AgentState"] = relationship("AgentState", back_populates="session", uselist=False)
     messages: Mapped[list["Message"]] = relationship(
-        "Message", 
+        "Message",
         back_populates="session",
         cascade="all, delete-orphan",
         order_by="Message.created_at"

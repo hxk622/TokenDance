@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 RiskAttributionService - 风险归因分析服务
 
@@ -10,8 +9,8 @@ RiskAttributionService - 风险归因分析服务
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +33,8 @@ class RiskContribution:
     risk_contribution: float      # 风险贡献 (波动率贡献)
     risk_contribution_pct: float  # 风险贡献占比
     marginal_risk: float          # 边际风险
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "source": self.source,
             "source_type": self.source_type.value,
@@ -55,8 +54,8 @@ class PositionRisk:
     beta: float
     risk_contribution: float
     risk_contribution_pct: float
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -73,22 +72,22 @@ class RiskAttributionResult:
     """风险归因结果"""
     portfolio_id: str
     analysis_date: datetime
-    
+
     # 组合整体风险
     total_risk: float              # 总风险 (年化波动率)
     systematic_risk: float         # 系统性风险
     specific_risk: float           # 特质风险
-    
+
     # 因子风险归因
-    factor_contributions: List[RiskContribution] = field(default_factory=list)
-    
+    factor_contributions: list[RiskContribution] = field(default_factory=list)
+
     # 持仓风险
-    position_risks: List[PositionRisk] = field(default_factory=list)
-    
+    position_risks: list[PositionRisk] = field(default_factory=list)
+
     # 风险集中度
     top5_risk_contribution: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "portfolio_id": self.portfolio_id,
             "analysis_date": self.analysis_date.isoformat(),
@@ -103,18 +102,18 @@ class RiskAttributionResult:
 
 class RiskAttributionService:
     """风险归因分析服务"""
-    
+
     def __init__(self):
-        self._cache: Dict[str, RiskAttributionResult] = {}
-    
+        self._cache: dict[str, RiskAttributionResult] = {}
+
     async def analyze_risk_attribution(
         self,
         portfolio_id: str,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
     ) -> RiskAttributionResult:
         """
         分析风险归因
-        
+
         Args:
             portfolio_id: 组合ID
             holdings: 持仓列表 [{"symbol": "600519", "weight": 0.1}, ...]
@@ -122,21 +121,21 @@ class RiskAttributionService:
         try:
             # 计算组合风险
             total_risk = await self._calculate_portfolio_risk(holdings)
-            
+
             # 分解系统性/特质风险
             systematic_risk = total_risk * 0.7  # 简化计算
             specific_risk = total_risk * 0.3
-            
+
             # 因子风险归因
             factor_contributions = await self._calculate_factor_contributions(holdings, total_risk)
-            
+
             # 持仓风险
             position_risks = await self._calculate_position_risks(holdings, total_risk)
-            
+
             # 风险集中度
             sorted_positions = sorted(position_risks, key=lambda x: x.risk_contribution_pct, reverse=True)
             top5_contribution = sum(p.risk_contribution_pct for p in sorted_positions[:5])
-            
+
             return RiskAttributionResult(
                 portfolio_id=portfolio_id,
                 analysis_date=datetime.now(),
@@ -147,7 +146,7 @@ class RiskAttributionService:
                 position_risks=position_risks,
                 top5_risk_contribution=round(top5_contribution, 2),
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze risk attribution: {e}")
             return RiskAttributionResult(
@@ -157,25 +156,25 @@ class RiskAttributionService:
                 systematic_risk=0,
                 specific_risk=0,
             )
-    
+
     async def _calculate_portfolio_risk(
         self,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
     ) -> float:
         """计算组合风险"""
         import random
-        
+
         # Mock: 实际应基于协方差矩阵计算
         return random.uniform(0.15, 0.30)
-    
+
     async def _calculate_factor_contributions(
         self,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
         total_risk: float,
-    ) -> List[RiskContribution]:
+    ) -> list[RiskContribution]:
         """计算因子风险贡献"""
         import random
-        
+
         factors = [
             ("市场因子", RiskSource.MARKET, 0.5),
             ("行业因子", RiskSource.INDUSTRY, 0.2),
@@ -184,15 +183,15 @@ class RiskAttributionService:
             ("动量因子", RiskSource.STYLE, 0.07),
             ("特质风险", RiskSource.SPECIFIC, 0.05),
         ]
-        
+
         contributions = []
         remaining_pct = 100.0
-        
+
         for name, source_type, base_pct in factors[:-1]:
             pct = base_pct * 100 * random.uniform(0.8, 1.2)
             pct = min(pct, remaining_pct)
             remaining_pct -= pct
-            
+
             contributions.append(RiskContribution(
                 source=name,
                 source_type=source_type,
@@ -200,7 +199,7 @@ class RiskAttributionService:
                 risk_contribution_pct=round(pct, 2),
                 marginal_risk=round(random.uniform(0.01, 0.05), 4),
             ))
-        
+
         # 特质风险
         contributions.append(RiskContribution(
             source="特质风险",
@@ -209,29 +208,29 @@ class RiskAttributionService:
             risk_contribution_pct=round(remaining_pct, 2),
             marginal_risk=round(random.uniform(0.01, 0.03), 4),
         ))
-        
+
         return contributions
-    
+
     async def _calculate_position_risks(
         self,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
         total_risk: float,
-    ) -> List[PositionRisk]:
+    ) -> list[PositionRisk]:
         """计算持仓风险"""
         import random
-        
+
         position_risks = []
         total_weight = sum(h.get("weight", 0) for h in holdings)
-        
+
         for holding in holdings:
             symbol = holding.get("symbol", "")
             weight = holding.get("weight", 0) / total_weight if total_weight > 0 else 0
-            
+
             volatility = random.uniform(0.20, 0.50)
             beta = random.uniform(0.8, 1.3)
             risk_contrib = weight * volatility * beta
             risk_contrib_pct = risk_contrib / total_risk * 100 if total_risk > 0 else 0
-            
+
             position_risks.append(PositionRisk(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -241,9 +240,9 @@ class RiskAttributionService:
                 risk_contribution=round(risk_contrib, 4),
                 risk_contribution_pct=round(risk_contrib_pct, 2),
             ))
-        
+
         return sorted(position_risks, key=lambda x: x.risk_contribution_pct, reverse=True)
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         names = {
             "600519": "贵州茅台", "000858": "五粮液",
@@ -253,7 +252,7 @@ class RiskAttributionService:
 
 
 # 全局单例
-_risk_attribution_service: Optional[RiskAttributionService] = None
+_risk_attribution_service: RiskAttributionService | None = None
 
 
 def get_risk_attribution_service() -> RiskAttributionService:

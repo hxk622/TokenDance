@@ -4,10 +4,9 @@
 负责加载、管理和查询 Skill 模板和场景预设。
 """
 
-import os
 import logging
+import os
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import yaml
 
@@ -28,7 +27,7 @@ class TemplateRegistry:
     管理所有 Skill 模板和场景预设的加载、缓存和查询。
     """
 
-    def __init__(self, skills_dir: str, presets_dir: Optional[str] = None):
+    def __init__(self, skills_dir: str, presets_dir: str | None = None):
         """初始化模板注册表
 
         Args:
@@ -39,9 +38,9 @@ class TemplateRegistry:
         self.presets_dir = Path(presets_dir) if presets_dir else self.skills_dir / "presets"
 
         # 缓存
-        self._templates: Dict[str, SkillTemplate] = {}  # template_id -> template
-        self._skill_templates: Dict[str, List[str]] = {}  # skill_id -> [template_ids]
-        self._scenes: Dict[str, ScenePreset] = {}  # scene_id -> scene
+        self._templates: dict[str, SkillTemplate] = {}  # template_id -> template
+        self._skill_templates: dict[str, list[str]] = {}  # skill_id -> [template_ids]
+        self._scenes: dict[str, ScenePreset] = {}  # scene_id -> scene
 
         self._loaded = False
 
@@ -75,7 +74,7 @@ class TemplateRegistry:
 
     def _load_templates_file(self, file_path: Path) -> None:
         """加载单个模板文件"""
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         if not data or "templates" not in data:
@@ -88,7 +87,7 @@ class TemplateRegistry:
 
         if skill_md.exists():
             # 从 SKILL.md 读取 skill name
-            with open(skill_md, "r", encoding="utf-8") as f:
+            with open(skill_md, encoding="utf-8") as f:
                 content = f.read()
                 # 解析 YAML frontmatter
                 if content.startswith("---"):
@@ -113,8 +112,8 @@ class TemplateRegistry:
                 self._skill_templates[skill_id].append(template.id)
 
     def _parse_template(
-        self, data: Dict, default_skill_id: str
-    ) -> Optional[SkillTemplate]:
+        self, data: dict, default_skill_id: str
+    ) -> SkillTemplate | None:
         """解析模板数据"""
         try:
             # 解析分类
@@ -151,7 +150,7 @@ class TemplateRegistry:
             return
 
         try:
-            with open(scenes_file, "r", encoding="utf-8") as f:
+            with open(scenes_file, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             if not data or "scenes" not in data:
@@ -165,7 +164,7 @@ class TemplateRegistry:
         except Exception as e:
             logger.error(f"Failed to load scenes: {e}")
 
-    def _parse_scene(self, data: Dict) -> Optional[ScenePreset]:
+    def _parse_scene(self, data: dict) -> ScenePreset | None:
         """解析场景预设数据"""
         try:
             # 解析分类
@@ -195,12 +194,12 @@ class TemplateRegistry:
 
     # ==================== 查询接口 ====================
 
-    def get_template(self, template_id: str) -> Optional[SkillTemplate]:
+    def get_template(self, template_id: str) -> SkillTemplate | None:
         """获取单个模板"""
         self.load_all()
         return self._templates.get(template_id)
 
-    def get_templates_by_skill(self, skill_id: str) -> List[SkillTemplate]:
+    def get_templates_by_skill(self, skill_id: str) -> list[SkillTemplate]:
         """获取某个 Skill 的所有模板"""
         self.load_all()
         template_ids = self._skill_templates.get(skill_id, [])
@@ -210,14 +209,14 @@ class TemplateRegistry:
             if tid in self._templates and self._templates[tid].enabled
         ]
 
-    def get_all_templates(self) -> List[SkillTemplate]:
+    def get_all_templates(self) -> list[SkillTemplate]:
         """获取所有启用的模板"""
         self.load_all()
         return [t for t in self._templates.values() if t.enabled]
 
     def get_templates_by_category(
         self, category: TemplateCategory
-    ) -> List[SkillTemplate]:
+    ) -> list[SkillTemplate]:
         """按分类获取模板"""
         self.load_all()
         return [
@@ -225,7 +224,7 @@ class TemplateRegistry:
             if t.enabled and t.category == category
         ]
 
-    def search_templates(self, query: str) -> List[SkillTemplate]:
+    def search_templates(self, query: str) -> list[SkillTemplate]:
         """搜索模板（按名称、描述、标签）"""
         self.load_all()
         query_lower = query.lower()
@@ -252,17 +251,17 @@ class TemplateRegistry:
 
         return results
 
-    def get_scene(self, scene_id: str) -> Optional[ScenePreset]:
+    def get_scene(self, scene_id: str) -> ScenePreset | None:
         """获取单个场景预设"""
         self.load_all()
         return self._scenes.get(scene_id)
 
-    def get_all_scenes(self) -> List[ScenePreset]:
+    def get_all_scenes(self) -> list[ScenePreset]:
         """获取所有启用的场景预设"""
         self.load_all()
         return [s for s in self._scenes.values() if s.enabled]
 
-    def get_scenes_by_category(self, category: TemplateCategory) -> List[ScenePreset]:
+    def get_scenes_by_category(self, category: TemplateCategory) -> list[ScenePreset]:
         """按分类获取场景预设"""
         self.load_all()
         return [
@@ -270,7 +269,7 @@ class TemplateRegistry:
             if s.enabled and s.category == category
         ]
 
-    def get_scene_templates(self, scene_id: str) -> List[SkillTemplate]:
+    def get_scene_templates(self, scene_id: str) -> list[SkillTemplate]:
         """获取场景预设包含的所有模板"""
         self.load_all()
         scene = self._scenes.get(scene_id)
@@ -283,14 +282,14 @@ class TemplateRegistry:
             if tid in self._templates and self._templates[tid].enabled
         ]
 
-    def get_popular_templates(self, limit: int = 10) -> List[SkillTemplate]:
+    def get_popular_templates(self, limit: int = 10) -> list[SkillTemplate]:
         """获取热门模板"""
         self.load_all()
         templates = [t for t in self._templates.values() if t.enabled]
         templates.sort(key=lambda t: t.popularity, reverse=True)
         return templates[:limit]
 
-    def get_popular_scenes(self, limit: int = 5) -> List[ScenePreset]:
+    def get_popular_scenes(self, limit: int = 5) -> list[ScenePreset]:
         """获取热门场景"""
         self.load_all()
         scenes = [s for s in self._scenes.values() if s.enabled]
@@ -316,7 +315,7 @@ class TemplateRegistry:
         templates = self.get_templates_by_skill(skill_metadata.name)
         return SkillWithTemplates(metadata=skill_metadata, templates=templates)
 
-    def get_discovery_data(self) -> Dict:
+    def get_discovery_data(self) -> dict:
         """获取发现页面所需的所有数据"""
         self.load_all()
 
@@ -360,7 +359,7 @@ class TemplateRegistry:
 
 # ==================== 全局单例 ====================
 
-_template_registry: Optional[TemplateRegistry] = None
+_template_registry: TemplateRegistry | None = None
 
 
 def get_template_registry() -> TemplateRegistry:
@@ -378,7 +377,7 @@ def get_template_registry() -> TemplateRegistry:
 
 def init_template_registry(
     skills_dir: str,
-    presets_dir: Optional[str] = None
+    presets_dir: str | None = None
 ) -> TemplateRegistry:
     """初始化模板注册表"""
     global _template_registry

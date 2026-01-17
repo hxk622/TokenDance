@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 知识图谱构建服务
 
@@ -9,14 +8,18 @@
 - 增量图谱合并
 """
 
+import hashlib
 import json
 import logging
-import hashlib
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any
 
 from .models import (
-    Entity, Relation, EntityType, RelationType,
-    ResearchKnowledgeGraph, ResearchSource
+    Entity,
+    EntityType,
+    Relation,
+    RelationType,
+    ResearchKnowledgeGraph,
+    ResearchSource,
 )
 
 logger = logging.getLogger(__name__)
@@ -91,10 +94,10 @@ CLAIM_EXTRACTION_PROMPT = """从以下文本中提取可验证的声明/论断�
 class KnowledgeGraphBuilder:
     """
     知识图谱构建器
-    
+
     使用 LLM 从文本中抽取实体和关系，构建知识图谱
     """
-    
+
     def __init__(
         self,
         llm_client: Any = None,
@@ -103,7 +106,7 @@ class KnowledgeGraphBuilder:
     ):
         """
         初始化构建器
-        
+
         Args:
             llm_client: LLM 客户端 (需要有 chat.completions.create 方法)
             model: 使用的模型
@@ -112,55 +115,55 @@ class KnowledgeGraphBuilder:
         self.llm_client = llm_client
         self.model = model
         self.similarity_threshold = similarity_threshold
-        
+
         # 内存图谱
         self.graph = ResearchKnowledgeGraph()
-    
+
     async def build_from_text(
         self,
         text: str,
-        source: Optional[ResearchSource] = None,
+        source: ResearchSource | None = None,
         extract_claims: bool = True
     ) -> ResearchKnowledgeGraph:
         """
         从文本构建知识图谱
-        
+
         Args:
             text: 输入文本
             source: 来源信息
             extract_claims: 是否提取声明
-        
+
         Returns:
             构建的知识图谱
         """
         # 添加来源
         if source:
             self.graph.add_source(source)
-        
+
         source_id = source.id if source else None
-        
+
         # 1. 实体抽取
         entities = await self._extract_entities(text, source_id)
         logger.info(f"Extracted {len(entities)} entities")
-        
+
         # 2. 实体消歧和添加
         for entity in entities:
             self._add_entity_with_disambiguation(entity)
-        
+
         # 3. 关系抽取
         entity_names = [e.name for e in entities]
         relations = await self._extract_relations(text, entity_names, source_id)
         logger.info(f"Extracted {len(relations)} relations")
-        
+
         # 4. 添加关系
         for relation in relations:
             self._add_relation_with_validation(relation)
-        
+
         # 5. 声明抽取 (可选)
         if extract_claims:
             claims = await self._extract_claims(text, source_id)
             logger.info(f"Extracted {len(claims)} claims")
-            
+
             # 将声明作为特殊实体添加
             for claim_data in claims:
                 claim_entity = Entity.create(
@@ -171,7 +174,7 @@ class KnowledgeGraphBuilder:
                     evidence=claim_data.get("evidence", ""),
                 )
                 claim_id = self.graph.add_entity(claim_entity)
-                
+
                 # 连接声明和相关实体
                 for entity_name in claim_data.get("entities", []):
                     related = self.graph.get_entity_by_name(entity_name)
@@ -184,20 +187,20 @@ class KnowledgeGraphBuilder:
                             doc_source_id=source_id or "",
                         )
                         self.graph.add_relation(relation)
-        
+
         return self.graph
-    
+
     async def merge_graph(self, other: ResearchKnowledgeGraph) -> None:
         """
         合并另一个图谱
-        
+
         实体消歧后合并，避免重复
         """
         # 合并来源
         for source_id, source in other.sources.items():
             if source_id not in self.graph.sources:
                 self.graph.add_source(source)
-        
+
         # 合并实体 (带消歧)
         id_mapping = {}  # old_id -> new_id
         for entity in other.entities.values():
@@ -210,12 +213,12 @@ class KnowledgeGraphBuilder:
                 # 添加新实体
                 self.graph.add_entity(entity)
                 id_mapping[entity.id] = entity.id
-        
+
         # 合并关系 (更新 ID 引用)
         for relation in other.relations:
             new_source_id = id_mapping.get(relation.source_entity_id, relation.source_entity_id)
             new_target_id = id_mapping.get(relation.target_entity_id, relation.target_entity_id)
-            
+
             # 检查是否已存在相同关系
             if not self._relation_exists(new_source_id, new_target_id, relation.type):
                 new_relation = Relation(
@@ -229,45 +232,45 @@ class KnowledgeGraphBuilder:
                     confidence=relation.confidence,
                 )
                 self.graph.add_relation(new_relation)
-    
+
     async def build_from_sources(
         self,
-        sources: List[ResearchSource]
+        sources: list[ResearchSource]
     ) -> ResearchKnowledgeGraph:
         """
         从多个来源构建图谱
-        
+
         Args:
             sources: 来源列表 (需要有 content 字段)
         """
         for source in sources:
             if source.content:
                 await self.build_from_text(source.content, source)
-        
+
         return self.graph
-    
+
     def get_graph(self) -> ResearchKnowledgeGraph:
         """获取当前图谱"""
         return self.graph
-    
+
     def reset(self) -> None:
         """重置图谱"""
         self.graph = ResearchKnowledgeGraph()
-    
+
     # ==================== 私有方法 ====================
-    
+
     async def _extract_entities(
         self,
         text: str,
-        source_id: Optional[str]
-    ) -> List[Entity]:
+        source_id: str | None
+    ) -> list[Entity]:
         """使用 LLM 抽取实体"""
         if not self.llm_client:
             # 如果没有 LLM 客户端，使用简单的规则抽取
             return self._rule_based_entity_extraction(text, source_id)
-        
+
         prompt = ENTITY_EXTRACTION_PROMPT.format(text=text[:4000])  # 截断过长文本
-        
+
         try:
             response = await self.llm_client.chat.completions.create(
                 model=self.model,
@@ -278,10 +281,10 @@ class KnowledgeGraphBuilder:
                 temperature=0.1,
                 response_format={"type": "json_object"}
             )
-            
+
             content = response.choices[0].message.content
             data = json.loads(content)
-            
+
             # 处理不同的返回格式
             if isinstance(data, list):
                 entities_data = data
@@ -289,14 +292,14 @@ class KnowledgeGraphBuilder:
                 entities_data = data["entities"]
             else:
                 entities_data = []
-            
+
             entities = []
             for item in entities_data:
                 try:
                     entity_type = EntityType(item.get("type", "concept"))
                 except ValueError:
                     entity_type = EntityType.CONCEPT
-                
+
                 entity = Entity.create(
                     name=item["name"],
                     entity_type=entity_type,
@@ -305,29 +308,29 @@ class KnowledgeGraphBuilder:
                     aliases=item.get("aliases", []),
                 )
                 entities.append(entity)
-            
+
             return entities
-            
+
         except Exception as e:
             logger.error(f"Entity extraction failed: {e}")
             return self._rule_based_entity_extraction(text, source_id)
-    
+
     async def _extract_relations(
         self,
         text: str,
-        entity_names: List[str],
-        source_id: Optional[str]
-    ) -> List[Relation]:
+        entity_names: list[str],
+        source_id: str | None
+    ) -> list[Relation]:
         """使用 LLM 抽取关系"""
         if not self.llm_client or not entity_names:
             return []
-        
+
         entities_str = ", ".join(entity_names[:30])  # 限制实体数量
         prompt = RELATION_EXTRACTION_PROMPT.format(
             text=text[:4000],
             entities=entities_str
         )
-        
+
         try:
             response = await self.llm_client.chat.completions.create(
                 model=self.model,
@@ -338,31 +341,31 @@ class KnowledgeGraphBuilder:
                 temperature=0.1,
                 response_format={"type": "json_object"}
             )
-            
+
             content = response.choices[0].message.content
             data = json.loads(content)
-            
+
             if isinstance(data, list):
                 relations_data = data
             elif isinstance(data, dict) and "relations" in data:
                 relations_data = data["relations"]
             else:
                 relations_data = []
-            
+
             relations = []
             for item in relations_data:
                 # 查找源和目标实体
                 source_entity = self.graph.get_entity_by_name(item["source"])
                 target_entity = self.graph.get_entity_by_name(item["target"])
-                
+
                 if not source_entity or not target_entity:
                     continue
-                
+
                 try:
                     relation_type = RelationType(item.get("type", "related_to"))
                 except ValueError:
                     relation_type = RelationType.RELATED_TO
-                
+
                 relation = Relation.create(
                     source_id=source_entity.id,
                     target_id=target_entity.id,
@@ -371,24 +374,24 @@ class KnowledgeGraphBuilder:
                     doc_source_id=source_id or "",
                 )
                 relations.append(relation)
-            
+
             return relations
-            
+
         except Exception as e:
             logger.error(f"Relation extraction failed: {e}")
             return []
-    
+
     async def _extract_claims(
         self,
         text: str,
-        source_id: Optional[str]
-    ) -> List[Dict[str, Any]]:
+        source_id: str | None
+    ) -> list[dict[str, Any]]:
         """使用 LLM 抽取声明"""
         if not self.llm_client:
             return []
-        
+
         prompt = CLAIM_EXTRACTION_PROMPT.format(text=text[:4000])
-        
+
         try:
             response = await self.llm_client.chat.completions.create(
                 model=self.model,
@@ -399,35 +402,35 @@ class KnowledgeGraphBuilder:
                 temperature=0.1,
                 response_format={"type": "json_object"}
             )
-            
+
             content = response.choices[0].message.content
             data = json.loads(content)
-            
+
             if isinstance(data, list):
                 return data
             elif isinstance(data, dict) and "claims" in data:
                 return data["claims"]
-            
+
             return []
-            
+
         except Exception as e:
             logger.error(f"Claim extraction failed: {e}")
             return []
-    
+
     def _rule_based_entity_extraction(
         self,
         text: str,
-        source_id: Optional[str]
-    ) -> List[Entity]:
+        source_id: str | None
+    ) -> list[Entity]:
         """
         基于规则的简单实体抽取 (回退方案)
-        
+
         使用正则表达式匹配常见模式
         """
         import re
-        
+
         entities = []
-        
+
         # 匹配引号中的名称 (可能是术语、产品名等)
         quoted_pattern = r'[""](.*?)[""]'
         for match in re.finditer(quoted_pattern, text):
@@ -439,7 +442,7 @@ class KnowledgeGraphBuilder:
                     source_id=source_id,
                 )
                 entities.append(entity)
-        
+
         # 匹配大写开头的词组 (可能是专有名词)
         proper_noun_pattern = r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b'
         for match in re.finditer(proper_noun_pattern, text):
@@ -451,7 +454,7 @@ class KnowledgeGraphBuilder:
                     source_id=source_id,
                 )
                 entities.append(entity)
-        
+
         # 去重
         seen = set()
         unique_entities = []
@@ -460,27 +463,27 @@ class KnowledgeGraphBuilder:
             if name_lower not in seen:
                 seen.add(name_lower)
                 unique_entities.append(entity)
-        
+
         return unique_entities[:20]  # 限制数量
-    
+
     def _add_entity_with_disambiguation(self, entity: Entity) -> str:
         """
         添加实体，带消歧逻辑
-        
+
         如果存在相似实体，则合并而非创建新实体
         """
         existing = self.graph.find_similar_entity(entity.name, self.similarity_threshold)
-        
+
         if existing:
             existing.merge_with(entity)
             return existing.id
         else:
             return self.graph.add_entity(entity)
-    
-    def _add_relation_with_validation(self, relation: Relation) -> Optional[str]:
+
+    def _add_relation_with_validation(self, relation: Relation) -> str | None:
         """
         添加关系，带验证
-        
+
         检查源和目标实体是否存在，避免重复关系
         """
         # 验证实体存在
@@ -488,7 +491,7 @@ class KnowledgeGraphBuilder:
             return None
         if relation.target_entity_id not in self.graph.entities:
             return None
-        
+
         # 检查重复
         if self._relation_exists(
             relation.source_entity_id,
@@ -496,9 +499,9 @@ class KnowledgeGraphBuilder:
             relation.type
         ):
             return None
-        
+
         return self.graph.add_relation(relation)
-    
+
     def _relation_exists(
         self,
         source_id: str,
@@ -517,20 +520,19 @@ class KnowledgeGraphBuilder:
 # ==================== 辅助函数 ====================
 
 def create_source_from_search_result(
-    result: Dict[str, Any],
-    content: Optional[str] = None
+    result: dict[str, Any],
+    content: str | None = None
 ) -> ResearchSource:
     """
     从搜索结果创建 ResearchSource
-    
+
     兼容 deep_research.py 中的搜索结果格式
     """
-    import hashlib
     from datetime import datetime
-    
+
     url = result.get("url", result.get("link", ""))
     source_id = hashlib.md5(url.encode()).hexdigest()[:16]
-    
+
     return ResearchSource(
         id=source_id,
         url=url,

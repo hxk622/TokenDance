@@ -4,10 +4,11 @@ Multi-Tenancy数据模型
 三层模型: Organization -> Team -> Workspace
 """
 
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class OrgStatus(str, Enum):
@@ -29,21 +30,21 @@ class Organization(BaseModel):
     id: str
     name: str
     slug: str
-    
-    settings: Dict[str, Any] = Field(default_factory=dict)
-    
+
+    settings: dict[str, Any] = Field(default_factory=dict)
+
     # 资源配额
     max_teams: int = 10
     max_workspaces: int = 100
     max_sessions: int = 1000
     storage_quota_gb: int = 100
-    
+
     status: OrgStatus = OrgStatus.ACTIVE
-    
+
     created_at: datetime
     updated_at: datetime
-    deleted_at: Optional[datetime] = None
-    
+    deleted_at: datetime | None = None
+
     class Config:
         from_attributes = True
 
@@ -52,18 +53,18 @@ class User(BaseModel):
     """用户模型"""
     id: str
     email: EmailStr
-    name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    
-    preferences: Dict[str, Any] = Field(default_factory=dict)
-    
+    name: str | None = None
+    avatar_url: str | None = None
+
+    preferences: dict[str, Any] = Field(default_factory=dict)
+
     is_active: bool = True
     email_verified: bool = False
-    
+
     created_at: datetime
     updated_at: datetime
-    last_login_at: Optional[datetime] = None
-    
+    last_login_at: datetime | None = None
+
     class Config:
         from_attributes = True
 
@@ -74,13 +75,13 @@ class OrganizationMember(BaseModel):
     org_id: str
     user_id: str
     role: MemberRole
-    permissions: List[str] = Field(default_factory=list)
+    permissions: list[str] = Field(default_factory=list)
     joined_at: datetime
-    
+
     # 关联对象（可选加载）
-    organization: Optional[Organization] = None
-    user: Optional[User] = None
-    
+    organization: Organization | None = None
+    user: User | None = None
+
     class Config:
         from_attributes = True
 
@@ -91,18 +92,18 @@ class Team(BaseModel):
     org_id: str
     name: str
     slug: str
-    description: Optional[str] = None
-    
-    settings: Dict[str, Any] = Field(default_factory=dict)
-    
+    description: str | None = None
+
+    settings: dict[str, Any] = Field(default_factory=dict)
+
     is_active: bool = True
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # 关联对象（可选加载）
-    organization: Optional[Organization] = None
-    
+    organization: Organization | None = None
+
     class Config:
         from_attributes = True
 
@@ -114,11 +115,11 @@ class TeamMember(BaseModel):
     user_id: str
     role: MemberRole
     joined_at: datetime
-    
+
     # 关联对象（可选加载）
-    team: Optional[Team] = None
-    user: Optional[User] = None
-    
+    team: Team | None = None
+    user: User | None = None
+
     class Config:
         from_attributes = True
 
@@ -129,22 +130,22 @@ class Workspace(BaseModel):
     org_id: str
     team_id: str
     user_id: str  # 创建者
-    
+
     name: str
-    description: Optional[str] = None
-    
-    settings: Dict[str, Any] = Field(default_factory=dict)
-    
+    description: str | None = None
+
+    settings: dict[str, Any] = Field(default_factory=dict)
+
     is_active: bool = True
-    
+
     created_at: datetime
     updated_at: datetime
-    
+
     # 关联对象（可选加载）
-    organization: Optional[Organization] = None
-    team: Optional[Team] = None
-    user: Optional[User] = None
-    
+    organization: Organization | None = None
+    team: Team | None = None
+    user: User | None = None
+
     class Config:
         from_attributes = True
 
@@ -161,20 +162,20 @@ class Session(BaseModel):
     id: str
     workspace_id: str
     user_id: str
-    
-    title: Optional[str] = None
+
+    title: str | None = None
     status: SessionStatus = SessionStatus.ACTIVE
-    skill_id: Optional[str] = None
-    context_summary: Optional[str] = None
-    
+    skill_id: str | None = None
+    context_summary: str | None = None
+
     created_at: datetime
     updated_at: datetime
-    completed_at: Optional[datetime] = None
-    
+    completed_at: datetime | None = None
+
     # 关联对象（可选加载）
-    workspace: Optional[Workspace] = None
-    user: Optional[User] = None
-    
+    workspace: Workspace | None = None
+    user: User | None = None
+
     class Config:
         from_attributes = True
 
@@ -192,13 +193,13 @@ class Message(BaseModel):
     id: str
     session_id: str
     role: MessageRole
-    content: Optional[str] = None
-    thinking: Optional[str] = None  # Agent推理过程
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    citations: Optional[List[Dict[str, Any]]] = None
-    token_count: Optional[int] = None
+    content: str | None = None
+    thinking: str | None = None  # Agent推理过程
+    tool_calls: list[dict[str, Any]] | None = None
+    citations: list[dict[str, Any]] | None = None
+    token_count: int | None = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -218,10 +219,10 @@ class Artifact(BaseModel):
     type: ArtifactType
     name: str
     file_path: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    size_bytes: Optional[int] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    size_bytes: int | None = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -234,25 +235,25 @@ class OrganizationCreate(BaseModel):
     """创建组织"""
     name: str = Field(..., min_length=1, max_length=255)
     slug: str = Field(..., min_length=1, max_length=100, pattern="^[a-z0-9-]+$")
-    settings: Dict[str, Any] = Field(default_factory=dict)
+    settings: dict[str, Any] = Field(default_factory=dict)
 
 
 class TeamCreate(BaseModel):
     """创建团队"""
     name: str = Field(..., min_length=1, max_length=255)
     slug: str = Field(..., min_length=1, max_length=100, pattern="^[a-z0-9-]+$")
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class WorkspaceCreate(BaseModel):
     """创建工作空间"""
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
     team_id: str
 
 
 class SessionCreate(BaseModel):
     """创建会话"""
     workspace_id: str
-    title: Optional[str] = None
-    skill_id: Optional[str] = None
+    title: str | None = None
+    skill_id: str | None = None

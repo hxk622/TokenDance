@@ -13,22 +13,21 @@
 
 import json
 import sys
-from typing import List
 
 
-def generate_queries(topic: str, depth: str = "deep", language: str = "both") -> List[str]:
+def generate_queries(topic: str, depth: str = "deep", language: str = "both") -> list[str]:
     """根据主题生成多角度搜索查询
-    
+
     Args:
         topic: 研究主题
         depth: 搜索深度 ("shallow" / "deep")
         language: 语言 ("en" / "zh" / "both")
-        
+
     Returns:
         查询列表
     """
     queries = []
-    
+
     if depth == "shallow":
         # 浅度搜索：只搜概述
         if language in ("en", "both"):
@@ -36,7 +35,7 @@ def generate_queries(topic: str, depth: str = "deep", language: str = "both") ->
         if language in ("zh", "both"):
             queries.append(f"{topic} 概述 介绍")
         return queries
-    
+
     # 深度搜索：多维度拆解
     query_templates = {
         "en": [
@@ -60,45 +59,45 @@ def generate_queries(topic: str, depth: str = "deep", language: str = "both") ->
             "{topic} 对比 比较 区别",
         ],
     }
-    
+
     if language in ("en", "both"):
         for template in query_templates["en"]:
             queries.append(template.format(topic=topic))
-    
+
     if language in ("zh", "both"):
         for template in query_templates["zh"]:
             queries.append(template.format(topic=topic))
-    
+
     return queries
 
 
-def generate_followup_queries(topic: str, aspect: str, language: str = "both") -> List[str]:
+def generate_followup_queries(topic: str, aspect: str, language: str = "both") -> list[str]:
     """根据特定方面生成深入查询
-    
+
     Args:
         topic: 研究主题
         aspect: 特定方面 (e.g., "技术实现", "市场竞争")
         language: 语言
-        
+
     Returns:
         查询列表
     """
     queries = []
-    
+
     if language in ("en", "both"):
         queries.extend([
             f"{topic} {aspect} detailed analysis",
             f"{topic} {aspect} research paper",
             f"{topic} {aspect} expert opinion",
         ])
-    
+
     if language in ("zh", "both"):
         queries.extend([
             f"{topic} {aspect} 深度分析",
             f"{topic} {aspect} 研究报告",
             f"{topic} {aspect} 专家观点",
         ])
-    
+
     return queries
 
 
@@ -110,13 +109,13 @@ if __name__ == "__main__":
             "example": "python query_generator.py 'AI Agent' deep both"
         }))
         sys.exit(1)
-    
+
     topic = sys.argv[1]
     depth = sys.argv[2] if len(sys.argv) > 2 else "deep"
     language = sys.argv[3] if len(sys.argv) > 3 else "both"
-    
+
     queries = generate_queries(topic, depth, language)
-    
+
     # 输出 JSON 格式
     output = {
         "topic": topic,
@@ -125,5 +124,5 @@ if __name__ == "__main__":
         "queries": queries,
         "count": len(queries)
     }
-    
+
     print(json.dumps(output, ensure_ascii=False, indent=2))

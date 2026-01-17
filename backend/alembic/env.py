@@ -11,20 +11,20 @@ from alembic import context
 # Import your models here
 from app.core.config import settings
 from app.core.database import Base
-
-# Import all models for autogenerate to detect
-from app.models.user import User  # noqa: F401
-from app.models.workspace import Workspace  # noqa: F401
-from app.models.session import Session  # noqa: F401
-from app.models.message import Message  # noqa: F401
 from app.models.artifact import Artifact  # noqa: F401
-from app.models.skill import Skill  # noqa: F401
+from app.models.message import Message  # noqa: F401
 from app.models.multi_tenancy import (  # noqa: F401
     Organization,
     OrganizationMember,
     Team,
     TeamMember,
 )
+from app.models.session import Session  # noqa: F401
+from app.models.skill import Skill  # noqa: F401
+
+# Import all models for autogenerate to detect
+from app.models.user import User  # noqa: F401
+from app.models.workspace import Workspace  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

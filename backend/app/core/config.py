@@ -5,7 +5,7 @@ Supports multiple environments: development, staging, production.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
-    
+
     # CORS - allow common dev ports
     BACKEND_CORS_ORIGINS: list[str] = Field(
         default=[
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "tokendance"
     POSTGRES_PASSWORD: str = ""  # Empty for local trust auth
     POSTGRES_DB: str = "tokendance"
-    
+
     @property
     def DATABASE_URL(self) -> str:
         """Construct database URL."""
@@ -89,7 +89,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: str | None = None
-    
+
     @property
     def REDIS_URL(self) -> str:
         """Construct Redis URL."""
@@ -98,12 +98,12 @@ class Settings(BaseSettings):
 
     # FileSystem
     DATA_ROOT: str = "/data"
-    
+
     @property
     def USERS_DATA_PATH(self) -> str:
         """Path for personal user data."""
         return f"{self.DATA_ROOT}/users"
-    
+
     @property
     def ORGS_DATA_PATH(self) -> str:
         """Path for organization data."""

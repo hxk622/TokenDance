@@ -4,7 +4,6 @@ Skill API 端点
 提供 Skill 发现、模板查询、场景预设等功能。
 """
 
-from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -24,9 +23,9 @@ class TemplateVariableResponse(BaseModel):
     label: str
     type: str
     required: bool = False
-    placeholder: Optional[str] = None
-    options: Optional[List[Dict]] = None
-    default: Optional[str] = None
+    placeholder: str | None = None
+    options: list[dict] | None = None
+    default: str | None = None
 
 
 class TemplateResponse(BaseModel):
@@ -37,10 +36,10 @@ class TemplateResponse(BaseModel):
     description: str
     prompt_template: str
     category: str
-    tags: List[str]
-    variables: List[Dict]
-    example_input: Optional[str] = None
-    example_output: Optional[str] = None
+    tags: list[str]
+    variables: list[dict]
+    example_input: str | None = None
+    example_output: str | None = None
     icon: str
     popularity: int
     enabled: bool
@@ -51,12 +50,12 @@ class SceneResponse(BaseModel):
     id: str
     name: str
     description: str
-    template_ids: List[str]
-    recommended_skills: List[str]
+    template_ids: list[str]
+    recommended_skills: list[str]
     category: str
-    tags: List[str]
+    tags: list[str]
     icon: str
-    cover_image: Optional[str] = None
+    cover_image: str | None = None
     color: str
     popularity: int
     enabled: bool
@@ -69,8 +68,8 @@ class SkillResponse(BaseModel):
     description: str
     version: str
     author: str
-    tags: List[str]
-    allowed_tools: List[str]
+    tags: list[str]
+    allowed_tools: list[str]
     max_iterations: int
     timeout: int
     enabled: bool
@@ -85,14 +84,14 @@ class SkillWithTemplatesResponse(BaseModel):
     description: str
     version: str
     author: str
-    tags: List[str]
-    allowed_tools: List[str]
+    tags: list[str]
+    allowed_tools: list[str]
     max_iterations: int
     timeout: int
     enabled: bool
     match_threshold: float
     priority: int
-    templates: List[TemplateResponse]
+    templates: list[TemplateResponse]
 
 
 class CategoryResponse(BaseModel):
@@ -105,16 +104,16 @@ class CategoryResponse(BaseModel):
 
 class DiscoveryResponse(BaseModel):
     """发现页面响应"""
-    popular_templates: List[TemplateResponse]
-    popular_scenes: List[SceneResponse]
-    categories: List[CategoryResponse]
+    popular_templates: list[TemplateResponse]
+    popular_scenes: list[SceneResponse]
+    categories: list[CategoryResponse]
     total_templates: int
     total_scenes: int
 
 
 class RenderTemplateRequest(BaseModel):
     """渲染模板请求"""
-    variables: Dict[str, str]
+    variables: dict[str, str]
 
 
 class RenderTemplateResponse(BaseModel):
@@ -126,9 +125,9 @@ class RenderTemplateResponse(BaseModel):
 
 # ==================== Skill 端点 ====================
 
-@router.get("/skills", response_model=List[SkillResponse])
+@router.get("/skills", response_model=list[SkillResponse])
 async def list_skills(
-    tag: Optional[str] = Query(None, description="按标签筛选"),
+    tag: str | None = Query(None, description="按标签筛选"),
     enabled_only: bool = Query(True, description="只返回启用的 Skill"),
 ):
     """获取所有 Skill 列表"""
@@ -163,7 +162,7 @@ async def get_skill(skill_id: str):
     }
 
 
-@router.get("/skills/{skill_id}/templates", response_model=List[TemplateResponse])
+@router.get("/skills/{skill_id}/templates", response_model=list[TemplateResponse])
 async def get_skill_templates(skill_id: str):
     """获取某个 Skill 的所有模板"""
     template_registry = get_template_registry()
@@ -173,11 +172,11 @@ async def get_skill_templates(skill_id: str):
 
 # ==================== 模板端点 ====================
 
-@router.get("/templates", response_model=List[TemplateResponse])
+@router.get("/templates", response_model=list[TemplateResponse])
 async def list_templates(
-    category: Optional[str] = Query(None, description="按分类筛选"),
-    skill_id: Optional[str] = Query(None, description="按 Skill 筛选"),
-    search: Optional[str] = Query(None, description="搜索关键词"),
+    category: str | None = Query(None, description="按分类筛选"),
+    skill_id: str | None = Query(None, description="按 Skill 筛选"),
+    search: str | None = Query(None, description="搜索关键词"),
     limit: int = Query(50, ge=1, le=100, description="返回数量限制"),
 ):
     """获取模板列表"""
@@ -199,7 +198,7 @@ async def list_templates(
     return [t.to_dict() for t in templates[:limit]]
 
 
-@router.get("/templates/popular", response_model=List[TemplateResponse])
+@router.get("/templates/popular", response_model=list[TemplateResponse])
 async def get_popular_templates(
     limit: int = Query(10, ge=1, le=50, description="返回数量"),
 ):
@@ -254,9 +253,9 @@ async def render_template(template_id: str, request: RenderTemplateRequest):
 
 # ==================== 场景预设端点 ====================
 
-@router.get("/scenes", response_model=List[SceneResponse])
+@router.get("/scenes", response_model=list[SceneResponse])
 async def list_scenes(
-    category: Optional[str] = Query(None, description="按分类筛选"),
+    category: str | None = Query(None, description="按分类筛选"),
     limit: int = Query(20, ge=1, le=50, description="返回数量限制"),
 ):
     """获取场景预设列表"""
@@ -274,7 +273,7 @@ async def list_scenes(
     return [s.to_dict() for s in scenes[:limit]]
 
 
-@router.get("/scenes/popular", response_model=List[SceneResponse])
+@router.get("/scenes/popular", response_model=list[SceneResponse])
 async def get_popular_scenes(
     limit: int = Query(5, ge=1, le=20, description="返回数量"),
 ):
@@ -296,7 +295,7 @@ async def get_scene(scene_id: str):
     return scene.to_dict()
 
 
-@router.get("/scenes/{scene_id}/templates", response_model=List[TemplateResponse])
+@router.get("/scenes/{scene_id}/templates", response_model=list[TemplateResponse])
 async def get_scene_templates(scene_id: str):
     """获取场景预设包含的所有模板"""
     template_registry = get_template_registry()
@@ -322,7 +321,7 @@ async def get_discovery_data():
     return template_registry.get_discovery_data()
 
 
-@router.get("/categories", response_model=List[CategoryResponse])
+@router.get("/categories", response_model=list[CategoryResponse])
 async def list_categories():
     """获取所有分类及其统计信息"""
     template_registry = get_template_registry()

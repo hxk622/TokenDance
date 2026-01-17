@@ -1,9 +1,10 @@
 """
 MCP Type Definitions
 """
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MCPTransport(str, Enum):
@@ -23,9 +24,9 @@ class MCPTool(BaseModel):
     """MCP Tool definition"""
     name: str = Field(..., description="Tool name (prefixed with server name)")
     description: str = Field(..., description="Tool description")
-    input_schema: Dict[str, Any] = Field(..., description="JSON Schema for tool input")
+    input_schema: dict[str, Any] = Field(..., description="JSON Schema for tool input")
     server_name: str = Field(..., description="Name of the MCP server providing this tool")
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -33,14 +34,14 @@ class MCPToolResult(BaseModel):
     """Result from MCP tool execution"""
     success: bool = Field(..., description="Whether the tool execution succeeded")
     content: Any = Field(None, description="Tool output content")
-    error: Optional[str] = Field(None, description="Error message if failed")
-    duration_ms: Optional[float] = Field(None, description="Execution duration in milliseconds")
-    
+    error: str | None = Field(None, description="Error message if failed")
+    duration_ms: float | None = Field(None, description="Execution duration in milliseconds")
+
     @classmethod
     def from_success(cls, content: Any, duration_ms: float = 0) -> "MCPToolResult":
         """Create a successful result"""
         return cls(success=True, content=content, duration_ms=duration_ms)
-    
+
     @classmethod
     def from_error(cls, error: str, duration_ms: float = 0) -> "MCPToolResult":
         """Create an error result"""
@@ -50,13 +51,13 @@ class MCPToolResult(BaseModel):
 class MCPResourceContent(BaseModel):
     """MCP Resource content"""
     uri: str
-    mime_type: Optional[str] = None
-    text: Optional[str] = None
-    blob: Optional[bytes] = None
+    mime_type: str | None = None
+    text: str | None = None
+    blob: bytes | None = None
 
 
 class MCPPrompt(BaseModel):
     """MCP Prompt definition"""
     name: str
-    description: Optional[str] = None
-    arguments: Optional[List[Dict[str, Any]]] = None
+    description: str | None = None
+    arguments: list[dict[str, Any]] | None = None

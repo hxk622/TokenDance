@@ -1,27 +1,28 @@
 """
 Chat API endpoints - includes SSE streaming for real-time Agent responses.
 """
+import json
+import logging
+import tempfile
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-import tempfile
-import json
-import logging
 
 from app.core.database import get_db
-from app.services.session_service import SessionService
 from app.schemas.message import ChatRequest, ConfirmRequest
+from app.services.session_service import SessionService
 
 # Agent Engine imports
 try:
     from app.agent import (
         AgentContext,
-        WorkingMemory,
         BasicAgent,
+        WorkingMemory,
         create_working_memory,
     )
-    from app.agent.tools import ToolRegistry
     from app.agent.llm import create_claude_llm
+    from app.agent.tools import ToolRegistry
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
     AGENT_ENGINE_AVAILABLE = False
@@ -36,11 +37,11 @@ router = APIRouter()
 
 def format_sse_event(event_type: str, data: dict) -> str:
     """Format SSE event according to SSE spec
-    
+
     Args:
         event_type: Event type (thinking, content, done, error, etc.)
         data: Event data dictionary
-        
+
     Returns:
         str: Formatted SSE event string
     """
@@ -60,7 +61,7 @@ async def send_message(
 ):
     """
     Send a message to the Agent and stream the response using SSE.
-    
+
     Returns a Server-Sent Events stream with the following event types:
     - thinking: Agent reasoning process
     - tool_call: Tool execution start
@@ -77,7 +78,7 @@ async def send_message(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     async def event_stream():
         """Generate SSE events from Agent execution."""
         if not AGENT_ENGINE_AVAILABLE:
@@ -87,7 +88,7 @@ async def send_message(
                 'type': 'ConfigurationError'
             })
             return
-        
+
         try:
             # Create temporary workspace for this session
             # TODO: Use persistent workspace path from config
@@ -98,20 +99,20 @@ async def send_message(
                     session_id=session_id,
                     initial_task=request.content
                 )
-                
+
                 # Create Agent Context
                 context = AgentContext(
                     session_id=session_id,
                     user_id=str(session.user_id),
                     workspace_id=str(session.workspace_id)
                 )
-                
+
                 # Create Tool Registry (empty for now)
                 tools = ToolRegistry()
-                
+
                 # Create real Claude LLM (reads from env vars)
                 llm = create_claude_llm()
-                
+
                 # Create Agent (using BasicAgent for now)
                 agent = BasicAgent(
                     context=context,
@@ -121,19 +122,19 @@ async def send_message(
                     db=service.db,
                     max_iterations=50
                 )
-                
+
                 # Run Agent and stream events
                 async for event in agent.run(request.content):
                     # Convert SSEEvent to SSE format
                     yield format_sse_event(event.type.value, event.data)
-        
+
         except Exception as e:
             logger.error(f"Error in Agent execution: {e}", exc_info=True)
             yield format_sse_event('error', {
                 'message': str(e),
                 'type': 'AgentExecutionError'
             })
-    
+
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
@@ -152,7 +153,7 @@ async def confirm_action(
 ):
     """
     Confirm or reject a HITL (Human-in-the-Loop) action.
-    
+
     This endpoint is used when the Agent requests user confirmation
     for high-risk operations.
     """
@@ -163,10 +164,10 @@ async def confirm_action(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     # TODO: Implement HITL confirmation handling
     # This will integrate with Agent Engine's state machine
-    
+
     return {
         "status": "confirmed" if request.confirmed else "rejected",
         "action_id": request.action_id,
@@ -183,7 +184,7 @@ async def stop_generation(
 ):
     """
     Stop the current Agent execution for this session.
-    
+
     This gracefully terminates the Agent's current task.
     """
     # Verify session exists
@@ -193,10 +194,10 @@ async def stop_generation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     # TODO: Implement stop signal to Agent Engine
     # This will set a flag that Agent checks during its loop
-    
+
     return {
         "status": "stopped",
         "message": "Agent execution stopped successfully.",
@@ -210,12 +211,12 @@ async def get_working_memory(
 ):
     """
     Get Working Memory (Three Files) content for a session.
-    
+
     Returns the contents of:
     - task_plan.md - Task roadmap and objectives
-    - findings.md - Research findings and decisions  
+    - findings.md - Research findings and decisions
     - progress.md - Execution logs and errors
-    
+
     This implements the Manus "Three Files Working Memory" pattern.
     """
     # Verify session exists
@@ -225,13 +226,13 @@ async def get_working_memory(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
-    
+
     try:
         # Try to get real Working Memory from filesystem
-        from app.filesystem import AgentFileSystem
         from app.agent.working_memory import ThreeFilesManager
         from app.core.config import settings
-        
+        from app.filesystem import AgentFileSystem
+
         # Initialize filesystem (using workspace_id from session)
         workspace_path = settings.WORKSPACE_ROOT_PATH or "/tmp/tokendance/workspaces"
         fs = AgentFileSystem(
@@ -240,13 +241,13 @@ async def get_working_memory(
             team_id="default",
             workspace_id=str(session.workspace_id)
         )
-        
+
         # Get Three Files Manager
         three_files = ThreeFilesManager(fs, session_id)
-        
+
         # Read all files
         data = three_files.read_all()
-        
+
         return {
             "session_id": session_id,
             "task_plan": {
@@ -262,7 +263,7 @@ async def get_working_memory(
                 "metadata": data["progress"].get("metadata", {})
             },
         }
-        
+
     except ImportError:
         # Fallback if filesystem modules not available
         logger.warning("Working Memory modules not available, returning mock data")

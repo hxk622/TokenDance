@@ -6,8 +6,8 @@ Agent Policies - Agent 策略模块
 参考：AGENT_ROBUSTNESS_ASSESSMENT.md
 """
 
+from .context_compression import CompressionResult, ContextCompressor
 from .iteration import DynamicIterationPolicy, IterationBudget
-from .context_compression import ContextCompressor, CompressionResult
 from .token_budget import TokenBudgetManager, TokenUsage
 
 __all__ = [

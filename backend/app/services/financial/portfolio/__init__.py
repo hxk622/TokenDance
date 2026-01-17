@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 组合分析模块
 
@@ -9,38 +8,38 @@
 - 相关性矩阵
 - 再平衡建议
 """
+from .correlation_matrix import (
+    CorrelationMatrixService,
+    CorrelationResult,
+    get_correlation_matrix_service,
+)
+from .rebalance_suggest import (
+    RebalanceResult,
+    RebalanceStrategy,
+    RebalanceSuggestion,
+    RebalanceSuggestService,
+    get_rebalance_suggest_service,
+)
 from .risk_attribution import (
-    RiskAttributionService,
-    get_risk_attribution_service,
-    RiskSource,
-    RiskContribution,
     RiskAttributionResult,
+    RiskAttributionService,
+    RiskContribution,
+    RiskSource,
+    get_risk_attribution_service,
 )
 from .stress_test import (
-    StressTestService,
-    get_stress_test_service,
     ScenarioType,
     StressScenario,
     StressTestResult,
+    StressTestService,
+    get_stress_test_service,
 )
 from .var_calculator import (
+    CVaRResult,
     VaRCalculatorService,
-    get_var_calculator_service,
     VaRMethod,
     VaRResult,
-    CVaRResult,
-)
-from .correlation_matrix import (
-    CorrelationMatrixService,
-    get_correlation_matrix_service,
-    CorrelationResult,
-)
-from .rebalance_suggest import (
-    RebalanceSuggestService,
-    get_rebalance_suggest_service,
-    RebalanceStrategy,
-    RebalanceSuggestion,
-    RebalanceResult,
+    get_var_calculator_service,
 )
 
 __all__ = [

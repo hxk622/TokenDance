@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 MAAnalysisService - 并购重组分析服务
 
@@ -10,9 +9,9 @@ MAAnalysisService - 并购重组分析服务
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from typing import Any, Dict, List, Optional
+from datetime import date, datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +53,9 @@ class MAParty:
     symbol: str
     name: str
     role: str  # acquirer / target
-    stake_pct: Optional[float] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    stake_pct: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -69,12 +68,12 @@ class MAParty:
 class MAValuation:
     """交易估值"""
     deal_value: float           # 交易金额 (亿)
-    ev_ebitda: Optional[float] = None
-    pe_ratio: Optional[float] = None
-    pb_ratio: Optional[float] = None
-    premium_pct: Optional[float] = None  # 溢价率
-    
-    def to_dict(self) -> Dict[str, Any]:
+    ev_ebitda: float | None = None
+    pe_ratio: float | None = None
+    pb_ratio: float | None = None
+    premium_pct: float | None = None  # 溢价率
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "deal_value": self.deal_value,
             "ev_ebitda": self.ev_ebitda,
@@ -92,8 +91,8 @@ class SynergyEstimate:
     total_synergy: float        # 总协同效应
     realization_years: int      # 实现年限
     confidence: float           # 置信度
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "revenue_synergy": self.revenue_synergy,
             "cost_synergy": self.cost_synergy,
@@ -110,26 +109,26 @@ class MADeal:
     deal_name: str
     ma_type: MAType
     status: MAStatus
-    
+
     # 交易方
     acquirer: MAParty
     target: MAParty
-    
+
     # 时间
     announce_date: date
-    expected_close_date: Optional[date] = None
-    actual_close_date: Optional[date] = None
-    
+    expected_close_date: date | None = None
+    actual_close_date: date | None = None
+
     # 交易条款
     payment_type: PaymentType = PaymentType.CASH
-    valuation: Optional[MAValuation] = None
-    synergy: Optional[SynergyEstimate] = None
-    
+    valuation: MAValuation | None = None
+    synergy: SynergyEstimate | None = None
+
     # 进展
-    milestones: List[str] = field(default_factory=list)
-    risks: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    milestones: list[str] = field(default_factory=list)
+    risks: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "deal_id": self.deal_id,
             "deal_name": self.deal_name,
@@ -154,19 +153,19 @@ class MAAnalysisResult:
     symbol: str
     name: str
     analysis_date: datetime
-    
+
     # 作为收购方的交易
-    as_acquirer: List[MADeal] = field(default_factory=list)
+    as_acquirer: list[MADeal] = field(default_factory=list)
     # 作为标的的交易
-    as_target: List[MADeal] = field(default_factory=list)
+    as_target: list[MADeal] = field(default_factory=list)
     # 历史交易
-    historical_deals: List[MADeal] = field(default_factory=list)
-    
+    historical_deals: list[MADeal] = field(default_factory=list)
+
     # 统计
     total_deal_value: float = 0.0
     successful_rate: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -181,10 +180,10 @@ class MAAnalysisResult:
 
 class MAAnalysisService:
     """并购重组分析服务"""
-    
+
     def __init__(self):
-        self._cache: Dict[str, MAAnalysisResult] = {}
-    
+        self._cache: dict[str, MAAnalysisResult] = {}
+
     async def analyze_ma_activity(
         self,
         symbol: str,
@@ -192,23 +191,23 @@ class MAAnalysisService:
         """分析并购活动"""
         if symbol in self._cache:
             return self._cache[symbol]
-        
+
         try:
             # 获取作为收购方的交易
             as_acquirer = await self._get_deals_as_acquirer(symbol)
-            
+
             # 获取作为标的的交易
             as_target = await self._get_deals_as_target(symbol)
-            
+
             # 获取历史交易
             historical = await self._get_historical_deals(symbol)
-            
+
             # 计算统计
             all_deals = as_acquirer + as_target + historical
             total_value = sum(d.valuation.deal_value for d in all_deals if d.valuation)
             completed = sum(1 for d in all_deals if d.status == MAStatus.COMPLETED)
             success_rate = completed / len(all_deals) if all_deals else 0
-            
+
             result = MAAnalysisResult(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -219,10 +218,10 @@ class MAAnalysisService:
                 total_deal_value=round(total_value, 2),
                 successful_rate=round(success_rate, 2),
             )
-            
+
             self._cache[symbol] = result
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze M&A activity for {symbol}: {e}")
             return MAAnalysisResult(
@@ -230,36 +229,36 @@ class MAAnalysisService:
                 name="",
                 analysis_date=datetime.now(),
             )
-    
+
     async def get_recent_ma_deals(
         self,
-        ma_type: Optional[MAType] = None,
-        status: Optional[MAStatus] = None,
+        ma_type: MAType | None = None,
+        status: MAStatus | None = None,
         limit: int = 20,
-    ) -> List[MADeal]:
+    ) -> list[MADeal]:
         """获取近期并购交易"""
         deals = await self._get_market_deals()
-        
+
         if ma_type:
             deals = [d for d in deals if d.ma_type == ma_type]
         if status:
             deals = [d for d in deals if d.status == status]
-        
+
         deals.sort(key=lambda x: x.announce_date, reverse=True)
         return deals[:limit]
-    
-    async def get_pending_regulatory_reviews(self) -> List[MADeal]:
+
+    async def get_pending_regulatory_reviews(self) -> list[MADeal]:
         """获取待审批交易"""
         deals = await self._get_market_deals()
         return [d for d in deals if d.status == MAStatus.REGULATORY_REVIEW]
-    
-    async def _get_deals_as_acquirer(self, symbol: str) -> List[MADeal]:
+
+    async def _get_deals_as_acquirer(self, symbol: str) -> list[MADeal]:
         """获取作为收购方的交易"""
         import random
         from datetime import timedelta
-        
+
         deals = []
-        
+
         # 模拟一个进行中的交易
         deals.append(MADeal(
             deal_id=f"{symbol}_MA_001",
@@ -287,21 +286,20 @@ class MAAnalysisService:
             milestones=["已公告", "股东大会通过", "等待监管审批"],
             risks=["监管审批风险", "整合风险"],
         ))
-        
+
         return deals
-    
-    async def _get_deals_as_target(self, symbol: str) -> List[MADeal]:
+
+    async def _get_deals_as_target(self, symbol: str) -> list[MADeal]:
         """获取作为标的的交易"""
         # 大多数公司不会是收购标的
         return []
-    
-    async def _get_historical_deals(self, symbol: str) -> List[MADeal]:
+
+    async def _get_historical_deals(self, symbol: str) -> list[MADeal]:
         """获取历史交易"""
         import random
-        from datetime import timedelta
-        
+
         deals = []
-        
+
         for i in range(2):
             year = date.today().year - i - 1
             deals.append(MADeal(
@@ -319,20 +317,20 @@ class MAAnalysisService:
                     pe_ratio=round(random.uniform(10, 25), 1),
                 ),
             ))
-        
+
         return deals
-    
-    async def _get_market_deals(self) -> List[MADeal]:
+
+    async def _get_market_deals(self) -> list[MADeal]:
         """获取市场并购交易"""
         import random
         from datetime import timedelta
-        
+
         deals_data = [
             ("600519", "贵州茅台", "某酒业公司"),
             ("000333", "美的集团", "某家电品牌"),
             ("000858", "五粮液", "某酿酒厂"),
         ]
-        
+
         deals = []
         for symbol, name, target_name in deals_data:
             deals.append(MADeal(
@@ -348,9 +346,9 @@ class MAAnalysisService:
                     deal_value=round(random.uniform(5, 100), 2),
                 ),
             ))
-        
+
         return deals
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         """获取股票名称"""
         names = {
@@ -363,7 +361,7 @@ class MAAnalysisService:
 
 
 # 全局单例
-_ma_analysis_service: Optional[MAAnalysisService] = None
+_ma_analysis_service: MAAnalysisService | None = None
 
 
 def get_ma_analysis_service() -> MAAnalysisService:

@@ -5,19 +5,17 @@
 """
 import logging
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.tools.base import BaseTool
 from app.agent.tools.risk import (
-    RiskLevel,
     OperationCategory,
-    RISK_PRIORITY,
+    RiskLevel,
     is_risk_within_threshold,
 )
-from app.models.trust_config import TrustConfig, TrustAuditLog
+from app.models.trust_config import TrustAuditLog, TrustConfig
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +63,7 @@ class TrustService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_trust_config(self, workspace_id: str) -> Optional[TrustConfig]:
+    async def get_trust_config(self, workspace_id: str) -> TrustConfig | None:
         """获取工作空间的信任配置"""
         result = await self.db.execute(
             select(TrustConfig).where(TrustConfig.workspace_id == workspace_id)
@@ -265,7 +263,7 @@ class TrustService:
         reason: str,
         risk_level: RiskLevel,
         operation_categories: list[OperationCategory],
-        user_feedback: Optional[str] = None,
+        user_feedback: str | None = None,
         remember_choice: bool = False,
     ) -> TrustAuditLog:
         """记录授权决策到审计日志
@@ -328,10 +326,10 @@ class TrustService:
     async def update_trust_config(
         self,
         workspace_id: str,
-        auto_approve_level: Optional[str] = None,
-        pre_authorized_operations: Optional[list[str]] = None,
-        blacklisted_operations: Optional[list[str]] = None,
-        enabled: Optional[bool] = None,
+        auto_approve_level: str | None = None,
+        pre_authorized_operations: list[str] | None = None,
+        blacklisted_operations: list[str] | None = None,
+        enabled: bool | None = None,
     ) -> TrustConfig:
         """更新信任配置
 

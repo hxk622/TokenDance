@@ -6,11 +6,12 @@ Parallel Exploration - 多线程策略探索
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
-from typing import List, Optional, Callable, Any
-from enum import Enum
 import logging
 import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class ExplorationResult:
     output: Any
     confidence: float  # 结果置信度 (0-1)
     elapsed_seconds: float
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class ParallelExploration:
@@ -64,8 +65,8 @@ class ParallelExploration:
     def generate_candidate_strategies(
         self,
         task_description: str,
-        available_skills: List[str],
-    ) -> List[StrategyCandidate]:
+        available_skills: list[str],
+    ) -> list[StrategyCandidate]:
         """
         根据任务描述生成候选策略列表
 
@@ -76,7 +77,7 @@ class ParallelExploration:
         Returns:
             按预估质量降序的候选策略列表
         """
-        candidates: List[StrategyCandidate] = []
+        candidates: list[StrategyCandidate] = []
 
         # 关键词匹配生成候选
         lower_task = task_description.lower()
@@ -143,7 +144,7 @@ class ParallelExploration:
     async def explore_multiple_strategies(
         self,
         task: str,
-        candidates: List[StrategyCandidate],
+        candidates: list[StrategyCandidate],
         test_executor: Callable[[StrategyCandidate], Any],
     ) -> ExplorationResult:
         """
@@ -177,7 +178,7 @@ class ParallelExploration:
                     confidence=confidence,
                     elapsed_seconds=elapsed,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 elapsed = time.perf_counter() - start
                 return ExplorationResult(
                     strategy=candidate,

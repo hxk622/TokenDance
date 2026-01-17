@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, JSON, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,7 +26,7 @@ class MemberRole(PyEnum):
 class Team(Base):
     """
     Team model - middle-level entity for multi-tenancy.
-    
+
     Features:
     - Belongs to an organization
     - Has members with roles
@@ -42,7 +42,7 @@ class Team(Base):
 
     # Organization relationship
     org_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), 
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
 
@@ -93,7 +93,7 @@ class Team(Base):
 class TeamMember(Base):
     """
     TeamMember model - represents a user's membership in a team.
-    
+
     Features:
     - Links user to team
     - Defines role and permissions
@@ -108,13 +108,13 @@ class TeamMember(Base):
 
     # Team relationship
     team_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("teams.id", ondelete="CASCADE"), 
+        String(36), ForeignKey("teams.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
 
     # User relationship
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), 
+        String(36), ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
 

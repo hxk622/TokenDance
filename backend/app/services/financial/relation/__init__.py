@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 关联分析模块
 
@@ -8,36 +7,36 @@
 - 客户/供应商分析
 - 知识图谱
 """
-from .supply_chain_map import (
-    SupplyChainMapService,
-    get_supply_chain_map_service,
-    ChainPosition,
-    SupplyChainNode,
-    SupplyChainLink,
-    SupplyChainMapResult,
-)
 from .competitor_analysis import (
-    CompetitorAnalysisService,
-    get_competitor_analysis_service,
     CompetitionLevel,
     Competitor,
     CompetitorAnalysisResult,
+    CompetitorAnalysisService,
+    get_competitor_analysis_service,
 )
 from .customer_supplier import (
-    CustomerSupplierService,
-    get_customer_supplier_service,
-    RelationType,
     CustomerSupplierRelation,
     CustomerSupplierResult,
+    CustomerSupplierService,
+    RelationType,
+    get_customer_supplier_service,
 )
 from .knowledge_graph import (
-    KnowledgeGraphService,
-    get_knowledge_graph_service,
-    EntityType,
-    RelationshipType,
     Entity,
-    Relationship,
+    EntityType,
     KnowledgeGraphResult,
+    KnowledgeGraphService,
+    Relationship,
+    RelationshipType,
+    get_knowledge_graph_service,
+)
+from .supply_chain_map import (
+    ChainPosition,
+    SupplyChainLink,
+    SupplyChainMapResult,
+    SupplyChainMapService,
+    SupplyChainNode,
+    get_supply_chain_map_service,
 )
 
 __all__ = [

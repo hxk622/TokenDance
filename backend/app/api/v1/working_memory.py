@@ -1,14 +1,13 @@
-from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.working_memory.three_files import ThreeFilesManager
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.filesystem import AgentFileSystem
 from app.models.user import User
 from app.repositories.session_repository import SessionRepository
 from app.services.permission_service import PermissionService
-from app.agent.working_memory.three_files import ThreeFilesManager
-from app.filesystem import AgentFileSystem
 
 router = APIRouter(prefix="/working-memory", tags=["Working Memory"])
 
@@ -20,36 +19,36 @@ async def get_working_memory(
     db: AsyncSession = Depends(get_db)
 ):
     """Get working memory for a session (three files)"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Get working memory
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     data = memory_manager.read_all()
-    
+
     return {
         "session_id": session_id,
         "task_plan": {
@@ -75,36 +74,36 @@ async def get_task_plan(
     db: AsyncSession = Depends(get_db)
 ):
     """Get task plan for a session"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Get task plan
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     data = memory_manager.read_task_plan()
-    
+
     return {
         "session_id": session_id,
         "metadata": data["metadata"],
@@ -121,36 +120,36 @@ async def update_task_plan(
     db: AsyncSession = Depends(get_db)
 ):
     """Update task plan for a session"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Update task plan
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     memory_manager.update_task_plan(content, append=append)
-    
+
     return {
         "status": "success",
         "message": "Task plan updated"
@@ -164,36 +163,36 @@ async def get_findings(
     db: AsyncSession = Depends(get_db)
 ):
     """Get findings for a session"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Get findings
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     data = memory_manager.read_findings()
-    
+
     return {
         "session_id": session_id,
         "metadata": data["metadata"],
@@ -209,36 +208,36 @@ async def add_finding(
     db: AsyncSession = Depends(get_db)
 ):
     """Add a new finding to the findings file"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Add finding
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     memory_manager.update_findings(finding)
-    
+
     return {
         "status": "success",
         "message": "Finding added"
@@ -253,41 +252,41 @@ async def get_progress(
     db: AsyncSession = Depends(get_db)
 ):
     """Get progress log for a session"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Get progress
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     data = memory_manager.read_progress()
-    
+
     # Return last N characters if requested
     content = data["content"]
     if last_n_chars > 0 and len(content) > last_n_chars:
         content = "..." + content[-last_n_chars:]
-    
+
     return {
         "session_id": session_id,
         "metadata": data["metadata"],
@@ -302,36 +301,36 @@ async def get_memory_summary(
     db: AsyncSession = Depends(get_db)
 ):
     """Get working memory summary for context injection"""
-    
+
     # Verify session exists and user has access
     session_repo = SessionRepository(db)
     session = await session_repo.get_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Check workspace access
     permission_service = PermissionService(db)
     has_access = await permission_service.check_workspace_access(
         user_id=current_user.id,
         workspace_id=session.workspace_id
     )
-    
+
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have access to this workspace"
         )
-    
+
     # Get summary
     filesystem = AgentFileSystem()
     memory_manager = ThreeFilesManager(filesystem, session_id)
-    
+
     summary = memory_manager.get_context_summary()
-    
+
     return {
         "session_id": session_id,
         "summary": summary

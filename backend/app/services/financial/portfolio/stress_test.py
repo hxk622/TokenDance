@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 StressTestService - 压力测试服务
 
@@ -9,9 +8,9 @@ StressTestService - 压力测试服务
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from typing import Any, Dict, List, Optional
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,16 +29,16 @@ class StressScenario:
     name: str
     scenario_type: ScenarioType
     description: str
-    
+
     # 因子冲击
     market_shock: float = 0.0     # 市场冲击 (%)
-    industry_shocks: Dict[str, float] = field(default_factory=dict)
-    factor_shocks: Dict[str, float] = field(default_factory=dict)
-    
+    industry_shocks: dict[str, float] = field(default_factory=dict)
+    factor_shocks: dict[str, float] = field(default_factory=dict)
+
     # 历史情景参考
-    reference_period: Optional[str] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    reference_period: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "scenario_id": self.scenario_id,
             "name": self.name,
@@ -60,8 +59,8 @@ class PositionImpact:
     weight: float
     expected_loss: float
     expected_loss_pct: float
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -77,19 +76,19 @@ class StressTestResult:
     portfolio_id: str
     scenario: StressScenario
     test_date: datetime
-    
+
     # 组合影响
     portfolio_loss: float         # 预期损失金额
     portfolio_loss_pct: float     # 预期损失百分比
-    
+
     # 持仓影响
-    position_impacts: List[PositionImpact] = field(default_factory=list)
-    
+    position_impacts: list[PositionImpact] = field(default_factory=list)
+
     # 风险指标变化
     var_change: float = 0.0       # VaR变化
     volatility_change: float = 0.0  # 波动率变化
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "portfolio_id": self.portfolio_id,
             "scenario": self.scenario.to_dict(),
@@ -104,7 +103,7 @@ class StressTestResult:
 
 class StressTestService:
     """压力测试服务"""
-    
+
     # 预定义情景
     PREDEFINED_SCENARIOS = {
         "2008_financial_crisis": StressScenario(
@@ -151,79 +150,79 @@ class StressTestService:
             market_shock=-50,
         ),
     }
-    
+
     def __init__(self):
-        self._cache: Dict[str, StressTestResult] = {}
-    
+        self._cache: dict[str, StressTestResult] = {}
+
     async def run_stress_test(
         self,
         portfolio_id: str,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
         scenario_id: str,
     ) -> StressTestResult:
         """运行压力测试"""
         scenario = self.PREDEFINED_SCENARIOS.get(scenario_id)
         if not scenario:
             raise ValueError(f"Unknown scenario: {scenario_id}")
-        
+
         return await self._run_test(portfolio_id, holdings, scenario)
-    
+
     async def run_custom_stress_test(
         self,
         portfolio_id: str,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
         scenario: StressScenario,
     ) -> StressTestResult:
         """运行自定义压力测试"""
         return await self._run_test(portfolio_id, holdings, scenario)
-    
+
     async def run_all_scenarios(
         self,
         portfolio_id: str,
-        holdings: List[Dict[str, Any]],
-    ) -> List[StressTestResult]:
+        holdings: list[dict[str, Any]],
+    ) -> list[StressTestResult]:
         """运行所有预定义情景"""
         results = []
         for scenario in self.PREDEFINED_SCENARIOS.values():
             result = await self._run_test(portfolio_id, holdings, scenario)
             results.append(result)
         return results
-    
-    def get_available_scenarios(self) -> List[Dict[str, Any]]:
+
+    def get_available_scenarios(self) -> list[dict[str, Any]]:
         """获取可用情景列表"""
         return [s.to_dict() for s in self.PREDEFINED_SCENARIOS.values()]
-    
+
     async def _run_test(
         self,
         portfolio_id: str,
-        holdings: List[Dict[str, Any]],
+        holdings: list[dict[str, Any]],
         scenario: StressScenario,
     ) -> StressTestResult:
         """执行压力测试"""
         import random
-        
+
         # 计算组合价值
         portfolio_value = sum(h.get("value", 0) for h in holdings)
         if portfolio_value == 0:
             portfolio_value = 1000000  # 默认100万
-        
+
         # 计算各持仓影响
         position_impacts = []
         total_loss = 0
-        
+
         for holding in holdings:
             symbol = holding.get("symbol", "")
             weight = holding.get("weight", 0)
             value = holding.get("value", portfolio_value * weight)
-            
+
             # 基于行业和市场冲击计算损失
             industry = self._get_stock_industry(symbol)
             industry_shock = scenario.industry_shocks.get(industry, 0)
             position_shock = scenario.market_shock + industry_shock * 0.3
             position_shock *= random.uniform(0.8, 1.2)  # 增加一些随机性
-            
+
             expected_loss = value * position_shock / 100
-            
+
             position_impacts.append(PositionImpact(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -231,11 +230,11 @@ class StressTestService:
                 expected_loss=round(expected_loss, 2),
                 expected_loss_pct=round(position_shock, 2),
             ))
-            
+
             total_loss += expected_loss
-        
+
         portfolio_loss_pct = total_loss / portfolio_value * 100 if portfolio_value > 0 else 0
-        
+
         return StressTestResult(
             portfolio_id=portfolio_id,
             scenario=scenario,
@@ -246,14 +245,14 @@ class StressTestService:
             var_change=round(abs(scenario.market_shock) * 0.5, 2),
             volatility_change=round(abs(scenario.market_shock) * 0.3, 2),
         )
-    
+
     def _get_stock_industry(self, symbol: str) -> str:
         industries = {
             "600519": "消费", "000858": "消费",
             "600036": "金融", "000333": "消费",
         }
         return industries.get(symbol, "其他")
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         names = {
             "600519": "贵州茅台", "000858": "五粮液",
@@ -263,7 +262,7 @@ class StressTestService:
 
 
 # 全局单例
-_stress_test_service: Optional[StressTestService] = None
+_stress_test_service: StressTestService | None = None
 
 
 def get_stress_test_service() -> StressTestService:

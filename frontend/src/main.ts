@@ -40,6 +40,10 @@ console.log('[Main] Importing micro-interactions.css...')
 import './styles/micro-interactions.css'
 console.log('[Main] micro-interactions.css imported')
 
+console.log('[Main] Importing anygen.css...')
+import './styles/anygen.css'
+console.log('[Main] anygen.css imported')
+
 console.log('[Main] All imports done, creating app')
 const app = createApp(App)
 

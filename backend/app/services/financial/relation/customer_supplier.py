@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 CustomerSupplierService - 客户/供应商分析服务
 
@@ -11,8 +10,8 @@ CustomerSupplierService - 客户/供应商分析服务
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -37,21 +36,21 @@ class CustomerSupplierRelation:
     symbol: str
     name: str
     relation_type: RelationType
-    
+
     # 交易信息
     transaction_amount: float  # 交易金额（亿）
     revenue_pct: float         # 占收入/采购比例
     relationship_years: int    # 合作年限
-    
+
     # 关系评估
     strength: RelationStrength
     is_listed: bool = False
-    listed_symbol: Optional[str] = None
-    
+    listed_symbol: str | None = None
+
     # 风险
     dependency_risk: str = "medium"  # 依赖风险
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -74,8 +73,8 @@ class ConcentrationAnalysis:
     top10_pct: float
     herfindahl_index: float  # HHI指数
     concentration_level: str  # 高/中/低
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "top1_pct": self.top1_pct,
             "top5_pct": self.top5_pct,
@@ -91,19 +90,19 @@ class CustomerSupplierResult:
     symbol: str
     name: str
     analysis_date: datetime
-    
+
     # 客户分析
-    customers: List[CustomerSupplierRelation] = field(default_factory=list)
-    customer_concentration: Optional[ConcentrationAnalysis] = None
-    
+    customers: list[CustomerSupplierRelation] = field(default_factory=list)
+    customer_concentration: ConcentrationAnalysis | None = None
+
     # 供应商分析
-    suppliers: List[CustomerSupplierRelation] = field(default_factory=list)
-    supplier_concentration: Optional[ConcentrationAnalysis] = None
-    
+    suppliers: list[CustomerSupplierRelation] = field(default_factory=list)
+    supplier_concentration: ConcentrationAnalysis | None = None
+
     # 风险提示
-    risks: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    risks: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -118,10 +117,10 @@ class CustomerSupplierResult:
 
 class CustomerSupplierService:
     """客户/供应商分析服务"""
-    
+
     def __init__(self):
-        self._cache: Dict[str, CustomerSupplierResult] = {}
-    
+        self._cache: dict[str, CustomerSupplierResult] = {}
+
     async def analyze_customer_supplier(
         self,
         symbol: str,
@@ -129,19 +128,19 @@ class CustomerSupplierService:
         """分析客户供应商关系"""
         if symbol in self._cache:
             return self._cache[symbol]
-        
+
         try:
             # 获取客户列表
             customers = await self._get_customers(symbol)
             customer_concentration = self._analyze_concentration(customers)
-            
+
             # 获取供应商列表
             suppliers = await self._get_suppliers(symbol)
             supplier_concentration = self._analyze_concentration(suppliers)
-            
+
             # 风险分析
             risks = self._analyze_risks(customers, suppliers, customer_concentration, supplier_concentration)
-            
+
             result = CustomerSupplierResult(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -152,10 +151,10 @@ class CustomerSupplierService:
                 supplier_concentration=supplier_concentration,
                 risks=risks,
             )
-            
+
             self._cache[symbol] = result
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze customer/supplier for {symbol}: {e}")
             return CustomerSupplierResult(
@@ -163,23 +162,23 @@ class CustomerSupplierService:
                 name="",
                 analysis_date=datetime.now(),
             )
-    
+
     async def get_related_companies(
         self,
         symbol: str,
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         """获取关联公司"""
         result = await self.analyze_customer_supplier(symbol)
-        
+
         return {
             "customers": [c.name for c in result.customers if c.is_listed],
             "suppliers": [s.name for s in result.suppliers if s.is_listed],
         }
-    
-    async def _get_customers(self, symbol: str) -> List[CustomerSupplierRelation]:
+
+    async def _get_customers(self, symbol: str) -> list[CustomerSupplierRelation]:
         """获取客户列表"""
         import random
-        
+
         # Mock 数据
         customer_names = [
             ("客户A", True, "600000"),
@@ -188,17 +187,17 @@ class CustomerSupplierService:
             ("客户D", False, None),
             ("客户E", True, "600519"),
         ]
-        
+
         customers = []
         remaining_pct = 100.0
-        
+
         for i, (name, is_listed, listed_symbol) in enumerate(customer_names):
             if remaining_pct <= 0:
                 break
-            
+
             pct = random.uniform(5, min(30, remaining_pct))
             remaining_pct -= pct
-            
+
             customers.append(CustomerSupplierRelation(
                 symbol=f"CUST_{i}",
                 name=name,
@@ -211,30 +210,30 @@ class CustomerSupplierService:
                 listed_symbol=listed_symbol,
                 dependency_risk="high" if pct > 20 else "medium" if pct > 10 else "low",
             ))
-        
+
         return sorted(customers, key=lambda x: x.revenue_pct, reverse=True)
-    
-    async def _get_suppliers(self, symbol: str) -> List[CustomerSupplierRelation]:
+
+    async def _get_suppliers(self, symbol: str) -> list[CustomerSupplierRelation]:
         """获取供应商列表"""
         import random
-        
+
         supplier_names = [
             ("供应商A", True, "601398"),
             ("供应商B", False, None),
             ("供应商C", True, "000858"),
             ("供应商D", False, None),
         ]
-        
+
         suppliers = []
         remaining_pct = 100.0
-        
+
         for i, (name, is_listed, listed_symbol) in enumerate(supplier_names):
             if remaining_pct <= 0:
                 break
-            
+
             pct = random.uniform(5, min(35, remaining_pct))
             remaining_pct -= pct
-            
+
             suppliers.append(CustomerSupplierRelation(
                 symbol=f"SUPP_{i}",
                 name=name,
@@ -247,12 +246,12 @@ class CustomerSupplierService:
                 listed_symbol=listed_symbol,
                 dependency_risk="high" if pct > 25 else "medium" if pct > 15 else "low",
             ))
-        
+
         return sorted(suppliers, key=lambda x: x.revenue_pct, reverse=True)
-    
+
     def _analyze_concentration(
         self,
-        relations: List[CustomerSupplierRelation],
+        relations: list[CustomerSupplierRelation],
     ) -> ConcentrationAnalysis:
         """分析集中度"""
         if not relations:
@@ -260,16 +259,16 @@ class CustomerSupplierService:
                 top1_pct=0, top5_pct=0, top10_pct=0,
                 herfindahl_index=0, concentration_level="低",
             )
-        
+
         sorted_relations = sorted(relations, key=lambda x: x.revenue_pct, reverse=True)
-        
+
         top1_pct = sorted_relations[0].revenue_pct if len(sorted_relations) >= 1 else 0
         top5_pct = sum(r.revenue_pct for r in sorted_relations[:5])
         top10_pct = sum(r.revenue_pct for r in sorted_relations[:10])
-        
+
         # HHI指数
         hhi = sum(r.revenue_pct ** 2 for r in relations) / 10000
-        
+
         # 集中度判断
         if top5_pct > 60:
             level = "高"
@@ -277,7 +276,7 @@ class CustomerSupplierService:
             level = "中"
         else:
             level = "低"
-        
+
         return ConcentrationAnalysis(
             top1_pct=round(top1_pct, 1),
             top5_pct=round(top5_pct, 1),
@@ -285,36 +284,36 @@ class CustomerSupplierService:
             herfindahl_index=round(hhi, 4),
             concentration_level=level,
         )
-    
+
     def _analyze_risks(
         self,
-        customers: List[CustomerSupplierRelation],
-        suppliers: List[CustomerSupplierRelation],
+        customers: list[CustomerSupplierRelation],
+        suppliers: list[CustomerSupplierRelation],
         customer_conc: ConcentrationAnalysis,
         supplier_conc: ConcentrationAnalysis,
-    ) -> List[str]:
+    ) -> list[str]:
         """分析风险"""
         risks = []
-        
+
         # 客户集中度风险
         if customer_conc and customer_conc.top1_pct > 25:
             risks.append(f"客户集中度高：第一大客户占比{customer_conc.top1_pct}%")
-        
+
         # 供应商集中度风险
         if supplier_conc and supplier_conc.top1_pct > 30:
             risks.append(f"供应商集中度高：第一大供应商占比{supplier_conc.top1_pct}%")
-        
+
         # 高依赖关系
         high_dep_customers = [c for c in customers if c.dependency_risk == "high"]
         if high_dep_customers:
             risks.append(f"存在{len(high_dep_customers)}个高依赖客户")
-        
+
         high_dep_suppliers = [s for s in suppliers if s.dependency_risk == "high"]
         if high_dep_suppliers:
             risks.append(f"存在{len(high_dep_suppliers)}个高依赖供应商")
-        
+
         return risks
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         """获取股票名称"""
         names = {
@@ -327,7 +326,7 @@ class CustomerSupplierService:
 
 
 # 全局单例
-_customer_supplier_service: Optional[CustomerSupplierService] = None
+_customer_supplier_service: CustomerSupplierService | None = None
 
 
 def get_customer_supplier_service() -> CustomerSupplierService:

@@ -6,9 +6,8 @@ Root Cause Analyzer - 失败根因分析
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Tuple
 from collections import Counter
+from dataclasses import dataclass
 
 from .signal import FailureSignal, FailureType
 
@@ -17,14 +16,14 @@ from .signal import FailureSignal, FailureType
 class RootCause:
     category: str
     confidence: float
-    reasons: List[str]
-    strategies: List[str]
+    reasons: list[str]
+    strategies: list[str]
 
 
 class RootCauseAnalyzer:
     """对失败链进行聚合分析，输出根因类别与修复策略。"""
 
-    CATEGORY_MAP: Dict[str, List[FailureType]] = {
+    CATEGORY_MAP: dict[str, list[FailureType]] = {
         "timeout": [FailureType.TIMEOUT],
         "permission": [FailureType.PERMISSION_DENIED],
         "rate_limit": [FailureType.RATE_LIMITED],
@@ -34,7 +33,7 @@ class RootCauseAnalyzer:
         "logic": [FailureType.EXECUTION_ERROR],
     }
 
-    STRATEGY_LIBRARY: Dict[str, List[str]] = {
+    STRATEGY_LIBRARY: dict[str, list[str]] = {
         "timeout": ["增加超时时间", "降低并发/请求量", "分批处理", "使用缓存", "退避重试(backoff)"],
         "permission": ["验证权限/令牌", "使用替代工具", "请求人工授权(HITL)"],
         "rate_limit": ["实施指数退避", "排队处理", "切换备用API/密钥"],
@@ -44,7 +43,7 @@ class RootCauseAnalyzer:
         "logic": ["改变执行路径", "缩小问题范围", "请求更高层次目标澄清"],
     }
 
-    def analyze(self, failure_chain: List[FailureSignal]) -> Optional[RootCause]:
+    def analyze(self, failure_chain: list[FailureSignal]) -> RootCause | None:
         if not failure_chain:
             return None
 
@@ -69,10 +68,10 @@ class RootCauseAnalyzer:
         self,
         type_counts: Counter,
         tool_counts: Counter,
-    ) -> Tuple[str, float, List[str]]:
+    ) -> tuple[str, float, list[str]]:
         # 将 FailureType 映射到类别票数
         cat_votes: Counter = Counter()
-        reasons: List[str] = []
+        reasons: list[str] = []
         total = sum(type_counts.values()) or 1
         for ftype, cnt in type_counts.items():
             for cat, types in self.CATEGORY_MAP.items():

@@ -37,17 +37,17 @@ def add_request_id(
 
 def configure_logging() -> None:
     """Configure structlog for structured logging."""
-    
+
     # Determine log level
     log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
-    
+
     # Configure standard library logging
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
         level=log_level,
     )
-    
+
     # Configure structlog processors
     processors = [
         structlog.contextvars.merge_contextvars,
@@ -57,7 +57,7 @@ def configure_logging() -> None:
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
     ]
-    
+
     # Add JSON renderer for production, pretty console for development
     if settings.ENVIRONMENT == "production":
         processors.append(structlog.processors.JSONRenderer())
@@ -68,7 +68,7 @@ def configure_logging() -> None:
                 exception_formatter=structlog.dev.plain_traceback,
             )
         )
-    
+
     # Configure structlog
     structlog.configure(
         processors=processors,

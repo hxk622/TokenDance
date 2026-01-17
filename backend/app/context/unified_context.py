@@ -8,10 +8,10 @@ UnifiedExecutionContext - 统一执行上下文
 import json
 import logging
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +41,14 @@ class ExecutionRecord:
     status: ExecutionStatus        # 执行状态
     user_message: str              # 用户输入
     start_time: datetime          # 开始时间
-    end_time: Optional[datetime] = None  # 结束时间
-    result: Optional[Any] = None   # 执行结果
-    error: Optional[str] = None    # 错误信息
-    duration: Optional[float] = None  # 执行耗时（秒）
+    end_time: datetime | None = None  # 结束时间
+    result: Any | None = None   # 执行结果
+    error: str | None = None    # 错误信息
+    duration: float | None = None  # 执行耗时（秒）
     tokens_used: int = 0           # 消耗 Token 数
-    metadata: Dict[str, Any] = field(default_factory=dict)  # 额外信息
+    metadata: dict[str, Any] = field(default_factory=dict)  # 额外信息
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         data = asdict(self)
         # 日期时间序列化
@@ -62,25 +62,25 @@ class ExecutionRecord:
 class ToolRegistry:
     """
     工具注册表 - 管理可用的工具和权限
-    
+
     用于限制代码执行中的工具访问权限，
     支持 API key、数据库连接等敏感信息的管理。
     """
 
     def __init__(self):
         """初始化工具注册表"""
-        self._tools: Dict[str, Dict[str, Any]] = {}
-        self._permissions: Dict[str, bool] = {}
+        self._tools: dict[str, dict[str, Any]] = {}
+        self._permissions: dict[str, bool] = {}
 
     def register_tool(
         self,
         tool_name: str,
-        tool_config: Dict[str, Any],
+        tool_config: dict[str, Any],
         enabled: bool = True,
     ) -> None:
         """
         注册工具
-        
+
         Args:
             tool_name: 工具名称 (e.g., "requests", "pandas", "sqlite3")
             tool_config: 工具配置（API key、连接串等）
@@ -90,13 +90,13 @@ class ToolRegistry:
         self._permissions[tool_name] = enabled
         logger.info(f"Tool registered: {tool_name} (enabled={enabled})")
 
-    def get_tool(self, tool_name: str) -> Optional[Dict[str, Any]]:
+    def get_tool(self, tool_name: str) -> dict[str, Any] | None:
         """
         获取工具配置
-        
+
         Args:
             tool_name: 工具名称
-            
+
         Returns:
             工具配置字典，如果未注册或已禁用返回 None
         """
@@ -109,10 +109,10 @@ class ToolRegistry:
     def is_tool_available(self, tool_name: str) -> bool:
         """
         检查工具是否可用
-        
+
         Args:
             tool_name: 工具名称
-            
+
         Returns:
             True 如果工具可用
         """
@@ -133,14 +133,14 @@ class ToolRegistry:
             self._permissions[tool_name] = False
             logger.info(f"Tool disabled: {tool_name}")
 
-    def list_available_tools(self) -> List[str]:
+    def list_available_tools(self) -> list[str]:
         """获取所有可用工具"""
         return [
             name for name, enabled in self._permissions.items()
             if enabled
         ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
             "tools": list(self._tools.keys()),
@@ -152,7 +152,7 @@ class ToolRegistry:
 class UnifiedExecutionContext:
     """
     统一执行上下文
-    
+
     管理 Skill、MCP 和 LLM 三种执行模式的共享数据，包括：
     1. 共享变量空间（用于跨路径数据传递）
     2. 执行历史（用于决策和调试）
@@ -160,34 +160,34 @@ class UnifiedExecutionContext:
     4. Session 隔离（不同用户的数据独立）
     """
 
-    def __init__(self, session_id: Optional[str] = None):
+    def __init__(self, session_id: str | None = None):
         """
         初始化统一执行上下文
-        
+
         Args:
             session_id: Session ID（用于隔离），如果为 None 则自动生成
         """
         self.session_id = session_id or str(uuid.uuid4())
-        
+
         # 共享变量空间（可被 Skill 和 MCP 访问）
-        self.shared_vars: Dict[str, Any] = {}
-        
+        self.shared_vars: dict[str, Any] = {}
+
         # 执行历史（按执行顺序记录）
-        self.execution_history: List[ExecutionRecord] = []
-        
+        self.execution_history: list[ExecutionRecord] = []
+
         # 工具注册表
         self.tools = ToolRegistry()
-        
+
         # 上下文元数据
         self.created_at = datetime.now()
         self.last_updated = datetime.now()
-        
+
         logger.info(f"UnifiedExecutionContext created: {self.session_id}")
 
     def set_var(self, key: str, value: Any) -> None:
         """
         设置共享变量
-        
+
         Args:
             key: 变量名
             value: 变量值
@@ -199,11 +199,11 @@ class UnifiedExecutionContext:
     def get_var(self, key: str, default: Any = None) -> Any:
         """
         获取共享变量
-        
+
         Args:
             key: 变量名
             default: 默认值（如果变量不存在）
-            
+
         Returns:
             变量值或默认值
         """
@@ -226,7 +226,7 @@ class UnifiedExecutionContext:
         self.last_updated = datetime.now()
         logger.info("All variables cleared")
 
-    def get_all_vars(self) -> Dict[str, Any]:
+    def get_all_vars(self) -> dict[str, Any]:
         """获取所有变量的副本"""
         return self.shared_vars.copy()
 
@@ -235,14 +235,14 @@ class UnifiedExecutionContext:
         execution_type: ExecutionType,
         user_message: str,
         status: ExecutionStatus = ExecutionStatus.PENDING,
-        result: Optional[Any] = None,
-        error: Optional[str] = None,
+        result: Any | None = None,
+        error: str | None = None,
         tokens_used: int = 0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ExecutionRecord:
         """
         记录执行事件
-        
+
         Args:
             execution_type: 执行类型
             user_message: 用户消息
@@ -251,7 +251,7 @@ class UnifiedExecutionContext:
             error: 错误信息（如果有）
             tokens_used: 消耗 Token 数
             metadata: 额外元数据
-            
+
         Returns:
             ExecutionRecord 对象
         """
@@ -272,35 +272,35 @@ class UnifiedExecutionContext:
             tokens_used=tokens_used,
             metadata=metadata or {},
         )
-        
+
         self.execution_history.append(record)
         self.last_updated = datetime.now()
-        
+
         logger.info(
             f"Execution recorded: {execution_type.value} - {status.value} "
             f"(id={record.execution_id})"
         )
-        
+
         return record
 
     def update_execution_record(
         self,
         execution_id: str,
         status: ExecutionStatus,
-        result: Optional[Any] = None,
-        error: Optional[str] = None,
+        result: Any | None = None,
+        error: str | None = None,
         tokens_used: int = 0,
-    ) -> Optional[ExecutionRecord]:
+    ) -> ExecutionRecord | None:
         """
         更新执行记录
-        
+
         Args:
             execution_id: 执行 ID
             status: 新状态
             result: 执行结果
             error: 错误信息
             tokens_used: 消耗 Token 数
-            
+
         Returns:
             更新后的 ExecutionRecord，如果未找到则返回 None
         """
@@ -311,22 +311,22 @@ class UnifiedExecutionContext:
                 record.result = result
                 record.error = error
                 record.tokens_used = tokens_used
-                
+
                 # 计算耗时
                 if record.end_time and record.start_time:
                     duration = (record.end_time - record.start_time).total_seconds()
                     record.duration = duration
-                
+
                 self.last_updated = datetime.now()
                 logger.info(
                     f"Execution record updated: {execution_id} - {status.value}"
                 )
                 return record
-        
+
         logger.warning(f"Execution record not found: {execution_id}")
         return None
 
-    def get_execution_record(self, execution_id: str) -> Optional[ExecutionRecord]:
+    def get_execution_record(self, execution_id: str) -> ExecutionRecord | None:
         """获取执行记录"""
         for record in self.execution_history:
             if record.execution_id == execution_id:
@@ -335,41 +335,41 @@ class UnifiedExecutionContext:
 
     def get_execution_history(
         self,
-        execution_type: Optional[ExecutionType] = None,
-        limit: Optional[int] = None,
-    ) -> List[ExecutionRecord]:
+        execution_type: ExecutionType | None = None,
+        limit: int | None = None,
+    ) -> list[ExecutionRecord]:
         """
         获取执行历史
-        
+
         Args:
             execution_type: 可选的执行类型过滤
             limit: 最近 N 条记录
-            
+
         Returns:
             执行记录列表
         """
         records = self.execution_history
-        
+
         if execution_type:
             records = [r for r in records if r.execution_type == execution_type]
-        
+
         if limit:
             records = records[-limit:]
-        
+
         return records
 
     def get_last_execution(
         self,
-        execution_type: Optional[ExecutionType] = None,
-    ) -> Optional[ExecutionRecord]:
+        execution_type: ExecutionType | None = None,
+    ) -> ExecutionRecord | None:
         """获取最后一次执行记录"""
         records = self.get_execution_history(execution_type=execution_type)
         return records[-1] if records else None
 
-    def get_execution_stats(self) -> Dict[str, Any]:
+    def get_execution_stats(self) -> dict[str, Any]:
         """
         获取执行统计信息
-        
+
         Returns:
             统计字典
         """
@@ -381,7 +381,7 @@ class UnifiedExecutionContext:
                 "failed_count": 0,
                 "by_type": {},
             }
-        
+
         stats = {
             "total_executions": total,
             "success_count": sum(
@@ -397,7 +397,7 @@ class UnifiedExecutionContext:
             ),
             "by_type": {},
         }
-        
+
         # 按执行类型统计
         for exec_type in ExecutionType:
             type_records = [
@@ -413,7 +413,7 @@ class UnifiedExecutionContext:
                     ),
                     "total_tokens": sum(r.tokens_used for r in type_records),
                 }
-        
+
         return stats
 
     def clear_history(self) -> None:
@@ -422,10 +422,10 @@ class UnifiedExecutionContext:
         self.last_updated = datetime.now()
         logger.info("Execution history cleared")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         转换为字典（用于序列化）
-        
+
         Returns:
             包含上下文所有信息的字典
         """
@@ -449,16 +449,16 @@ class UnifiedExecutionContext:
 
 
 # 上下文管理器：Session 隔离
-_context_instances: Dict[str, UnifiedExecutionContext] = {}
+_context_instances: dict[str, UnifiedExecutionContext] = {}
 
 
-def get_unified_context(session_id: Optional[str] = None) -> UnifiedExecutionContext:
+def get_unified_context(session_id: str | None = None) -> UnifiedExecutionContext:
     """
     获取或创建统一执行上下文（Session 隔离）
-    
+
     Args:
         session_id: Session ID，如果为 None 则创建新的 context
-        
+
     Returns:
         UnifiedExecutionContext 实例
     """
@@ -467,11 +467,11 @@ def get_unified_context(session_id: Optional[str] = None) -> UnifiedExecutionCon
         context = UnifiedExecutionContext()
         _context_instances[context.session_id] = context
         return context
-    
+
     # 获取或创建对应 session 的 context
     if session_id not in _context_instances:
         _context_instances[session_id] = UnifiedExecutionContext(session_id=session_id)
-    
+
     return _context_instances[session_id]
 
 

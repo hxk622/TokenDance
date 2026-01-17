@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Browser Operations Tools - 浏览器操作工具集
 
@@ -18,43 +17,40 @@ Browser Operations Tools - 浏览器操作工具集
 - browser_close: 关闭浏览器
 """
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
-from ..base import BaseTool
-from ..risk import RiskLevel, OperationCategory
 from ....services.browser_automation import (
     AgentBrowserService,
-    SnapshotResult,
-    BrowserResult,
-    create_browser_service
 )
+from ..base import BaseTool
+from ..risk import OperationCategory, RiskLevel
 
 logger = logging.getLogger(__name__)
 
 # 全局 Session 管理（同一任务内共享浏览器实例）
-_browser_sessions: Dict[str, AgentBrowserService] = {}
+_browser_sessions: dict[str, AgentBrowserService] = {}
 
 
-def get_browser_service(session_id: Optional[str] = None) -> AgentBrowserService:
+def get_browser_service(session_id: str | None = None) -> AgentBrowserService:
     """获取或创建浏览器服务实例
-    
+
     Args:
         session_id: Session ID，None 则使用默认 Session
-    
+
     Returns:
         AgentBrowserService 实例
     """
     session_id = session_id or "default"
-    
+
     if session_id not in _browser_sessions:
         _browser_sessions[session_id] = AgentBrowserService(session=session_id)
-    
+
     return _browser_sessions[session_id]
 
 
-async def cleanup_browser_session(session_id: Optional[str] = None) -> None:
+async def cleanup_browser_session(session_id: str | None = None) -> None:
     """清理浏览器 Session
-    
+
     Args:
         session_id: Session ID，None 则清理所有
     """
@@ -76,13 +72,13 @@ async def cleanup_browser_session(session_id: Optional[str] = None) -> None:
 
 class BrowserOpenTool(BaseTool):
     """打开网页并获取 Snapshot
-    
+
     使用 agent-browser 打开指定 URL，返回页面的 Accessibility Tree Snapshot。
     Snapshot 使用 @eN 格式的引用标识符，用于后续操作。
-    
+
     风险等级：NONE（纯读取操作）
     """
-    
+
     name = "browser_open"
     description = (
         "Open a web page and return an Accessibility Tree Snapshot. "
@@ -104,48 +100,48 @@ class BrowserOpenTool(BaseTool):
         },
         "required": ["url"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
     requires_confirmation = False
-    
+
     async def execute(self, **kwargs: Any) -> str:
         """执行打开网页
-        
+
         Args:
             url: 要打开的 URL
             session_id: 可选的 Session ID
-            
+
         Returns:
             str: Snapshot 结果文本
         """
         url = kwargs.get("url", "")
         session_id = kwargs.get("session_id")
-        
+
         if not url:
             return "Error: URL parameter is required"
-        
+
         # 验证 URL 格式
         if not url.startswith(("http://", "https://")):
             url = "https://" + url
-        
+
         logger.info(f"Opening URL: {url}")
-        
+
         try:
             browser = get_browser_service(session_id)
             snapshot = await browser.open(url)
-            
+
             # 格式化输出
             result = f"✓ Opened: {snapshot.title}\n"
             result += f"  URL: {snapshot.url}\n\n"
             result += "Interactive elements (use @eN refs for interactions):\n"
             result += snapshot.tree[:5000]  # 限制大小
-            
+
             if len(snapshot.tree) > 5000:
                 result += "\n\n... (snapshot truncated, use browser_snapshot for full view)"
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to open URL {url}: {e}", exc_info=True)
             return f"Error opening URL: {str(e)}"
@@ -153,13 +149,13 @@ class BrowserOpenTool(BaseTool):
 
 class BrowserClickTool(BaseTool):
     """点击页面元素
-    
+
     使用 @eN 格式的引用点击 Snapshot 中的元素。
     点击后自动返回新的 Snapshot。
-    
+
     风险等级：LOW（可能触发页面跳转）
     """
-    
+
     name = "browser_click"
     description = (
         "Click an element on the current page using its ref from the snapshot. "
@@ -180,49 +176,49 @@ class BrowserClickTool(BaseTool):
         },
         "required": ["ref"]
     }
-    
+
     risk_level = RiskLevel.LOW
     operation_categories = [OperationCategory.WEB_INTERACT]
     requires_confirmation = False
-    
+
     async def execute(self, **kwargs: Any) -> str:
         """执行点击操作
-        
+
         Args:
             ref: 元素引用 (@eN 格式)
             session_id: 可选的 Session ID
-            
+
         Returns:
             str: 操作结果和新的 Snapshot
         """
         ref = kwargs.get("ref", "")
         session_id = kwargs.get("session_id")
-        
+
         if not ref:
             return "Error: ref parameter is required (e.g., @e1)"
-        
+
         # 确保 ref 格式正确
         if not ref.startswith("@"):
             ref = "@" + ref
-        
+
         logger.info(f"Clicking element: {ref}")
-        
+
         try:
             browser = get_browser_service(session_id)
             result = await browser.click(ref)
-            
+
             if not result.success:
                 return f"Error clicking {ref}: {result.error}"
-            
+
             # 获取新的 snapshot
             snapshot = await browser.snapshot()
-            
+
             output = f"✓ Clicked {ref} ({result.duration_ms:.0f}ms)\n\n"
             output += "New page state:\n"
             output += snapshot.tree[:5000]
-            
+
             return output
-            
+
         except Exception as e:
             logger.error(f"Failed to click {ref}: {e}", exc_info=True)
             return f"Error clicking {ref}: {str(e)}"
@@ -230,12 +226,12 @@ class BrowserClickTool(BaseTool):
 
 class BrowserFillTool(BaseTool):
     """填充输入框
-    
+
     使用 @eN 格式的引用填充输入框。
-    
+
     风险等级：LOW（填充表单）
     """
-    
+
     name = "browser_fill"
     description = (
         "Fill an input field with text using its ref from the snapshot. "
@@ -260,45 +256,45 @@ class BrowserFillTool(BaseTool):
         },
         "required": ["ref", "text"]
     }
-    
+
     risk_level = RiskLevel.LOW
     operation_categories = [OperationCategory.WEB_INTERACT]
     requires_confirmation = False
-    
+
     async def execute(self, **kwargs: Any) -> str:
         """执行填充操作
-        
+
         Args:
             ref: 输入框引用 (@eN 格式)
             text: 要填充的文本
             session_id: 可选的 Session ID
-            
+
         Returns:
             str: 操作结果
         """
         ref = kwargs.get("ref", "")
         text = kwargs.get("text", "")
         session_id = kwargs.get("session_id")
-        
+
         if not ref:
             return "Error: ref parameter is required"
         if not text:
             return "Error: text parameter is required"
-        
+
         if not ref.startswith("@"):
             ref = "@" + ref
-        
+
         logger.info(f"Filling {ref} with text: {text[:50]}...")
-        
+
         try:
             browser = get_browser_service(session_id)
             result = await browser.fill(ref, text)
-            
+
             if not result.success:
                 return f"Error filling {ref}: {result.error}"
-            
+
             return f"✓ Filled {ref} with: {text[:100]}{'...' if len(text) > 100 else ''}"
-            
+
         except Exception as e:
             logger.error(f"Failed to fill {ref}: {e}", exc_info=True)
             return f"Error filling {ref}: {str(e)}"
@@ -306,13 +302,13 @@ class BrowserFillTool(BaseTool):
 
 class BrowserSnapshotTool(BaseTool):
     """获取当前页面 Snapshot
-    
+
     返回当前页面的 Accessibility Tree Snapshot。
     用于在操作后查看页面状态。
-    
+
     风险等级：NONE（纯读取）
     """
-    
+
     name = "browser_snapshot"
     description = (
         "Get the current page's Accessibility Tree Snapshot. "
@@ -334,35 +330,35 @@ class BrowserSnapshotTool(BaseTool):
         },
         "required": []
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
     requires_confirmation = False
-    
+
     async def execute(self, **kwargs: Any) -> str:
         """获取 Snapshot
-        
+
         Args:
             interactive_only: 是否只显示交互元素
             session_id: 可选的 Session ID
-            
+
         Returns:
             str: Snapshot 文本
         """
         interactive_only = kwargs.get("interactive_only", True)
         session_id = kwargs.get("session_id")
-        
+
         try:
             browser = get_browser_service(session_id)
             snapshot = await browser.snapshot(interactive_only=interactive_only, compact=True)
-            
+
             result = f"Page: {snapshot.title}\n"
             result += f"URL: {snapshot.url}\n\n"
             result += "Interactive elements:\n"
             result += snapshot.tree[:5000]
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to get snapshot: {e}", exc_info=True)
             return f"Error getting snapshot: {str(e)}"
@@ -370,13 +366,13 @@ class BrowserSnapshotTool(BaseTool):
 
 class BrowserScreenshotTool(BaseTool):
     """页面截图
-    
+
     对当前页面进行截图，用于视觉记录。
     截图保存到本地文件系统。
-    
+
     风险等级：NONE（纯读取）
     """
-    
+
     name = "browser_screenshot"
     description = (
         "Take a screenshot of the current page. "
@@ -393,28 +389,28 @@ class BrowserScreenshotTool(BaseTool):
         },
         "required": []
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
     requires_confirmation = False
-    
+
     async def execute(self, **kwargs: Any) -> str:
         """执行截图
-        
+
         Args:
             session_id: 可选的 Session ID
-            
+
         Returns:
             str: 截图文件路径
         """
         session_id = kwargs.get("session_id")
-        
+
         try:
             browser = get_browser_service(session_id)
             path = await browser.screenshot()
-            
+
             return f"✓ Screenshot saved: {path}"
-            
+
         except Exception as e:
             logger.error(f"Failed to take screenshot: {e}", exc_info=True)
             return f"Error taking screenshot: {str(e)}"
@@ -422,12 +418,12 @@ class BrowserScreenshotTool(BaseTool):
 
 class BrowserCloseTool(BaseTool):
     """关闭浏览器
-    
+
     关闭当前浏览器实例，释放资源。
-    
+
     风险等级：NONE
     """
-    
+
     name = "browser_close"
     description = (
         "Close the browser instance and release resources. "
@@ -443,26 +439,26 @@ class BrowserCloseTool(BaseTool):
         },
         "required": []
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = []
     requires_confirmation = False
-    
+
     async def execute(self, **kwargs: Any) -> str:
         """关闭浏览器
-        
+
         Args:
             session_id: 可选的 Session ID
-            
+
         Returns:
             str: 操作结果
         """
         session_id = kwargs.get("session_id")
-        
+
         try:
             await cleanup_browser_session(session_id)
-            return f"✓ Browser session closed"
-            
+            return "✓ Browser session closed"
+
         except Exception as e:
             logger.error(f"Failed to close browser: {e}", exc_info=True)
             return f"Error closing browser: {str(e)}"
@@ -471,7 +467,7 @@ class BrowserCloseTool(BaseTool):
 # 便捷函数
 def create_browser_tools() -> list:
     """创建所有浏览器工具实例
-    
+
     Returns:
         list: 工具实例列表
     """

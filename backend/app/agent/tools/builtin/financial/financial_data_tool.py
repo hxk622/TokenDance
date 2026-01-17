@@ -8,37 +8,36 @@ This tool routes requests to appropriate data adapters based on:
 
 Usage:
     tool = FinancialDataTool()
-    
+
     # US Stock
     result = await tool.execute(symbol="AAPL", data_type="quote", market="us")
-    
+
     # A-Stock
     result = await tool.execute(symbol="600519", data_type="quote", market="cn")
 """
 
-from typing import Any, Literal
+from typing import Literal
 
+from app.agent.tools.builtin.financial.adapters.akshare_adapter import AkShareAdapter
 from app.agent.tools.builtin.financial.adapters.base import (
-    DataType,
     FinancialDataResult,
     Market,
 )
 from app.agent.tools.builtin.financial.adapters.openbb_adapter import OpenBBAdapter
-from app.agent.tools.builtin.financial.adapters.akshare_adapter import AkShareAdapter
 from app.agent.tools.builtin.financial.compliance import get_compliance_checker
 
 
 class FinancialDataTool:
     """
     Unified financial data tool.
-    
+
     Routes data requests to appropriate adapters based on market and data type.
     Enforces compliance rules for all data access.
     """
-    
+
     name = "financial_data"
     description = """获取金融市场数据，支持美股、A股、港股。
-    
+
 数据类型:
 - quote: 实时行情
 - historical: 历史价格
@@ -56,46 +55,46 @@ class FinancialDataTool:
 - 获取苹果股价: symbol="AAPL", data_type="quote", market="us"
 - 获取茅台财报: symbol="600519", data_type="fundamental", market="cn"
 """
-    
+
     def __init__(self):
         """Initialize financial data tool with adapters."""
         self.openbb_adapter = OpenBBAdapter()
         self.akshare_adapter = AkShareAdapter()
         self.compliance = get_compliance_checker()
-        
+
     def _detect_market(self, symbol: str) -> Market:
         """
         Auto-detect market from symbol format.
-        
+
         Args:
             symbol: Stock symbol
-            
+
         Returns:
             Detected market
         """
         symbol = symbol.upper()
-        
+
         # A-Stock patterns
         if any([
             symbol.endswith(('.SH', '.SS', '.SZ', '.XSHG', '.XSHE')),
             symbol.isdigit() and len(symbol) == 6,
         ]):
             return Market.CN
-        
+
         # Hong Kong patterns
         if symbol.endswith('.HK') or (symbol.isdigit() and len(symbol) <= 5):
             return Market.HK
-        
+
         # Default to US
         return Market.US
-    
+
     def _get_adapter(self, market: Market):
         """
         Get appropriate adapter for market.
-        
+
         Args:
             market: Target market
-            
+
         Returns:
             Data adapter instance
         """
@@ -110,7 +109,7 @@ class FinancialDataTool:
         else:
             # Default to OpenBB for other markets
             return self.openbb_adapter
-    
+
     async def execute(
         self,
         symbol: str,
@@ -120,13 +119,13 @@ class FinancialDataTool:
     ) -> FinancialDataResult:
         """
         Execute financial data request.
-        
+
         Args:
             symbol: Stock symbol (e.g., "AAPL", "600519.SH")
             data_type: Type of data to fetch
             market: Target market or "auto" for auto-detection
             **kwargs: Additional arguments passed to adapter
-            
+
         Returns:
             FinancialDataResult with requested data
         """
@@ -135,7 +134,7 @@ class FinancialDataTool:
             detected_market = self._detect_market(symbol)
         else:
             detected_market = Market(market)
-        
+
         # Get appropriate adapter
         try:
             adapter = self._get_adapter(detected_market)
@@ -147,7 +146,7 @@ class FinancialDataTool:
                 market=market,
                 data_type=data_type,
             )
-        
+
         # Route to appropriate method
         try:
             if data_type == "quote":
@@ -200,13 +199,13 @@ class FinancialDataTool:
                 market=detected_market.value,
                 data_type=data_type,
             )
-    
+
     # Convenience methods
-    
+
     async def get_quote(self, symbol: str, market: str = "auto", **kwargs) -> FinancialDataResult:
         """Get real-time quote."""
         return await self.execute(symbol, "quote", market, **kwargs)
-    
+
     async def get_historical(
         self,
         symbol: str,
@@ -224,7 +223,7 @@ class FinancialDataTool:
             interval=interval,
             **kwargs
         )
-    
+
     async def get_fundamental(
         self,
         symbol: str,
@@ -238,11 +237,11 @@ class FinancialDataTool:
             statement_type=statement_type,
             **kwargs
         )
-    
+
     async def get_valuation(self, symbol: str, market: str = "auto", **kwargs) -> FinancialDataResult:
         """Get valuation metrics."""
         return await self.execute(symbol, "valuation", market, **kwargs)
-    
+
     async def get_news(
         self,
         symbol: str,
@@ -252,30 +251,30 @@ class FinancialDataTool:
     ) -> FinancialDataResult:
         """Get financial news."""
         return await self.execute(symbol, "news", market, limit=limit, **kwargs)
-    
+
     # A-Stock specific methods
-    
+
     async def get_north_flow(self) -> FinancialDataResult:
         """
         Get northbound capital flow (北向资金).
-        
+
         Returns:
             FinancialDataResult with capital flow data.
         """
         return await self.akshare_adapter.get_north_flow()
-    
+
     async def get_dragon_tiger(self, date: str | None = None) -> FinancialDataResult:
         """
         Get dragon and tiger list (龙虎榜).
-        
+
         Args:
             date: Date in YYYYMMDD format
-            
+
         Returns:
             FinancialDataResult with dragon tiger data.
         """
         return await self.akshare_adapter.get_dragon_tiger(date=date)
-    
+
     def get_disclaimer(self) -> str:
         """Get compliance disclaimer."""
         return self.compliance.get_disclaimer()
@@ -288,13 +287,13 @@ _financial_tool: FinancialDataTool | None = None
 def get_financial_tool() -> FinancialDataTool:
     """
     Get the global financial data tool instance.
-    
+
     Returns:
         FinancialDataTool instance
     """
     global _financial_tool
-    
+
     if _financial_tool is None:
         _financial_tool = FinancialDataTool()
-    
+
     return _financial_tool

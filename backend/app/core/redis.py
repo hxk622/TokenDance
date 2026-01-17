@@ -1,7 +1,7 @@
 """
 Redis configuration and connection management.
 """
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -18,7 +18,7 @@ redis_client: Redis | None = None
 async def init_redis() -> None:
     """Initialize Redis connection pool."""
     global redis_client
-    
+
     try:
         redis_client = await aioredis.from_url(
             settings.REDIS_URL,
@@ -29,7 +29,7 @@ async def init_redis() -> None:
             socket_connect_timeout=5,
             retry_on_timeout=True,
         )
-        
+
         # Test connection
         await redis_client.ping()
         logger.info(
@@ -46,7 +46,7 @@ async def init_redis() -> None:
 async def close_redis() -> None:
     """Close Redis connection."""
     global redis_client
-    
+
     if redis_client:
         await redis_client.aclose()
         redis_client = None
@@ -56,7 +56,7 @@ async def close_redis() -> None:
 async def get_redis() -> AsyncGenerator[Redis, None]:
     """
     Dependency for getting Redis client.
-    
+
     Usage:
         @app.get("/cache")
         async def get_cache(redis: Redis = Depends(get_redis)):
@@ -64,7 +64,7 @@ async def get_redis() -> AsyncGenerator[Redis, None]:
     """
     if redis_client is None:
         raise RuntimeError("Redis client not initialized")
-    
+
     yield redis_client
 
 

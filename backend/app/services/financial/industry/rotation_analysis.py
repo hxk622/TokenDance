@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 RotationAnalysisService - 行业轮动分析服务
 
@@ -10,9 +9,9 @@ RotationAnalysisService - 行业轮动分析服务
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +45,8 @@ class IndustryMomentum:
     momentum_score: float  # 动量得分
     signal: MomentumSignal
     rank: int = 0  # 在所有行业中的排名
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "industry": self.industry,
             "return_1w": self.return_1w,
@@ -69,8 +68,8 @@ class RotationPattern:
     avg_duration_days: int  # 平均持续天数
     avg_return: float     # 平均收益
     confidence: float     # 置信度
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "from_industry": self.from_industry,
             "to_industry": self.to_industry,
@@ -85,12 +84,12 @@ class RotationPattern:
 class CycleIndustryPerformance:
     """经济周期下的行业表现"""
     cycle: EconomicCycle
-    top_industries: List[str]
-    bottom_industries: List[str]
-    recommended_sectors: List[str]
-    avoid_sectors: List[str]
-    
-    def to_dict(self) -> Dict[str, Any]:
+    top_industries: list[str]
+    bottom_industries: list[str]
+    recommended_sectors: list[str]
+    avoid_sectors: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "cycle": self.cycle.value,
             "top_industries": self.top_industries,
@@ -105,13 +104,13 @@ class RotationAnalysisResult:
     """轮动分析结果"""
     analysis_date: datetime
     current_cycle: EconomicCycle
-    momentum_rankings: List[IndustryMomentum] = field(default_factory=list)
-    rotation_patterns: List[RotationPattern] = field(default_factory=list)
-    cycle_performance: Optional[CycleIndustryPerformance] = None
-    leading_industries: List[str] = field(default_factory=list)
-    lagging_industries: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    momentum_rankings: list[IndustryMomentum] = field(default_factory=list)
+    rotation_patterns: list[RotationPattern] = field(default_factory=list)
+    cycle_performance: CycleIndustryPerformance | None = None
+    leading_industries: list[str] = field(default_factory=list)
+    lagging_industries: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "analysis_date": self.analysis_date.isoformat(),
             "current_cycle": self.current_cycle.value,
@@ -125,7 +124,7 @@ class RotationAnalysisResult:
 
 class RotationAnalysisService:
     """行业轮动分析服务"""
-    
+
     # 行业列表
     INDUSTRIES = [
         "银行", "保险", "券商", "房地产",
@@ -134,7 +133,7 @@ class RotationAnalysisService:
         "钢铁", "煤炭", "有色", "化工",
         "电力", "公用事业", "交通运输", "建筑",
     ]
-    
+
     # 经济周期对应的优势行业
     CYCLE_INDUSTRIES = {
         EconomicCycle.RECOVERY: {
@@ -158,38 +157,38 @@ class RotationAnalysisService:
             "bottom": ["券商", "计算机"],
         },
     }
-    
+
     def __init__(self):
-        self._cache: Dict[str, Any] = {}
-    
+        self._cache: dict[str, Any] = {}
+
     async def analyze_rotation(
         self,
         lookback_months: int = 6,
     ) -> RotationAnalysisResult:
         """
         行业轮动分析
-        
+
         Args:
             lookback_months: 回看月数
         """
         analysis_date = datetime.now()
-        
+
         # 判断当前经济周期
         current_cycle = await self._detect_economic_cycle()
-        
+
         # 计算各行业动量
         momentum_list = await self._calculate_industry_momentum()
-        
+
         # 发现轮动规律
         rotation_patterns = await self._discover_rotation_patterns(lookback_months)
-        
+
         # 获取周期行业表现
         cycle_performance = self._get_cycle_performance(current_cycle)
-        
+
         # 识别领先/滞后行业
         leading = [m.industry for m in momentum_list[:5]]
         lagging = [m.industry for m in momentum_list[-5:]]
-        
+
         return RotationAnalysisResult(
             analysis_date=analysis_date,
             current_cycle=current_cycle,
@@ -199,23 +198,23 @@ class RotationAnalysisService:
             leading_industries=leading,
             lagging_industries=lagging,
         )
-    
-    async def get_industry_momentum(self, industry: str) -> Optional[IndustryMomentum]:
+
+    async def get_industry_momentum(self, industry: str) -> IndustryMomentum | None:
         """获取单个行业动量"""
         momentum_list = await self._calculate_industry_momentum()
         for m in momentum_list:
             if m.industry == industry:
                 return m
         return None
-    
+
     async def get_current_cycle(self) -> EconomicCycle:
         """获取当前经济周期判断"""
         return await self._detect_economic_cycle()
-    
-    async def get_rotation_suggestion(self) -> Dict[str, Any]:
+
+    async def get_rotation_suggestion(self) -> dict[str, Any]:
         """获取轮动建议"""
         result = await self.analyze_rotation()
-        
+
         return {
             "current_cycle": result.current_cycle.value,
             "recommended_industries": result.leading_industries[:3],
@@ -223,19 +222,19 @@ class RotationAnalysisService:
             "rotation_patterns": [p.to_dict() for p in result.rotation_patterns[:3]],
             "analysis_date": result.analysis_date.isoformat(),
         }
-    
+
     async def _detect_economic_cycle(self) -> EconomicCycle:
         """检测当前经济周期"""
         import random
-        
+
         # Mock: 随机返回一个周期阶段
         # 实际应基于 PMI、GDP、利率等宏观指标判断
         return random.choice(list(EconomicCycle))
-    
-    async def _calculate_industry_momentum(self) -> List[IndustryMomentum]:
+
+    async def _calculate_industry_momentum(self) -> list[IndustryMomentum]:
         """计算各行业动量"""
         import random
-        
+
         momentum_list = []
         for industry in self.INDUSTRIES:
             # Mock 数据
@@ -243,7 +242,7 @@ class RotationAnalysisService:
             return_1m = random.uniform(-10, 15)
             return_3m = random.uniform(-15, 25)
             return_6m = random.uniform(-20, 40)
-            
+
             # 动量得分 = 加权平均
             momentum_score = (
                 return_1w * 0.1 +
@@ -251,7 +250,7 @@ class RotationAnalysisService:
                 return_3m * 0.3 +
                 return_6m * 0.4
             )
-            
+
             # 信号判断
             if momentum_score > 15:
                 signal = MomentumSignal.STRONG_BUY
@@ -263,7 +262,7 @@ class RotationAnalysisService:
                 signal = MomentumSignal.SELL
             else:
                 signal = MomentumSignal.STRONG_SELL
-            
+
             momentum_list.append(IndustryMomentum(
                 industry=industry,
                 return_1w=round(return_1w, 2),
@@ -273,23 +272,23 @@ class RotationAnalysisService:
                 momentum_score=round(momentum_score, 2),
                 signal=signal,
             ))
-        
+
         # 按动量得分排序
         momentum_list.sort(key=lambda x: x.momentum_score, reverse=True)
-        
+
         # 设置排名
         for i, m in enumerate(momentum_list):
             m.rank = i + 1
-        
+
         return momentum_list
-    
+
     async def _discover_rotation_patterns(
         self,
         lookback_months: int,
-    ) -> List[RotationPattern]:
+    ) -> list[RotationPattern]:
         """发现历史轮动规律"""
         import random
-        
+
         # Mock 常见轮动模式
         patterns = [
             RotationPattern(
@@ -325,13 +324,13 @@ class RotationAnalysisService:
                 confidence=random.uniform(0.6, 0.85),
             ),
         ]
-        
+
         return sorted(patterns, key=lambda x: x.confidence, reverse=True)
-    
+
     def _get_cycle_performance(self, cycle: EconomicCycle) -> CycleIndustryPerformance:
         """获取周期行业表现"""
         cycle_data = self.CYCLE_INDUSTRIES.get(cycle, {"top": [], "bottom": []})
-        
+
         return CycleIndustryPerformance(
             cycle=cycle,
             top_industries=cycle_data["top"],
@@ -342,7 +341,7 @@ class RotationAnalysisService:
 
 
 # 全局单例
-_rotation_analysis_service: Optional[RotationAnalysisService] = None
+_rotation_analysis_service: RotationAnalysisService | None = None
 
 
 def get_rotation_analysis_service() -> RotationAnalysisService:

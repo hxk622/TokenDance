@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Knowledge Graph 服务模块
 
@@ -10,31 +9,31 @@ Knowledge Graph 服务模块
 - 交叉验证服务
 """
 
-from .models import (
-    EntityType,
-    RelationType,
-    ConfidenceLevel,
-    Entity,
-    Relation,
-    ResearchSource,
-    ResearchKnowledgeGraph,
-    ReasoningPath,
-    MultiHopResult,
-    ClaimVerification,
-)
-from .storage import (
-    Neo4jStorage,
-    get_neo4j_storage,
-    close_neo4j_storage,
-)
 from .builder import (
     KnowledgeGraphBuilder,
     create_source_from_search_result,
+)
+from .models import (
+    ClaimVerification,
+    ConfidenceLevel,
+    Entity,
+    EntityType,
+    MultiHopResult,
+    ReasoningPath,
+    Relation,
+    RelationType,
+    ResearchKnowledgeGraph,
+    ResearchSource,
 )
 from .query_engine import (
     GraphQueryEngine,
     QueryContext,
     extract_keywords_from_question,
+)
+from .storage import (
+    Neo4jStorage,
+    close_neo4j_storage,
+    get_neo4j_storage,
 )
 from .verifier import (
     CrossSourceVerifier,

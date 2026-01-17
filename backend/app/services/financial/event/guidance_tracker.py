@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GuidanceTrackerService - 业绩指引跟踪服务
 
@@ -9,9 +8,9 @@ GuidanceTrackerService - 业绩指引跟踪服务
 """
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from typing import Any, Dict, List, Optional
+from datetime import date, datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,21 +42,21 @@ class Guidance:
     guidance_date: date
     period: str  # 指引期间，如 "FY2024"
     guidance_type: GuidanceType
-    
+
     # 指引范围
-    low_estimate: Optional[float] = None
-    high_estimate: Optional[float] = None
-    point_estimate: Optional[float] = None
-    
+    low_estimate: float | None = None
+    high_estimate: float | None = None
+    point_estimate: float | None = None
+
     # 变化
     change: GuidanceChange = GuidanceChange.NEW
-    previous_low: Optional[float] = None
-    previous_high: Optional[float] = None
-    
+    previous_low: float | None = None
+    previous_high: float | None = None
+
     # 描述
     description: str = ""
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -84,8 +83,8 @@ class GuidanceAchievement:
     actual_value: float
     achievement_rate: float  # 达成率
     exceeded: bool  # 是否超出指引
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "period": self.period,
@@ -103,15 +102,15 @@ class GuidanceTrackingResult:
     symbol: str
     name: str
     analysis_date: datetime
-    current_guidances: List[Guidance] = field(default_factory=list)
-    historical_guidances: List[Guidance] = field(default_factory=list)
-    achievements: List[GuidanceAchievement] = field(default_factory=list)
-    
+    current_guidances: list[Guidance] = field(default_factory=list)
+    historical_guidances: list[Guidance] = field(default_factory=list)
+    achievements: list[GuidanceAchievement] = field(default_factory=list)
+
     # 统计
     avg_achievement_rate: float = 0.0
     exceed_rate: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -126,10 +125,10 @@ class GuidanceTrackingResult:
 
 class GuidanceTrackerService:
     """业绩指引跟踪服务"""
-    
+
     def __init__(self):
-        self._cache: Dict[str, GuidanceTrackingResult] = {}
-    
+        self._cache: dict[str, GuidanceTrackingResult] = {}
+
     async def track_guidance(
         self,
         symbol: str,
@@ -137,24 +136,24 @@ class GuidanceTrackerService:
     ) -> GuidanceTrackingResult:
         """
         跟踪业绩指引
-        
+
         Args:
             symbol: 股票代码
             lookback_years: 回看年数
         """
         if symbol in self._cache:
             return self._cache[symbol]
-        
+
         try:
             # 获取当前指引
             current = await self._get_current_guidances(symbol)
-            
+
             # 获取历史指引
             historical = await self._get_historical_guidances(symbol, lookback_years)
-            
+
             # 获取达成情况
             achievements = await self._get_achievements(symbol, lookback_years)
-            
+
             # 计算统计
             if achievements:
                 avg_rate = sum(a.achievement_rate for a in achievements) / len(achievements)
@@ -163,7 +162,7 @@ class GuidanceTrackerService:
             else:
                 avg_rate = 0
                 exceed_rate = 0
-            
+
             result = GuidanceTrackingResult(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -174,10 +173,10 @@ class GuidanceTrackerService:
                 avg_achievement_rate=round(avg_rate, 2),
                 exceed_rate=round(exceed_rate, 2),
             )
-            
+
             self._cache[symbol] = result
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to track guidance for {symbol}: {e}")
             return GuidanceTrackingResult(
@@ -185,28 +184,28 @@ class GuidanceTrackerService:
                 name="",
                 analysis_date=datetime.now(),
             )
-    
+
     async def get_recent_guidance_changes(
         self,
-        change_type: Optional[GuidanceChange] = None,
+        change_type: GuidanceChange | None = None,
         limit: int = 20,
-    ) -> List[Guidance]:
+    ) -> list[Guidance]:
         """获取近期指引变化"""
         guidances = await self._get_market_guidances()
-        
+
         if change_type:
             guidances = [g for g in guidances if g.change == change_type]
-        
+
         guidances.sort(key=lambda x: x.guidance_date, reverse=True)
         return guidances[:limit]
-    
-    async def _get_current_guidances(self, symbol: str) -> List[Guidance]:
+
+    async def _get_current_guidances(self, symbol: str) -> list[Guidance]:
         """获取当前有效指引"""
         import random
-        
+
         year = date.today().year
         guidances = []
-        
+
         # 营收指引
         rev_low = random.uniform(100, 500)
         guidances.append(Guidance(
@@ -220,7 +219,7 @@ class GuidanceTrackerService:
             change=GuidanceChange.MAINTAINED,
             description=f"公司维持{year}年营收指引",
         ))
-        
+
         # 净利润指引
         profit_low = random.uniform(10, 50)
         guidances.append(Guidance(
@@ -236,24 +235,23 @@ class GuidanceTrackerService:
             previous_high=round(profit_low * 1.05, 2),
             description=f"公司上调{year}年净利润指引",
         ))
-        
+
         return guidances
-    
+
     async def _get_historical_guidances(
         self,
         symbol: str,
         lookback_years: int,
-    ) -> List[Guidance]:
+    ) -> list[Guidance]:
         """获取历史指引"""
         import random
-        from datetime import timedelta
-        
+
         guidances = []
         base_year = date.today().year
-        
+
         for i in range(lookback_years):
             year = base_year - i - 1
-            
+
             guidances.append(Guidance(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -264,26 +262,26 @@ class GuidanceTrackerService:
                 high_estimate=round(random.uniform(100, 500), 2),
                 change=random.choice(list(GuidanceChange)),
             ))
-        
+
         return guidances
-    
+
     async def _get_achievements(
         self,
         symbol: str,
         lookback_years: int,
-    ) -> List[GuidanceAchievement]:
+    ) -> list[GuidanceAchievement]:
         """获取指引达成情况"""
         import random
-        
+
         achievements = []
         base_year = date.today().year
-        
+
         for i in range(lookback_years):
             year = base_year - i - 1
             guidance_val = random.uniform(50, 200)
             actual_val = guidance_val * random.uniform(0.9, 1.15)
             rate = actual_val / guidance_val * 100
-            
+
             achievements.append(GuidanceAchievement(
                 symbol=symbol,
                 period=f"FY{year}",
@@ -293,19 +291,19 @@ class GuidanceTrackerService:
                 achievement_rate=round(rate, 2),
                 exceeded=actual_val > guidance_val,
             ))
-        
+
         return achievements
-    
-    async def _get_market_guidances(self) -> List[Guidance]:
+
+    async def _get_market_guidances(self) -> list[Guidance]:
         """获取市场指引变化"""
         import random
         from datetime import timedelta
-        
+
         stocks = [
             ("600519", "贵州茅台"), ("000858", "五粮液"),
             ("600036", "招商银行"), ("000333", "美的集团"),
         ]
-        
+
         guidances = []
         for symbol, name in stocks:
             guidances.append(Guidance(
@@ -318,9 +316,9 @@ class GuidanceTrackerService:
                 high_estimate=round(random.uniform(60, 250), 2),
                 change=random.choice(list(GuidanceChange)),
             ))
-        
+
         return guidances
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         """获取股票名称"""
         names = {
@@ -333,7 +331,7 @@ class GuidanceTrackerService:
 
 
 # 全局单例
-_guidance_tracker_service: Optional[GuidanceTrackerService] = None
+_guidance_tracker_service: GuidanceTrackerService | None = None
 
 
 def get_guidance_tracker_service() -> GuidanceTrackerService:

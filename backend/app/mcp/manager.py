@@ -5,13 +5,13 @@ Central manager for MCP server connections and tool execution.
 """
 import asyncio
 import time
-from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
+from typing import Any
 
-from app.mcp.registry import MCPServerRegistry, MCPServerConfig, get_registry
-from app.mcp.types import MCPTool, MCPToolResult, MCPCapability
-from app.mcp.protocol import MCPStdioTransport, MCPClient, MCPError
 from app.core.logging import get_logger
+from app.mcp.protocol import MCPClient, MCPError, MCPStdioTransport
+from app.mcp.registry import MCPServerConfig, MCPServerRegistry, get_registry
+from app.mcp.types import MCPTool, MCPToolResult
 
 logger = get_logger(__name__)
 
@@ -22,28 +22,28 @@ USE_REAL_PROTOCOL = False  # Set to True when MCP servers are installed
 class MCPServerConnection:
     """
     Represents a connection to an MCP server.
-    
+
     In a full implementation, this would use the MCP SDK.
     For now, we provide a mock implementation that demonstrates the interface.
     """
-    
+
     def __init__(self, config: MCPServerConfig):
         self.config = config
         self.name = config.name
         self._connected = False
-        self._tools: List[MCPTool] = []
+        self._tools: list[MCPTool] = []
         self._process = None
-    
+
     async def connect(self) -> bool:
         """Establish connection to the MCP server"""
         if self._connected:
             return True
-        
+
         try:
             # TODO: Implement actual MCP connection using mcp SDK
             # For now, simulate connection
             logger.info(f"Connecting to MCP server: {self.name}")
-            
+
             # In real implementation:
             # self._process = await asyncio.create_subprocess_exec(
             #     self.config.command,
@@ -53,26 +53,26 @@ class MCPServerConnection:
             #     stderr=asyncio.subprocess.PIPE,
             #     env={**os.environ, **self.config.env},
             # )
-            # 
+            #
             # Then use MCP SDK to initialize session
-            
+
             # Mock: simulate connection delay
             await asyncio.sleep(0.1)
-            
+
             self._connected = True
             self._load_mock_tools()
-            
+
             logger.info(
-                f"mcp_server_connected",
+                "mcp_server_connected",
                 server=self.name,
                 tools_count=len(self._tools),
             )
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to connect to MCP server {self.name}: {e}")
             return False
-    
+
     def _load_mock_tools(self):
         """Load mock tools for demonstration"""
         if self.name == "filesystem":
@@ -158,39 +158,39 @@ class MCPServerConnection:
                     server_name=self.name,
                 ),
             ]
-    
+
     async def disconnect(self):
         """Disconnect from the MCP server"""
         if not self._connected:
             return
-        
+
         try:
             if self._process:
                 self._process.terminate()
                 await self._process.wait()
-            
+
             self._connected = False
             self._tools = []
-            logger.info(f"mcp_server_disconnected", server=self.name)
-            
+            logger.info("mcp_server_disconnected", server=self.name)
+
         except Exception as e:
             logger.error(f"Error disconnecting from {self.name}: {e}")
-    
+
     @property
     def is_connected(self) -> bool:
         return self._connected
-    
-    def get_tools(self) -> List[MCPTool]:
+
+    def get_tools(self) -> list[MCPTool]:
         """Get list of tools provided by this server"""
         return self._tools
-    
-    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> MCPToolResult:
+
+    async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> MCPToolResult:
         """Execute a tool on this server"""
         if not self._connected:
             return MCPToolResult.from_error("Server not connected")
-        
+
         start_time = time.time()
-        
+
         try:
             # TODO: Implement actual MCP tool call
             # For now, return mock results
@@ -200,10 +200,10 @@ class MCPServerConnection:
                 tool=tool_name,
                 arguments=arguments,
             )
-            
+
             # Simulate tool execution
             await asyncio.sleep(0.05)
-            
+
             # Mock responses based on tool
             if tool_name == "filesystem_read_file":
                 content = f"# Mock content of {arguments.get('path', 'unknown')}\n\nThis is mock file content."
@@ -221,7 +221,7 @@ class MCPServerConnection:
                 }, duration_ms=(time.time() - start_time) * 1000)
             else:
                 result = MCPToolResult.from_success({"status": "ok"}, duration_ms=(time.time() - start_time) * 1000)
-            
+
             logger.info(
                 "mcp_tool_result",
                 server=self.name,
@@ -229,9 +229,9 @@ class MCPServerConnection:
                 success=result.success,
                 duration_ms=result.duration_ms,
             )
-            
+
             return result
-            
+
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.error(f"Tool execution failed: {e}")
@@ -241,16 +241,16 @@ class MCPServerConnection:
 class RealMCPServerConnection:
     """
     Real MCP server connection using stdio protocol.
-    
+
     Requires actual MCP servers to be installed (e.g., npx @modelcontextprotocol/server-filesystem).
     """
-    
+
     def __init__(self, config: MCPServerConfig):
         self.config = config
         self.name = config.name
-        self._client: Optional[MCPClient] = None
-        self._tools: List[MCPTool] = []
-    
+        self._client: MCPClient | None = None
+        self._tools: list[MCPTool] = []
+
     async def connect(self) -> bool:
         """Establish real connection to the MCP server"""
         try:
@@ -260,10 +260,10 @@ class RealMCPServerConnection:
                 env=self.config.env,
             )
             self._client = MCPClient(transport)
-            
+
             if not await self._client.connect():
                 return False
-            
+
             # Discover tools
             raw_tools = await self._client.list_tools()
             self._tools = [
@@ -275,18 +275,18 @@ class RealMCPServerConnection:
                 )
                 for t in raw_tools
             ]
-            
+
             logger.info(
                 "real_mcp_server_connected",
                 server=self.name,
                 tools_count=len(self._tools),
             )
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to connect to real MCP server {self.name}: {e}")
             return False
-    
+
     async def disconnect(self):
         """Disconnect from the MCP server"""
         if self._client:
@@ -294,28 +294,28 @@ class RealMCPServerConnection:
             self._client = None
         self._tools = []
         logger.info("real_mcp_server_disconnected", server=self.name)
-    
+
     @property
     def is_connected(self) -> bool:
         return self._client is not None and self._client.is_connected
-    
-    def get_tools(self) -> List[MCPTool]:
+
+    def get_tools(self) -> list[MCPTool]:
         return self._tools
-    
-    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> MCPToolResult:
+
+    async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> MCPToolResult:
         """Execute a tool on the real MCP server"""
         if not self._client or not self._client.is_connected:
             return MCPToolResult.from_error("Server not connected")
-        
+
         start_time = time.time()
-        
+
         try:
             # Remove server prefix from tool name
             raw_name = tool_name.replace(f"{self.name}_", "", 1)
-            
+
             result = await self._client.call_tool(raw_name, arguments)
             duration_ms = (time.time() - start_time) * 1000
-            
+
             # Extract content from result
             content = result.get("content", [])
             if content and len(content) > 0:
@@ -325,9 +325,9 @@ class RealMCPServerConnection:
                     str(content)
                 )
                 return MCPToolResult.from_success(text_content, duration_ms=duration_ms)
-            
+
             return MCPToolResult.from_success(result, duration_ms=duration_ms)
-            
+
         except MCPError as e:
             duration_ms = (time.time() - start_time) * 1000
             return MCPToolResult.from_error(str(e), duration_ms=duration_ms)
@@ -347,23 +347,23 @@ def create_connection(config: MCPServerConfig):
 class MCPManager:
     """
     Central manager for MCP server connections.
-    
+
     Handles:
     - Server lifecycle (connect/disconnect)
     - Tool discovery and routing
     - Connection pooling
     """
-    
-    def __init__(self, registry: Optional[MCPServerRegistry] = None):
+
+    def __init__(self, registry: MCPServerRegistry | None = None):
         self.registry = registry or get_registry()
-        self._connections: Dict[str, MCPServerConnection] = {}
-        self._tools_cache: Dict[str, MCPTool] = {}
+        self._connections: dict[str, MCPServerConnection] = {}
+        self._tools_cache: dict[str, MCPTool] = {}
         self._lock = asyncio.Lock()
-    
-    async def start(self, server_names: Optional[List[str]] = None):
+
+    async def start(self, server_names: list[str] | None = None):
         """
         Start MCP servers.
-        
+
         If server_names is None, starts all auto-start servers.
         """
         if server_names is None:
@@ -371,13 +371,13 @@ class MCPManager:
         else:
             servers = [self.registry.get(name) for name in server_names]
             servers = [s for s in servers if s is not None]
-        
+
         for config in servers:
             await self.connect(config.name)
-        
+
         # Discover tools from all connected servers
         await self.discover_tools()
-    
+
     async def stop(self):
         """Stop all MCP server connections"""
         async with self._lock:
@@ -385,104 +385,104 @@ class MCPManager:
                 await conn.disconnect()
             self._connections.clear()
             self._tools_cache.clear()
-        
+
         logger.info("mcp_manager_stopped")
-    
+
     async def connect(self, server_name: str) -> bool:
         """Connect to a specific MCP server"""
         async with self._lock:
             if server_name in self._connections:
                 return self._connections[server_name].is_connected
-            
+
             config = self.registry.get(server_name)
             if not config:
                 logger.error(f"Server not found: {server_name}")
                 return False
-            
+
             if not config.enabled:
                 logger.warning(f"Server disabled: {server_name}")
                 return False
-            
+
             conn = create_connection(config)
             success = await conn.connect()
-            
+
             if success:
                 self._connections[server_name] = conn
-            
+
             return success
-    
+
     async def disconnect(self, server_name: str):
         """Disconnect from a specific MCP server"""
         async with self._lock:
             if server_name in self._connections:
                 await self._connections[server_name].disconnect()
                 del self._connections[server_name]
-                
+
                 # Remove tools from this server
                 self._tools_cache = {
                     k: v for k, v in self._tools_cache.items()
                     if v.server_name != server_name
                 }
-    
-    async def discover_tools(self) -> List[MCPTool]:
+
+    async def discover_tools(self) -> list[MCPTool]:
         """Discover all tools from connected servers"""
         all_tools = []
-        
+
         for conn in self._connections.values():
             if conn.is_connected:
                 tools = conn.get_tools()
                 all_tools.extend(tools)
-                
+
                 # Cache tools
                 for tool in tools:
                     self._tools_cache[tool.name] = tool
-        
-        logger.info(f"mcp_tools_discovered", count=len(all_tools))
+
+        logger.info("mcp_tools_discovered", count=len(all_tools))
         return all_tools
-    
-    def get_tools(self) -> List[MCPTool]:
+
+    def get_tools(self) -> list[MCPTool]:
         """Get all available tools"""
         return list(self._tools_cache.values())
-    
-    def get_tool(self, name: str) -> Optional[MCPTool]:
+
+    def get_tool(self, name: str) -> MCPTool | None:
         """Get a specific tool by name"""
         return self._tools_cache.get(name)
-    
-    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> MCPToolResult:
+
+    async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> MCPToolResult:
         """
         Execute a tool by name.
-        
+
         Routes the call to the appropriate MCP server.
         """
         tool = self._tools_cache.get(tool_name)
         if not tool:
             return MCPToolResult.from_error(f"Tool not found: {tool_name}")
-        
+
         conn = self._connections.get(tool.server_name)
         if not conn or not conn.is_connected:
             return MCPToolResult.from_error(f"Server not connected: {tool.server_name}")
-        
+
         return await conn.call_tool(tool_name, arguments)
-    
-    def get_tools_for_claude(self) -> List[Dict[str, Any]]:
+
+    def get_tools_for_claude(self) -> list[dict[str, Any]]:
         """
         Get tools in Claude API format.
-        
+
         Converts MCP tools to the format expected by Claude's tool_use.
         """
         claude_tools = []
-        
+
         for tool in self._tools_cache.values():
             claude_tools.append({
                 "name": tool.name,
                 "description": tool.description,
                 "input_schema": tool.input_schema,
             })
-        
+
         return claude_tools
-    
+
     @property
-    def connected_servers(self) -> List[str]:
+    def connected_servers(self) -> list[str]:
         """Get list of connected server names"""
         return [
             name for name, conn in self._connections.items()
@@ -491,7 +491,7 @@ class MCPManager:
 
 
 # Global manager instance
-_manager: Optional[MCPManager] = None
+_manager: MCPManager | None = None
 
 
 def get_manager() -> MCPManager:
@@ -506,7 +506,7 @@ def get_manager() -> MCPManager:
 async def mcp_session():
     """
     Context manager for MCP session.
-    
+
     Usage:
         async with mcp_session() as manager:
             tools = manager.get_tools()

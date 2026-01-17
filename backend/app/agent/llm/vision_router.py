@@ -13,16 +13,16 @@ Vision Router - 视觉任务智能路由器
 from __future__ import annotations
 
 import logging
-from enum import Enum
-from typing import Optional, Dict, Any
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class VisionTaskType(str, Enum):
     """视觉任务类型枚举"""
-    
+
     OCR_TEXT = "ocr_text"              # 文字提取（扫描件、发票等）
     CHART_ANALYSIS = "chart_analysis"  # 图表分析（折线图、柱状图等）
     DIAGRAM = "diagram"                # 科学示意图、流程图
@@ -34,7 +34,7 @@ class VisionTaskType(str, Enum):
 @dataclass
 class VisionModelConfig:
     """视觉模型配置"""
-    
+
     name: str
     cost_per_1m_tokens_input: float
     cost_per_1m_tokens_output: float
@@ -47,10 +47,10 @@ class VisionModelConfig:
 class VisionRouter:
     """
     视觉任务智能路由器
-    
+
     根据任务类型、成本约束、质量需求选择最优 Vision 模型。
     """
-    
+
     # Vision 模型注册表
     MODELS = {
         "anthropic/claude-3-opus": VisionModelConfig(
@@ -90,7 +90,7 @@ class VisionRouter:
             quality_score=8
         )
     }
-    
+
     # 任务类型 → 推荐模型映射（按优先级）
     TASK_TO_MODELS = {
         VisionTaskType.OCR_TEXT: [
@@ -122,26 +122,26 @@ class VisionRouter:
             "anthropic/claude-3-5-sonnet"    # 降级：成本考虑
         ]
     }
-    
+
     @classmethod
     def select_model(
         cls,
         task_type: VisionTaskType | str,
-        max_cost: Optional[float] = None,
-        min_quality: Optional[int] = None,
-        max_latency_ms: Optional[int] = None,
+        max_cost: float | None = None,
+        min_quality: int | None = None,
+        max_latency_ms: int | None = None,
         prefer_speed: bool = False
     ) -> str:
         """
         选择最适合的视觉模型
-        
+
         Args:
             task_type: 任务类型
             max_cost: 最大成本限制（$/1M tokens input）
             min_quality: 最低质量要求（1-10）
             max_latency_ms: 最大延迟限制（毫秒）
             prefer_speed: 是否优先速度
-            
+
         Returns:
             str: 模型名称
         """
@@ -152,37 +152,37 @@ class VisionRouter:
             except ValueError:
                 logger.warning(f"Unknown task type: {task_type}, using GENERAL_IMAGE")
                 task_type = VisionTaskType.GENERAL_IMAGE
-        
+
         # 获取候选模型列表
         candidates = cls.TASK_TO_MODELS.get(
             task_type,
             ["anthropic/claude-3-5-sonnet"]  # 默认
         )
-        
+
         # 过滤符合约束的模型
         valid_models = []
         for model_name in candidates:
             config = cls.MODELS.get(model_name)
             if not config:
                 continue
-            
+
             # 检查成本约束
             if max_cost and config.cost_per_1m_tokens_input > max_cost:
                 logger.debug(f"Model {model_name} exceeds cost limit: {config.cost_per_1m_tokens_input} > {max_cost}")
                 continue
-            
+
             # 检查质量约束
             if min_quality and config.quality_score < min_quality:
                 logger.debug(f"Model {model_name} below quality requirement: {config.quality_score} < {min_quality}")
                 continue
-            
+
             # 检查延迟约束
             if max_latency_ms and config.avg_latency_ms > max_latency_ms:
                 logger.debug(f"Model {model_name} exceeds latency limit: {config.avg_latency_ms} > {max_latency_ms}")
                 continue
-            
+
             valid_models.append((model_name, config))
-        
+
         # 如果没有符合条件的模型，返回最便宜的
         if not valid_models:
             logger.warning(
@@ -190,7 +190,7 @@ class VisionRouter:
                 f"Falling back to cheapest option."
             )
             return "anthropic/claude-3-haiku"
-        
+
         # 选择策略
         if prefer_speed:
             # 按延迟排序
@@ -201,16 +201,16 @@ class VisionRouter:
                 key=lambda x: x[1].quality_score / x[1].cost_per_1m_tokens_input,
                 reverse=True
             )
-        
+
         selected_model = valid_models[0][0]
         logger.info(
             f"Selected Vision model for {task_type}: {selected_model} "
             f"(quality: {valid_models[0][1].quality_score}, "
             f"cost: ${valid_models[0][1].cost_per_1m_tokens_input}/1M tokens)"
         )
-        
+
         return selected_model
-    
+
     @classmethod
     def estimate_cost(
         cls,
@@ -218,28 +218,28 @@ class VisionRouter:
         num_images: int = 1,
         avg_tokens_per_image: int = 1000,
         output_tokens: int = 500
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         估算视觉任务成本
-        
+
         Args:
             model_name: 模型名称
             num_images: 图片数量
             avg_tokens_per_image: 每张图片平均 token 数（默认 1000）
             output_tokens: 输出 token 数
-            
+
         Returns:
             dict: 成本估算信息
         """
         config = cls.MODELS.get(model_name)
         if not config:
             return {"error": f"Unknown model: {model_name}"}
-        
+
         input_tokens = num_images * avg_tokens_per_image
         input_cost = (input_tokens / 1_000_000) * config.cost_per_1m_tokens_input
         output_cost = (output_tokens / 1_000_000) * config.cost_per_1m_tokens_output
         total_cost = input_cost + output_cost
-        
+
         return {
             "model": model_name,
             "num_images": num_images,
@@ -250,14 +250,14 @@ class VisionRouter:
             "total_cost_usd": round(total_cost, 6),
             "estimated_latency_ms": config.avg_latency_ms
         }
-    
+
     @classmethod
-    def get_model_info(cls, model_name: str) -> Optional[Dict[str, Any]]:
+    def get_model_info(cls, model_name: str) -> dict[str, Any] | None:
         """获取模型详细信息"""
         config = cls.MODELS.get(model_name)
         if not config:
             return None
-        
+
         return {
             "name": config.name,
             "cost_per_1m_input": config.cost_per_1m_tokens_input,
@@ -267,7 +267,7 @@ class VisionRouter:
             "capabilities": config.capabilities,
             "quality_score": config.quality_score
         }
-    
+
     @classmethod
     def list_models_by_task(cls, task_type: VisionTaskType | str) -> list[str]:
         """列出某任务类型的所有推荐模型"""
@@ -276,7 +276,7 @@ class VisionRouter:
                 task_type = VisionTaskType(task_type)
             except ValueError:
                 return []
-        
+
         return cls.TASK_TO_MODELS.get(task_type, [])
 
 
@@ -287,11 +287,11 @@ def get_vision_model(
 ) -> str:
     """
     快速获取视觉模型
-    
+
     Args:
         task_type: 任务类型
         **kwargs: 传递给 VisionRouter.select_model 的其他参数
-        
+
     Returns:
         str: 模型名称
     """

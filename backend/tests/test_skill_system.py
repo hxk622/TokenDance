@@ -7,9 +7,9 @@ Skill 系统测试
 3. SkillLoader 加载 L2/L3 内容
 """
 
-import asyncio
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 class TestSkillRegistry:
@@ -224,7 +224,7 @@ class TestEmbedding:
             vec3 = embedding.encode(text3)
 
             def cosine_sim(a, b):
-                dot = sum(x * y for x, y in zip(a, b))
+                dot = sum(x * y for x, y in zip(a, b, strict=False))
                 norm_a = sum(x * x for x in a) ** 0.5
                 norm_b = sum(x * x for x in b) ** 0.5
                 return dot / (norm_a * norm_b)

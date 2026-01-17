@@ -7,12 +7,12 @@ Failure Pattern Knowledge Base - 失败模式知识库
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Dict, Optional, List
 
 from app.filesystem.agent_fs import AgentFileSystem
-from .signal import FailureSignal, FailureType
+
+from .signal import FailureSignal
 
 
 @dataclass
@@ -21,10 +21,10 @@ class FailurePattern:
     category: str
     sample_error: str
     occurrences: int = 0
-    successful_fixes: List[str] = None
+    successful_fixes: list[str] = None
     last_seen: str = ""
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         d = asdict(self)
         d["successful_fixes"] = self.successful_fixes or []
         return d
@@ -37,7 +37,7 @@ class FailurePatternKB:
 
     def __init__(self, fs: AgentFileSystem):
         self.fs = fs
-        self._cache: Dict[str, Dict] = {}
+        self._cache: dict[str, dict] = {}
         self._load()
 
     def _load(self) -> None:
@@ -92,7 +92,7 @@ class FailurePatternKB:
             fixes.append(fix_summary)
             self._save()
 
-    def get_solution(self, signal: FailureSignal) -> Optional[str]:
+    def get_solution(self, signal: FailureSignal) -> str | None:
         sig = self._signature(signal)
         item = self._cache.get(sig)
         if not item:
@@ -100,7 +100,7 @@ class FailurePatternKB:
         fixes = item.get("successful_fixes") or []
         return fixes[0] if fixes else None
 
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         return {
             "count": len(self._cache),
             "items": list(self._cache.values())[:50],

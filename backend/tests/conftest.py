@@ -8,15 +8,14 @@ Shared pytest fixtures for backend tests.
 - 测试数据工厂
 """
 
-import pytest
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient, ASGITransport
-
+from httpx import ASGITransport, AsyncClient
 
 # ==================== 环境配置 ====================
 
@@ -113,21 +112,21 @@ def mock_current_user(mock_user):
 @pytest.fixture
 def override_auth_deps(mock_user, mock_db_session):
     """覆盖认证相关的依赖"""
-    from app.main import app
-    from app.core.dependencies import get_current_user
     from app.core.database import get_db
-    
+    from app.core.dependencies import get_current_user
+    from app.main import app
+
     async def mock_get_current_user():
         return mock_user
-    
+
     async def mock_get_db_override():
         yield mock_db_session
-    
+
     app.dependency_overrides[get_current_user] = mock_get_current_user
     app.dependency_overrides[get_db] = mock_get_db_override
-    
+
     yield
-    
+
     # 清理
     app.dependency_overrides.clear()
 

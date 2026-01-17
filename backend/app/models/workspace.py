@@ -7,15 +7,15 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User
-    from app.models.session import Session
     from app.models.agent_config import AgentConfig
+    from app.models.session import Session
+    from app.models.user import User
 
 
 class WorkspaceType(PyEnum):
@@ -28,7 +28,7 @@ class WorkspaceType(PyEnum):
 class Workspace(Base):
     """
     Workspace model - unified for both Personal and Team modes.
-    
+
     For Phase 1 (MVP), only Personal mode is implemented:
     - workspace_type = PERSONAL
     - team_id = None

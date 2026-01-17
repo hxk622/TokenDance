@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 事件驱动分析模块
 
@@ -9,42 +8,42 @@
 - 并购重组分析
 - 分红派息跟踪
 """
+from .dividend_tracker import (
+    DividendAnalysisResult,
+    DividendRecord,
+    DividendTrackerService,
+    DividendType,
+    get_dividend_tracker_service,
+)
 from .earnings_surprise import (
-    EarningsSurpriseService,
-    get_earnings_surprise_service,
-    SurpriseType,
     EarningsSurprise,
     EarningsSurpriseResult,
-)
-from .guidance_tracker import (
-    GuidanceTrackerService,
-    get_guidance_tracker_service,
-    GuidanceType,
-    Guidance,
-    GuidanceTrackingResult,
+    EarningsSurpriseService,
+    SurpriseType,
+    get_earnings_surprise_service,
 )
 from .equity_incentive import (
-    EquityIncentiveService,
-    get_equity_incentive_service,
-    IncentiveType,
-    IncentiveStatus,
     EquityIncentivePlan,
+    EquityIncentiveService,
     IncentiveAnalysisResult,
+    IncentiveStatus,
+    IncentiveType,
+    get_equity_incentive_service,
+)
+from .guidance_tracker import (
+    Guidance,
+    GuidanceTrackerService,
+    GuidanceTrackingResult,
+    GuidanceType,
+    get_guidance_tracker_service,
 )
 from .ma_analysis import (
-    MAAnalysisService,
-    get_ma_analysis_service,
-    MAType,
-    MAStatus,
-    MADeal,
     MAAnalysisResult,
-)
-from .dividend_tracker import (
-    DividendTrackerService,
-    get_dividend_tracker_service,
-    DividendType,
-    DividendRecord,
-    DividendAnalysisResult,
+    MAAnalysisService,
+    MADeal,
+    MAStatus,
+    MAType,
+    get_ma_analysis_service,
 )
 
 __all__ = [

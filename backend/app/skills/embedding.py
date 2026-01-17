@@ -9,7 +9,6 @@ Embedding 模块 - 提供语义向量化能力
 
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -18,23 +17,23 @@ class BaseEmbedding(ABC):
     """Embedding 抽象基类"""
 
     @abstractmethod
-    def encode(self, text: str) -> List[float]:
+    def encode(self, text: str) -> list[float]:
         """将文本编码为向量
-        
+
         Args:
             text: 输入文本
-            
+
         Returns:
             向量列表
         """
         pass
 
-    def encode_batch(self, texts: List[str]) -> List[List[float]]:
+    def encode_batch(self, texts: list[str]) -> list[list[float]]:
         """批量编码文本
-        
+
         Args:
             texts: 输入文本列表
-            
+
         Returns:
             向量列表的列表
         """
@@ -43,13 +42,13 @@ class BaseEmbedding(ABC):
 
 class SentenceTransformerEmbedding(BaseEmbedding):
     """基于 sentence-transformers 的本地 Embedding
-    
+
     默认使用 paraphrase-multilingual-MiniLM-L12-v2 模型：
     - 完全免费，本地运行
     - 支持 50+ 语言（包括中文、英文）
     - 384 维向量
     - 中英文混合场景效果更好
-    
+
     备选模型：
     - all-MiniLM-L6-v2: 更小更快，但中文效果较差
     - paraphrase-multilingual-mpnet-base-v2: 更大更准，但更慢
@@ -60,11 +59,11 @@ class SentenceTransformerEmbedding(BaseEmbedding):
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        device: Optional[str] = None,
+        model_name: str | None = None,
+        device: str | None = None,
     ):
         """初始化
-        
+
         Args:
             model_name: 模型名称，默认 paraphrase-multilingual-MiniLM-L12-v2
             device: 运行设备，None 表示自动选择（优先 GPU）
@@ -93,13 +92,13 @@ class SentenceTransformerEmbedding(BaseEmbedding):
             logger.error(f"Failed to load embedding model: {e}")
             raise
 
-    def encode(self, text: str) -> List[float]:
+    def encode(self, text: str) -> list[float]:
         """将文本编码为向量"""
         self._lazy_init()
         embedding = self._model.encode(text, convert_to_numpy=True)
         return embedding.tolist()
 
-    def encode_batch(self, texts: List[str]) -> List[List[float]]:
+    def encode_batch(self, texts: list[str]) -> list[list[float]]:
         """批量编码文本（利用 GPU 并行）"""
         self._lazy_init()
         embeddings = self._model.encode(texts, convert_to_numpy=True)
@@ -114,7 +113,7 @@ class SentenceTransformerEmbedding(BaseEmbedding):
 
 class OpenAIEmbedding(BaseEmbedding):
     """基于 OpenAI API 的 Embedding
-    
+
     使用 text-embedding-3-small 模型：
     - 付费（$0.02/1M tokens）
     - 效果好
@@ -123,7 +122,7 @@ class OpenAIEmbedding(BaseEmbedding):
 
     def __init__(self, api_key: str, model: str = "text-embedding-3-small"):
         """初始化
-        
+
         Args:
             api_key: OpenAI API Key
             model: 模型名称
@@ -145,13 +144,13 @@ class OpenAIEmbedding(BaseEmbedding):
             logger.error("openai not installed. Run: pip install openai")
             raise
 
-    def encode(self, text: str) -> List[float]:
+    def encode(self, text: str) -> list[float]:
         """将文本编码为向量"""
         self._lazy_init()
         response = self._client.embeddings.create(model=self.model, input=text)
         return response.data[0].embedding
 
-    def encode_batch(self, texts: List[str]) -> List[List[float]]:
+    def encode_batch(self, texts: list[str]) -> list[list[float]]:
         """批量编码文本"""
         self._lazy_init()
         response = self._client.embeddings.create(model=self.model, input=texts)
@@ -159,12 +158,12 @@ class OpenAIEmbedding(BaseEmbedding):
 
 
 # 全局单例
-_embedding_model: Optional[BaseEmbedding] = None
+_embedding_model: BaseEmbedding | None = None
 
 
 def get_embedding_model() -> BaseEmbedding:
     """获取全局 Embedding 模型单例
-    
+
     默认使用 SentenceTransformerEmbedding（免费本地方案）
     模型: paraphrase-multilingual-MiniLM-L12-v2
     支持 50+ 语言，中英文混合场景效果更好
@@ -177,7 +176,7 @@ def get_embedding_model() -> BaseEmbedding:
 
 def set_embedding_model(model: BaseEmbedding) -> None:
     """设置全局 Embedding 模型
-    
+
     Args:
         model: Embedding 模型实例
     """

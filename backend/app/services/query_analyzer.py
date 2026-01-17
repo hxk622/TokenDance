@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 查询分析器 (Query Analyzer)
 
@@ -14,9 +13,9 @@
 """
 import logging
 import re
-from typing import Dict, Any, List, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +44,8 @@ class ResearchConfig:
     max_sources: int        # 最大来源数
     max_iterations: int     # 最大迭代次数
     summarize_every: int    # 每 N 个来源后摘要
-    
-    def to_dict(self) -> Dict[str, int]:
+
+    def to_dict(self) -> dict[str, int]:
         return {
             "depth": self.depth,
             "breadth": self.breadth,
@@ -62,12 +61,12 @@ class QueryAnalysis:
     query: str
     query_type: QueryType
     complexity: QueryComplexity
-    keywords: List[str]
-    entities: List[str]
+    keywords: list[str]
+    entities: list[str]
     config: ResearchConfig
     reasoning: str
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "query": self.query,
             "query_type": self.query_type.value,
@@ -131,7 +130,7 @@ PRESET_CONFIGS = {
 
 class QueryAnalyzer:
     """查询分析器"""
-    
+
     # 查询类型关键词
     FACTUAL_PATTERNS = [
         r'\b(what is|what are|who is|who are|when|where)\b',
@@ -139,67 +138,67 @@ class QueryAnalyzer:
         r'\b(price|cost|number|amount|date)\b',
         r'\b(价格|成本|数量|日期)\b',
     ]
-    
+
     ANALYTICAL_PATTERNS = [
         r'\b(why|how come|reason|cause|effect|impact|influence)\b',
         r'\b(为什么|原因|影响|作用|效果)\b',
         r'\b(analyze|analysis|explain|understand)\b',
         r'\b(分析|解释|理解|探究)\b',
     ]
-    
+
     COMPARATIVE_PATTERNS = [
         r'\b(vs|versus|compare|comparison|difference|better|worse)\b',
         r'\b(对比|比较|区别|差异|哪个更好)\b',
         r'\b(A or B|which one|pros and cons)\b',
         r'\b(优缺点|利弊)\b',
     ]
-    
+
     EXPLORATORY_PATTERNS = [
         r'\b(future|trend|prediction|forecast|potential|possibility)\b',
         r'\b(未来|趋势|预测|预期|潜力|可能性)\b',
         r'\b(what if|imagine|scenario|opportunity)\b',
         r'\b(假设|情景|机会)\b',
     ]
-    
+
     PROCEDURAL_PATTERNS = [
         r'\b(how to|steps|guide|tutorial|instructions)\b',
         r'\b(如何|怎么|步骤|指南|教程)\b',
         r'\b(process|method|approach|way to)\b',
         r'\b(过程|方法|方式|途径)\b',
     ]
-    
+
     def __init__(self, llm=None):
         """
         Args:
             llm: LLM 实例 (可选，用于更精确的分析)
         """
         self.llm = llm
-    
+
     def analyze(self, query: str) -> QueryAnalysis:
         """分析查询
-        
+
         Args:
             query: 用户查询
-            
+
         Returns:
             QueryAnalysis: 分析结果
         """
         # 1. 识别查询类型
         query_type = self._identify_query_type(query)
-        
+
         # 2. 评估复杂度
         complexity = self._evaluate_complexity(query)
-        
+
         # 3. 提取关键词和实体
         keywords = self._extract_keywords(query)
         entities = self._extract_entities(query)
-        
+
         # 4. 获取配置
         config = self._get_config(query_type, complexity)
-        
+
         # 5. 生成推理说明
         reasoning = self._generate_reasoning(query_type, complexity, keywords)
-        
+
         analysis = QueryAnalysis(
             query=query,
             query_type=query_type,
@@ -209,19 +208,19 @@ class QueryAnalyzer:
             config=config,
             reasoning=reasoning
         )
-        
+
         logger.info(
             f"Query analyzed: type={query_type.value}, "
             f"complexity={complexity.value}, "
             f"config=depth={config.depth}/breadth={config.breadth}"
         )
-        
+
         return analysis
-    
+
     def _identify_query_type(self, query: str) -> QueryType:
         """识别查询类型"""
         query_lower = query.lower()
-        
+
         scores = {
             QueryType.FACTUAL: 0,
             QueryType.ANALYTICAL: 0,
@@ -229,70 +228,70 @@ class QueryAnalyzer:
             QueryType.EXPLORATORY: 0,
             QueryType.PROCEDURAL: 0,
         }
-        
+
         # 匹配模式
         for pattern in self.FACTUAL_PATTERNS:
             if re.search(pattern, query_lower, re.IGNORECASE):
                 scores[QueryType.FACTUAL] += 1
-        
+
         for pattern in self.ANALYTICAL_PATTERNS:
             if re.search(pattern, query_lower, re.IGNORECASE):
                 scores[QueryType.ANALYTICAL] += 1
-        
+
         for pattern in self.COMPARATIVE_PATTERNS:
             if re.search(pattern, query_lower, re.IGNORECASE):
                 scores[QueryType.COMPARATIVE] += 1
-        
+
         for pattern in self.EXPLORATORY_PATTERNS:
             if re.search(pattern, query_lower, re.IGNORECASE):
                 scores[QueryType.EXPLORATORY] += 1
-        
+
         for pattern in self.PROCEDURAL_PATTERNS:
             if re.search(pattern, query_lower, re.IGNORECASE):
                 scores[QueryType.PROCEDURAL] += 1
-        
+
         # 返回得分最高的类型
         max_type = max(scores, key=scores.get)
-        
+
         # 如果没有明显匹配，默认为事实型
         if scores[max_type] == 0:
             return QueryType.FACTUAL
-        
+
         return max_type
-    
+
     def _evaluate_complexity(self, query: str) -> QueryComplexity:
         """评估查询复杂度"""
         score = 0
-        
+
         # 长度因素
         word_count = len(query.split())
         if word_count > 20:
             score += 2
         elif word_count > 10:
             score += 1
-        
+
         # 多个问题
         question_marks = query.count('?') + query.count('？')
         if question_marks > 1:
             score += 2
-        
+
         # 多个关键概念
         keywords = self._extract_keywords(query)
         if len(keywords) > 5:
             score += 2
         elif len(keywords) > 3:
             score += 1
-        
+
         # 包含限定条件
         if re.search(r'\b(and|or|but|while|although)\b', query.lower()):
             score += 1
         if re.search(r'\b(在.*条件下|考虑.*因素|包括|不包括)\b', query):
             score += 1
-        
+
         # 时间范围
         if re.search(r'\b(2020|2021|2022|2023|2024|2025|2026|过去|近年|最近)\b', query):
             score += 1
-        
+
         # 判断复杂度
         if score >= 5:
             return QueryComplexity.COMPLEX
@@ -300,8 +299,8 @@ class QueryAnalyzer:
             return QueryComplexity.MODERATE
         else:
             return QueryComplexity.SIMPLE
-    
-    def _extract_keywords(self, query: str) -> List[str]:
+
+    def _extract_keywords(self, query: str) -> list[str]:
         """提取关键词"""
         # 移除停用词
         stop_words = {
@@ -313,35 +312,35 @@ class QueryAnalyzer:
             '的', '是', '在', '了', '和', '与', '或', '但', '什么', '如何',
             '这个', '那个', '哪个', '为什么', '怎么'
         }
-        
+
         words = re.findall(r'\w+', query.lower())
         keywords = [w for w in words if w not in stop_words and len(w) > 2]
-        
+
         return list(dict.fromkeys(keywords))[:10]  # 去重，最多10个
-    
-    def _extract_entities(self, query: str) -> List[str]:
+
+    def _extract_entities(self, query: str) -> list[str]:
         """提取实体 (简单规则)"""
         entities = []
-        
+
         # 大写开头的词 (英文)
         entities.extend(re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', query))
-        
+
         # 引号中的内容
         entities.extend(re.findall(r'["\']([^"\']+)["\']', query))
         entities.extend(re.findall(r'[「」『』]([^「」『』]+)[「」『』]', query))
-        
+
         # 专有名词模式 (如: OpenAI, GPT-4)
         entities.extend(re.findall(r'\b[A-Z][a-zA-Z]*-?\d*\b', query))
-        
+
         return list(dict.fromkeys(entities))[:5]
-    
+
     def _get_config(self, query_type: QueryType, complexity: QueryComplexity) -> ResearchConfig:
         """获取配置"""
         key = (query_type, complexity)
-        
+
         if key in PRESET_CONFIGS:
             return PRESET_CONFIGS[key]
-        
+
         # 默认配置
         return ResearchConfig(
             depth=2,
@@ -350,12 +349,12 @@ class QueryAnalyzer:
             max_iterations=20,
             summarize_every=3
         )
-    
+
     def _generate_reasoning(
         self,
         query_type: QueryType,
         complexity: QueryComplexity,
-        keywords: List[str]
+        keywords: list[str]
     ) -> str:
         """生成推理说明"""
         type_desc = {
@@ -365,13 +364,13 @@ class QueryAnalyzer:
             QueryType.EXPLORATORY: "exploratory query requiring broad research",
             QueryType.PROCEDURAL: "procedural query requiring step-by-step information",
         }
-        
+
         complexity_desc = {
             QueryComplexity.SIMPLE: "simple (single concept)",
             QueryComplexity.MODERATE: "moderate (multiple concepts)",
             QueryComplexity.COMPLEX: "complex (multi-dimensional)",
         }
-        
+
         return (
             f"Identified as {type_desc[query_type]}. "
             f"Complexity assessed as {complexity_desc[complexity]}. "

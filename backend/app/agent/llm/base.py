@@ -2,8 +2,10 @@
 LLM 客户端基类
 """
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -17,17 +19,17 @@ class LLMMessage(BaseModel):
 class LLMResponse:
     """LLM 完整响应"""
     content: str
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    stop_reason: Optional[str] = None  # "end_turn" | "tool_use" | "max_tokens"
-    usage: Optional[Dict[str, int]] = None  # {"input_tokens": 123, "output_tokens": 456}
+    tool_calls: list[dict[str, Any]] | None = None
+    stop_reason: str | None = None  # "end_turn" | "tool_use" | "max_tokens"
+    usage: dict[str, int] | None = None  # {"input_tokens": 123, "output_tokens": 456}
 
 
 class BaseLLM(ABC):
     """LLM 客户端抽象基类
-    
+
     所有 LLM 客户端（Claude、Gemini 等）必须继承此类
     """
-    
+
     def __init__(
         self,
         api_key: str,
@@ -39,19 +41,19 @@ class BaseLLM(ABC):
         self.model = model
         self.max_tokens = max_tokens
         self.temperature = temperature
-    
+
     @abstractmethod
     async def complete(
         self,
-        messages: List[LLMMessage],
-        system: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        stop_sequences: Optional[List[str]] = None
+        messages: list[LLMMessage],
+        system: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        stop_sequences: list[str] | None = None
     ) -> LLMResponse:
         """完整调用 LLM
-        
+
         Args:
             messages: 消息列表
             system: 系统提示词
@@ -59,24 +61,24 @@ class BaseLLM(ABC):
             max_tokens: 最大输出 token 数
             temperature: 温度参数
             stop_sequences: 停止序列
-            
+
         Returns:
             LLMResponse: 完整响应
         """
         pass
-    
+
     @abstractmethod
     async def stream(
         self,
-        messages: List[LLMMessage],
-        system: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        stop_sequences: Optional[List[str]] = None
+        messages: list[LLMMessage],
+        system: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+        stop_sequences: list[str] | None = None
     ) -> AsyncGenerator[str, None]:
         """流式调用 LLM
-        
+
         Args:
             messages: 消息列表
             system: 系统提示词
@@ -84,23 +86,23 @@ class BaseLLM(ABC):
             max_tokens: 最大输出 token 数
             temperature: 温度参数
             stop_sequences: 停止序列
-            
+
         Yields:
             str: 流式文本块
         """
         pass
-    
+
     def _merge_params(
         self,
-        max_tokens: Optional[int],
-        temperature: Optional[float]
-    ) -> Dict[str, Any]:
+        max_tokens: int | None,
+        temperature: float | None
+    ) -> dict[str, Any]:
         """合并默认参数和传入参数
-        
+
         Args:
             max_tokens: 传入的 max_tokens
             temperature: 传入的 temperature
-            
+
         Returns:
             Dict: 合并后的参数
         """
@@ -108,6 +110,6 @@ class BaseLLM(ABC):
             "max_tokens": max_tokens if max_tokens is not None else self.max_tokens,
             "temperature": temperature if temperature is not None else self.temperature
         }
-    
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}(model='{self.model}')>"

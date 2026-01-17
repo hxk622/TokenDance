@@ -2,12 +2,11 @@
 Message Pydantic schemas for API request/response validation.
 """
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.message import MessageRole
-
 
 # ============ Nested Schemas ============
 
@@ -17,8 +16,8 @@ class ToolCall(BaseModel):
     name: str
     args: dict[str, Any] = Field(default_factory=dict)
     status: str = "pending"  # pending, running, success, error, cancelled
-    result: Optional[Any] = None
-    error: Optional[str] = None
+    result: Any | None = None
+    error: str | None = None
 
 
 class Citation(BaseModel):
@@ -26,23 +25,23 @@ class Citation(BaseModel):
     index: int
     url: str
     title: str
-    domain: Optional[str] = None
-    snippet: Optional[str] = None
+    domain: str | None = None
+    snippet: str | None = None
 
 
 class Attachment(BaseModel):
     """Message attachment schema."""
     type: str  # file, image
-    file_id: Optional[str] = None
-    url: Optional[str] = None
-    name: Optional[str] = None
+    file_id: str | None = None
+    url: str | None = None
+    name: str | None = None
 
 
 # ============ Base Schemas ============
 
 class MessageBase(BaseModel):
     """Base message schema."""
-    content: Optional[str] = None
+    content: str | None = None
 
 
 # ============ Create Schemas ============
@@ -50,16 +49,16 @@ class MessageBase(BaseModel):
 class MessageCreate(MessageBase):
     """Schema for creating a new message (user input)."""
     content: str = Field(..., min_length=1)
-    attachments: Optional[list[Attachment]] = None
+    attachments: list[Attachment] | None = None
 
 
 class AssistantMessageCreate(MessageBase):
     """Schema for creating assistant message (internal)."""
     role: MessageRole = MessageRole.ASSISTANT
-    content: Optional[str] = None
-    thinking: Optional[str] = None
-    tool_calls: Optional[list[ToolCall]] = None
-    citations: Optional[list[Citation]] = None
+    content: str | None = None
+    thinking: str | None = None
+    tool_calls: list[ToolCall] | None = None
+    citations: list[Citation] | None = None
     tokens_used: int = 0
 
 
@@ -77,14 +76,14 @@ class MessageResponse(MessageBase):
     id: str
     session_id: str
     role: MessageRole
-    content: Optional[str] = None
-    thinking: Optional[str] = None
-    tool_calls: Optional[list[ToolCall]] = None
-    citations: Optional[list[Citation]] = None
+    content: str | None = None
+    thinking: str | None = None
+    tool_calls: list[ToolCall] | None = None
+    citations: list[Citation] | None = None
     tokens_used: int = 0
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)  # 
+    model_config = ConfigDict(from_attributes=True)  #
 
 
 
@@ -100,7 +99,7 @@ class ThinkingEvent(BaseModel):
     """SSE event for thinking/reasoning."""
     type: str = "thinking"
     content: str
-    status: Optional[str] = None  # start, end
+    status: str | None = None  # start, end
 
 
 class ToolCallEvent(BaseModel):
@@ -108,7 +107,7 @@ class ToolCallEvent(BaseModel):
     type: str = "tool_call"
     id: str
     name: str
-    args: Optional[dict[str, Any]] = None
+    args: dict[str, Any] | None = None
     status: str  # pending, running
 
 
@@ -117,15 +116,15 @@ class ToolResultEvent(BaseModel):
     type: str = "tool_result"
     id: str
     status: str  # success, error, cancelled
-    result: Optional[str] = None
-    error: Optional[str] = None
+    result: str | None = None
+    error: str | None = None
 
 
 class ContentEvent(BaseModel):
     """SSE event for content chunk."""
     type: str = "content"
     content: str
-    citations: Optional[list[Citation]] = None
+    citations: list[Citation] | None = None
 
 
 class ConfirmRequiredEvent(BaseModel):
@@ -149,7 +148,7 @@ class ErrorEvent(BaseModel):
     """SSE event for error."""
     type: str = "error"
     message: str
-    code: Optional[str] = None
+    code: str | None = None
 
 
 # ============ Chat Request Schemas ============
@@ -157,7 +156,7 @@ class ErrorEvent(BaseModel):
 class ChatRequest(BaseModel):
     """Request schema for chat endpoint."""
     content: str = Field(..., min_length=1)
-    attachments: Optional[list[Attachment]] = None
+    attachments: list[Attachment] | None = None
 
 
 class ConfirmRequest(BaseModel):

@@ -1,7 +1,6 @@
 """
 Artifact repository - database access layer for artifacts.
 """
-from typing import Optional
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -23,13 +22,13 @@ class ArtifactRepository:
         artifact_type: ArtifactType,
         file_path: str,
         file_size: int = 0,
-        description: Optional[str] = None,
-        mime_type: Optional[str] = None,
-        parent_step: Optional[str] = None,
-        parent_message_id: Optional[str] = None,
-        kv_anchor_id: Optional[str] = None,
-        context_length: Optional[int] = None,
-        extra_data: Optional[dict] = None,
+        description: str | None = None,
+        mime_type: str | None = None,
+        parent_step: str | None = None,
+        parent_message_id: str | None = None,
+        kv_anchor_id: str | None = None,
+        context_length: int | None = None,
+        extra_data: dict | None = None,
     ) -> Artifact:
         """Create a new artifact."""
         artifact = Artifact(
@@ -77,7 +76,7 @@ class ArtifactRepository:
             },
         )
 
-    async def get_by_id(self, artifact_id: str) -> Optional[Artifact]:
+    async def get_by_id(self, artifact_id: str) -> Artifact | None:
         """Get artifact by ID."""
         query = select(Artifact).where(Artifact.id == artifact_id)
         result = await self.db.execute(query)
@@ -86,16 +85,16 @@ class ArtifactRepository:
     async def get_by_session(
         self,
         session_id: str,
-        artifact_type: Optional[ArtifactType] = None,
+        artifact_type: ArtifactType | None = None,
     ) -> list[Artifact]:
         """Get artifacts by session, optionally filtered by type."""
         query = select(Artifact).where(Artifact.session_id == session_id)
-        
+
         if artifact_type:
             query = query.where(Artifact.artifact_type == artifact_type)
-        
+
         query = query.order_by(Artifact.created_at.desc())
-        
+
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
@@ -128,7 +127,7 @@ class ArtifactRepository:
         self,
         artifact_id: str,
         **updates,
-    ) -> Optional[Artifact]:
+    ) -> Artifact | None:
         """Update artifact fields."""
         artifact = await self.get_by_id(artifact_id)
         if not artifact:
@@ -145,9 +144,9 @@ class ArtifactRepository:
     async def update_preview_urls(
         self,
         artifact_id: str,
-        preview_url: Optional[str] = None,
-        thumbnail_url: Optional[str] = None,
-    ) -> Optional[Artifact]:
+        preview_url: str | None = None,
+        thumbnail_url: str | None = None,
+    ) -> Artifact | None:
         """Update artifact preview URLs (for PPT/documents)."""
         return await self.update(
             artifact_id,
@@ -169,10 +168,10 @@ class ArtifactRepository:
         """Delete all artifacts in a session. Returns count."""
         artifacts = await self.get_by_session(session_id)
         count = len(artifacts)
-        
+
         for artifact in artifacts:
             await self.db.delete(artifact)
-        
+
         await self.db.commit()
         return count
 

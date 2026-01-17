@@ -2,7 +2,7 @@
 Database configuration and session management.
 Uses SQLAlchemy 2.0 with async support.
 """
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -40,7 +40,7 @@ Base = declarative_base()
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency for getting async database sessions.
-    
+
     Usage:
         @app.get("/users")
         async def get_users(db: AsyncSession = Depends(get_db)):

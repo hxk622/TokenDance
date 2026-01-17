@@ -16,13 +16,14 @@ FileOpsTool - 文件操作工具
 - delete: MEDIUM
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..base import BaseTool, ToolResult
-from ..risk import RiskLevel, OperationCategory
 from app.filesystem import AgentFileSystem
+
+from ..base import BaseTool, ToolResult
+from ..risk import OperationCategory, RiskLevel
 
 
 class ReadFileArgs(BaseModel):
@@ -35,7 +36,7 @@ class WriteFileArgs(BaseModel):
     """写入文件参数"""
     path: str = Field(..., description="文件相对路径")
     content: str = Field(..., description="文件内容")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="YAML Frontmatter元数据（可选）")
+    metadata: dict[str, Any] | None = Field(None, description="YAML Frontmatter元数据（可选）")
 
 
 class ListFilesArgs(BaseModel):
@@ -97,7 +98,7 @@ class FileOpsTool(BaseTool):
         }
         return risk_mapping.get(operation, RiskLevel.MEDIUM)
 
-    def get_operation_categories(self, **kwargs) -> List[OperationCategory]:
+    def get_operation_categories(self, **kwargs) -> list[OperationCategory]:
         """根据操作类型返回操作类别"""
         operation = kwargs.get("operation", "read")
 
@@ -123,15 +124,15 @@ class FileOpsTool(BaseTool):
             "delete": f"删除文件: {path}（此操作不可逆）",
         }
         return descriptions.get(operation, f"文件操作: {operation} on {path}")
-    
+
     async def execute(self, operation: str, **kwargs) -> ToolResult:
         """
         执行文件操作
-        
+
         Args:
             operation: 操作类型 (read/write/list/delete/exists)
             **kwargs: 操作参数
-            
+
         Returns:
             ToolResult: 执行结果
         """
@@ -156,7 +157,7 @@ class FileOpsTool(BaseTool):
                 success=False,
                 error=f"文件操作失败: {str(e)}"
             )
-    
+
     async def _read_file(
         self,
         path: str,
@@ -164,11 +165,11 @@ class FileOpsTool(BaseTool):
     ) -> ToolResult:
         """
         读取文件
-        
+
         Args:
             path: 文件路径
             parse_frontmatter: 是否解析Frontmatter
-            
+
         Returns:
             ToolResult
         """
@@ -203,21 +204,21 @@ class FileOpsTool(BaseTool):
                 success=False,
                 error=str(e)
             )
-    
+
     async def _write_file(
         self,
         path: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ToolResult:
         """
         写入文件
-        
+
         Args:
             path: 文件路径
             content: 文件内容
             metadata: Frontmatter元数据
-            
+
         Returns:
             ToolResult
         """
@@ -226,7 +227,7 @@ class FileOpsTool(BaseTool):
                 file_path = self.fs.write_with_frontmatter(path, content, metadata)
             else:
                 file_path = self.fs.write(path, content)
-            
+
             return ToolResult(
                 success=True,
                 data={
@@ -240,7 +241,7 @@ class FileOpsTool(BaseTool):
                 success=False,
                 error=str(e)
             )
-    
+
     async def _list_files(
         self,
         directory: str = "",
@@ -248,17 +249,17 @@ class FileOpsTool(BaseTool):
     ) -> ToolResult:
         """
         列出目录下的文件
-        
+
         Args:
             directory: 目录路径
             pattern: 文件名模式
-            
+
         Returns:
             ToolResult
         """
         try:
             files = self.fs.list_files(directory, pattern)
-            
+
             return ToolResult(
                 success=True,
                 data={
@@ -273,17 +274,17 @@ class FileOpsTool(BaseTool):
                 success=False,
                 error=str(e)
             )
-    
+
     async def _delete_file(
         self,
         path: str,
     ) -> ToolResult:
         """
         删除文件
-        
+
         Args:
             path: 文件路径
-            
+
         Returns:
             ToolResult
         """
@@ -294,9 +295,9 @@ class FileOpsTool(BaseTool):
                     success=False,
                     error=f"文件不存在: {path}"
                 )
-            
+
             self.fs.delete(path)
-            
+
             return ToolResult(
                 success=True,
                 data={
@@ -309,22 +310,22 @@ class FileOpsTool(BaseTool):
                 success=False,
                 error=str(e)
             )
-    
+
     async def _file_exists(
         self,
         path: str,
     ) -> ToolResult:
         """
         检查文件是否存在
-        
+
         Args:
             path: 文件路径
-            
+
         Returns:
             ToolResult
         """
         exists = self.fs.exists(path)
-        
+
         return ToolResult(
             success=True,
             data={
@@ -338,10 +339,10 @@ class FileOpsTool(BaseTool):
 def create_file_ops_tool(filesystem: AgentFileSystem) -> FileOpsTool:
     """
     创建FileOpsTool实例
-    
+
     Args:
         filesystem: AgentFileSystem实例
-        
+
     Returns:
         FileOpsTool实例
     """

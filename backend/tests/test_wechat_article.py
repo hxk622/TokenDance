@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 WeChat Article Tool 单元测试
 
@@ -7,8 +6,9 @@ WeChat Article Tool 单元测试
 - API 调用
 - 错误处理
 """
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 
 class TestWeChatArticleTool:
@@ -215,12 +215,12 @@ class TestWeChatArticleToolIntegration:
         # 替换为有效的微信文章链接
         test_url = "https://mp.weixin.qq.com/s/your-test-article"
         result = await tool.execute(url=test_url)
-        
+
         print(f"Title: {result.get('title')}")
         print(f"Author: {result.get('author')}")
         print(f"Length: {result.get('length')}")
         print(f"Content preview: {result.get('content', '')[:500]}...")
-        
+
         assert result["success"]
         assert result["title"]
         assert result["content"]

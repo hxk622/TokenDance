@@ -5,10 +5,9 @@ Distributed Memory - 简易跨 session 记忆系统
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List
-from datetime import datetime
 import re
+from dataclasses import dataclass
+from datetime import datetime
 
 from app.filesystem.agent_fs import AgentFileSystem
 
@@ -17,7 +16,7 @@ from app.filesystem.agent_fs import AgentFileSystem
 class Lesson:
     title: str
     summary: str
-    tags: List[str]
+    tags: list[str]
     created_at: str
 
     def to_markdown(self) -> str:
@@ -33,7 +32,7 @@ class DistributedMemory:
     def __init__(self, fs: AgentFileSystem):
         self.fs = fs
 
-    def store_lessons(self, lessons: List[Lesson]) -> None:
+    def store_lessons(self, lessons: list[Lesson]) -> None:
         body = ""
         for l in lessons:
             body += l.to_markdown() + "\n"
@@ -45,7 +44,7 @@ class DistributedMemory:
             content = header + body
         self.fs.write(self.PATH, content)
 
-    def recall(self, query: str, top_k: int = 5) -> List[str]:
+    def recall(self, query: str, top_k: int = 5) -> list[str]:
         if not self.fs.exists(self.PATH):
             return []
         text = self.fs.read(self.PATH)

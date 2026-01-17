@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 SectorMapService - 板块地图服务
 
@@ -11,8 +10,8 @@ SectorMapService - 板块地图服务
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +39,11 @@ class SectorNode:
     code: str
     name: str
     level: SectorLevel
-    parent_code: Optional[str] = None
-    children: List["SectorNode"] = field(default_factory=list)
+    parent_code: str | None = None
+    children: list["SectorNode"] = field(default_factory=list)
     stock_count: int = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "name": self.name,
@@ -67,8 +66,8 @@ class SectorHeatData:
     turnover_rate: float    # 换手率
     leading_stock: str      # 领涨股
     leading_change: float   # 领涨股涨幅
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "name": self.name,
@@ -94,8 +93,8 @@ class SectorFlowData:
     large_inflow: float     # 大单净流入
     medium_inflow: float    # 中单净流入
     small_inflow: float     # 小单净流入
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "name": self.name,
@@ -113,12 +112,12 @@ class SectorFlowData:
 class SectorMapResult:
     """板块地图结果"""
     update_time: datetime
-    sector_tree: List[SectorNode] = field(default_factory=list)
-    heat_map: List[SectorHeatData] = field(default_factory=list)
-    flow_ranking: List[SectorFlowData] = field(default_factory=list)
-    hot_concepts: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    sector_tree: list[SectorNode] = field(default_factory=list)
+    heat_map: list[SectorHeatData] = field(default_factory=list)
+    flow_ranking: list[SectorFlowData] = field(default_factory=list)
+    hot_concepts: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "update_time": self.update_time.isoformat(),
             "sector_tree": [s.to_dict() for s in self.sector_tree],
@@ -130,7 +129,7 @@ class SectorMapResult:
 
 class SectorMapService:
     """板块地图服务"""
-    
+
     # 板块分类体系
     SECTOR_HIERARCHY = {
         "金融": ["银行", "保险", "券商", "多元金融"],
@@ -141,33 +140,33 @@ class SectorMapService:
         "公用": ["电力", "燃气", "环保", "交通运输"],
         "地产": ["房地产", "建筑", "建筑装饰"],
     }
-    
+
     # 概念板块
     CONCEPT_SECTORS = [
         "人工智能", "新能源汽车", "光伏", "储能",
         "芯片", "5G", "大数据", "云计算",
         "元宇宙", "ChatGPT", "机器人", "国产替代",
     ]
-    
+
     def __init__(self):
-        self._cache: Dict[str, Any] = {}
-    
+        self._cache: dict[str, Any] = {}
+
     async def get_sector_map(self) -> SectorMapResult:
         """获取完整板块地图"""
         update_time = datetime.now()
-        
+
         # 构建板块树
         sector_tree = self._build_sector_tree()
-        
+
         # 获取热力图数据
         heat_map = await self._get_heat_map()
-        
+
         # 获取资金流向排名
         flow_ranking = await self._get_flow_ranking()
-        
+
         # 获取热门概念
         hot_concepts = await self._get_hot_concepts()
-        
+
         return SectorMapResult(
             update_time=update_time,
             sector_tree=sector_tree,
@@ -175,31 +174,31 @@ class SectorMapService:
             flow_ranking=flow_ranking,
             hot_concepts=hot_concepts,
         )
-    
+
     async def get_sector_heat(
         self,
         level: SectorLevel = SectorLevel.INDUSTRY,
         top_n: int = 20,
-    ) -> List[SectorHeatData]:
+    ) -> list[SectorHeatData]:
         """获取板块热力数据"""
         heat_map = await self._get_heat_map()
         filtered = [h for h in heat_map if h.level == level]
         return sorted(filtered, key=lambda x: x.change_pct, reverse=True)[:top_n]
-    
+
     async def get_sector_flow(
         self,
         level: SectorLevel = SectorLevel.INDUSTRY,
         top_n: int = 20,
-    ) -> List[SectorFlowData]:
+    ) -> list[SectorFlowData]:
         """获取板块资金流向"""
         flow_data = await self._get_flow_ranking()
         return flow_data[:top_n]
-    
-    async def get_concept_sectors(self) -> List[SectorHeatData]:
+
+    async def get_concept_sectors(self) -> list[SectorHeatData]:
         """获取概念板块行情"""
         return await self._get_concept_heat()
-    
-    async def find_sector_by_stock(self, symbol: str) -> Dict[str, Any]:
+
+    async def find_sector_by_stock(self, symbol: str) -> dict[str, Any]:
         """根据股票查找所属板块"""
         # Mock 数据
         return {
@@ -209,11 +208,11 @@ class SectorMapService:
             "sub_industry": "高端白酒",
             "concepts": ["消费升级", "国企改革"],
         }
-    
-    def _build_sector_tree(self) -> List[SectorNode]:
+
+    def _build_sector_tree(self) -> list[SectorNode]:
         """构建板块树"""
         import random
-        
+
         tree = []
         for sector_name, industries in self.SECTOR_HIERARCHY.items():
             sector_node = SectorNode(
@@ -222,7 +221,7 @@ class SectorMapService:
                 level=SectorLevel.SECTOR,
                 stock_count=random.randint(100, 500),
             )
-            
+
             for industry in industries:
                 industry_node = SectorNode(
                     code=f"I_{industry}",
@@ -232,20 +231,20 @@ class SectorMapService:
                     stock_count=random.randint(20, 100),
                 )
                 sector_node.children.append(industry_node)
-            
+
             tree.append(sector_node)
-        
+
         return tree
-    
-    async def _get_heat_map(self) -> List[SectorHeatData]:
+
+    async def _get_heat_map(self) -> list[SectorHeatData]:
         """获取热力图数据"""
         import random
-        
+
         heat_map = []
-        for sector_name, industries in self.SECTOR_HIERARCHY.items():
+        for _sector_name, industries in self.SECTOR_HIERARCHY.items():
             for industry in industries:
                 change_pct = random.uniform(-5, 8)
-                
+
                 # 确定热度级别
                 if change_pct > 3:
                     heat_level = HeatLevel.HOT
@@ -257,7 +256,7 @@ class SectorMapService:
                     heat_level = HeatLevel.COOL
                 else:
                     heat_level = HeatLevel.COLD
-                
+
                 heat_map.append(SectorHeatData(
                     code=f"I_{industry}",
                     name=industry,
@@ -269,22 +268,22 @@ class SectorMapService:
                     leading_stock=f"{industry}龙头",
                     leading_change=round(change_pct + random.uniform(1, 5), 2),
                 ))
-        
+
         return sorted(heat_map, key=lambda x: x.change_pct, reverse=True)
-    
-    async def _get_flow_ranking(self) -> List[SectorFlowData]:
+
+    async def _get_flow_ranking(self) -> list[SectorFlowData]:
         """获取资金流向排名"""
         import random
-        
+
         flow_data = []
         all_industries = []
         for industries in self.SECTOR_HIERARCHY.values():
             all_industries.extend(industries)
-        
+
         for industry in all_industries:
             net_inflow = random.uniform(-50, 80)
             main_ratio = random.uniform(0.4, 0.7)
-            
+
             flow_data.append(SectorFlowData(
                 code=f"I_{industry}",
                 name=industry,
@@ -296,24 +295,24 @@ class SectorMapService:
                 medium_inflow=round(net_inflow * 0.25, 2),
                 small_inflow=round(net_inflow * 0.2, 2),
             ))
-        
+
         return sorted(flow_data, key=lambda x: x.net_inflow, reverse=True)
-    
-    async def _get_hot_concepts(self) -> List[str]:
+
+    async def _get_hot_concepts(self) -> list[str]:
         """获取热门概念"""
         import random
-        
+
         # 随机选择几个热门概念
         return random.sample(self.CONCEPT_SECTORS, min(5, len(self.CONCEPT_SECTORS)))
-    
-    async def _get_concept_heat(self) -> List[SectorHeatData]:
+
+    async def _get_concept_heat(self) -> list[SectorHeatData]:
         """获取概念板块热力数据"""
         import random
-        
+
         concept_heat = []
         for concept in self.CONCEPT_SECTORS:
             change_pct = random.uniform(-6, 10)
-            
+
             if change_pct > 3:
                 heat_level = HeatLevel.HOT
             elif change_pct > 1:
@@ -324,7 +323,7 @@ class SectorMapService:
                 heat_level = HeatLevel.COOL
             else:
                 heat_level = HeatLevel.COLD
-            
+
             concept_heat.append(SectorHeatData(
                 code=f"C_{concept}",
                 name=concept,
@@ -336,12 +335,12 @@ class SectorMapService:
                 leading_stock=f"{concept}龙头",
                 leading_change=round(change_pct + random.uniform(2, 8), 2),
             ))
-        
+
         return sorted(concept_heat, key=lambda x: x.change_pct, reverse=True)
 
 
 # 全局单例
-_sector_map_service: Optional[SectorMapService] = None
+_sector_map_service: SectorMapService | None = None
 
 
 def get_sector_map_service() -> SectorMapService:

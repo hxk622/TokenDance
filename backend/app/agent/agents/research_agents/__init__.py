@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Research Agents 模块
 
@@ -8,29 +7,27 @@ Multi-Agent 架构实现:
 - ResearchOrchestrator: 研究编排器
 """
 
+from .agents import (
+    AnalystAgent,
+    ReaderAgent,
+    SearcherAgent,
+    SynthesizerAgent,
+    VerifierAgent,
+)
 from .base import (
+    AgentResult,
     # 角色和状态
     AgentRole,
-    TaskStatus,
-    TaskPriority,
     # 数据结构
     AgentTask,
-    AgentResult,
-    HandoffMessage,
     # 基类和协议
     BaseResearchAgent,
+    HandoffMessage,
     HandoffProtocol,
     TaskFactory,
+    TaskPriority,
+    TaskStatus,
 )
-
-from .agents import (
-    SearcherAgent,
-    ReaderAgent,
-    AnalystAgent,
-    VerifierAgent,
-    SynthesizerAgent,
-)
-
 from .orchestrator import (
     ResearchOrchestrator,
     ResearchPhase,

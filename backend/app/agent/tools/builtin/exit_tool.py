@@ -12,9 +12,9 @@ exit 的哲学：
 参考文档：docs/architecture/Agent-Runtime-Design.md
 """
 
-from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 from ..base import BaseTool, ToolResult
 from ..risk import RiskLevel
@@ -38,9 +38,9 @@ class ExitContext:
     summary: str = ""                # 任务完成摘要
     deliverables: list = field(default_factory=list)  # 交付物列表
     failures: list = field(default_factory=list)      # 失败记录
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "reason": self.reason.value,
             "exit_code": self.exit_code,
@@ -54,19 +54,19 @@ class ExitContext:
 
 class ExitTool(BaseTool):
     """Exit Tool - Agent 主动终止工具
-    
+
     这是 4+2 核心工具之一，让 Agent 能够：
     1. 主动声明任务完成（exit_code=0）
     2. 主动声明任务失败（exit_code=1）
     3. 请求用户介入（exit_code=2）
     4. 报告致命错误（exit_code=3）
-    
+
     Usage:
         exit(code=0, message="任务完成", summary="创建了3个文件...")
         exit(code=1, message="无法连接API", failures=["网络错误"])
         exit(code=2, message="需要API密钥", need_user_for="提供API密钥")
     """
-    
+
     name: str = "exit"
     description: str = (
         "主动终止任务执行。使用 exit_code 表示结果：\n"
@@ -77,11 +77,11 @@ class ExitTool(BaseTool):
         "调用 exit 后，Agent 将停止执行并返回控制权。"
     )
     risk_level: RiskLevel = RiskLevel.NONE
-    
+
     # 退出上下文（执行后填充）
-    last_exit_context: Optional[ExitContext] = None
-    
-    def get_parameters_schema(self) -> Dict[str, Any]:
+    last_exit_context: ExitContext | None = None
+
+    def get_parameters_schema(self) -> dict[str, Any]:
         """获取参数 schema"""
         return {
             "type": "object",
@@ -121,19 +121,19 @@ class ExitTool(BaseTool):
             },
             "required": ["exit_code", "message"],
         }
-    
+
     async def execute(
         self,
         exit_code: int = 0,
         message: str = "",
         summary: str = "",
-        deliverables: Optional[list] = None,
-        failures: Optional[list] = None,
+        deliverables: list | None = None,
+        failures: list | None = None,
         need_user_for: str = "",
         **kwargs,
     ) -> ToolResult:
         """执行退出
-        
+
         Args:
             exit_code: 退出码（0-3）
             message: 退出消息
@@ -141,7 +141,7 @@ class ExitTool(BaseTool):
             deliverables: 交付物列表
             failures: 失败记录
             need_user_for: 需要用户提供什么
-        
+
         Returns:
             ToolResult with exit context
         """
@@ -152,7 +152,7 @@ class ExitTool(BaseTool):
                 data=None,
                 error=f"Invalid exit_code: {exit_code}. Must be 0, 1, 2, or 3.",
             )
-        
+
         # 确定退出原因
         reason_map = {
             0: ExitReason.SUCCESS,
@@ -161,7 +161,7 @@ class ExitTool(BaseTool):
             3: ExitReason.CANNOT_PROCEED,
         }
         reason = reason_map[exit_code]
-        
+
         # 构建退出上下文
         context = ExitContext(
             reason=reason,
@@ -174,31 +174,31 @@ class ExitTool(BaseTool):
                 "need_user_for": need_user_for,
             },
         )
-        
+
         # 保存上下文
         self.last_exit_context = context
-        
+
         # 构建输出消息
         output_lines = [
             f"Exit Code: {exit_code}",
             f"Reason: {reason.value}",
             f"Message: {message}",
         ]
-        
+
         if summary:
             output_lines.append(f"Summary: {summary}")
-        
+
         if deliverables:
             output_lines.append(f"Deliverables: {', '.join(deliverables)}")
-        
+
         if failures:
             output_lines.append(f"Failures: {', '.join(failures)}")
-        
+
         if need_user_for:
             output_lines.append(f"Need from user: {need_user_for}")
-        
+
         output = "\n".join(output_lines)
-        
+
         # exit 总是"成功"的（即使 exit_code != 0）
         # 因为 exit 本身是一个有效的操作
         return ToolResult(
@@ -209,11 +209,11 @@ class ExitTool(BaseTool):
             },
             summary=output,
         )
-    
-    def get_exit_context(self) -> Optional[ExitContext]:
+
+    def get_exit_context(self) -> ExitContext | None:
         """获取最后的退出上下文"""
         return self.last_exit_context
-    
+
     def was_successful(self) -> bool:
         """检查最后一次退出是否成功"""
         if self.last_exit_context is None:
@@ -224,9 +224,9 @@ class ExitTool(BaseTool):
 # 便捷函数
 def create_success_exit(
     summary: str,
-    deliverables: Optional[list] = None,
+    deliverables: list | None = None,
     message: str = "任务完成",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """创建成功退出的参数"""
     return {
         "exit_code": 0,
@@ -238,8 +238,8 @@ def create_success_exit(
 
 def create_failure_exit(
     message: str,
-    failures: Optional[list] = None,
-) -> Dict[str, Any]:
+    failures: list | None = None,
+) -> dict[str, Any]:
     """创建失败退出的参数"""
     return {
         "exit_code": 1,
@@ -251,7 +251,7 @@ def create_failure_exit(
 def create_need_user_exit(
     message: str,
     need_user_for: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """创建需要用户介入的退出参数"""
     return {
         "exit_code": 2,
@@ -262,8 +262,8 @@ def create_need_user_exit(
 
 def create_fatal_exit(
     message: str,
-    failures: Optional[list] = None,
-) -> Dict[str, Any]:
+    failures: list | None = None,
+) -> dict[str, Any]:
     """创建致命错误退出的参数"""
     return {
         "exit_code": 3,

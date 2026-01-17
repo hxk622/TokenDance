@@ -13,9 +13,9 @@ Skills API Tests
 - GET /api/v1/skills/discovery - 获取发现页数据
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 # ==================== Skills Tests ====================
 
@@ -42,13 +42,13 @@ class TestListSkills:
                 "match_threshold": 0.5,
                 "priority": 1
             }
-            
+
             mock_registry.get_all.return_value = [mock_skill]
             mock_registry.get_by_tag.return_value = [mock_skill]
             mock_get_registry.return_value = mock_registry
-            
+
             response = test_client.get("/api/v1/skills/skills")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert isinstance(data, list)
@@ -73,12 +73,12 @@ class TestListSkills:
                 "match_threshold": 0.5,
                 "priority": 1
             }
-            
+
             mock_registry.get_by_tag.return_value = [mock_skill]
             mock_get_registry.return_value = mock_registry
-            
+
             response = test_client.get("/api/v1/skills/skills?tag=research")
-            
+
             assert response.status_code == 200
 
 
@@ -89,7 +89,7 @@ class TestGetSkill:
         """测试成功获取 Skill"""
         with patch("app.api.v1.skills.get_skill_registry") as mock_skill_registry, \
              patch("app.api.v1.skills.get_template_registry") as mock_template_registry:
-            
+
             mock_skill = MagicMock()
             mock_skill.to_dict.return_value = {
                 "name": "test-skill",
@@ -105,12 +105,12 @@ class TestGetSkill:
                 "match_threshold": 0.5,
                 "priority": 1
             }
-            
+
             mock_skill_registry.return_value.get.return_value = mock_skill
             mock_template_registry.return_value.get_templates_by_skill.return_value = []
-            
+
             response = test_client.get("/api/v1/skills/skills/test-skill")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["name"] == "test-skill"
@@ -119,9 +119,9 @@ class TestGetSkill:
         """测试 Skill 不存在"""
         with patch("app.api.v1.skills.get_skill_registry") as mock_registry:
             mock_registry.return_value.get.return_value = None
-            
+
             response = test_client.get("/api/v1/skills/skills/nonexistent")
-            
+
             assert response.status_code == 404
 
 
@@ -147,11 +147,11 @@ class TestListTemplates:
                 "popularity": 0,
                 "enabled": True
             }
-            
+
             mock_registry.return_value.get_all_templates.return_value = [mock_template]
-            
+
             response = test_client.get("/api/v1/skills/templates")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert isinstance(data, list)
@@ -177,11 +177,11 @@ class TestGetPopularTemplates:
                 "popularity": 100,
                 "enabled": True
             }
-            
+
             mock_registry.return_value.get_popular_templates.return_value = [mock_template]
-            
+
             response = test_client.get("/api/v1/skills/templates/popular")
-            
+
             assert response.status_code == 200
 
 
@@ -205,20 +205,20 @@ class TestGetTemplate:
                 "popularity": 0,
                 "enabled": True
             }
-            
+
             mock_registry.return_value.get_template.return_value = mock_template
-            
+
             response = test_client.get("/api/v1/skills/templates/test-template")
-            
+
             assert response.status_code == 200
 
     def test_get_template_not_found(self, test_client):
         """测试模板不存在"""
         with patch("app.api.v1.skills.get_template_registry") as mock_registry:
             mock_registry.return_value.get_template.return_value = None
-            
+
             response = test_client.get("/api/v1/skills/templates/nonexistent")
-            
+
             assert response.status_code == 404
 
 
@@ -232,14 +232,14 @@ class TestRenderTemplate:
             mock_template.skill_id = "test-skill"
             mock_template.get_required_variables.return_value = ["name"]
             mock_template.render.return_value = "Hello World"
-            
+
             mock_registry.return_value.get_template.return_value = mock_template
-            
+
             response = test_client.post(
                 "/api/v1/skills/templates/test-template/render",
                 json={"variables": {"name": "World"}}
             )
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["rendered_prompt"] == "Hello World"
@@ -249,14 +249,14 @@ class TestRenderTemplate:
         with patch("app.api.v1.skills.get_template_registry") as mock_registry:
             mock_template = MagicMock()
             mock_template.get_required_variables.return_value = ["name", "topic"]
-            
+
             mock_registry.return_value.get_template.return_value = mock_template
-            
+
             response = test_client.post(
                 "/api/v1/skills/templates/test-template/render",
                 json={"variables": {"name": "World"}}
             )
-            
+
             assert response.status_code == 400
 
 
@@ -282,11 +282,11 @@ class TestListScenes:
                 "popularity": 0,
                 "enabled": True
             }
-            
+
             mock_registry.return_value.get_all_scenes.return_value = [mock_scene]
-            
+
             response = test_client.get("/api/v1/skills/scenes")
-            
+
             assert response.status_code == 200
 
 
@@ -310,11 +310,11 @@ class TestGetPopularScenes:
                 "popularity": 100,
                 "enabled": True
             }
-            
+
             mock_registry.return_value.get_popular_scenes.return_value = [mock_scene]
-            
+
             response = test_client.get("/api/v1/skills/scenes/popular")
-            
+
             assert response.status_code == 200
 
 
@@ -338,20 +338,20 @@ class TestGetScene:
                 "popularity": 0,
                 "enabled": True
             }
-            
+
             mock_registry.return_value.get_scene.return_value = mock_scene
-            
+
             response = test_client.get("/api/v1/skills/scenes/test-scene")
-            
+
             assert response.status_code == 200
 
     def test_get_scene_not_found(self, test_client):
         """测试场景不存在"""
         with patch("app.api.v1.skills.get_template_registry") as mock_registry:
             mock_registry.return_value.get_scene.return_value = None
-            
+
             response = test_client.get("/api/v1/skills/scenes/nonexistent")
-            
+
             assert response.status_code == 404
 
 
@@ -370,9 +370,9 @@ class TestGetDiscovery:
                 "total_templates": 0,
                 "total_scenes": 0
             }
-            
+
             response = test_client.get("/api/v1/skills/discovery")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert "popular_templates" in data
@@ -394,9 +394,9 @@ class TestListCategories:
                 "total_templates": 5,
                 "total_scenes": 2
             }
-            
+
             response = test_client.get("/api/v1/skills/categories")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert isinstance(data, list)

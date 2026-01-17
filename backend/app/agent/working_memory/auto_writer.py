@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Three-File Auto Writer - 三文件工作法自动化写入
 
@@ -16,13 +15,14 @@ Three-File Auto Writer - 三文件工作法自动化写入
 - 幂等设计，重复写入不会破坏数据
 """
 import asyncio
+import json
 import logging
-from typing import Optional, Dict, Any, List, Callable, Awaitable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-import json
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class ActionType(str, Enum):
     CODE_EXECUTE = "code_execute"
     FILE_WRITE = "file_write"
     API_CALL = "api_call"
-    
+
     # 非重大操作（不计入 2-Action Rule）
     FILE_READ = "file_read"
     GREP = "grep"
@@ -59,12 +59,12 @@ class ActionRecord:
     """操作记录"""
     action_type: ActionType
     tool_name: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
     result_summary: str
     success: bool
     timestamp: datetime = field(default_factory=datetime.now)
-    error: Optional[str] = None
-    duration_ms: Optional[int] = None
+    error: str | None = None
+    duration_ms: int | None = None
 
 
 @dataclass
@@ -76,22 +76,22 @@ class SessionProgress:
     successful_actions: int = 0
     failed_actions: int = 0
     findings_written: int = 0
-    last_finding_at: Optional[datetime] = None
-    errors: List[Dict[str, Any]] = field(default_factory=list)
+    last_finding_at: datetime | None = None
+    errors: list[dict[str, Any]] = field(default_factory=list)
 
 
 class ThreeFileAutoWriter:
     """三文件自动写入器
-    
+
     自动管理 findings.md 和 progress.md 的写入：
     - 监听 Agent 操作事件
     - 按 2-Action Rule 触发 findings 写入
     - 在关键节点写入 progress
     - 自动捕获和记录错误
-    
+
     Usage:
         writer = ThreeFileAutoWriter(session_id, workspace_path)
-        
+
         # 在 Agent 中注册 Hook
         agent.on_tool_call(writer.on_tool_call)
         agent.on_tool_result(writer.on_tool_result)
@@ -99,7 +99,7 @@ class ThreeFileAutoWriter:
         agent.on_error(writer.on_error)
         agent.on_session_end(writer.on_session_end)
     """
-    
+
     def __init__(
         self,
         session_id: str,
@@ -111,52 +111,52 @@ class ThreeFileAutoWriter:
         self.workspace = Path(workspace_path)
         self.action_threshold = action_threshold
         self.redis = redis_client
-        
+
         # 内部状态
         self._action_counter = 0
-        self._pending_findings: List[ActionRecord] = []
+        self._pending_findings: list[ActionRecord] = []
         self._progress = SessionProgress(session_id=session_id, phase="init")
         self._write_lock = asyncio.Lock()
-        
+
         # 确保目录存在
         self.workspace.mkdir(parents=True, exist_ok=True)
-    
+
     @property
     def findings_path(self) -> Path:
         return self.workspace / "findings.md"
-    
+
     @property
     def progress_path(self) -> Path:
         return self.workspace / "progress.md"
-    
+
     @property
     def task_plan_path(self) -> Path:
         return self.workspace / "task_plan.md"
-    
+
     # ==================== Hook 方法 ====================
-    
+
     async def on_tool_call(
         self,
         tool_name: str,
-        params: Dict[str, Any]
+        params: dict[str, Any]
     ) -> None:
         """工具调用前的 Hook"""
         logger.debug(f"[AutoWriter] Tool call: {tool_name}")
-    
+
     async def on_tool_result(
         self,
         tool_name: str,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         result: Any,
         success: bool,
-        error: Optional[str] = None,
-        duration_ms: Optional[int] = None
+        error: str | None = None,
+        duration_ms: int | None = None
     ) -> None:
         """工具执行结果的 Hook - 核心入口"""
-        
+
         # 1. 映射到 ActionType
         action_type = self._map_tool_to_action(tool_name)
-        
+
         # 2. 创建操作记录
         record = ActionRecord(
             action_type=action_type,
@@ -167,43 +167,43 @@ class ThreeFileAutoWriter:
             error=error,
             duration_ms=duration_ms
         )
-        
+
         # 3. 更新统计
         self._progress.total_actions += 1
         if success:
             self._progress.successful_actions += 1
         else:
             self._progress.failed_actions += 1
-        
+
         # 4. 错误记录 (Keep the Failures)
         if not success and error:
             await self._record_error(record)
-        
+
         # 5. 检查 2-Action Rule
         if action_type in MAJOR_ACTIONS:
             self._action_counter += 1
             self._pending_findings.append(record)
-            
+
             if self._action_counter >= self.action_threshold:
                 await self._flush_findings()
-    
+
     async def on_phase_change(self, new_phase: str) -> None:
         """阶段变更 Hook"""
         old_phase = self._progress.phase
         self._progress.phase = new_phase
-        
+
         # 写入 progress
         await self._write_progress_entry(
             f"Phase transition: {old_phase} → {new_phase}"
         )
-        
+
         logger.info(f"[AutoWriter] Phase changed: {old_phase} → {new_phase}")
-    
+
     async def on_error(
         self,
         error_type: str,
         error_message: str,
-        context: Optional[Dict[str, Any]] = None
+        context: dict[str, Any] | None = None
     ) -> None:
         """错误捕获 Hook"""
         error_record = {
@@ -213,31 +213,31 @@ class ThreeFileAutoWriter:
             "timestamp": datetime.now().isoformat()
         }
         self._progress.errors.append(error_record)
-        
+
         # 立即写入 progress (Keep the Failures)
         await self._write_progress_entry(
             f"❌ Error [{error_type}]: {error_message}",
             is_error=True
         )
-    
+
     async def on_session_end(self, status: str = "completed") -> None:
         """Session 结束 Hook"""
         # 1. 刷新所有待写入的 findings
         if self._pending_findings:
             await self._flush_findings(force=True)
-        
+
         # 2. 写入最终进度
         summary = self._generate_session_summary(status)
         await self._write_progress_entry(summary, is_summary=True)
-        
+
         # 3. 持久化到 Redis (如果可用)
         if self.redis:
             await self._persist_to_redis()
-        
+
         logger.info(f"[AutoWriter] Session {self.session_id} ended: {status}")
-    
+
     # ==================== 内部方法 ====================
-    
+
     def _map_tool_to_action(self, tool_name: str) -> ActionType:
         """映射工具名到操作类型"""
         mapping = {
@@ -254,12 +254,12 @@ class ThreeFileAutoWriter:
             "grep": ActionType.GREP,
         }
         return mapping.get(tool_name, ActionType.API_CALL)
-    
+
     def _summarize_result(self, result: Any, max_length: int = 200) -> str:
         """生成结果摘要"""
         if result is None:
             return "No result"
-        
+
         if isinstance(result, str):
             text = result
         elif isinstance(result, dict):
@@ -268,16 +268,16 @@ class ThreeFileAutoWriter:
             text = f"[{len(result)} items]"
         else:
             text = str(result)
-        
+
         if len(text) > max_length:
             return text[:max_length] + "..."
         return text
-    
+
     async def _flush_findings(self, force: bool = False) -> None:
         """刷新 findings 到文件"""
         if not self._pending_findings and not force:
             return
-        
+
         async with self._write_lock:
             try:
                 # 生成 findings 条目
@@ -285,38 +285,38 @@ class ThreeFileAutoWriter:
                 for record in self._pending_findings:
                     entry = self._format_finding_entry(record)
                     entries.append(entry)
-                
+
                 # 追加到文件
                 content = "\n".join(entries) + "\n"
                 await self._append_to_file(self.findings_path, content)
-                
+
                 # 更新统计
                 self._progress.findings_written += len(self._pending_findings)
                 self._progress.last_finding_at = datetime.now()
-                
+
                 # 重置
                 self._action_counter = 0
                 self._pending_findings.clear()
-                
+
                 logger.debug(f"[AutoWriter] Flushed {len(entries)} findings")
-                
+
             except Exception as e:
                 logger.error(f"[AutoWriter] Failed to flush findings: {e}")
-    
+
     def _format_finding_entry(self, record: ActionRecord) -> str:
         """格式化单条 finding"""
         timestamp = record.timestamp.strftime("%H:%M:%S")
         status = "✅" if record.success else "❌"
-        
+
         entry = f"""### {status} {record.tool_name} [{timestamp}]
 **参数**: `{json.dumps(record.params, ensure_ascii=False)[:100]}`
 **结果**: {record.result_summary}
 """
         if record.error:
             entry += f"**错误**: {record.error}\n"
-        
+
         return entry
-    
+
     async def _write_progress_entry(
         self,
         content: str,
@@ -327,19 +327,19 @@ class ThreeFileAutoWriter:
         async with self._write_lock:
             try:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                
+
                 if is_summary:
                     entry = f"\n---\n\n## 📊 Session 总结 [{timestamp}]\n{content}\n"
                 elif is_error:
                     entry = f"\n### {timestamp}\n{content}\n"
                 else:
                     entry = f"\n**[{timestamp}]** {content}\n"
-                
+
                 await self._append_to_file(self.progress_path, entry)
-                
+
             except Exception as e:
                 logger.error(f"[AutoWriter] Failed to write progress: {e}")
-    
+
     async def _record_error(self, record: ActionRecord) -> None:
         """记录错误 (Keep the Failures)"""
         error_entry = {
@@ -349,18 +349,18 @@ class ThreeFileAutoWriter:
             "timestamp": record.timestamp.isoformat()
         }
         self._progress.errors.append(error_entry)
-        
+
         # 写入 progress
         await self._write_progress_entry(
             f"❌ [{record.tool_name}] {record.error}",
             is_error=True
         )
-    
+
     def _generate_session_summary(self, status: str) -> str:
         """生成 Session 总结"""
         p = self._progress
         success_rate = (p.successful_actions / p.total_actions * 100) if p.total_actions > 0 else 0
-        
+
         summary = f"""
 **状态**: {status}
 **总操作数**: {p.total_actions}
@@ -372,9 +372,9 @@ class ThreeFileAutoWriter:
             summary += "\n**错误列表**:\n"
             for err in p.errors[-5:]:  # 最近5个错误
                 summary += f"- [{err.get('tool', 'unknown')}] {err.get('error', 'unknown')}\n"
-        
+
         return summary
-    
+
     async def _append_to_file(self, path: Path, content: str) -> None:
         """追加内容到文件"""
         loop = asyncio.get_event_loop()
@@ -382,12 +382,12 @@ class ThreeFileAutoWriter:
             None,
             lambda: path.open("a", encoding="utf-8").write(content)
         )
-    
+
     async def _persist_to_redis(self) -> None:
         """持久化状态到 Redis"""
         if not self.redis:
             return
-        
+
         key = f"three_file:{self.session_id}"
         data = {
             "progress": {
@@ -400,7 +400,7 @@ class ThreeFileAutoWriter:
             },
             "timestamp": datetime.now().isoformat()
         }
-        
+
         await self.redis.set(key, json.dumps(data), ex=86400)  # 24h TTL
 
 
@@ -408,14 +408,14 @@ class ThreeFileAutoWriter:
 
 class AgentHookManager:
     """Agent Hook 管理器
-    
+
     集成到 BaseAgent，自动触发三文件写入
     """
-    
+
     def __init__(self, agent):
         self.agent = agent
-        self.writer: Optional[ThreeFileAutoWriter] = None
-    
+        self.writer: ThreeFileAutoWriter | None = None
+
     def setup(
         self,
         session_id: str,
@@ -428,20 +428,20 @@ class AgentHookManager:
             workspace_path=workspace_path,
             redis_client=redis_client
         )
-    
-    async def pre_tool_call(self, tool_name: str, params: Dict[str, Any]) -> None:
+
+    async def pre_tool_call(self, tool_name: str, params: dict[str, Any]) -> None:
         """工具调用前 Hook"""
         if self.writer:
             await self.writer.on_tool_call(tool_name, params)
-    
+
     async def post_tool_call(
         self,
         tool_name: str,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         result: Any,
         success: bool,
-        error: Optional[str] = None,
-        duration_ms: Optional[int] = None
+        error: str | None = None,
+        duration_ms: int | None = None
     ) -> None:
         """工具调用后 Hook"""
         if self.writer:
@@ -453,22 +453,22 @@ class AgentHookManager:
                 error=error,
                 duration_ms=duration_ms
             )
-    
+
     async def on_phase_change(self, new_phase: str) -> None:
         """阶段变更 Hook"""
         if self.writer:
             await self.writer.on_phase_change(new_phase)
-    
+
     async def on_error(
         self,
         error_type: str,
         error_message: str,
-        context: Optional[Dict[str, Any]] = None
+        context: dict[str, Any] | None = None
     ) -> None:
         """错误 Hook"""
         if self.writer:
             await self.writer.on_error(error_type, error_message, context)
-    
+
     async def on_session_end(self, status: str = "completed") -> None:
         """Session 结束 Hook"""
         if self.writer:
@@ -479,7 +479,7 @@ class AgentHookManager:
 
 def auto_record_tool(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
     """工具自动记录装饰器
-    
+
     Usage:
         @auto_record_tool
         async def web_search(self, query: str) -> ToolResult:
@@ -488,19 +488,19 @@ def auto_record_tool(func: Callable[..., Awaitable[Any]]) -> Callable[..., Await
     async def wrapper(self, *args, **kwargs):
         tool_name = func.__name__
         params = kwargs.copy()
-        
+
         # 获取 hook manager (假设 agent 有此属性)
         hook_manager = getattr(self, '_hook_manager', None)
-        
+
         start_time = datetime.now()
         try:
             if hook_manager:
                 await hook_manager.pre_tool_call(tool_name, params)
-            
+
             result = await func(self, *args, **kwargs)
-            
+
             duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-            
+
             if hook_manager:
                 await hook_manager.post_tool_call(
                     tool_name=tool_name,
@@ -509,12 +509,12 @@ def auto_record_tool(func: Callable[..., Awaitable[Any]]) -> Callable[..., Await
                     success=True,
                     duration_ms=duration_ms
                 )
-            
+
             return result
-            
+
         except Exception as e:
             duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-            
+
             if hook_manager:
                 await hook_manager.post_tool_call(
                     tool_name=tool_name,
@@ -524,7 +524,7 @@ def auto_record_tool(func: Callable[..., Awaitable[Any]]) -> Callable[..., Await
                     error=str(e),
                     duration_ms=duration_ms
                 )
-            
+
             raise
-    
+
     return wrapper

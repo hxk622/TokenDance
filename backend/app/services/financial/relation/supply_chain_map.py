@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 SupplyChainMapService - 产业链图谱服务
 
@@ -10,8 +9,8 @@ SupplyChainMapService - 产业链图谱服务
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +36,10 @@ class SupplyChainNode:
     name: str
     node_type: NodeType
     position: ChainPosition
-    symbol: Optional[str] = None  # 股票代码（如果是上市公司）
-    market_share: Optional[float] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    symbol: str | None = None  # 股票代码（如果是上市公司）
+    market_share: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "node_id": self.node_id,
             "name": self.name,
@@ -58,9 +57,9 @@ class SupplyChainLink:
     target_id: str
     relation_type: str  # 供应、采购、合作等
     strength: float = 0.5  # 关系强度 0-1
-    value: Optional[float] = None  # 交易金额（如有）
-    
-    def to_dict(self) -> Dict[str, Any]:
+    value: float | None = None  # 交易金额（如有）
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "source_id": self.source_id,
             "target_id": self.target_id,
@@ -78,8 +77,8 @@ class ChainValueAnalysis:
     avg_net_margin: float
     bargaining_power: str  # 议价能力
     growth_rate: float
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "position": self.position.value,
             "avg_gross_margin": self.avg_gross_margin,
@@ -94,15 +93,15 @@ class SupplyChainMapResult:
     """产业链图谱结果"""
     industry: str
     analysis_date: datetime
-    nodes: List[SupplyChainNode] = field(default_factory=list)
-    links: List[SupplyChainLink] = field(default_factory=list)
-    value_analysis: List[ChainValueAnalysis] = field(default_factory=list)
-    
+    nodes: list[SupplyChainNode] = field(default_factory=list)
+    links: list[SupplyChainLink] = field(default_factory=list)
+    value_analysis: list[ChainValueAnalysis] = field(default_factory=list)
+
     # 关键信息
-    key_players: List[str] = field(default_factory=list)
-    bottlenecks: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    key_players: list[str] = field(default_factory=list)
+    bottlenecks: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "industry": self.industry,
             "analysis_date": self.analysis_date.isoformat(),
@@ -116,7 +115,7 @@ class SupplyChainMapResult:
 
 class SupplyChainMapService:
     """产业链图谱服务"""
-    
+
     # 产业链数据
     CHAIN_DATA = {
         "新能源汽车": {
@@ -152,10 +151,10 @@ class SupplyChainMapService:
             ],
         },
     }
-    
+
     def __init__(self):
-        self._cache: Dict[str, SupplyChainMapResult] = {}
-    
+        self._cache: dict[str, SupplyChainMapResult] = {}
+
     async def get_supply_chain_map(
         self,
         industry: str,
@@ -163,18 +162,18 @@ class SupplyChainMapService:
         """获取产业链图谱"""
         if industry in self._cache:
             return self._cache[industry]
-        
+
         try:
             # 构建节点和关系
             nodes, links = self._build_chain_graph(industry)
-            
+
             # 价值分析
             value_analysis = self._analyze_chain_value(industry)
-            
+
             # 识别关键玩家和瓶颈
             key_players = self._identify_key_players(nodes)
             bottlenecks = self._identify_bottlenecks(industry)
-            
+
             result = SupplyChainMapResult(
                 industry=industry,
                 analysis_date=datetime.now(),
@@ -184,21 +183,21 @@ class SupplyChainMapService:
                 key_players=key_players,
                 bottlenecks=bottlenecks,
             )
-            
+
             self._cache[industry] = result
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to get supply chain map for {industry}: {e}")
             return SupplyChainMapResult(
                 industry=industry,
                 analysis_date=datetime.now(),
             )
-    
+
     async def get_company_position(
         self,
         symbol: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """获取公司在产业链中的位置"""
         # Mock 数据
         return {
@@ -209,31 +208,31 @@ class SupplyChainMapService:
             "upstream_deps": ["正极材料", "负极材料", "电解液"],
             "downstream_customers": ["整车厂", "储能"],
         }
-    
+
     def _build_chain_graph(
         self,
         industry: str,
-    ) -> tuple[List[SupplyChainNode], List[SupplyChainLink]]:
+    ) -> tuple[list[SupplyChainNode], list[SupplyChainLink]]:
         """构建产业链图"""
         import random
-        
+
         chain_data = self.CHAIN_DATA.get(industry, {})
         nodes = []
         links = []
         node_id_counter = 0
-        
+
         position_map = {
             "upstream": ChainPosition.UPSTREAM,
             "midstream": ChainPosition.MIDSTREAM,
             "downstream": ChainPosition.DOWNSTREAM,
         }
-        
+
         prev_position_nodes = []
-        
+
         for position_key, position_enum in position_map.items():
             segments = chain_data.get(position_key, [])
             current_position_nodes = []
-            
+
             for segment_name, companies in segments:
                 # 添加行业节点
                 industry_node_id = f"ind_{node_id_counter}"
@@ -245,7 +244,7 @@ class SupplyChainMapService:
                     position=position_enum,
                 ))
                 current_position_nodes.append(industry_node_id)
-                
+
                 # 添加公司节点
                 for company in companies:
                     company_node_id = f"com_{node_id_counter}"
@@ -257,7 +256,7 @@ class SupplyChainMapService:
                         position=position_enum,
                         market_share=round(random.uniform(5, 40), 1),
                     ))
-                    
+
                     # 公司到行业的关系
                     links.append(SupplyChainLink(
                         source_id=company_node_id,
@@ -265,7 +264,7 @@ class SupplyChainMapService:
                         relation_type="belongs_to",
                         strength=1.0,
                     ))
-            
+
             # 上下游关系
             for prev_node in prev_position_nodes:
                 for curr_node in current_position_nodes:
@@ -275,15 +274,15 @@ class SupplyChainMapService:
                         relation_type="supplies",
                         strength=round(random.uniform(0.3, 0.9), 2),
                     ))
-            
+
             prev_position_nodes = current_position_nodes
-        
+
         return nodes, links
-    
-    def _analyze_chain_value(self, industry: str) -> List[ChainValueAnalysis]:
+
+    def _analyze_chain_value(self, industry: str) -> list[ChainValueAnalysis]:
         """分析产业链价值分布"""
         import random
-        
+
         return [
             ChainValueAnalysis(
                 position=ChainPosition.UPSTREAM,
@@ -307,14 +306,14 @@ class SupplyChainMapService:
                 growth_rate=round(random.uniform(20, 50), 1),
             ),
         ]
-    
-    def _identify_key_players(self, nodes: List[SupplyChainNode]) -> List[str]:
+
+    def _identify_key_players(self, nodes: list[SupplyChainNode]) -> list[str]:
         """识别关键玩家"""
         companies = [n for n in nodes if n.node_type == NodeType.COMPANY]
         companies.sort(key=lambda x: x.market_share or 0, reverse=True)
         return [c.name for c in companies[:5]]
-    
-    def _identify_bottlenecks(self, industry: str) -> List[str]:
+
+    def _identify_bottlenecks(self, industry: str) -> list[str]:
         """识别产业链瓶颈"""
         bottlenecks_map = {
             "新能源汽车": ["锂资源供应", "高端芯片", "充电基础设施"],
@@ -324,7 +323,7 @@ class SupplyChainMapService:
 
 
 # 全局单例
-_supply_chain_map_service: Optional[SupplyChainMapService] = None
+_supply_chain_map_service: SupplyChainMapService | None = None
 
 
 def get_supply_chain_map_service() -> SupplyChainMapService:

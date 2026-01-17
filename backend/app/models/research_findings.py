@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Research Findings Model - 研究发现数据模型
 
@@ -9,8 +8,8 @@ Research Findings Model - 研究发现数据模型
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from typing import Any
 
 
 class FindingImportance(str, Enum):
@@ -37,8 +36,8 @@ class Source:
     domain: str
     accessed_at: datetime = field(default_factory=datetime.now)
     credibility: str = "medium"  # high/medium/low
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "url": self.url,
             "title": self.title,
@@ -46,9 +45,9 @@ class Source:
             "accessed_at": self.accessed_at.isoformat(),
             "credibility": self.credibility
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Source":
+    def from_dict(cls, data: dict[str, Any]) -> "Source":
         return cls(
             url=data["url"],
             title=data["title"],
@@ -62,20 +61,20 @@ class Source:
 class Quote:
     """可引用语句"""
     text: str
-    source: Optional[Source] = None
-    author: Optional[str] = None
-    context: Optional[str] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    source: Source | None = None
+    author: str | None = None
+    context: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "text": self.text,
             "source": self.source.to_dict() if self.source else None,
             "author": self.author,
             "context": self.context
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Quote":
+    def from_dict(cls, data: dict[str, Any]) -> "Quote":
         return cls(
             text=data["text"],
             source=Source.from_dict(data["source"]) if data.get("source") else None,
@@ -90,15 +89,15 @@ class DataPoint:
     label: str
     value: Any  # 数值、百分比、或对比数据
     type: DataPointType = DataPointType.NUMBER
-    unit: Optional[str] = None
-    source: Optional[Source] = None
-    context: Optional[str] = None  # 数据背景说明
-    
+    unit: str | None = None
+    source: Source | None = None
+    context: str | None = None  # 数据背景说明
+
     # 对比数据专用
-    comparison_base: Optional[str] = None  # 对比基准
-    change_direction: Optional[str] = None  # increase/decrease/stable
-    
-    def to_dict(self) -> Dict[str, Any]:
+    comparison_base: str | None = None  # 对比基准
+    change_direction: str | None = None  # increase/decrease/stable
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "label": self.label,
             "value": self.value,
@@ -109,9 +108,9 @@ class DataPoint:
             "comparison_base": self.comparison_base,
             "change_direction": self.change_direction
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataPoint":
+    def from_dict(cls, data: dict[str, Any]) -> "DataPoint":
         return cls(
             label=data["label"],
             value=data["value"],
@@ -130,17 +129,17 @@ class ResearchFinding:
     title: str
     content: str
     importance: FindingImportance = FindingImportance.MEDIUM
-    source_urls: List[str] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
-    
+    source_urls: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+
     # 可选的细分要点
-    sub_points: List[str] = field(default_factory=list)
-    
+    sub_points: list[str] = field(default_factory=list)
+
     # 关联数据
-    related_data: List[DataPoint] = field(default_factory=list)
-    related_quotes: List[Quote] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    related_data: list[DataPoint] = field(default_factory=list)
+    related_quotes: list[Quote] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "title": self.title,
             "content": self.content,
@@ -151,9 +150,9 @@ class ResearchFinding:
             "related_data": [d.to_dict() for d in self.related_data],
             "related_quotes": [q.to_dict() for q in self.related_quotes]
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ResearchFinding":
+    def from_dict(cls, data: dict[str, Any]) -> "ResearchFinding":
         return cls(
             title=data["title"],
             content=data["content"],
@@ -172,31 +171,31 @@ class ResearchFindings:
     session_id: str
     topic: str
     summary: str  # 研究摘要（1-2段）
-    
+
     # 核心内容
-    key_findings: List[ResearchFinding] = field(default_factory=list)
-    data_points: List[DataPoint] = field(default_factory=list)
-    quotes: List[Quote] = field(default_factory=list)
-    sources: List[Source] = field(default_factory=list)
-    
+    key_findings: list[ResearchFinding] = field(default_factory=list)
+    data_points: list[DataPoint] = field(default_factory=list)
+    quotes: list[Quote] = field(default_factory=list)
+    sources: list[Source] = field(default_factory=list)
+
     # 元数据
     created_at: datetime = field(default_factory=datetime.now)
     research_duration_seconds: int = 0
     total_sources_consulted: int = 0
-    
+
     # 可选：结论和建议
-    conclusions: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    
-    def get_high_importance_findings(self) -> List[ResearchFinding]:
+    conclusions: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+
+    def get_high_importance_findings(self) -> list[ResearchFinding]:
         """获取高重要性发现"""
         return [f for f in self.key_findings if f.importance == FindingImportance.HIGH]
-    
-    def get_findings_by_tag(self, tag: str) -> List[ResearchFinding]:
+
+    def get_findings_by_tag(self, tag: str) -> list[ResearchFinding]:
         """按标签获取发现"""
         return [f for f in self.key_findings if tag in f.tags]
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "session_id": self.session_id,
             "topic": self.topic,
@@ -211,9 +210,9 @@ class ResearchFindings:
             "conclusions": self.conclusions,
             "recommendations": self.recommendations
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ResearchFindings":
+    def from_dict(cls, data: dict[str, Any]) -> "ResearchFindings":
         return cls(
             session_id=data["session_id"],
             topic=data["topic"],
@@ -228,7 +227,7 @@ class ResearchFindings:
             conclusions=data.get("conclusions", []),
             recommendations=data.get("recommendations", [])
         )
-    
+
     def to_markdown_summary(self) -> str:
         """生成 Markdown 格式的摘要"""
         lines = [
@@ -239,7 +238,7 @@ class ResearchFindings:
             "",
             "## 关键发现",
         ]
-        
+
         for i, finding in enumerate(self.key_findings, 1):
             importance_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(finding.importance.value, "")
             lines.append(f"### {i}. {finding.title} {importance_icon}")
@@ -248,22 +247,22 @@ class ResearchFindings:
                 for point in finding.sub_points:
                     lines.append(f"  - {point}")
             lines.append("")
-        
+
         if self.conclusions:
             lines.append("## 结论")
             for conclusion in self.conclusions:
                 lines.append(f"- {conclusion}")
             lines.append("")
-        
+
         if self.recommendations:
             lines.append("## 建议")
             for rec in self.recommendations:
                 lines.append(f"- {rec}")
             lines.append("")
-        
+
         if self.sources:
             lines.append("## 参考来源")
             for source in self.sources[:10]:  # 最多显示10个
                 lines.append(f"- [{source.title}]({source.url})")
-        
+
         return "\n".join(lines)

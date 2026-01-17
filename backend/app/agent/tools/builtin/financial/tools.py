@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Financial Data Tools - BaseTool Interface
 
@@ -16,15 +15,13 @@ Financial Data Tools - BaseTool Interface
 """
 import json
 import logging
-from typing import Any, Dict, List, Literal, Optional
 
-from app.agent.tools.base import BaseTool, ToolResult
-from app.agent.tools.risk import RiskLevel, OperationCategory
+from app.agent.tools.base import BaseTool
+from app.agent.tools.builtin.financial.adapters.base import FinancialDataResult
 from app.agent.tools.builtin.financial.financial_data_tool import (
-    FinancialDataTool,
     get_financial_tool,
 )
-from app.agent.tools.builtin.financial.adapters.base import FinancialDataResult
+from app.agent.tools.risk import OperationCategory, RiskLevel
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +30,13 @@ def _format_result(result: FinancialDataResult) -> str:
     """格式化金融数据结果为文本"""
     if not result.success:
         return f"Error: {result.error}"
-    
+
     output = f"**Symbol**: {result.symbol}\n"
     output += f"**Market**: {result.market}\n"
     output += f"**Data Type**: {result.data_type}\n"
     output += f"**Source**: {result.source}\n"
     output += f"**Timestamp**: {result.timestamp.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    
+
     if result.data:
         if isinstance(result.data, list):
             output += f"**Records**: {len(result.data)}\n\n"
@@ -54,21 +51,21 @@ def _format_result(result: FinancialDataResult) -> str:
             output += "**Data**:\n```json\n"
             output += json.dumps(result.data, ensure_ascii=False, indent=2, default=str)[:2000]
             output += "\n```\n"
-    
+
     return output
 
 
 class GetStockQuoteTool(BaseTool):
     """获取股票实时/延迟行情
-    
+
     支持：
     - 美股: 输入股票代码如 "AAPL", "MSFT"
     - A股: 输入6位代码如 "600519", "000001"
     - 港股: 输入代码如 "0700.HK", "9988.HK"
-    
+
     返回数据包括: 当前价格、涨跌幅、成交量、市盈率、市净率等
     """
-    
+
     name = "get_stock_quote"
     description = """获取股票实时/延迟行情。
 
@@ -83,7 +80,7 @@ class GetStockQuoteTool(BaseTool):
 - 获取苹果股价: symbol="AAPL"
 - 获取茅台股价: symbol="600519"
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -100,31 +97,31 @@ class GetStockQuoteTool(BaseTool):
         },
         "required": ["symbol"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(self, symbol: str, market: str = "auto", **kwargs) -> str:
         """执行获取行情"""
         logger.info(f"Getting stock quote for {symbol} (market={market})")
-        
+
         result = await self._tool.get_quote(symbol, market=market, **kwargs)
         return _format_result(result)
 
 
 class GetFinancialStatementsTool(BaseTool):
     """获取公司财务报表
-    
+
     获取上市公司的财务报表数据，包括：
     - 利润表 (Income Statement)
     - 资产负债表 (Balance Sheet)
     - 现金流量表 (Cash Flow Statement)
     """
-    
+
     name = "get_financial_statements"
     description = """获取上市公司财务报表。
 
@@ -138,7 +135,7 @@ class GetFinancialStatementsTool(BaseTool):
 - 获取苹果全部财报: symbol="AAPL", statement_type="all"
 - 获取茅台利润表: symbol="600519", statement_type="income"
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -167,14 +164,14 @@ class GetFinancialStatementsTool(BaseTool):
         },
         "required": ["symbol"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(
         self,
         symbol: str,
@@ -185,7 +182,7 @@ class GetFinancialStatementsTool(BaseTool):
     ) -> str:
         """执行获取财务报表"""
         logger.info(f"Getting financial statements for {symbol} (type={statement_type})")
-        
+
         result = await self._tool.get_fundamental(
             symbol,
             statement_type=statement_type,
@@ -198,7 +195,7 @@ class GetFinancialStatementsTool(BaseTool):
 
 class GetValuationMetricsTool(BaseTool):
     """获取估值指标
-    
+
     获取股票的估值指标，包括：
     - PE (市盈率): 股价 / 每股收益
     - PB (市净率): 股价 / 每股净资产
@@ -206,7 +203,7 @@ class GetValuationMetricsTool(BaseTool):
     - PEG: PE / 盈利增速
     - EV/EBITDA 等
     """
-    
+
     name = "get_valuation_metrics"
     description = """获取股票估值指标。
 
@@ -226,7 +223,7 @@ class GetValuationMetricsTool(BaseTool):
 - 获取苹果估值: symbol="AAPL"
 - 获取茅台估值: symbol="600519"
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -243,31 +240,31 @@ class GetValuationMetricsTool(BaseTool):
         },
         "required": ["symbol"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(self, symbol: str, market: str = "auto", **kwargs) -> str:
         """执行获取估值指标"""
         logger.info(f"Getting valuation metrics for {symbol}")
-        
+
         result = await self._tool.get_valuation(symbol, market=market, **kwargs)
         return _format_result(result)
 
 
 class GetHistoricalPriceTool(BaseTool):
     """获取历史价格数据
-    
+
     获取股票的历史K线数据（OHLCV），用于：
     - 技术分析
     - 趋势判断
     - 历史回测
     """
-    
+
     name = "get_historical_price"
     description = """获取股票历史价格数据（K线）。
 
@@ -289,7 +286,7 @@ class GetHistoricalPriceTool(BaseTool):
 - 获取苹果近1年日K: symbol="AAPL"
 - 获取茅台近3个月日K: symbol="600519", start_date="2025-10-01"
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -320,26 +317,26 @@ class GetHistoricalPriceTool(BaseTool):
         },
         "required": ["symbol"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(
         self,
         symbol: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         interval: str = "1d",
         market: str = "auto",
         **kwargs
     ) -> str:
         """执行获取历史价格"""
         logger.info(f"Getting historical price for {symbol} ({start_date} to {end_date})")
-        
+
         result = await self._tool.get_historical(
             symbol,
             start_date=start_date,
@@ -353,10 +350,10 @@ class GetHistoricalPriceTool(BaseTool):
 
 class GetFinancialNewsTool(BaseTool):
     """获取财经新闻
-    
+
     获取与特定股票相关的财经新闻和公告。
     """
-    
+
     name = "get_financial_news"
     description = """获取股票相关财经新闻和公告。
 
@@ -375,7 +372,7 @@ class GetFinancialNewsTool(BaseTool):
 - 获取苹果最新新闻: symbol="AAPL", limit=10
 - 获取茅台公告: symbol="600519", limit=5
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -397,14 +394,14 @@ class GetFinancialNewsTool(BaseTool):
         },
         "required": ["symbol"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(
         self,
         symbol: str,
@@ -414,19 +411,19 @@ class GetFinancialNewsTool(BaseTool):
     ) -> str:
         """执行获取财经新闻"""
         logger.info(f"Getting financial news for {symbol} (limit={limit})")
-        
+
         result = await self._tool.get_news(symbol, limit=limit, market=market, **kwargs)
         return _format_result(result)
 
 
 class GetNorthFlowTool(BaseTool):
     """获取北向资金流向（A股专用）
-    
+
     获取沪深港通北向资金的净流入/流出数据。
     北向资金是外资通过沪港通/深港通投资A股的资金，
     被认为是"聪明钱"的风向标。
     """
-    
+
     name = "get_north_flow"
     description = """获取A股北向资金流向数据。
 
@@ -446,34 +443,34 @@ class GetNorthFlowTool(BaseTool):
 示例:
 - 获取今日北向资金: get_north_flow
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {}
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(self, **kwargs) -> str:
         """执行获取北向资金"""
         logger.info("Getting north capital flow data")
-        
+
         result = await self._tool.get_north_flow()
         return _format_result(result)
 
 
 class GetDragonTigerTool(BaseTool):
     """获取龙虎榜数据（A股专用）
-    
+
     获取A股龙虎榜数据，显示当日异动股票的主力买卖情况。
     龙虎榜是判断主力资金动向的重要参考。
     """
-    
+
     name = "get_dragon_tiger"
     description = """获取A股龙虎榜数据。
 
@@ -497,7 +494,7 @@ class GetDragonTigerTool(BaseTool):
 - 获取今日龙虎榜: get_dragon_tiger
 - 获取指定日期: date="20260115"
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -507,31 +504,31 @@ class GetDragonTigerTool(BaseTool):
             }
         }
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
-    async def execute(self, date: Optional[str] = None, **kwargs) -> str:
+
+    async def execute(self, date: str | None = None, **kwargs) -> str:
         """执行获取龙虎榜"""
         logger.info(f"Getting dragon tiger list (date={date})")
-        
+
         result = await self._tool.get_dragon_tiger(date=date)
         return _format_result(result)
 
 
 class FinancialDataToolWrapper(BaseTool):
     """统一金融数据工具（包装器）
-    
+
     将所有金融数据类型整合到一个工具中，
     通过 data_type 参数选择不同的数据类型。
-    
+
     适用于需要更灵活的金融数据获取场景。
     """
-    
+
     name = "financial_data"
     description = """统一金融数据获取工具。
 
@@ -558,7 +555,7 @@ class FinancialDataToolWrapper(BaseTool):
 - 获取茅台财报: symbol="600519", data_type="fundamental"
 - 获取腾讯估值: symbol="0700.HK", data_type="valuation"
 """
-    
+
     parameters = {
         "type": "object",
         "properties": {
@@ -581,14 +578,14 @@ class FinancialDataToolWrapper(BaseTool):
         },
         "required": ["symbol"]
     }
-    
+
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
-    
+
     def __init__(self):
         super().__init__()
         self._tool = get_financial_tool()
-    
+
     async def execute(
         self,
         symbol: str,
@@ -598,24 +595,24 @@ class FinancialDataToolWrapper(BaseTool):
     ) -> str:
         """执行金融数据获取"""
         logger.info(f"Financial data request: {symbol}, type={data_type}, market={market}")
-        
+
         result = await self._tool.execute(
             symbol=symbol,
             data_type=data_type,
             market=market,
             **kwargs
         )
-        
+
         # 添加免责声明
         output = _format_result(result)
         output += "\n\n---\n*数据仅供参考，不构成投资建议*"
-        
+
         return output
 
 
 # ==================== 工具集合 ====================
 
-def get_financial_tools() -> List[BaseTool]:
+def get_financial_tools() -> list[BaseTool]:
     """获取所有金融工具实例"""
     return [
         GetStockQuoteTool(),
@@ -631,7 +628,7 @@ def get_financial_tools() -> List[BaseTool]:
 
 def get_primary_financial_tool() -> BaseTool:
     """获取主要金融工具（推荐使用）
-    
+
     返回 FinancialDataToolWrapper，它整合了所有金融数据类型。
     """
     return FinancialDataToolWrapper()

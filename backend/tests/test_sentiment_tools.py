@@ -4,31 +4,31 @@ Tests for sentiment analysis tools.
 Tests crawlers, analyzer, and unified SentimentTool.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
 
+import pytest
+
+from app.agent.tools.builtin.financial.sentiment.analyzer import (
+    SentimentAnalysisResult,
+    SentimentAnalyzer,
+)
 from app.agent.tools.builtin.financial.sentiment.crawlers.base import (
-    SentimentPost,
     CrawlResult,
     RateLimiter,
-    BaseSentimentCrawler,
+    SentimentPost,
 )
-from app.agent.tools.builtin.financial.sentiment.crawlers.xueqiu import XueqiuCrawler
 from app.agent.tools.builtin.financial.sentiment.crawlers.guba import GubaCrawler
-from app.agent.tools.builtin.financial.sentiment.analyzer import (
-    SentimentAnalyzer,
-    SentimentAnalysisResult,
-)
+from app.agent.tools.builtin.financial.sentiment.crawlers.xueqiu import XueqiuCrawler
 from app.agent.tools.builtin.financial.sentiment.sentiment_tool import (
-    SentimentTool,
     SentimentResult,
+    SentimentTool,
 )
 
 
 class TestSentimentPost:
     """Tests for SentimentPost dataclass."""
-    
+
     def test_create_post(self):
         """Test creating a sentiment post."""
         post = SentimentPost(
@@ -39,12 +39,12 @@ class TestSentimentPost:
             url="https://xueqiu.com/post/12345",
             source="xueqiu",
         )
-        
+
         assert post.source == "xueqiu"
         assert post.id == "12345"
         assert "茅台" in post.content
         assert post.likes == 0  # default
-    
+
     def test_to_dict(self):
         """Test converting post to dictionary."""
         post = SentimentPost(
@@ -54,9 +54,9 @@ class TestSentimentPost:
             timestamp=datetime(2024, 1, 15, 10, 30, 0),
             source="guba",
         )
-        
+
         result = post.to_dict()
-        
+
         assert result["source"] == "guba"
         assert result["id"] == "67890"
         assert "timestamp" in result
@@ -64,7 +64,7 @@ class TestSentimentPost:
 
 class TestCrawlResult:
     """Tests for CrawlResult dataclass."""
-    
+
     def test_success_result(self):
         """Test successful crawl result."""
         posts = [
@@ -76,17 +76,17 @@ class TestCrawlResult:
                 source="xueqiu",
             )
         ]
-        
+
         result = CrawlResult(
             success=True,
             source="xueqiu",
             posts=posts,
         )
-        
+
         assert result.success
         assert len(result.posts) == 1
         assert result.error is None
-    
+
     def test_failure_result(self):
         """Test failed crawl result."""
         result = CrawlResult(
@@ -94,7 +94,7 @@ class TestCrawlResult:
             source="guba",
             error="Network error",
         )
-        
+
         assert not result.success
         assert result.error == "Network error"
         assert len(result.posts) == 0
@@ -102,15 +102,15 @@ class TestCrawlResult:
 
 class TestRateLimiter:
     """Tests for RateLimiter."""
-    
+
     @pytest.mark.asyncio
     async def test_rate_limiting(self):
         """Test that rate limiter works."""
         limiter = RateLimiter(requests_per_minute=600)  # 10 per second
-        
+
         # Should not block on first request
         await limiter.acquire()
-        
+
         # Should be able to make multiple requests quickly
         for _ in range(5):
             await limiter.acquire()
@@ -118,30 +118,30 @@ class TestRateLimiter:
 
 class TestXueqiuCrawler:
     """Tests for XueqiuCrawler."""
-    
+
     def test_format_symbol(self):
         """Test symbol formatting."""
         crawler = XueqiuCrawler()
-        
+
         # Shanghai
         assert crawler._format_symbol("600519") == "SH600519"
         assert crawler._format_symbol("601318") == "SH601318"
-        
+
         # Shenzhen
         assert crawler._format_symbol("000001") == "SZ000001"
         assert crawler._format_symbol("300750") == "SZ300750"
-        
+
         # Already formatted
         assert crawler._format_symbol("SH600519") == "SH600519"
-    
+
     @pytest.mark.asyncio
     async def test_crawl_parses_response(self):
         """Test that crawl correctly parses response."""
         crawler = XueqiuCrawler()
-        
+
         # Test that symbol formatting and parsing work
         # Actual network calls are tested in integration tests
-        
+
         # Test parsing a post
         item = {
             "id": 12345,
@@ -151,9 +151,9 @@ class TestXueqiuCrawler:
             "like_count": 10,
             "reply_count": 5,
         }
-        
+
         post = crawler._parse_post(item, "600519")
-        
+
         assert post is not None
         assert post.id == "12345"
         assert post.content == "茅台利好消息！"
@@ -164,27 +164,27 @@ class TestXueqiuCrawler:
 
 class TestGubaCrawler:
     """Tests for GubaCrawler."""
-    
+
     def test_format_symbol(self):
         """Test symbol formatting for Guba."""
         crawler = GubaCrawler()
-        
+
         # Should preserve plain numbers
         assert crawler._format_symbol("600519") == "600519"
-        
+
         # Should strip market prefix
         assert crawler._format_symbol("SH600519") == "600519"
         assert crawler._format_symbol("SZ000001") == "000001"
-    
+
     @pytest.mark.asyncio
     async def test_crawl_result_structure(self):
         """Test that crawl returns correct result structure."""
         crawler = GubaCrawler()
-        
+
         # Test symbol formatting
         assert crawler._format_symbol("SH600519") == "600519"
         assert crawler._format_symbol("SZ000001") == "000001"
-        
+
         # Test crawler name
         assert crawler.name == "guba"
         assert crawler.domain == "guba.eastmoney.com"
@@ -192,11 +192,11 @@ class TestGubaCrawler:
 
 class TestSentimentAnalyzer:
     """Tests for SentimentAnalyzer."""
-    
+
     def test_keyword_analysis(self):
         """Test keyword-based sentiment analysis."""
         analyzer = SentimentAnalyzer(api_key=None)  # No API key = keyword mode
-        
+
         posts = [
             SentimentPost(
                 id="1",
@@ -213,19 +213,19 @@ class TestSentimentAnalyzer:
                 source="test",
             ),
         ]
-        
+
         result = analyzer._keyword_analysis(posts, "600519")
-        
+
         assert isinstance(result, SentimentAnalysisResult)
         assert result.analyzed_count == 2
         # Has both bullish and bearish content
         assert result.bullish_count >= 0
         assert result.bearish_count >= 0
-    
+
     def test_keyword_weights(self):
         """Test that keyword matching works."""
         analyzer = SentimentAnalyzer(api_key=None)
-        
+
         # Strong bullish
         posts_bullish = [
             SentimentPost(
@@ -238,7 +238,7 @@ class TestSentimentAnalyzer:
         ]
         result = analyzer._keyword_analysis(posts_bullish, "600519")
         assert result.overall_score > 0
-        
+
         # Strong bearish
         posts_bearish = [
             SentimentPost(
@@ -255,28 +255,28 @@ class TestSentimentAnalyzer:
 
 class TestSentimentTool:
     """Tests for unified SentimentTool."""
-    
+
     def test_init(self):
         """Test tool initialization."""
         tool = SentimentTool()
-        
+
         assert tool.name == "sentiment_analysis"
         assert "xueqiu" in tool.CRAWLERS
         assert "guba" in tool.CRAWLERS
-    
+
     def test_get_available_sources(self):
         """Test listing available sources."""
         tool = SentimentTool()
         sources = tool.get_available_sources()
-        
+
         assert "xueqiu" in sources
         assert "guba" in sources
-    
+
     @pytest.mark.asyncio
     async def test_analyze_with_mocked_crawlers(self):
         """Test full analysis with mocked crawlers."""
         tool = SentimentTool()
-        
+
         # Mock the crawlers
         mock_posts = [
             SentimentPost(
@@ -294,13 +294,13 @@ class TestSentimentTool:
                 source="guba",
             ),
         ]
-        
-        mock_crawl_result = CrawlResult(
+
+        CrawlResult(
             success=True,
             source="mock",
             posts=mock_posts,
         )
-        
+
         # Patch crawler methods
         with patch.object(XueqiuCrawler, 'crawl', new_callable=AsyncMock) as xq_mock:
             with patch.object(GubaCrawler, 'crawl', new_callable=AsyncMock) as gb_mock:
@@ -314,20 +314,20 @@ class TestSentimentTool:
                     source="guba",
                     posts=[mock_posts[1]],
                 )
-                
+
                 result = await tool.analyze("600519")
-                
+
                 assert result.success
                 assert len(result.posts) == 2
                 assert "xueqiu" in result.sources_used
                 assert "guba" in result.sources_used
                 assert result.analysis is not None
-    
+
     @pytest.mark.asyncio
     async def test_crawl_only(self):
         """Test crawling without analysis."""
         tool = SentimentTool()
-        
+
         mock_posts = [
             SentimentPost(
                 id="1",
@@ -337,16 +337,16 @@ class TestSentimentTool:
                 source="xueqiu",
             ),
         ]
-        
+
         with patch.object(XueqiuCrawler, 'crawl', new_callable=AsyncMock) as mock:
             mock.return_value = CrawlResult(
                 success=True,
                 source="xueqiu",
                 posts=mock_posts,
             )
-            
+
             result = await tool.crawl_only("600519", sources=["xueqiu"])
-            
+
             assert result.success
             assert len(result.posts) == 1
             # No analysis when crawl_only
@@ -355,7 +355,7 @@ class TestSentimentTool:
 
 class TestSentimentResult:
     """Tests for SentimentResult dataclass."""
-    
+
     def test_to_dict(self):
         """Test converting result to dictionary."""
         result = SentimentResult(
@@ -373,9 +373,9 @@ class TestSentimentResult:
             sources_used=["xueqiu"],
             disclaimer="Test disclaimer",
         )
-        
+
         data = result.to_dict()
-        
+
         assert data["success"] is True
         assert data["symbol"] == "600519"
         assert len(data["posts"]) == 1
@@ -385,36 +385,36 @@ class TestSentimentResult:
 # Integration tests (require network, skip by default)
 class TestIntegration:
     """Integration tests that require network access."""
-    
+
     @pytest.mark.skip(reason="Requires network access")
     @pytest.mark.asyncio
     async def test_real_xueqiu_crawl(self):
         """Test real Xueqiu crawl (skip in CI)."""
         crawler = XueqiuCrawler()
         result = await crawler.crawl("600519", limit=5)
-        
+
         print(f"Xueqiu result: {result.success}, posts: {len(result.posts)}")
         if result.posts:
             print(f"First post: {result.posts[0].content[:50]}...")
-    
+
     @pytest.mark.skip(reason="Requires network access")
     @pytest.mark.asyncio
     async def test_real_guba_crawl(self):
         """Test real Guba crawl (skip in CI)."""
         crawler = GubaCrawler()
         result = await crawler.crawl("600519", limit=5)
-        
+
         print(f"Guba result: {result.success}, posts: {len(result.posts)}")
         if result.posts:
             print(f"First post: {result.posts[0].content[:50]}...")
-    
+
     @pytest.mark.skip(reason="Requires network access")
     @pytest.mark.asyncio
     async def test_full_sentiment_analysis(self):
         """Test full sentiment analysis pipeline (skip in CI)."""
         tool = SentimentTool()
         result = await tool.analyze("600519", limit_per_source=5)
-        
+
         print(f"Analysis result: {result.success}")
         print(f"Sources used: {result.sources_used}")
         print(f"Total posts: {len(result.posts)}")

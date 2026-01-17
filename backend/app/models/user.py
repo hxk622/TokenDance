@@ -3,17 +3,17 @@ User model - supports Personal mode, Team memberships, and multiple authenticati
 """
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
 from enum import Enum as PyEnum
+from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, DateTime, String, ForeignKey, Text
+from sqlalchemy import JSON, Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.workspace import Workspace
     from app.models.team import TeamMember
+    from app.models.workspace import Workspace
 
 
 class AuthProvider(PyEnum):
@@ -36,30 +36,30 @@ class User(Base):
     # Basic Info
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    display_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Authentication
-    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     auth_provider: Mapped[str] = mapped_column(
         String(50), nullable=False, default=AuthProvider.EMAIL_PASSWORD.value
     )
-    
+
     # WeChat OAuth
-    wechat_openid: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True, index=True)
-    wechat_unionid: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    wechat_nickname: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    wechat_headimgurl: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    
+    wechat_openid: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True, index=True)
+    wechat_unionid: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    wechat_nickname: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    wechat_headimgurl: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # Gmail OAuth
-    gmail_sub: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True, index=True)
-    gmail_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    gmail_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    gmail_picture: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    gmail_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    gmail_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    gmail_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
+    gmail_sub: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True, index=True)
+    gmail_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    gmail_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    gmail_picture: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    gmail_access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    gmail_refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    gmail_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     # Account Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -94,7 +94,7 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     personal_workspaces: Mapped[list["Workspace"]] = relationship(

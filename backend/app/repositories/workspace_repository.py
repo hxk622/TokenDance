@@ -1,15 +1,14 @@
 """
 Workspace repository - database access layer for workspaces.
 """
-from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.workspace import Workspace, WorkspaceType
 from app.models.session import Session
+from app.models.workspace import Workspace, WorkspaceType
 
 
 class WorkspaceRepository:
@@ -23,10 +22,10 @@ class WorkspaceRepository:
         owner_id: str,
         name: str,
         slug: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         workspace_type: WorkspaceType = WorkspaceType.PERSONAL,
-        team_id: Optional[str] = None,
-        filesystem_path: Optional[str] = None,
+        team_id: str | None = None,
+        filesystem_path: str | None = None,
     ) -> Workspace:
         """Create a new workspace."""
         workspace = Workspace(
@@ -48,7 +47,7 @@ class WorkspaceRepository:
         self,
         workspace_id: str,
         include_sessions: bool = False,
-    ) -> Optional[Workspace]:
+    ) -> Workspace | None:
         """Get workspace by ID with optional eager loading."""
         query = select(Workspace).where(Workspace.id == workspace_id)
 
@@ -90,7 +89,7 @@ class WorkspaceRepository:
         self,
         owner_id: str,
         slug: str,
-    ) -> Optional[Workspace]:
+    ) -> Workspace | None:
         """Get workspace by owner and slug."""
         query = select(Workspace).where(
             and_(
@@ -105,7 +104,7 @@ class WorkspaceRepository:
         self,
         workspace_id: str,
         **updates,
-    ) -> Optional[Workspace]:
+    ) -> Workspace | None:
         """Update workspace fields."""
         workspace = await self.get_by_id(workspace_id)
         if not workspace:
@@ -140,7 +139,7 @@ class WorkspaceRepository:
         result = await self.db.execute(query)
         return result.scalar_one()
 
-    async def update_last_accessed(self, workspace_id: str) -> Optional[Workspace]:
+    async def update_last_accessed(self, workspace_id: str) -> Workspace | None:
         """Update the last_accessed_at timestamp."""
         from datetime import datetime
         return await self.update(workspace_id, last_accessed_at=datetime.utcnow())
@@ -148,11 +147,11 @@ class WorkspaceRepository:
     async def increment_workspace_count(self, user_id: str) -> None:
         """Increment workspace count for user usage stats."""
         from app.models.user import User
-        
+
         query = select(User).where(User.id == user_id)
         result = await self.db.execute(query)
         user = result.scalar_one_or_none()
-        
+
         if user:
             user.usage_stats["current_workspaces"] += 1
             await self.db.commit()
@@ -160,11 +159,11 @@ class WorkspaceRepository:
     async def decrement_workspace_count(self, user_id: str) -> None:
         """Decrement workspace count for user usage stats."""
         from app.models.user import User
-        
+
         query = select(User).where(User.id == user_id)
         result = await self.db.execute(query)
         user = result.scalar_one_or_none()
-        
+
         if user and user.usage_stats["current_workspaces"] > 0:
             user.usage_stats["current_workspaces"] -= 1
             await self.db.commit()

@@ -1,22 +1,21 @@
 """Initialize default LLM providers and models"""
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.agent_config import LLMProvider, LLMModel
+from app.models.agent_config import LLMModel, LLMProvider
 
 
 async def init_llm_providers(db: AsyncSession):
     """Initialize default LLM providers"""
-    
+
     # Check if providers already exist
     from sqlalchemy import select
     result = await db.execute(select(LLMProvider))
     existing = result.scalars().all()
-    
+
     if existing:
         print(f"LLM providers already initialized: {len(existing)} providers")
         return
-    
+
     # Anthropic Provider
     anthropic_provider = LLMProvider(
         id="anthropic",
@@ -41,9 +40,9 @@ async def init_llm_providers(db: AsyncSession):
         is_active=True,
         is_builtin=True
     )
-    
+
     db.add(anthropic_provider)
-    
+
     # Anthropic Models
     claude_35_sonnet = LLMModel(
         id="claude-3-5-sonnet-20241022",
@@ -62,7 +61,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=8192,
         is_active=True
     )
-    
+
     claude_35_haiku = LLMModel(
         id="claude-3-5-haiku-20241022",
         provider_id="anthropic",
@@ -80,7 +79,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     claude_3_opus = LLMModel(
         id="claude-3-opus-20240229",
         provider_id="anthropic",
@@ -98,7 +97,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     claude_3_sonnet = LLMModel(
         id="claude-3-sonnet-20240229",
         provider_id="anthropic",
@@ -116,7 +115,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     claude_3_haiku = LLMModel(
         id="claude-3-haiku-20240307",
         provider_id="anthropic",
@@ -134,7 +133,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     db.add_all([
         claude_35_sonnet,
         claude_35_haiku,
@@ -142,7 +141,7 @@ async def init_llm_providers(db: AsyncSession):
         claude_3_sonnet,
         claude_3_haiku
     ])
-    
+
     # OpenAI Provider (placeholder)
     openai_provider = LLMProvider(
         id="openai",
@@ -165,9 +164,9 @@ async def init_llm_providers(db: AsyncSession):
         is_active=True,
         is_builtin=True
     )
-    
+
     db.add(openai_provider)
-    
+
     # OpenAI Models
     gpt_4_turbo = LLMModel(
         id="gpt-4-turbo",
@@ -186,7 +185,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     gpt_4 = LLMModel(
         id="gpt-4",
         provider_id="openai",
@@ -204,7 +203,7 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     gpt_35_turbo = LLMModel(
         id="gpt-3.5-turbo",
         provider_id="openai",
@@ -222,9 +221,9 @@ async def init_llm_providers(db: AsyncSession):
         recommended_max_tokens=4096,
         is_active=True
     )
-    
+
     db.add_all([gpt_4_turbo, gpt_4, gpt_35_turbo])
-    
+
     await db.commit()
-    
-    print(f"Initialized LLM providers: Anthropic (5 models), OpenAI (3 models)")
+
+    print("Initialized LLM providers: Anthropic (5 models), OpenAI (3 models)")

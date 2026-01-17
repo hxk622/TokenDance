@@ -2,19 +2,18 @@
 Artifact Pydantic schemas for API request/response validation.
 """
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.artifact import ArtifactType
-
 
 # ============ Base Schemas ============
 
 class ArtifactBase(BaseModel):
     """Base artifact schema."""
     name: str = Field(..., max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
     artifact_type: ArtifactType
 
 
@@ -25,9 +24,9 @@ class ArtifactCreate(ArtifactBase):
     session_id: str
     file_path: str
     file_size: int = 0
-    mime_type: Optional[str] = None
-    parent_step: Optional[str] = None
-    parent_message_id: Optional[str] = None
+    mime_type: str | None = None
+    parent_step: str | None = None
+    parent_message_id: str | None = None
     extra_data: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -46,11 +45,11 @@ class KVSnapshotCreate(BaseModel):
 
 class ArtifactUpdate(BaseModel):
     """Schema for updating an artifact."""
-    name: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = None
-    preview_url: Optional[str] = None
-    thumbnail_url: Optional[str] = None
-    extra_data: Optional[dict[str, Any]] = None
+    name: str | None = Field(None, max_length=255)
+    description: str | None = None
+    preview_url: str | None = None
+    thumbnail_url: str | None = None
+    extra_data: dict[str, Any] | None = None
 
 
 # ============ Response Schemas ============
@@ -61,23 +60,23 @@ class ArtifactResponse(ArtifactBase):
     session_id: str
     file_path: str
     file_size: int
-    mime_type: Optional[str] = None
-    preview_url: Optional[str] = None
-    thumbnail_url: Optional[str] = None
+    mime_type: str | None = None
+    preview_url: str | None = None
+    thumbnail_url: str | None = None
     download_url: str
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)  # 
+    model_config = ConfigDict(from_attributes=True)  #
 
 
 
 class ArtifactDetail(ArtifactResponse):
     """Detailed artifact response."""
-    parent_step: Optional[str] = None
-    parent_message_id: Optional[str] = None
-    kv_anchor_id: Optional[str] = None
-    context_length: Optional[int] = None
+    parent_step: str | None = None
+    parent_message_id: str | None = None
+    kv_anchor_id: str | None = None
+    context_length: int | None = None
     extra_data: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -92,8 +91,8 @@ class ArtifactList(BaseModel):
 class PPTPage(BaseModel):
     """PPT page schema for preview."""
     index: int
-    thumbnail_url: Optional[str] = None
-    content: Optional[str] = None
+    thumbnail_url: str | None = None
+    content: str | None = None
 
 
 class PPTPreview(BaseModel):
@@ -107,4 +106,4 @@ class PPTPreview(BaseModel):
 class RegeneratePageRequest(BaseModel):
     """Request to regenerate a PPT page."""
     page_index: int
-    instructions: Optional[str] = None
+    instructions: str | None = None

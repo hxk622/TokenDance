@@ -1,10 +1,9 @@
 """
 Message repository - database access layer for messages.
 """
-from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message, MessageRole
@@ -20,13 +19,13 @@ class MessageRepository:
         self,
         session_id: str,
         role: MessageRole,
-        content: Optional[str] = None,
-        thinking: Optional[str] = None,
-        tool_calls: Optional[list[dict]] = None,
-        tool_call_id: Optional[str] = None,
-        citations: Optional[list[dict]] = None,
+        content: str | None = None,
+        thinking: str | None = None,
+        tool_calls: list[dict] | None = None,
+        tool_call_id: str | None = None,
+        citations: list[dict] | None = None,
         tokens_used: int = 0,
-        full_result_ref: Optional[str] = None,
+        full_result_ref: str | None = None,
     ) -> Message:
         """Create a new message."""
         message = Message(
@@ -61,10 +60,10 @@ class MessageRepository:
     async def create_assistant_message(
         self,
         session_id: str,
-        content: Optional[str] = None,
-        thinking: Optional[str] = None,
-        tool_calls: Optional[list[dict]] = None,
-        citations: Optional[list[dict]] = None,
+        content: str | None = None,
+        thinking: str | None = None,
+        tool_calls: list[dict] | None = None,
+        citations: list[dict] | None = None,
         tokens_used: int = 0,
     ) -> Message:
         """Create an assistant message."""
@@ -83,7 +82,7 @@ class MessageRepository:
         session_id: str,
         tool_call_id: str,
         content: str,
-        full_result_ref: Optional[str] = None,
+        full_result_ref: str | None = None,
     ) -> Message:
         """Create a tool response message."""
         return await self.create(
@@ -94,7 +93,7 @@ class MessageRepository:
             full_result_ref=full_result_ref,
         )
 
-    async def get_by_id(self, message_id: str) -> Optional[Message]:
+    async def get_by_id(self, message_id: str) -> Message | None:
         """Get message by ID."""
         query = select(Message).where(Message.id == message_id)
         result = await self.db.execute(query)
@@ -103,7 +102,7 @@ class MessageRepository:
     async def get_by_session(
         self,
         session_id: str,
-        limit: Optional[int] = None,
+        limit: int | None = None,
         offset: int = 0,
     ) -> list[Message]:
         """
@@ -115,7 +114,7 @@ class MessageRepository:
             .order_by(Message.created_at.asc())
             .offset(offset)
         )
-        
+
         if limit:
             query = query.limit(limit)
 
@@ -141,27 +140,27 @@ class MessageRepository:
     async def get_conversation_history(
         self,
         session_id: str,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
     ) -> list[Message]:
         """
         Get conversation history for context building.
         If max_tokens is specified, return messages that fit within token budget.
         """
         messages = await self.get_by_session(session_id)
-        
+
         if not max_tokens:
             return messages
-        
+
         # Calculate from most recent to oldest
         selected = []
         total_tokens = 0
-        
+
         for message in reversed(messages):
             if total_tokens + message.tokens_used > max_tokens:
                 break
             selected.insert(0, message)
             total_tokens += message.tokens_used
-        
+
         return selected
 
     async def get_failed_tool_calls(
@@ -172,7 +171,7 @@ class MessageRepository:
         Get all failed tool calls from assistant messages (for Keep the Failures).
         """
         messages = await self.get_by_session(session_id)
-        
+
         failed_calls = []
         for message in messages:
             if message.role == MessageRole.ASSISTANT and message.tool_calls:
@@ -183,14 +182,14 @@ class MessageRepository:
                             "tool_call": tool_call,
                             "timestamp": message.created_at,
                         })
-        
+
         return failed_calls
 
     async def update(
         self,
         message_id: str,
         **updates,
-    ) -> Optional[Message]:
+    ) -> Message | None:
         """Update message fields."""
         message = await self.get_by_id(message_id)
         if not message:
@@ -218,10 +217,10 @@ class MessageRepository:
         """Delete all messages in a session. Returns count of deleted messages."""
         messages = await self.get_by_session(session_id)
         count = len(messages)
-        
+
         for message in messages:
             await self.db.delete(message)
-        
+
         await self.db.commit()
         return count
 

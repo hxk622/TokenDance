@@ -15,7 +15,6 @@ import logging
 import sys
 import tempfile
 import uuid
-from pathlib import Path
 from typing import Any
 
 # 配置日志输出到 stderr（不污染 stdout）
@@ -42,7 +41,7 @@ SLIDE_TYPES = {
 
 class PPTGenerator:
     """PPT 生成器"""
-    
+
     def __init__(
         self,
         query: str,
@@ -54,10 +53,10 @@ class PPTGenerator:
         self.parameters = parameters
         self.slides: list[dict[str, Any]] = []
         self.outline_id = str(uuid.uuid4())[:8]
-    
+
     def analyze_content(self) -> dict[str, Any]:
         """分析输入内容，提取主题和要点
-        
+
         Returns:
             分析结果
         """
@@ -71,16 +70,16 @@ class PPTGenerator:
             ],
             "suggested_slides": 8,
         }
-    
+
     def generate_outline(self) -> list[dict[str, Any]]:
         """生成 PPT 大纲
-        
+
         Returns:
             幻灯片大纲列表
         """
         analysis = self.analyze_content()
         main_topic = analysis["main_topic"]
-        
+
         # 生成标准大纲结构
         outline = [
             {
@@ -141,41 +140,41 @@ class PPTGenerator:
                 "contact": self.context.get("user_email", ""),
             },
         ]
-        
+
         self.slides = outline
         return outline
-    
+
     def render_slide(self, slide: dict[str, Any]) -> str:
         """渲染单个幻灯片为 Marp Markdown
-        
+
         Args:
             slide: 幻灯片数据
-            
+
         Returns:
             Markdown 文本
         """
         slide_type = slide.get("type", "content")
         lines = []
-        
+
         if slide_type == "title":
             lines.append(f"# {slide['title']}")
             if slide.get("subtitle"):
                 lines.append(f"\n## {slide['subtitle']}")
             if slide.get("author"):
                 lines.append(f"\n**{slide['author']}**")
-        
+
         elif slide_type == "toc":
             lines.append(f"# {slide['title']}")
             lines.append("")
             for i, item in enumerate(slide.get("items", []), 1):
                 lines.append(f"{i}. {item}")
-        
+
         elif slide_type == "content":
             lines.append(f"# {slide['title']}")
             lines.append("")
             for point in slide.get("points", []):
                 lines.append(f"- {point}")
-        
+
         elif slide_type == "two_column":
             lines.append(f"# {slide['title']}")
             lines.append("")
@@ -191,35 +190,35 @@ class PPTGenerator:
                 lines.append(f"- {point}")
             lines.append("</div>")
             lines.append("</div>")
-        
+
         elif slide_type == "quote":
             lines.append(f"# {slide['title']}")
             lines.append("")
             lines.append(f"> {slide.get('quote', '')}")
             if slide.get("author"):
                 lines.append(f"\n— {slide['author']}")
-        
+
         elif slide_type == "conclusion":
             lines.append(f"# {slide['title']}")
             lines.append("")
             for point in slide.get("points", []):
                 lines.append(f"✓ {point}")
-        
+
         elif slide_type == "thank_you":
             lines.append(f"# {slide['title']}")
             if slide.get("subtitle"):
                 lines.append(f"\n{slide['subtitle']}")
             if slide.get("contact"):
                 lines.append(f"\n📧 {slide['contact']}")
-        
+
         else:
             lines.append(f"# {slide.get('title', 'Slide')}")
-        
+
         return "\n".join(lines)
-    
+
     def render_to_marp(self) -> str:
         """渲染为完整的 Marp Markdown
-        
+
         Returns:
             Marp Markdown 文本
         """
@@ -240,22 +239,22 @@ style: |
 ---
 
 """
-        
+
         # 渲染所有幻灯片
         slides_md = []
         for slide in self.slides:
             slides_md.append(self.render_slide(slide))
-        
+
         # 用分页符连接
         content = header + "\n\n---\n\n".join(slides_md)
         return content
-    
+
     def save_markdown(self, content: str) -> str:
         """保存 Markdown 到临时文件
-        
+
         Args:
             content: Markdown 内容
-            
+
         Returns:
             文件路径
         """
@@ -268,27 +267,27 @@ style: |
         ) as f:
             f.write(content)
             return f.name
-    
+
     def generate(self) -> dict[str, Any]:
         """完整生成流程
-        
+
         Returns:
             生成结果
         """
         logger.info(f"Starting PPT generation for: {self.query[:50]}...")
-        
+
         # 1. 生成大纲
         outline = self.generate_outline()
         logger.info(f"Generated outline with {len(outline)} slides")
-        
+
         # 2. 渲染为 Marp Markdown
         markdown = self.render_to_marp()
         logger.info("Rendered to Marp Markdown")
-        
+
         # 3. 保存到文件
         file_path = self.save_markdown(markdown)
         logger.info(f"Saved to: {file_path}")
-        
+
         return {
             "outline_id": self.outline_id,
             "slides_count": len(self.slides),
@@ -308,10 +307,10 @@ style: |
 
 def main(input_data: dict[str, Any]) -> dict[str, Any]:
     """主函数
-    
+
     Args:
         input_data: 从 stdin 接收的 JSON 数据
-        
+
     Returns:
         执行结果 JSON
     """
@@ -319,24 +318,24 @@ def main(input_data: dict[str, Any]) -> dict[str, Any]:
         query = input_data.get("query", "")
         context = input_data.get("context", {})
         parameters = input_data.get("parameters", {})
-        
+
         if not query:
             return {
                 "status": "failed",
                 "error": "Query (content/topic) is required",
                 "tokens_used": 0,
             }
-        
+
         # 生成 PPT
         generator = PPTGenerator(query, context, parameters)
         result = generator.generate()
-        
+
         return {
             "status": "success",
             "data": result,
             "tokens_used": 2000,  # 预估 Token 消耗
         }
-    
+
     except Exception as e:
         logger.exception("PPT generation failed")
         return {
@@ -350,9 +349,9 @@ if __name__ == "__main__":
     # 从 stdin 读取输入
     input_json = sys.stdin.read()
     input_data = json.loads(input_json)
-    
+
     # 执行
     result = main(input_data)
-    
+
     # 输出结果到 stdout
     print(json.dumps(result, ensure_ascii=False, indent=2))

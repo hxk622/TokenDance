@@ -8,16 +8,16 @@ PPT Templates - 幻灯片模板
 
 from .base import SlideTemplate
 from .builtin import (
-    TitleSlideTemplate,
-    SectionSlideTemplate,
+    BlankSlideTemplate,
     BulletSlideTemplate,
-    TwoColumnSlideTemplate,
+    ContentSlideTemplate,
     ImageSlideTemplate,
     ImageTextSlideTemplate,
     QuoteSlideTemplate,
-    ContentSlideTemplate,
+    SectionSlideTemplate,
     ThankYouSlideTemplate,
-    BlankSlideTemplate,
+    TitleSlideTemplate,
+    TwoColumnSlideTemplate,
     get_all_templates,
 )
 

@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
 """
 Research Timeline API endpoints.
 
 提供研究时光长廊的 API 接口。
 """
-from typing import Optional
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from pathlib import Path
 
 from app.services.research_timeline import (
-    ResearchTimelineService,
-    create_research_timeline_service,
     DEFAULT_STORAGE_PATH,
+    ResearchTimelineService,
 )
 
 router = APIRouter()
@@ -27,8 +25,8 @@ class TimelineEntryResponse(BaseModel):
     event_type: str
     title: str
     description: str
-    url: Optional[str] = None
-    screenshot_path: Optional[str] = None
+    url: str | None = None
+    screenshot_path: str | None = None
     metadata: dict = {}
 
 
@@ -46,7 +44,7 @@ class ScreenshotInfo(BaseModel):
     timestamp: str
     name: str
     path: str
-    url: Optional[str] = None
+    url: str | None = None
 
 
 # ==================== API Endpoints ====================
@@ -54,41 +52,41 @@ class ScreenshotInfo(BaseModel):
 @router.get("/sessions/{session_id}/timeline")
 async def get_research_timeline(
     session_id: str,
-    event_type: Optional[str] = Query(None, description="Filter by event type"),
+    event_type: str | None = Query(None, description="Filter by event type"),
     limit: int = Query(100, ge=1, le=500, description="Max entries to return"),
 ) -> TimelineResponse:
     """
     获取研究会话的时间轴。
-    
+
     Args:
         session_id: 研究会话 ID
         event_type: 按事件类型过滤 (search, read, screenshot, finding, milestone)
         limit: 返回条目数限制
-        
+
     Returns:
         TimelineResponse: 时间轴数据
     """
     storage_path = Path(DEFAULT_STORAGE_PATH) / session_id
     timeline_file = storage_path / "timeline.json"
-    
+
     if not timeline_file.exists():
         raise HTTPException(
             status_code=404,
             detail=f"Timeline not found for session: {session_id}"
         )
-    
+
     try:
         service = ResearchTimelineService(session_id=session_id)
         timeline = service.get_timeline()
-        
+
         # Filter by event type if specified
         entries = timeline.entries
         if event_type:
             entries = [e for e in entries if e.event_type == event_type]
-        
+
         # Apply limit
         entries = entries[-limit:]
-        
+
         return TimelineResponse(
             session_id=timeline.session_id,
             topic=timeline.topic,
@@ -115,25 +113,25 @@ async def get_research_timeline(
 async def list_screenshots(session_id: str) -> list[ScreenshotInfo]:
     """
     列出研究会话的所有截图。
-    
+
     Args:
         session_id: 研究会话 ID
-        
+
     Returns:
         list[ScreenshotInfo]: 截图列表
     """
     storage_path = Path(DEFAULT_STORAGE_PATH) / session_id
-    
+
     if not storage_path.exists():
         raise HTTPException(
             status_code=404,
             detail=f"Timeline not found for session: {session_id}"
         )
-    
+
     try:
         service = ResearchTimelineService(session_id=session_id)
         screenshots = service.list_screenshots()
-        
+
         return [
             ScreenshotInfo(
                 timestamp=s["timestamp"],
@@ -151,32 +149,32 @@ async def list_screenshots(session_id: str) -> list[ScreenshotInfo]:
 async def get_screenshot(session_id: str, index: int) -> FileResponse:
     """
     获取指定索引的截图文件。
-    
+
     Args:
         session_id: 研究会话 ID
         index: 截图索引 (0-based)
-        
+
     Returns:
         FileResponse: 截图文件
     """
     storage_path = Path(DEFAULT_STORAGE_PATH) / session_id
-    
+
     if not storage_path.exists():
         raise HTTPException(
             status_code=404,
             detail=f"Timeline not found for session: {session_id}"
         )
-    
+
     try:
         service = ResearchTimelineService(session_id=session_id)
         screenshot_path = service.get_screenshot_path(index)
-        
+
         if not screenshot_path or not Path(screenshot_path).exists():
             raise HTTPException(
                 status_code=404,
                 detail=f"Screenshot not found at index: {index}"
             )
-        
+
         return FileResponse(
             screenshot_path,
             media_type="image/png",
@@ -192,25 +190,25 @@ async def get_screenshot(session_id: str, index: int) -> FileResponse:
 async def export_timeline_markdown(session_id: str) -> dict:
     """
     导出时间轴为 Markdown 格式。
-    
+
     Args:
         session_id: 研究会话 ID
-        
+
     Returns:
         dict: 包含 markdown 内容
     """
     storage_path = Path(DEFAULT_STORAGE_PATH) / session_id
-    
+
     if not storage_path.exists():
         raise HTTPException(
             status_code=404,
             detail=f"Timeline not found for session: {session_id}"
         )
-    
+
     try:
         service = ResearchTimelineService(session_id=session_id)
         markdown = service.to_markdown()
-        
+
         return {"markdown": markdown}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

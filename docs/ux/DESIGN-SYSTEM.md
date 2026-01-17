@@ -231,6 +231,111 @@
 }
 ```
 
+### 5.4 交错动画系统（Stagger Animation）
+
+用于页面元素依次入场，创造层次感：
+
+```css
+/* 基础交错显示 */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: stagger-reveal 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: calc(var(--stagger-delay, 0) * 0.1s);
+}
+
+@keyframes stagger-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 使用方式 */
+<section class="stagger-item" style="--stagger-delay: 0">第一个</section>
+<section class="stagger-item" style="--stagger-delay: 1">第二个</section>
+<section class="stagger-item" style="--stagger-delay: 2">第三个</section>
+```
+
+**变体**：
+- `stagger-slide-left`: 从右侧滑入
+- `stagger-scale`: 从小变大
+
+### 5.5 微交互（Micro-interactions）
+
+**按压反馈**：
+```css
+.animate-press:active {
+  transform: scale(0.97);
+  transition: transform 80ms ease-out;
+}
+```
+
+**光晕悬停**：
+```css
+.animate-glow:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  transition: box-shadow 200ms ease-out;
+}
+```
+
+**Hover Surprise 效果**：
+```css
+/* 卡片聚光灯效果（跟随鼠标） */
+.card-spotlight {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  position: relative;
+}
+
+.card-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--mouse-x) var(--mouse-y),
+    rgba(99, 102, 241, 0.15) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card-spotlight:hover::before {
+  opacity: 1;
+}
+```
+
+### 5.6 状态动画
+
+```css
+/* 执行中脉冲 */
+.status-running {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* 进度条流光 */
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+```
+
 ---
 
 ## 6. 图标规范
@@ -363,6 +468,61 @@ xl: 1280px  /* 桌面 */
 - **富文本**: TipTap
 - **代码编辑**: Monaco Editor
 - **Markdown**: vue-markdown-render + highlight.js
+
+---
+
+## 10. 深色主题设计要点
+
+### 10.1 背景层级
+
+深色主题需要通过微妙的亮度差异创建层次：
+
+```css
+/* 主背景 → 卡片 → 悬浮 → 高亮 */
+#0a0a0b → #141415 → #1c1c1e → #242426
+```
+
+**背景纹理**（可选，增加质感）：
+```css
+/* 点阵纹理 */
+.bg-pattern-dots {
+  background-image: radial-gradient(circle at center, #fff 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.02;
+}
+
+/* 渐变叠加（营造深度） */
+.bg-vibe {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(139, 92, 246, 0.08), transparent);
+}
+```
+
+### 10.2 玻璃态效果
+
+```css
+.glass-panel {
+  background: rgba(28, 28, 30, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+```
+
+### 10.3 边框与分隔
+
+- 默认边框：`rgba(255, 255, 255, 0.08)` 或 `border-gray-800`
+- 悬停边框：`rgba(255, 255, 255, 0.15)` 或 `border-gray-700`
+- 渐变边框（强调）：使用 `::before` 伪元素 + mask
+
+### 10.4 文字对比度
+
+```css
+--text-primary: #ffffff;                    /* 主文字 */
+--text-secondary: rgba(255, 255, 255, 0.6); /* 次要文字 */
+--text-tertiary: rgba(255, 255, 255, 0.4);  /* 弱化文字 */
+```
 
 ---
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 WeChat Article Tool - 微信公众号文章提取
 
@@ -16,7 +15,7 @@ API: https://down.mptext.top/api/public/v1/download
 """
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 try:
@@ -26,7 +25,7 @@ except ImportError:
     HTTPX_AVAILABLE = False
 
 from ..base import BaseTool
-from ..risk import RiskLevel, OperationCategory
+from ..risk import OperationCategory, RiskLevel
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +113,7 @@ class WeChatArticleTool(BaseTool):
 
         return True, ""
 
-    async def execute(self, **kwargs: Any) -> Dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
         """执行微信公众号文章提取
 
         Args:
@@ -189,7 +188,7 @@ class WeChatArticleTool(BaseTool):
         url: str,
         output_format: str,
         include_images: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """调用 mptext.top API 获取文章内容
 
         Args:

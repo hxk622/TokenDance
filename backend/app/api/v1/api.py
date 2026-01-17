@@ -2,8 +2,26 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
-    auth, session, chat, messages, hitl, stream, demo_stream, 
-    mcp, trust, skills, timeline, research, files, browser, ppt, financial, workspace, agent_config, tools, working_memory
+    agent_config,
+    auth,
+    browser,
+    chat,
+    demo_stream,
+    files,
+    financial,
+    hitl,
+    mcp,
+    messages,
+    ppt,
+    research,
+    session,
+    skills,
+    stream,
+    timeline,
+    tools,
+    trust,
+    working_memory,
+    workspace,
 )
 
 api_router = APIRouter()

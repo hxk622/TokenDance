@@ -6,20 +6,20 @@ Provides real-time streaming of Agent execution events.
 import asyncio
 import json
 import time
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.core.logging import get_logger
-from app.services.session_service import SessionService
-from app.services.agent_service import AgentService
 from app.core.config import Settings, get_settings
+from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.logging import get_logger
 from app.models.user import User
+from app.services.agent_service import AgentService
+from app.services.session_service import SessionService
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -27,58 +27,58 @@ router = APIRouter()
 
 class SSEEventType(str, Enum):
     """SSE Event Types - 前后端统一定义
-    
+
     详细规范见: docs/architecture/SSE-Events-Spec.md
     """
     # Session events
     SESSION_STARTED = "session_started"
     SESSION_COMPLETED = "session_completed"
     SESSION_FAILED = "session_failed"
-    
+
     # Skill events
     SKILL_MATCHED = "skill_matched"
     SKILL_COMPLETED = "skill_completed"
-    
+
     # Agent events
     AGENT_THINKING = "agent_thinking"
     AGENT_TOOL_CALL = "agent_tool_call"
     AGENT_TOOL_RESULT = "agent_tool_result"
     AGENT_MESSAGE = "agent_message"
     AGENT_ERROR = "agent_error"
-    
+
     # Workflow node events
     NODE_STARTED = "node_started"
     NODE_COMPLETED = "node_completed"
     NODE_FAILED = "node_failed"
-    
+
     # File events
     FILE_CREATED = "file_created"
     FILE_MODIFIED = "file_modified"
     FILE_DELETED = "file_deleted"
     FILE_READ = "file_read"
-    
+
     # Browser events
     BROWSER_OPENED = "browser_opened"
     BROWSER_NAVIGATED = "browser_navigated"
     BROWSER_ACTION = "browser_action"
     BROWSER_SCREENSHOT = "browser_screenshot"
     BROWSER_CLOSED = "browser_closed"
-    
+
     # HITL (Human-in-the-Loop) events
     HITL_REQUEST = "hitl_request"
     HITL_TIMEOUT = "hitl_timeout"
-    
+
     # Artifact events
     ARTIFACT_CREATED = "artifact_created"
     ARTIFACT_UPDATED = "artifact_updated"
-    
+
     # Progress events
     PROGRESS_UPDATE = "progress_update"
     ITERATION_START = "iteration_start"
-    
+
     # Token/Cost events
     TOKEN_USAGE = "token_usage"
-    
+
     # System events
     PING = "ping"
     ERROR = "error"
@@ -92,19 +92,19 @@ def format_sse(event: str, data: dict) -> str:
 async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, None]:
     """
     Mock agent execution stream for demonstration.
-    
+
     In production, this would:
     1. Subscribe to Redis pub/sub for session events
     2. Stream events as they occur
     3. Handle reconnection and keepalive
     """
-    
+
     # Send session started
     yield format_sse(SSEEventType.SESSION_STARTED, {
         "session_id": session_id,
         "timestamp": time.time(),
     })
-    
+
     # Simulate skill matching
     yield format_sse(SSEEventType.SKILL_MATCHED, {
         "skill_id": "deep_research",
@@ -117,14 +117,14 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
         "timestamp": time.time(),
     })
     await asyncio.sleep(0.3)
-    
+
     # Simulate workflow execution
     nodes = [
         {"id": "1", "type": "manus", "label": "搜索市场数据"},
         {"id": "2", "type": "manus", "label": "分析竞品"},
         {"id": "3", "type": "coworker", "label": "生成报告"},
     ]
-    
+
     for node in nodes:
         # Node started
         yield format_sse(SSEEventType.NODE_STARTED, {
@@ -134,7 +134,7 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
             "status": "active",
             "timestamp": time.time(),
         })
-        
+
         # Agent thinking
         yield format_sse(SSEEventType.AGENT_THINKING, {
             "content": f"正在执行: {node['label']}...",
@@ -142,17 +142,17 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
             "timestamp": time.time(),
         })
         await asyncio.sleep(0.5)
-        
+
         # Tool call
         if node["type"] == "manus":
             yield format_sse(SSEEventType.AGENT_TOOL_CALL, {
                 "tool_name": "web_search" if node["id"] == "1" else "analyze_data",
-                "arguments": {"query": f"AI Agent market analysis"} if node["id"] == "1" else {"data_source": "search_results"},
+                "arguments": {"query": "AI Agent market analysis"} if node["id"] == "1" else {"data_source": "search_results"},
                 "node_id": node["id"],
                 "timestamp": time.time(),
             })
             await asyncio.sleep(0.3)
-            
+
             # Tool result
             yield format_sse(SSEEventType.AGENT_TOOL_RESULT, {
                 "tool_name": "web_search" if node["id"] == "1" else "analyze_data",
@@ -169,15 +169,15 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
                 "timestamp": time.time(),
             })
             await asyncio.sleep(0.2)
-            
+
             yield format_sse(SSEEventType.FILE_MODIFIED, {
                 "path": "report.md",
                 "action": "modified",
                 "timestamp": time.time(),
             })
-        
+
         await asyncio.sleep(0.5)
-        
+
         # Node completed
         yield format_sse(SSEEventType.NODE_COMPLETED, {
             "node_id": node["id"],
@@ -187,16 +187,16 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
             "duration_ms": 1000,
             "timestamp": time.time(),
         })
-        
+
         await asyncio.sleep(0.3)
-    
+
     # Final message
     yield format_sse(SSEEventType.AGENT_MESSAGE, {
         "content": "任务执行完成！已生成研究报告。",
         "role": "assistant",
         "timestamp": time.time(),
     })
-    
+
     # Skill completed
     yield format_sse(SSEEventType.SKILL_COMPLETED, {
         "skill_id": "deep_research",
@@ -204,7 +204,7 @@ async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, No
         "duration_ms": 3500,
         "timestamp": time.time(),
     })
-    
+
     # Session completed
     yield format_sse(SSEEventType.SESSION_COMPLETED, {
         "session_id": session_id,
@@ -219,14 +219,14 @@ async def keepalive_generator(
 ) -> AsyncGenerator[str, None]:
     """
     Wrap a stream with keepalive pings.
-    
+
     Sends ping events every `interval` seconds to keep connection alive.
     """
     last_ping = time.time()
-    
+
     async for event in stream:
         yield event
-        
+
         # Check if we need to send a keepalive
         now = time.time()
         if now - last_ping >= interval:
@@ -238,14 +238,14 @@ async def keepalive_generator(
 async def stream_session_events(
     session_id: str,
     request: Request,
-    token: Optional[str] = Query(None, description="Auth token"),
+    token: str | None = Query(None, description="Auth token"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
     """
     Stream SSE events for a session.
-    
+
     Events include:
     - agent_thinking: Agent's reasoning process
     - agent_tool_call: Tool invocation
@@ -255,7 +255,7 @@ async def stream_session_events(
     - file_created/modified/deleted: Coworker file operations
     - session_started/completed/failed: Session lifecycle
     - ping: Keepalive
-    
+
     Usage:
         const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?token=${token}`);
         eventSource.addEventListener('agent_thinking', (e) => console.log(JSON.parse(e.data)));
@@ -263,42 +263,42 @@ async def stream_session_events(
     # Verify session exists
     session_service = SessionService(db)
     session = await session_service.get_session(session_id)
-    
+
     if not session:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
-    
+
     # Initialize AgentService
     agent_service = AgentService(db, settings, None)
-    
+
     # Initialize tools
     await agent_service.initialize_tools()
-    
+
     logger.info(
         "sse_stream_started",
         session_id=session_id,
         client_ip=request.client.host if request.client else "unknown",
     )
-    
+
     async def event_generator():
         try:
             # Use mock stream for now
             # In production, this would subscribe to Redis pub/sub
             stream = mock_agent_execution_stream(session_id)
-            
+
             async for event in keepalive_generator(stream):
                 # Check if client disconnected
                 if await request.is_disconnected():
                     logger.info("sse_client_disconnected", session_id=session_id)
                     break
-                    
+
                 yield event
-                
+
         except asyncio.CancelledError:
             logger.info("sse_stream_cancelled", session_id=session_id)
         except Exception as e:
             logger.error("sse_stream_error", session_id=session_id, error=str(e))
             yield format_sse("error", {"message": str(e)})
-    
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -319,17 +319,17 @@ async def publish_event(
 ):
     """
     Publish an event to a session's stream.
-    
+
     This is used internally by the Agent Engine to emit events.
     In production, this would publish to Redis pub/sub.
     """
     # TODO: Implement Redis pub/sub publishing
-    
+
     logger.info(
         "sse_event_published",
         session_id=session_id,
         event_type=event_type,
         data=data,
     )
-    
+
     return {"status": "published", "event_type": event_type}

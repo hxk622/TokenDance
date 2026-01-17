@@ -13,14 +13,14 @@ router = APIRouter()
 
 class HITLConfirmRequest(BaseModel):
     """Request body for HITL confirmation."""
-    
+
     approved: bool
     user_feedback: str | None = None
 
 
 class HITLRequestResponse(BaseModel):
     """Response for HITL request."""
-    
+
     request_id: str
     session_id: str
     operation: str
@@ -31,7 +31,7 @@ class HITLRequestResponse(BaseModel):
 
 class HITLConfirmResponse(BaseModel):
     """Response for HITL confirmation."""
-    
+
     request_id: str
     approved: bool
     user_feedback: str | None = None
@@ -45,12 +45,12 @@ async def list_pending_hitl_requests(
 ) -> list[HITLRequestResponse]:
     """
     List all pending HITL requests for a session.
-    
+
     This endpoint allows the UI to poll for pending confirmation requests.
     """
     service = HITLService(redis)
     requests = await service.list_pending_requests(session_id)
-    
+
     return [
         HITLRequestResponse(
             request_id=req.request_id,
@@ -72,23 +72,23 @@ async def confirm_hitl_request(
 ) -> HITLConfirmResponse:
     """
     Submit user confirmation for a HITL request.
-    
+
     Args:
         request_id: HITL request ID
         body: Confirmation details
-    
+
     Returns:
         Confirmation response
     """
     service = HITLService(redis)
-    
+
     try:
         response = await service.submit_response(
             request_id=request_id,
             approved=body.approved,
             user_feedback=body.user_feedback,
         )
-        
+
         return HITLConfirmResponse(
             request_id=response.request_id,
             approved=response.approved,
@@ -107,10 +107,10 @@ async def get_hitl_request(
     """Get HITL request details by ID."""
     service = HITLService(redis)
     request = await service.get_request(request_id)
-    
+
     if not request:
         raise HTTPException(status_code=404, detail="HITL request not found or expired")
-    
+
     return HITLRequestResponse(
         request_id=request.request_id,
         session_id=request.session_id,

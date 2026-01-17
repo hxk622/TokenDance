@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Research API - 深度研究 API 端点
 
@@ -10,18 +9,17 @@ Research API - 深度研究 API 端点
 - POST /research/{task_id}/generate-ppt - 一键生成 PPT
 - GET /research/{task_id}/findings - 获取结构化发现
 """
-from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from pydantic import BaseModel, ConfigDict, Field
-from enum import Enum
-import uuid
 import logging
+import uuid
+from enum import Enum
+from typing import Any
 
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+
+from ...agent.agents.ppt import PPTStyle
 from ...services.findings_extractor import FindingsExtractor
 from ...services.research_to_ppt import ResearchToPPTConverter
-from ...services.research_timeline import ResearchTimelineService
-from ...agent.agents.ppt import PPTStyle
-from ...models.research_findings import ResearchFindings
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +33,7 @@ class ResearchRequest(BaseModel):
     topic: str = Field(..., description="研究主题")
     max_sources: int = Field(default=10, ge=1, le=20, description="最大来源数")
     include_screenshots: bool = Field(default=True, description="是否包含截图")
-    
+
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "topic": "Rust 异步编程最佳实践",
@@ -52,7 +50,7 @@ class ResearchStatus(BaseModel):
     progress: float  # 0.0 - 1.0
     phase: str
     sources_collected: int
-    message: Optional[str] = None
+    message: str | None = None
 
 
 class ResearchSource(BaseModel):
@@ -61,7 +59,7 @@ class ResearchSource(BaseModel):
     title: str
     snippet: str
     credibility: str
-    key_findings: List[str] = []
+    key_findings: list[str] = []
 
 
 class ResearchReport(BaseModel):
@@ -69,7 +67,7 @@ class ResearchReport(BaseModel):
     task_id: str
     topic: str
     report_markdown: str
-    sources: List[ResearchSource]
+    sources: list[ResearchSource]
     generated_at: str
 
 
@@ -79,15 +77,15 @@ class TimelineEntry(BaseModel):
     event_type: str
     title: str
     description: str
-    url: Optional[str] = None
-    screenshot_path: Optional[str] = None
+    url: str | None = None
+    screenshot_path: str | None = None
 
 
 class ResearchTimeline(BaseModel):
     """研究时间轴"""
     task_id: str
     topic: str
-    entries: List[TimelineEntry]
+    entries: list[TimelineEntry]
 
 
 class PPTStyleEnum(str, Enum):
@@ -102,11 +100,11 @@ class PPTStyleEnum(str, Enum):
 class GeneratePPTRequest(BaseModel):
     """生成 PPT 请求"""
     style: PPTStyleEnum = Field(default=PPTStyleEnum.BUSINESS, description="PPT 风格")
-    author: Optional[str] = Field(default=None, description="作者名称")
+    author: str | None = Field(default=None, description="作者名称")
     include_sources: bool = Field(default=True, description="是否包含来源页")
     include_qa: bool = Field(default=True, description="是否包含 Q&A 页")
     max_slides: int = Field(default=20, ge=5, le=30, description="最大幻灯片数")
-    
+
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "style": "business",
@@ -122,7 +120,7 @@ class SlidePreview(BaseModel):
     index: int
     type: str
     title: str
-    content_preview: Optional[str] = None
+    content_preview: str | None = None
 
 
 class GeneratePPTResponse(BaseModel):
@@ -133,10 +131,10 @@ class GeneratePPTResponse(BaseModel):
     slide_count: int
     estimated_duration: str
     style: str
-    slides_preview: List[SlidePreview]
+    slides_preview: list[SlidePreview]
     marp_markdown: str  # 完整的 Marp Markdown
-    edit_url: Optional[str] = None  # PPT 编辑页面 URL
-    preview_url: Optional[str] = None  # 预览页面 URL
+    edit_url: str | None = None  # PPT 编辑页面 URL
+    preview_url: str | None = None  # 预览页面 URL
 
 
 class FindingsResponse(BaseModel):
@@ -144,9 +142,9 @@ class FindingsResponse(BaseModel):
     task_id: str
     topic: str
     summary: str
-    key_findings: List[Dict[str, Any]]
-    data_points: List[Dict[str, Any]]
-    quotes: List[Dict[str, Any]]
+    key_findings: list[dict[str, Any]]
+    data_points: list[dict[str, Any]]
+    quotes: list[dict[str, Any]]
     sources_count: int
     research_duration_seconds: int
     can_generate_ppt: bool
@@ -165,12 +163,12 @@ async def start_research(
     background_tasks: BackgroundTasks
 ):
     """启动研究任务
-    
+
     创建一个新的深度研究任务并在后台执行。
     返回任务 ID 用于后续查询。
     """
     task_id = str(uuid.uuid4())
-    
+
     # 创建任务记录
     _research_tasks[task_id] = {
         "task_id": task_id,
@@ -184,7 +182,7 @@ async def start_research(
         "report": None,
         "timeline": []
     }
-    
+
     # 启动后台任务
     background_tasks.add_task(
         _execute_research,
@@ -192,9 +190,9 @@ async def start_research(
         request.topic,
         request.max_sources
     )
-    
+
     logger.info(f"Research task started: {task_id} - {request.topic}")
-    
+
     return ResearchStatus(
         task_id=task_id,
         status="pending",
@@ -210,9 +208,9 @@ async def get_research_status(task_id: str):
     """获取研究任务状态"""
     if task_id not in _research_tasks:
         raise HTTPException(status_code=404, detail="Research task not found")
-    
+
     task = _research_tasks[task_id]
-    
+
     return ResearchStatus(
         task_id=task_id,
         status=task["status"],
@@ -226,23 +224,23 @@ async def get_research_status(task_id: str):
 @router.get("/{task_id}/report", response_model=ResearchReport)
 async def get_research_report(task_id: str):
     """获取研究报告
-    
+
     只有当研究任务完成后才能获取报告。
     """
     if task_id not in _research_tasks:
         raise HTTPException(status_code=404, detail="Research task not found")
-    
+
     task = _research_tasks[task_id]
-    
+
     if task["status"] != "completed":
         raise HTTPException(
             status_code=400,
             detail=f"Research not completed. Current status: {task['status']}"
         )
-    
+
     if not task.get("report"):
         raise HTTPException(status_code=404, detail="Report not generated")
-    
+
     return task["report"]
 
 
@@ -251,9 +249,9 @@ async def get_research_timeline(task_id: str):
     """获取研究时间轴"""
     if task_id not in _research_tasks:
         raise HTTPException(status_code=404, detail="Research task not found")
-    
+
     task = _research_tasks[task_id]
-    
+
     return ResearchTimeline(
         task_id=task_id,
         topic=task["topic"],
@@ -268,57 +266,57 @@ async def cancel_research(task_id: str):
     """取消研究任务"""
     if task_id not in _research_tasks:
         raise HTTPException(status_code=404, detail="Research task not found")
-    
+
     task = _research_tasks[task_id]
-    
+
     if task["status"] == "completed":
         raise HTTPException(status_code=400, detail="Cannot cancel completed task")
-    
+
     task["status"] = "cancelled"
     task["message"] = "Task cancelled by user"
-    
+
     logger.info(f"Research task cancelled: {task_id}")
-    
+
     return {"message": "Research task cancelled", "task_id": task_id}
 
 
 @router.get("/{task_id}/findings", response_model=FindingsResponse)
 async def get_research_findings(task_id: str):
     """获取结构化的研究发现
-    
+
     从研究报告和时间轴中提取结构化的发现，
     用于展示和生成 PPT。
     """
     if task_id not in _research_tasks:
         raise HTTPException(status_code=404, detail="Research task not found")
-    
+
     task = _research_tasks[task_id]
-    
+
     if task["status"] != "completed":
         raise HTTPException(
             status_code=400,
             detail=f"Research not completed. Current status: {task['status']}"
         )
-    
+
     # 提取结构化发现
     extractor = FindingsExtractor(
         session_id=task_id,
         topic=task["topic"]
     )
-    
+
     # 获取报告内容
     report_markdown = None
     if task.get("report"):
         report_markdown = task["report"].report_markdown
-    
+
     # 提取发现
     findings = await extractor.extract_all(
         report_markdown=report_markdown
     )
-    
+
     # 缓存发现
     task["findings"] = findings
-    
+
     return FindingsResponse(
         task_id=task_id,
         topic=findings.topic,
@@ -335,10 +333,10 @@ async def get_research_findings(task_id: str):
 @router.post("/{task_id}/generate-ppt", response_model=GeneratePPTResponse)
 async def generate_ppt_from_research(task_id: str, request: GeneratePPTRequest):
     """一键生成汇报 PPT
-    
+
     将研究发现转换为结构化的 PPT 大纲。
     这是 Deep Research → PPT Generation 连续体验的核心 API。
-    
+
     流程：
     1. 从研究任务中提取结构化发现 (ResearchFindings)
     2. 使用 ResearchToPPTConverter 转换为 PPT 大纲
@@ -346,17 +344,17 @@ async def generate_ppt_from_research(task_id: str, request: GeneratePPTRequest):
     """
     if task_id not in _research_tasks:
         raise HTTPException(status_code=404, detail="Research task not found")
-    
+
     task = _research_tasks[task_id]
-    
+
     if task["status"] != "completed":
         raise HTTPException(
             status_code=400,
             detail=f"Research not completed. Current status: {task['status']}"
         )
-    
+
     logger.info(f"Generating PPT from research: {task_id}")
-    
+
     # 1. 获取或提取结构化发现
     findings = task.get("findings")
     if not findings:
@@ -364,16 +362,16 @@ async def generate_ppt_from_research(task_id: str, request: GeneratePPTRequest):
             session_id=task_id,
             topic=task["topic"]
         )
-        
+
         report_markdown = None
         if task.get("report"):
             report_markdown = task["report"].report_markdown
-        
+
         findings = await extractor.extract_all(
             report_markdown=report_markdown
         )
         task["findings"] = findings
-    
+
     # 2. 转换为 PPT 大纲
     style_map = {
         PPTStyleEnum.BUSINESS: PPTStyle.BUSINESS,
@@ -382,27 +380,27 @@ async def generate_ppt_from_research(task_id: str, request: GeneratePPTRequest):
         PPTStyleEnum.ACADEMIC: PPTStyle.ACADEMIC,
         PPTStyleEnum.CREATIVE: PPTStyle.CREATIVE,
     }
-    
+
     converter = ResearchToPPTConverter(
         style=style_map.get(request.style, PPTStyle.BUSINESS),
         max_slides=request.max_slides
     )
-    
+
     outline = converter.convert(
         findings=findings,
         author=request.author,
         include_sources=request.include_sources,
         include_qa=request.include_qa
     )
-    
+
     # 3. 生成 Marp Markdown
     marp_markdown = outline.to_marp_markdown()
-    
+
     # 4. 缓存 PPT 大纲
     ppt_id = str(uuid.uuid4())
     task["ppt_outline"] = outline
     task["ppt_id"] = ppt_id
-    
+
     # 5. 生成预览
     slides_preview = [
         SlidePreview(
@@ -413,9 +411,9 @@ async def generate_ppt_from_research(task_id: str, request: GeneratePPTRequest):
         )
         for i, slide in enumerate(outline.slides[:10])  # 最多预览10页
     ]
-    
+
     logger.info(f"PPT generated: {ppt_id} with {len(outline.slides)} slides")
-    
+
     return GeneratePPTResponse(
         task_id=task_id,
         ppt_id=ppt_id,
@@ -430,20 +428,20 @@ async def generate_ppt_from_research(task_id: str, request: GeneratePPTRequest):
     )
 
 
-@router.get("/", response_model=List[ResearchStatus])
+@router.get("/", response_model=list[ResearchStatus])
 async def list_research_tasks(
-    status: Optional[str] = None,
+    status: str | None = None,
     limit: int = 10
 ):
     """列出研究任务"""
     tasks = list(_research_tasks.values())
-    
+
     if status:
         tasks = [t for t in tasks if t["status"] == status]
-    
+
     # 按创建时间倒序
     tasks = sorted(tasks, key=lambda x: x.get("created_at", ""), reverse=True)
-    
+
     return [
         ResearchStatus(
             task_id=t["task_id"],
@@ -460,16 +458,16 @@ async def list_research_tasks(
 
 async def _execute_research(task_id: str, topic: str, max_sources: int):
     """执行研究任务（后台）
-    
+
     这是一个简化的实现，实际应该使用 DeepResearchAgent。
     """
     import asyncio
     from datetime import datetime
-    
+
     task = _research_tasks.get(task_id)
     if not task:
         return
-    
+
     try:
         # 模拟研究过程
         phases = [
@@ -478,16 +476,16 @@ async def _execute_research(task_id: str, topic: str, max_sources: int):
             ("synthesizing", 0.8, "Synthesizing information..."),
             ("reporting", 0.95, "Generating report...")
         ]
-        
+
         for phase, progress, message in phases:
             if task["status"] == "cancelled":
                 return
-            
+
             task["status"] = phase
             task["phase"] = phase
             task["progress"] = progress
             task["message"] = message
-            
+
             # 添加时间轴条目
             task["timeline"].append({
                 "timestamp": datetime.now().isoformat(),
@@ -495,9 +493,9 @@ async def _execute_research(task_id: str, topic: str, max_sources: int):
                 "title": f"Phase: {phase}",
                 "description": message
             })
-            
+
             await asyncio.sleep(2)  # 模拟处理时间
-        
+
         # 生成报告
         task["report"] = ResearchReport(
             task_id=task_id,
@@ -519,13 +517,13 @@ This is a placeholder research report for the topic: {topic}
             sources=[],
             generated_at=datetime.now().isoformat()
         )
-        
+
         task["status"] = "completed"
         task["progress"] = 1.0
         task["message"] = "Research completed"
-        
+
         logger.info(f"Research task completed: {task_id}")
-        
+
     except Exception as e:
         task["status"] = "failed"
         task["message"] = str(e)

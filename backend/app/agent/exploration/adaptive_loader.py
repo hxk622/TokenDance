@@ -5,10 +5,8 @@ Adaptive Loader - 自适应资源延迟加载
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Set
 import logging
-import re
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +28,7 @@ class AdaptiveLoader:
 
     def __init__(self):
         # 简单的关键词 → 资源映射表（实际项目可用向量检索）
-        self._keyword_resource_map: Dict[str, List[PredictedResource]] = {
+        self._keyword_resource_map: dict[str, list[PredictedResource]] = {
             # 数据处理关键词
             "csv": [
                 PredictedResource("skill", "data_analysis", 0.9),
@@ -73,14 +71,14 @@ class AdaptiveLoader:
         }
 
         # 已加载的资源缓存
-        self._loaded: Set[str] = set()
+        self._loaded: set[str] = set()
 
     def predict_next_resources(
         self,
-        conversation_history: List[str],
+        conversation_history: list[str],
         current_state: str,
         max_predictions: int = 5,
-    ) -> List[PredictedResource]:
+    ) -> list[PredictedResource]:
         """
         预测接下来需要的资源
 
@@ -93,7 +91,7 @@ class AdaptiveLoader:
             按置信度降序的预测资源列表
         """
         combined_text = " ".join(conversation_history).lower()
-        predictions: Dict[str, PredictedResource] = {}
+        predictions: dict[str, PredictedResource] = {}
 
         for keyword, resources in self._keyword_resource_map.items():
             if keyword.lower() in combined_text:
@@ -116,8 +114,8 @@ class AdaptiveLoader:
         return f"{resource_type}:{resource_id}" in self._loaded
 
     def filter_unloaded(
-        self, predictions: List[PredictedResource]
-    ) -> List[PredictedResource]:
+        self, predictions: list[PredictedResource]
+    ) -> list[PredictedResource]:
         """过滤掉已加载的资源"""
         return [
             p
@@ -127,8 +125,8 @@ class AdaptiveLoader:
 
     def preload_resources(
         self,
-        predictions: List[PredictedResource],
-        loader_fn: Optional[callable] = None,
+        predictions: list[PredictedResource],
+        loader_fn: callable | None = None,
     ) -> int:
         """
         预加载资源

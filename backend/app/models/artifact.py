@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, Text, Integer, BigInteger
+from sqlalchemy import JSON, BigInteger, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -29,7 +29,7 @@ class ArtifactType(PyEnum):
 class Artifact(Base):
     """
     Artifact model - outputs generated during a session.
-    
+
     Features:
     - Various types (document, ppt, report, code, data, image, kv_snapshot)
     - Links to file storage (MinIO)

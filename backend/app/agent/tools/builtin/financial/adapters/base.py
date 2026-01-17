@@ -30,7 +30,7 @@ class Market(str, Enum):
 @dataclass
 class FinancialDataResult:
     """Standard result format for financial data."""
-    
+
     success: bool
     data: dict[str, Any] | list[dict[str, Any]] | None = None
     error: str | None = None
@@ -40,7 +40,7 @@ class FinancialDataResult:
     data_type: str = ""
     timestamp: datetime = field(default_factory=datetime.now)
     metadata: dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -58,16 +58,16 @@ class FinancialDataResult:
 
 class BaseFinancialAdapter(ABC):
     """Base class for financial data adapters."""
-    
+
     name: str = "base"
     supported_markets: list[Market] = []
     supported_data_types: list[DataType] = []
-    
+
     @abstractmethod
     async def get_quote(self, symbol: str, **kwargs) -> FinancialDataResult:
         """Get real-time or delayed quote."""
         pass
-    
+
     @abstractmethod
     async def get_historical(
         self,
@@ -79,7 +79,7 @@ class BaseFinancialAdapter(ABC):
     ) -> FinancialDataResult:
         """Get historical price data."""
         pass
-    
+
     @abstractmethod
     async def get_fundamental(
         self,
@@ -89,12 +89,12 @@ class BaseFinancialAdapter(ABC):
     ) -> FinancialDataResult:
         """Get financial statements."""
         pass
-    
+
     @abstractmethod
     async def get_valuation(self, symbol: str, **kwargs) -> FinancialDataResult:
         """Get valuation metrics."""
         pass
-    
+
     async def get_news(self, symbol: str, limit: int = 10, **kwargs) -> FinancialDataResult:
         """Get financial news. Optional, may not be supported by all adapters."""
         return FinancialDataResult(
@@ -104,7 +104,7 @@ class BaseFinancialAdapter(ABC):
             symbol=symbol,
             data_type=DataType.NEWS.value,
         )
-    
+
     async def get_analyst_ratings(self, symbol: str, **kwargs) -> FinancialDataResult:
         """Get analyst ratings. Optional, may not be supported by all adapters."""
         return FinancialDataResult(
@@ -114,11 +114,11 @@ class BaseFinancialAdapter(ABC):
             symbol=symbol,
             data_type=DataType.ANALYST.value,
         )
-    
+
     def supports_market(self, market: Market) -> bool:
         """Check if adapter supports the given market."""
         return market in self.supported_markets
-    
+
     def supports_data_type(self, data_type: DataType) -> bool:
         """Check if adapter supports the given data type."""
         return data_type in self.supported_data_types

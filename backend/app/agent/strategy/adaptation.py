@@ -6,10 +6,9 @@ Strategy Adaptation - 策略自适应
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
-from app.routing.router import ExecutionRouter
 from app.agent.failure.root_cause import RootCause
+from app.routing.router import ExecutionRouter
 
 
 @dataclass
@@ -22,10 +21,10 @@ class AdaptationDecision:
 class StrategyAdaptation:
     """将 RootCause 映射到具体、可执行的引擎/路由调整。"""
 
-    def __init__(self, router: Optional[ExecutionRouter] = None):
+    def __init__(self, router: ExecutionRouter | None = None):
         self.router = router
 
-    def apply(self, root: Optional[RootCause]) -> AdaptationDecision:
+    def apply(self, root: RootCause | None) -> AdaptationDecision:
         if root is None:
             return AdaptationDecision(summary="no root cause")
 

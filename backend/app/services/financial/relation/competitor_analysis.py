@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 CompetitorAnalysisService - 竞争对手分析服务
 
@@ -11,8 +10,8 @@ CompetitorAnalysisService - 竞争对手分析服务
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +32,8 @@ class CompetitiveMetrics:
     profit_margin: float
     rd_intensity: float  # 研发强度
     brand_value: float
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "market_share": self.market_share,
             "revenue_growth": self.revenue_growth,
@@ -51,13 +50,13 @@ class Competitor:
     name: str
     competition_level: CompetitionLevel
     metrics: CompetitiveMetrics
-    
+
     # 竞争分析
-    strengths: List[str] = field(default_factory=list)
-    weaknesses: List[str] = field(default_factory=list)
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
     threat_level: str = "medium"  # low/medium/high
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -77,8 +76,8 @@ class MarketLandscape:
     concentration: str  # 集中度：高/中/低
     top_players_share: float  # 前几名市占率
     entry_barriers: str  # 进入壁垒
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "total_market_size": self.total_market_size,
             "growth_rate": self.growth_rate,
@@ -95,21 +94,21 @@ class CompetitorAnalysisResult:
     name: str
     analysis_date: datetime
     industry: str
-    
+
     # 自身指标
-    own_metrics: Optional[CompetitiveMetrics] = None
-    
+    own_metrics: CompetitiveMetrics | None = None
+
     # 竞争对手
-    competitors: List[Competitor] = field(default_factory=list)
-    
+    competitors: list[Competitor] = field(default_factory=list)
+
     # 市场格局
-    market_landscape: Optional[MarketLandscape] = None
-    
+    market_landscape: MarketLandscape | None = None
+
     # 竞争优势
-    competitive_advantages: List[str] = field(default_factory=list)
-    competitive_risks: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
+    competitive_advantages: list[str] = field(default_factory=list)
+    competitive_risks: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "symbol": self.symbol,
             "name": self.name,
@@ -125,7 +124,7 @@ class CompetitorAnalysisResult:
 
 class CompetitorAnalysisService:
     """竞争对手分析服务"""
-    
+
     # 竞争对手映射
     COMPETITOR_MAP = {
         "600519": {  # 贵州茅台
@@ -151,10 +150,10 @@ class CompetitorAnalysisService:
             ],
         },
     }
-    
+
     def __init__(self):
-        self._cache: Dict[str, CompetitorAnalysisResult] = {}
-    
+        self._cache: dict[str, CompetitorAnalysisResult] = {}
+
     async def analyze_competitors(
         self,
         symbol: str,
@@ -162,15 +161,15 @@ class CompetitorAnalysisService:
         """分析竞争对手"""
         if symbol in self._cache:
             return self._cache[symbol]
-        
+
         try:
             # 获取竞争对手信息
             comp_info = self.COMPETITOR_MAP.get(symbol, {})
             industry = comp_info.get("industry", "未知")
-            
+
             # 自身指标
             own_metrics = await self._get_competitive_metrics(symbol)
-            
+
             # 竞争对手列表
             competitors = []
             for comp_symbol, comp_name, comp_level in comp_info.get("competitors", []):
@@ -179,13 +178,13 @@ class CompetitorAnalysisService:
                     comp_symbol, comp_name, comp_level, comp_metrics, own_metrics
                 )
                 competitors.append(competitor)
-            
+
             # 市场格局
             market_landscape = await self._analyze_market_landscape(industry)
-            
+
             # 竞争优势/风险
             advantages, risks = self._analyze_competitive_position(own_metrics, competitors)
-            
+
             result = CompetitorAnalysisResult(
                 symbol=symbol,
                 name=self._get_stock_name(symbol),
@@ -197,10 +196,10 @@ class CompetitorAnalysisService:
                 competitive_advantages=advantages,
                 competitive_risks=risks,
             )
-            
+
             self._cache[symbol] = result
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze competitors for {symbol}: {e}")
             return CompetitorAnalysisResult(
@@ -209,11 +208,11 @@ class CompetitorAnalysisService:
                 analysis_date=datetime.now(),
                 industry="",
             )
-    
+
     async def compare_competitors(
         self,
-        symbols: List[str],
-    ) -> Dict[str, Any]:
+        symbols: list[str],
+    ) -> dict[str, Any]:
         """多公司竞争力对比"""
         metrics = {}
         for symbol in symbols:
@@ -222,16 +221,16 @@ class CompetitorAnalysisService:
                 "name": self._get_stock_name(symbol),
                 "metrics": m.to_dict(),
             }
-        
+
         return {
             "comparison_date": datetime.now().isoformat(),
             "companies": metrics,
         }
-    
+
     async def _get_competitive_metrics(self, symbol: str) -> CompetitiveMetrics:
         """获取竞争力指标"""
         import random
-        
+
         return CompetitiveMetrics(
             market_share=round(random.uniform(5, 40), 1),
             revenue_growth=round(random.uniform(-5, 30), 1),
@@ -239,7 +238,7 @@ class CompetitorAnalysisService:
             rd_intensity=round(random.uniform(1, 15), 1),
             brand_value=round(random.uniform(50, 100), 0),
         )
-    
+
     async def _analyze_single_competitor(
         self,
         symbol: str,
@@ -256,26 +255,26 @@ class CompetitorAnalysisService:
             threat_level = "medium"
         else:
             threat_level = "low"
-        
+
         # 分析优劣势
         strengths = []
         weaknesses = []
-        
+
         if metrics.market_share > own_metrics.market_share:
             strengths.append("市场份额领先")
         else:
             weaknesses.append("市场份额较小")
-        
+
         if metrics.revenue_growth > own_metrics.revenue_growth:
             strengths.append("增长势头强劲")
         else:
             weaknesses.append("增长动力不足")
-        
+
         if metrics.rd_intensity > own_metrics.rd_intensity:
             strengths.append("研发投入高")
         else:
             weaknesses.append("研发投入相对较低")
-        
+
         return Competitor(
             symbol=symbol,
             name=name,
@@ -285,11 +284,11 @@ class CompetitorAnalysisService:
             weaknesses=weaknesses,
             threat_level=threat_level,
         )
-    
+
     async def _analyze_market_landscape(self, industry: str) -> MarketLandscape:
         """分析市场格局"""
         import random
-        
+
         landscapes = {
             "白酒": MarketLandscape(
                 total_market_size=round(random.uniform(5000, 8000), 0),
@@ -313,7 +312,7 @@ class CompetitorAnalysisService:
                 entry_barriers="高（技术、资金、客户）",
             ),
         }
-        
+
         return landscapes.get(industry, MarketLandscape(
             total_market_size=1000,
             growth_rate=10,
@@ -321,37 +320,37 @@ class CompetitorAnalysisService:
             top_players_share=50,
             entry_barriers="中",
         ))
-    
+
     def _analyze_competitive_position(
         self,
         own_metrics: CompetitiveMetrics,
-        competitors: List[Competitor],
-    ) -> tuple[List[str], List[str]]:
+        competitors: list[Competitor],
+    ) -> tuple[list[str], list[str]]:
         """分析竞争地位"""
         advantages = []
         risks = []
-        
+
         # 计算相对位置
         avg_market_share = sum(c.metrics.market_share for c in competitors) / len(competitors) if competitors else 0
-        
+
         if own_metrics.market_share > avg_market_share:
             advantages.append("市场份额领先于主要竞争对手")
         else:
             risks.append("市场份额低于竞争对手平均水平")
-        
+
         if own_metrics.profit_margin > 20:
             advantages.append("盈利能力强")
-        
+
         if own_metrics.rd_intensity > 5:
             advantages.append("研发投入较高，技术竞争力强")
-        
+
         # 检查威胁
         high_threat = [c for c in competitors if c.threat_level == "high"]
         if high_threat:
             risks.append(f"面临{len(high_threat)}个高威胁竞争对手")
-        
+
         return advantages, risks
-    
+
     def _get_stock_name(self, symbol: str) -> str:
         """获取股票名称"""
         names = {
@@ -370,7 +369,7 @@ class CompetitorAnalysisService:
 
 
 # 全局单例
-_competitor_analysis_service: Optional[CompetitorAnalysisService] = None
+_competitor_analysis_service: CompetitorAnalysisService | None = None
 
 
 def get_competitor_analysis_service() -> CompetitorAnalysisService:
