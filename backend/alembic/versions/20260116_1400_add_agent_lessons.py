@@ -1,17 +1,18 @@
 """add agent_lessons table
 
-Revision ID: 20260116_1400
-Revises: 20260116_1000
+Revision ID: 6e9g4j5k6l7m
+Revises: 5e8f2g6i7j8k
 Create Date: 2026-01-16 14:00:00
 
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from typing import Union, Sequence
 
 # revision identifiers, used by Alembic.
-revision = '20260116_1400'
-down_revision = '20260116_1000'
+revision = '6e9g4j5k6l7m'
+down_revision: Union[str, Sequence[str], None] = '5e8f2g6i7j8k'
 branch_labels = None
 depends_on = None
 
@@ -19,8 +20,10 @@ depends_on = None
 def upgrade():
     """添加 agent_lessons 表，用于存储跨 session 的经验教训"""
     
-    # 1. 启用 pgvector 扩展（如果未启用）
-    op.execute('CREATE EXTENSION IF NOT EXISTS vector')
+    # 1. 跳过 pgvector 扩展（如需要可后期手动安装）
+    # pgvector 需要单独安装：
+    # macOS: brew install pgvector
+    # 然后在 PostgreSQL 中: CREATE EXTENSION vector;
     
     # 2. 创建 agent_lessons 表
     op.create_table(
@@ -39,20 +42,10 @@ def upgrade():
     op.create_index(op.f('ix_agent_lessons_id'), 'agent_lessons', ['id'], unique=False)
     op.create_index(op.f('ix_agent_lessons_title'), 'agent_lessons', ['title'], unique=False)
     
-    # 4. 创建向量索引（使用 HNSW 算法 - 更快的 ANN 搜索）
-    # 注意：这需要 pgvector 扩展支持
-    try:
-        op.execute(
-            """
-            CREATE INDEX agent_lessons_embedding_idx 
-            ON agent_lessons 
-            USING ivfflat (embedding vector_cosine_ops)
-            WITH (lists = 100);
-            """
-        )
-    except Exception as e:
-        # 如果 pgvector 不可用，跳过向量索引创建
-        print(f"Warning: Could not create vector index: {e}")
+    # 4. 向量索引需要 pgvector 扩展，如需使用请手动创建：
+    # CREATE EXTENSION IF NOT EXISTS vector;
+    # CREATE INDEX agent_lessons_embedding_idx ON agent_lessons 
+    # USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 
 def downgrade():
