@@ -13,18 +13,22 @@ DeepResearchAgent - 深度研究 Agent
 - 大模型在"宏观逻辑"上60%成功率，在"微观动作"上99.9%成功率
 - 把1个60%成功率的大任务切碎成100个99.9%成功率的小任务
 """
-from typing import AsyncGenerator, List, Dict, Any, Optional
+from typing import AsyncGenerator, List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 import logging
 import json
 import re
+import asyncio
 
 from ..base import BaseAgent
 from ..types import SSEEvent, SSEEventType, AgentAction, ActionType
 
 logger = logging.getLogger(__name__)
+
+# 并发配置
+MAX_CONCURRENT_TOOLS = 10  # 最大并发工具执行数
 
 
 # ==================== 数据模型 ====================
@@ -99,10 +103,14 @@ class DeepResearchAgent(BaseAgent):
     6. 信息综合 → 生成报告
     """
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, max_concurrent: int = MAX_CONCURRENT_TOOLS, **kwargs):
         super().__init__(*args, **kwargs)
         self.research_state: Optional[ResearchState] = None
         self._action_count = 0  # 用于 2-Action Rule
+        self._max_concurrent = max_concurrent  # 最大并发数
+        self._semaphore = asyncio.Semaphore(max_concurrent)  # 并发控制
+        self._pending_urls: List[str] = []  # 待并发读取的 URL
+        self._pending_queries: List[str] = []  # 待并发搜索的查询
     
     async def _think(self) -> AsyncGenerator[SSEEvent, None]:
         """思考过程 - DeepResearch 版本
@@ -572,6 +580,327 @@ Every factual claim MUST have a citation."""
             logger.info(f"Added source: {title} (credibility: {credibility.value})")
         
         return source
+    
+    # ==================== 并发执行支持 ====================
+    
+    async def _execute_tool_with_semaphore(
+        self, 
+        tool_name: str, 
+        tool_input: Dict[str, Any]
+    ) -> Tuple[str, Dict[str, Any]]:
+        """带信号量控制的工具执行
+        
+        Args:
+            tool_name: 工具名称
+            tool_input: 工具输入参数
+            
+        Returns:
+            Tuple[str, Dict]: (工具名, 执行结果)
+        """
+        async with self._semaphore:
+            try:
+                tool = self.tools.get(tool_name)
+                if not tool:
+                    return (tool_name, {"success": False, "error": f"Tool {tool_name} not found"})
+                
+                result = await tool.execute(**tool_input)
+                return (tool_name, result)
+            except Exception as e:
+                logger.error(f"Tool {tool_name} execution failed: {e}")
+                return (tool_name, {"success": False, "error": str(e)})
+    
+    async def execute_tools_concurrently(
+        self,
+        tool_calls: List[Tuple[str, Dict[str, Any]]]
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """并发执行多个工具
+        
+        Args:
+            tool_calls: List of (tool_name, tool_input) tuples
+            
+        Yields:
+            SSEEvent: 执行进度和结果事件
+        """
+        if not tool_calls:
+            return
+        
+        # 限制并发数
+        batch_size = min(len(tool_calls), self._max_concurrent)
+        
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={
+                'content': f'🚀 Executing {len(tool_calls)} tools concurrently (max {batch_size} parallel)...\n'
+            }
+        )
+        
+        # 创建任务
+        tasks = [
+            self._execute_tool_with_semaphore(name, inputs)
+            for name, inputs in tool_calls
+        ]
+        
+        # 并发执行
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 处理结果
+        successful = 0
+        failed = 0
+        
+        for i, result in enumerate(results):
+            tool_name, tool_input = tool_calls[i]
+            
+            if isinstance(result, Exception):
+                failed += 1
+                yield SSEEvent(
+                    type=SSEEventType.TOOL_ERROR,
+                    data={
+                        'tool': tool_name,
+                        'error': str(result)
+                    }
+                )
+            else:
+                name, output = result
+                if output.get("success", False):
+                    successful += 1
+                    # 处理搜索结果 - 收集 URL
+                    if name == "web_search" and output.get("results"):
+                        for item in output.get("results", []):
+                            url = item.get("link") or item.get("url")
+                            if url:
+                                self._pending_urls.append(url)
+                    
+                    # 处理 read_url 结果 - 添加来源
+                    if name == "read_url" and output.get("content"):
+                        self.add_source(
+                            url=output.get("url", ""),
+                            title=output.get("title", "Unknown"),
+                            snippet=output.get("content", "")[:500]
+                        )
+                else:
+                    failed += 1
+                
+                yield SSEEvent(
+                    type=SSEEventType.TOOL_RESULT,
+                    data={
+                        'tool': name,
+                        'result': output,
+                        'success': output.get("success", False)
+                    }
+                )
+        
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={
+                'content': f'✅ Concurrent execution complete: {successful} succeeded, {failed} failed\n'
+            }
+        )
+        
+        # 更新 action count
+        self._action_count += len(tool_calls)
+        
+        # 2-Action Rule: 每 2 次重大操作后写入 findings
+        if self._action_count >= 2:
+            self._action_count = 0
+            await self._record_findings()
+    
+    async def batch_search(self, queries: List[str]) -> AsyncGenerator[SSEEvent, None]:
+        """批量并发搜索
+        
+        Args:
+            queries: 搜索查询列表
+            
+        Yields:
+            SSEEvent: 执行事件
+        """
+        tool_calls = [
+            ("web_search", {"query": q, "max_results": 5})
+            for q in queries[:self._max_concurrent]  # 限制数量
+        ]
+        
+        if self.research_state:
+            self.research_state.queries_executed.extend(queries[:self._max_concurrent])
+        
+        async for event in self.execute_tools_concurrently(tool_calls):
+            yield event
+    
+    async def batch_read_urls(self, urls: List[str]) -> AsyncGenerator[SSEEvent, None]:
+        """批量并发读取 URL
+        
+        Args:
+            urls: URL 列表
+            
+        Yields:
+            SSEEvent: 执行事件
+        """
+        # 去重并限制数量
+        unique_urls = list(dict.fromkeys(urls))[:self._max_concurrent]
+        
+        tool_calls = [
+            ("read_url", {"url": url, "use_jina": True, "max_length": 8000})
+            for url in unique_urls
+        ]
+        
+        async for event in self.execute_tools_concurrently(tool_calls):
+            yield event
+    
+    def get_pending_urls(self) -> List[str]:
+        """获取待读取的 URL 并清空"""
+        urls = self._pending_urls.copy()
+        self._pending_urls.clear()
+        return urls
+    
+    def queue_urls_for_reading(self, urls: List[str]) -> None:
+        """将 URL 加入待读取队列"""
+        self._pending_urls.extend(urls)
+    
+    # ==================== 流式返回 (Streaming) ====================
+    
+    async def execute_tools_streaming(
+        self,
+        tool_calls: List[Tuple[str, Dict[str, Any]]]
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """流式执行工具 - 使用 asyncio.as_completed 实时返回
+        
+        与 execute_tools_concurrently 的区别:
+        - as_completed: 哪个先完成就先返回，用户更快看到结果
+        - gather: 等所有完成后一起返回
+        
+        Args:
+            tool_calls: List of (tool_name, tool_input) tuples
+            
+        Yields:
+            SSEEvent: 实时执行结果
+        """
+        if not tool_calls:
+            return
+        
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={
+                'content': f'🚀 Streaming {len(tool_calls)} tools (results as they complete)...\n'
+            }
+        )
+        
+        # 创建带索引的任务
+        async def execute_with_index(idx: int, name: str, inputs: Dict) -> Tuple[int, str, Dict]:
+            result = await self._execute_tool_with_semaphore(name, inputs)
+            return (idx, result[0], result[1])
+        
+        tasks = [
+            asyncio.create_task(execute_with_index(i, name, inputs))
+            for i, (name, inputs) in enumerate(tool_calls)
+        ]
+        
+        completed = 0
+        successful = 0
+        failed = 0
+        
+        # 使用 as_completed 实现流式返回
+        for coro in asyncio.as_completed(tasks):
+            try:
+                idx, tool_name, result = await coro
+                completed += 1
+                
+                if isinstance(result, dict) and result.get("success", False):
+                    successful += 1
+                    
+                    # 处理搜索结果
+                    if tool_name == "web_search" and result.get("results"):
+                        for item in result.get("results", []):
+                            url = item.get("link") or item.get("url")
+                            if url:
+                                self._pending_urls.append(url)
+                    
+                    # 处理 read_url 结果
+                    if tool_name == "read_url" and result.get("content"):
+                        self.add_source(
+                            url=result.get("url", ""),
+                            title=result.get("title", "Unknown"),
+                            snippet=result.get("content", "")[:500]
+                        )
+                else:
+                    failed += 1
+                
+                # 实时推送结果
+                yield SSEEvent(
+                    type=SSEEventType.TOOL_RESULT,
+                    data={
+                        'tool': tool_name,
+                        'result': result,
+                        'success': result.get("success", False) if isinstance(result, dict) else False,
+                        'progress': f"{completed}/{len(tool_calls)}"
+                    }
+                )
+                
+            except Exception as e:
+                completed += 1
+                failed += 1
+                logger.error(f"Streaming task error: {e}")
+                yield SSEEvent(
+                    type=SSEEventType.TOOL_ERROR,
+                    data={'error': str(e), 'progress': f"{completed}/{len(tool_calls)}"}
+                )
+        
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={
+                'content': f'✅ Streaming complete: {successful} succeeded, {failed} failed\n'
+            }
+        )
+        
+        # 更新 action count
+        self._action_count += len(tool_calls)
+        if self._action_count >= 2:
+            self._action_count = 0
+            await self._record_findings()
+    
+    async def batch_search_streaming(
+        self,
+        queries: List[str]
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """流式批量搜索 - 结果实时返回
+        
+        用户体验优化:
+        - 首个结果延迟: ~2s (之前需要等所有完成: ~10s)
+        """
+        tool_calls = [
+            ("web_search", {"query": q, "max_results": 5})
+            for q in queries[:self._max_concurrent]
+        ]
+        
+        if self.research_state:
+            self.research_state.queries_executed.extend(queries[:self._max_concurrent])
+        
+        async for event in self.execute_tools_streaming(tool_calls):
+            yield event
+    
+    async def batch_read_urls_streaming(
+        self,
+        urls: List[str],
+        query: Optional[str] = None
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """流式批量读取 URL
+        
+        Args:
+            urls: URL 列表
+            query: 研究查询 (用于 extract_relevant)
+        """
+        unique_urls = list(dict.fromkeys(urls))[:self._max_concurrent]
+        
+        tool_calls = [
+            ("read_url", {
+                "url": url,
+                "use_jina": True,
+                "extract_relevant": bool(query),
+                "query": query or "",
+                "max_length": 8000
+            })
+            for url in unique_urls
+        ]
+        
+        async for event in self.execute_tools_streaming(tool_calls):
+            yield event
 
 
 # ==================== 工厂函数 ====================
@@ -583,7 +912,8 @@ async def create_deep_research_agent(
     memory,
     db,
     max_iterations: int = 30,
-    max_sources: int = 10
+    max_sources: int = 10,
+    max_concurrent: int = MAX_CONCURRENT_TOOLS
 ) -> DeepResearchAgent:
     """创建 DeepResearchAgent 实例
     
@@ -595,6 +925,7 @@ async def create_deep_research_agent(
         db: AsyncSession
         max_iterations: 最大迭代次数（深度研究需要更多迭代）
         max_sources: 最大来源数
+        max_concurrent: 最大并发工具执行数 (默认 10)
         
     Returns:
         DeepResearchAgent: Agent 实例
@@ -605,12 +936,16 @@ async def create_deep_research_agent(
         tools=tools,
         memory=memory,
         db=db,
-        max_iterations=max_iterations
+        max_iterations=max_iterations,
+        max_concurrent=max_concurrent
     )
     
     # 初始化研究状态参数
     if agent.research_state:
         agent.research_state.max_sources = max_sources
     
-    logger.info(f"DeepResearchAgent created with max_iterations={max_iterations}, max_sources={max_sources}")
+    logger.info(
+        f"DeepResearchAgent created with max_iterations={max_iterations}, "
+        f"max_sources={max_sources}, max_concurrent={max_concurrent}"
+    )
     return agent

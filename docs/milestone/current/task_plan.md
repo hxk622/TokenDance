@@ -391,7 +391,7 @@
 
 ---
 
-**当前状态**: MVP Sprint Week 2 完成，金融场景规划启动 (2026-01-16)
+**当前状态**: 金融场景 Phase 1-3 完成 (2026-01-17)
 
 ---
 
@@ -407,54 +407,58 @@
 
 ### 里程碑
 
-#### Phase 1: 基础架构 (Week 1-2, 约 10-13 天)
-- [ ] 任务 1.1: FinancialResearchAgent 核心 (3-4 天)
+#### Phase 1: 基础架构 (Week 1-2) ✅ 已完成
+- [x] 任务 1.1: FinancialResearchAgent 核心
   - 继承 DeepResearchAgent
   - 金融专属状态机：scoping → collecting → analyzing → valuating → sentiment → reporting
-  - 集成 financial_research_template.md
-  - 数据源智能路由
+  - 集成分析引擎调用
+  - Commit: c091073
 
-- [ ] 任务 1.2: 金融数据工具集 (5-6 天)
-  - GetStockQuoteTool - 实时行情
-  - GetFinancialStatementsTool - 财务报表
-  - GetFinancialRatiosTool - 财务指标计算
-  - GetAnalystRatingsTool - 机构评级
-  - GetMarketSentimentTool - 市场情绪
-  - CalculateValuationTool - 估值计算
+- [x] 任务 1.2: 金融数据工具集
+  - GetStockQuoteTool, GetFinancialStatementsTool, GetValuationMetricsTool
+  - GetHistoricalPriceTool, GetFinancialNewsTool
+  - GetNorthFlowTool, GetDragonTigerTool (A股特有)
+  - FinancialDataToolWrapper (统一入口)
 
-- [ ] 任务 1.3: OpenBB SDK 集成 (2-3 天)
-  - OpenBBProvider 服务
-  - 多数据源降级策略
+- [x] 任务 1.3: MultiSourceProvider 多源降级
+  - 支持 yfinance/akshare/mock 数据源
+  - 自动降级策略
   - 错误处理与缓存
 
-#### Phase 2: 分析引擎 (Week 3-4, 约 10-13 天)
-- [ ] 任务 2.1: 财务分析模块 (3-4 天)
-  - 盈利能力/成长能力/偿债能力/现金流分析
-  - 财务健康度评分
+#### Phase 2: 分析引擎 (Week 3-4) ✅ 已完成
+- [x] 任务 2.1: 财务分析模块 - FinancialAnalyzer
+  - 五维分析: 盈利能力/成长能力/偿债能力/运营效率/现金流
+  - 多权重评分系统 (30%/25%/20%/15%/10%)
+  - HealthLevel 财务健康度等级
+  - Commit: b78ff52
 
-- [ ] 任务 2.2: 估值分析模块 (3-4 天)
-  - 相对估值 (PE/PB/PS)
-  - 行业对比 + 历史估值
-  - DCF 简化模型
+- [x] 任务 2.2: 估值分析模块 - ValuationAnalyzer
+  - 相对估值 (PE/PB/PS/EV-EBITDA/PEG)
+  - 历史估值分位对比
+  - 行业估值对比 + 溢价/折价计算
+  - 简化 DCF 模型 + 敏感性分析
 
-- [ ] 任务 2.3: 情绪分析模块 (4-5 天, P2 可延后)
-  - 社交媒体抓取
-  - NLP 情感分类
-  - 情绪指数计算
+- [x] 任务 2.3: 技术指标模块 - TechnicalIndicators
+  - 趋势指标 (MACD, SMA/EMA, ADX)
+  - 动量指标 (RSI, KDJ, Williams %R, CCI, ROC)
+  - 波动率指标 (布林带, ATR)
+  - 支撑/阻力位检测
 
-#### Phase 3: Vibe UI (Week 5-6, 约 10-13 天)
-- [ ] 任务 3.1: 股票分析报告页面 (5-6 天)
-  - 三栏布局 (左导航 + 中报告 + 右实时流)
-  - MetricCard/ValuationTable/SentimentRadar 组件
+#### Phase 3: Vibe UI (Week 5-6) ✅ 已完成
+- [x] 任务 3.1: 股票分析报告页面
+  - 两栏布局 (左分析 + 右情绪)
+  - FinancialAnalysisCard, ValuationCard, TechnicalAnalysisCard 组件
+  - 一键分析按钮 + 综合分析 API
+  - Commit: 8a1272b
 
-- [ ] 任务 3.2: 实时数据流右侧栏 (3-4 天)
-  - K 线图 (Lightweight Charts)
-  - 价格跳动动画
-  - 最新消息流
+- [x] 任务 3.2: K 线图 + 舆情叠加
+  - CombinedChart 组件 (ECharts K线 + 成交量 + 舆情曲线)
+  - 时间范围选择器 (1周/1月/3月/6月/1年)
 
-- [ ] 任务 3.3: AI 研究助手交互 (2-3 天)
-  - 卡片式对话框
-  - 预设问题 + 追问功能
+- [x] 任务 3.3: AI 研究助手交互
+  - ResearchAssistant 组件 (597 行)
+  - 智能预设问题 (根据股票动态生成)
+  - 对话历史 + 追问建议 + 导出功能
 
 #### Phase 4: 测试优化 (Week 7-8, 约 5-7 天)
 - [ ] 任务 4.1: E2E 测试 (3-4 天)

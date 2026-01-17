@@ -144,3 +144,4 @@ If working on financial features:
 - Large results → file system, context only gets summary
 - Context > 50K tokens → auto-summarize
 - Plans/TODOs always appended to context end
+- **规则同步**: 所有项目规则变动必须更新到 AGENTS.md，确保其他 Coding Agent 可理解本项目

@@ -151,6 +151,19 @@
           :is-loading="store.sentimentLoading"
           :error="store.sentimentError"
         />
+        
+        <!-- AI 研究助手 -->
+        <ResearchAssistant
+          :symbol="store.stockInfo?.symbol"
+          :stock-name="store.stockInfo?.name"
+          :stock-info="store.stockInfo"
+          :analysis-results="{
+            financial: store.financialAnalysis,
+            valuation: store.valuationAnalysis,
+            technical: store.technicalAnalysis,
+          }"
+          @ask="handleAssistantAsk"
+        />
       </div>
     </main>
 
@@ -176,6 +189,7 @@ import ComparisonCard from '@/components/financial/ComparisonCard.vue'
 import FinancialAnalysisCard from '@/components/financial/FinancialAnalysisCard.vue'
 import ValuationCard from '@/components/financial/ValuationCard.vue'
 import TechnicalAnalysisCard from '@/components/financial/TechnicalAnalysisCard.vue'
+import ResearchAssistant from '@/components/financial/ResearchAssistant.vue'
 
 const store = useFinancialStore()
 
@@ -295,6 +309,12 @@ const isAnalyzing = computed(() => {
 async function runAnalysis() {
   if (!store.stockInfo?.symbol) return
   await store.runComprehensiveAnalysis(store.stockInfo.symbol)
+}
+
+// AI 助手交互
+function handleAssistantAsk(question: string) {
+  console.log('User asked:', question)
+  // 未来可以集成到后端 AI 服务
 }
 </script>
 
