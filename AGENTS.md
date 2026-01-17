@@ -61,6 +61,7 @@ Co-Authored-By: Warp <agent@warp.dev>
 ```
 
 **Rules:**
+- **Auto-commit**: 完成任务后自动提交代码，无需等待用户确认
 - Commit after completing each component/bug fix/TODO item
 - Always include co-author line
 - Run lint and tests before committing
