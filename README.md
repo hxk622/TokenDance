@@ -256,7 +256,22 @@ npm run dev
 - Intelligent information aggregation and deduplication  
 - **Citation tracking** for every conclusion (e.g., `[1][2]` references)
 - Read-then-Summarize pattern to prevent context explosion
+- **Document upload analysis** (PDF, Excel, Word, CSV, JSON, etc.)
 - Export to Markdown/PDF
+
+### 📄 Document Intelligence (MarkItDown Integration)
+
+- **14+ file formats supported**: PDF, DOCX, PPTX, XLSX, CSV, JSON, XML, HTML, TXT, MD, ZIP, and images
+- **Automatic Markdown conversion** for seamless LLM analysis
+- **Smart context management**: 50K character limit to prevent context explosion
+- **Financial data extraction**: Auto-detect key metrics (revenue, profit, margin, etc.)
+- **Vision capability**: Image description via OpenRouter/Claude integration
+- **Lazy initialization**: MarkItDown loads on first use for optimized startup
+
+**Use Cases**:
+- Upload quarterly earnings Excel → Get structured financial analysis
+- Upload industry report PDF → Extract trends + Web search for latest updates
+- Upload multiple docs → Unified format for competitive analysis
 
 ### 🎨 AI PPT Generation
 
@@ -431,6 +446,7 @@ See [docs/plans/](docs/plans/) for detailed milestones.
 - [Skill Design](docs/modules/Skill-Design.md)
 - [Tool System](docs/modules/Tool-Use.md)
 - [FileSystem](docs/modules/FileSystem.md)
+- [MarkItDown Integration](docs/modules/MarkItDown-Integration.md) - Document conversion for LLM
 
 ## 🤝 Contributing
 
