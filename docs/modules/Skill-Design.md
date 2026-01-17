@@ -1,7 +1,7 @@
 # TokenDance Skill系统设计
 
-> Version: 1.0.0 | MVP阶段
-> Last Updated: 2026-01-08
+> Version: 1.1.0 | MVP阶段
+> Last Updated: 2026-01-17
 
 ## 1. 设计目标
 
@@ -799,3 +799,114 @@ async def test_skill_load():
 - [LLD文档](../architecture/LLD.md)
 - [Memory设计](./Memory-Design.md)
 - [Sandbox设计](./Sandbox-Design.md)
+
+---
+
+## 7. 实现状态与待完成工作 (2026-01-17)
+
+### 7.1 当前 Skill 清单
+
+#### 一级 builtin skill（6个）
+| Skill ID | 显示名 | 状态 | 说明 |
+|----------|--------|------|------|
+| deep_research | 深度研究 | ✅ L1+L2 | 有 templates.yaml |
+| ppt | PPT生成 | ✅ L1+L2 | 有 templates.yaml |
+| image_generation | 图片生成 | ✅ L1+L2 | - |
+| frontend-design | 前端设计 | ✅ L1+L2 | - |
+| planning-with-files | 三文件规划法 | ✅ L1+L2 | - |
+| ui-ux-pro-max | UI/UX Pro Max | ✅ L1+L2 | - |
+
+#### Scientific skills（139个）
+按分类：visualization (5)、database (13+)、data-science、biology、chemistry、physics、clinical 等
+
+### 7.2 核心组件状态
+
+| 组件 | 文件 | 状态 | 说明 |
+|------|------|------|------|
+| SkillRegistry | `registry.py` | ✅ 完成 | 启动时扫描加载所有 SKILL.md |
+| SkillMatcher | `matcher.py` | ✅ 完成 | 关键词 + Embedding + LLM Rerank |
+| SkillLoader | `loader.py` | ✅ 完成 | L2/L3 内容加载、缓存 |
+| SkillExecutor | `executor.py` | ✅ 完成 | L3 脚本执行框架 |
+| Embedding | `embedding.py` | ✅ 完成 | SentenceTransformer (all-MiniLM-L6-v2) |
+| TemplateRegistry | `template_registry.py` | ✅ 完成 | 模板管理 |
+| ExecutionRouter | `routing/router.py` | ⚠️ 有Bug | 见下方问题 |
+| API 端点 | `api/v1/skills.py` | ✅ 完成 | Skill/模板/场景 API |
+| Agent 集成 | `agent/engine.py` | ✅ 完成 | 完整的混合执行路由 |
+| 测试 | `tests/test_skill_system.py` | ✅ 基础 | 覆盖 Registry/Matcher/Loader |
+
+### 7.3 🚨 待完成工作（按优先级）
+
+#### P0 - 阻塞自动化执行
+
+**1. 所有 Skill 缺少 `execute.py`（L3 脚本）**
+```
+问题：145+ 个 Skill 都没有 resources/execute.py
+影响：SkillExecutor.can_execute() 始终返回 False
+      导致 Skill 只能注入 L2 指令，无法自动化执行任务
+解决：为核心 Skill（deep_research, ppt 等）实现 execute.py
+```
+
+**2. ExecutionRouter 同步调用异步方法 Bug**
+```python
+# router.py:129 - 错误代码
+skill_match = self.skill_matcher.match(user_message)  # match() 是 async!
+
+# 修复方案：将 route() 改为 async，或创建同步匹配方法
+```
+
+#### P1 - 提升触发准确性
+
+**3. 增加更多测试用例验证匹配准确性**
+```
+当前匹配策略：
+- 关键词匹配：基于 tags 和 display_name（权重 0.3-0.4）
+- Embedding 匹配：SentenceTransformer 语义相似度
+- 阈值：默认 0.7，路由时用 0.85
+
+建议：
+- 创建 benchmark 测试集
+- 评估不同阈值的 precision/recall
+- 考虑添加 few-shot examples 提升匹配
+```
+
+**4. 为更多 Skill 添加 templates.yaml**
+```
+当前只有 deep_research 和 ppt 有模板
+建议为 scientific skills 中的高频使用 Skill 添加模板
+```
+
+#### P2 - 增强功能
+
+**5. 实现 Skill 热重载**
+```
+当前需重启服务才能加载新 Skill
+可通过文件监听实现热重载
+```
+
+**6. Skill 执行监控和统计**
+```
+- 执行成功率
+- 平均耗时
+- Token 消耗
+```
+
+### 7.4 Skill 触发准确性分析
+
+**匹配流程**：
+```
+用户消息 → 关键词初筛 → Embedding 语义匹配 → (可选) LLM Rerank → 阈值过滤
+```
+
+**当前阈值设置**：
+- `SkillMatch.is_confident()`: 默认 0.7 或 Skill 自定义
+- `ExecutionRouter.skill_confidence_threshold`: 0.85（更严格）
+
+**评估**：
+- 关键词匹配：快速但依赖 tags 质量
+- Embedding 匹配：语义理解较好，但中英文混合场景可能不够准确
+- LLM Rerank：默认关闭，开启后准确性最高但增加延迟和成本
+
+**建议优化**：
+1. 丰富 Skill 的 tags 和 description
+2. 考虑使用多语言 Embedding 模型（如 multilingual-MiniLM）
+3. 对高频 Skill 调优 match_threshold

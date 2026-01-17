@@ -112,7 +112,7 @@ class ExecutionRouter:
             f"structured_threshold={structured_task_confidence}"
         )
 
-    def route(self, user_message: str) -> RoutingDecision:
+    async def route(self, user_message: str) -> RoutingDecision:
         """
         核心路由逻辑：根据用户消息决定执行路径
         
@@ -126,7 +126,7 @@ class ExecutionRouter:
         
         # Step 1: 尝试 Skill 匹配
         if self.skill_matcher:
-            skill_match = self.skill_matcher.match(user_message)
+            skill_match = await self.skill_matcher.match(user_message)
             if skill_match and skill_match.score >= self.skill_confidence_threshold:
                 # 验证 Skill 是否可执行
                 if self._can_execute_skill(skill_match.skill_id):

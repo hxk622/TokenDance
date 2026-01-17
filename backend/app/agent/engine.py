@@ -847,7 +847,7 @@ class AgentEngine:
         
         try:
             # Step 1: 路由决策
-            routing_decision = self.execution_router.route(user_message)
+            routing_decision = await self.execution_router.route(user_message)
             logger.info(
                 f"Execution path selected: {routing_decision.path.value} "
                 f"(confidence={routing_decision.confidence:.2f}, reason={routing_decision.reason})"
