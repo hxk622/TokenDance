@@ -25,6 +25,24 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/auth/wechat/callback',
+    name: 'WeChatCallback',
+    component: () => import('@/views/LoginView.vue'),
+    meta: {
+      title: 'WeChat Login - TokenDance',
+      requiresAuth: false
+    }
+  },
+  {
+    path: '/auth/gmail/callback',
+    name: 'GmailCallback',
+    component: () => import('@/views/LoginView.vue'),
+    meta: {
+      title: 'Gmail Login - TokenDance',
+      requiresAuth: false
+    }
+  },
+  {
     path: '/',
     name: 'Home',
     component: () => import('@/views/HomeView.vue'),
