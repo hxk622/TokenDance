@@ -347,6 +347,7 @@ docs/
 - `docs/modules/Planning.md` - 原子化拆分
 - `docs/modules/Tool-Use.md` - 工具使用闭环
 - `docs/modules/Context-Graph.md` - 决策轨迹记录
+- `docs/modules/MarkItDown-Integration.md` - 文档转换集成 🆕
 
 ## 测试文件规范
 

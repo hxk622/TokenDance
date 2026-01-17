@@ -1,11 +1,11 @@
 ---
 name: deep_research
 display_name: 深度研究
-description: 深度研究能力，支持多源搜索、信息聚合、引用回溯。适用于市场调研、竞品分析、学术研究、技术选型等场景。能够系统性地搜集、整理、分析信息，生成带引用的结构化报告。支持浏览器自动化，可访问动态网页和需要登录的平台。
-version: 1.1.0
+description: 深度研究能力，支持多源搜索、信息聚合、引用回溯、文档上传分析。适用于市场调研、竞品分析、学术研究、技术选型、金融投研等场景。支持上传 PDF/Excel/Word 等文档，自动转换并提取关键信息。
+version: 1.2.0
 author: system
-tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑, 金融, finance, 投研, 股票, stock, 财报, 行业分析, 估值, investment]
-allowed_tools: [web_search, read_url, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close]
+tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑, 金融, finance, 投研, 股票, stock, 财报, 行业分析, 估值, investment, document, pdf, excel, 文档, 上传]
+allowed_tools: [web_search, read_url, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close, file_converter]
 max_iterations: 30
 timeout: 600
 enabled: true
@@ -22,8 +22,18 @@ priority: 10
 - 自动评估来源可信度
 - 支持多维度拆解复杂主题
 - 交叉验证关键数据
+- **支持文档上传**: 自动转换 PDF/Excel/Word 等文件为 Markdown
 
 ## 工作流程
+
+### Phase 0: 文档预处理（如有上传）
+当用户上传文档时，优先处理：
+1. 检测附件类型（PDF/Excel/Word/CSV 等）
+2. 使用 `file_converter` 工具转换为 Markdown
+3. 提取关键信息并注入 Context
+4. 对于财报等结构化数据，自动识别关键指标
+
+> 详见 L3 资源：`resources/document_upload_guide.md`
 
 ### Phase 1: 需求澄清
 与用户确认研究主题、深度、范围：
@@ -125,6 +135,28 @@ read_url(url="https://example.com/article")
 - `title`: 报告标题
 - `content`: Markdown 格式内容
 - `format`: 输出格式（markdown）
+
+### file_converter
+**用途**：将上传文件转换为 Markdown
+
+**参数**：
+- `file_path`: 文件路径（绝对或相对）
+- `extract_images`: 是否提取图片描述（默认 false）
+
+**支持格式**：
+- **办公文档**: PDF, DOCX, PPTX, XLSX, XLS
+- **结构化数据**: CSV, JSON, XML
+- **文本**: TXT, MD, HTML
+- **图片**: JPG, PNG (需 Vision LLM)
+- **压缩包**: ZIP (递归处理)
+
+**示例**：
+```python
+file_converter(file_path="/workspace/uploads/2024Q3_财报.xlsx")
+file_converter(file_path="/workspace/uploads/行业报告_2024.pdf")
+```
+
+> 详见 L3 资源：`resources/document_upload_guide.md`
 
 ### browser_* 系列（浏览器自动化）
 
