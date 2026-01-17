@@ -55,6 +55,14 @@ from app.services.financial.technical import (
     get_technical_indicators,
 )
 
+from app.services.financial.cache import (
+    AnalysisCache,
+    get_analysis_cache,
+    run_parallel_analysis,
+    benchmark_analysis,
+    CACHE_TTL,
+)
+
 __all__ = [
     # Financial Analysis
     "FinancialAnalyzer",
@@ -84,4 +92,10 @@ __all__ = [
     "VolumeIndicators",
     "TrendSignal",
     "get_technical_indicators",
+    # Cache & Performance
+    "AnalysisCache",
+    "get_analysis_cache",
+    "run_parallel_analysis",
+    "benchmark_analysis",
+    "CACHE_TTL",
 ]

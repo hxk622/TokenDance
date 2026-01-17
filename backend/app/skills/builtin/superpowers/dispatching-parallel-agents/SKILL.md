@@ -1,6 +1,16 @@
 ---
 name: dispatching-parallel-agents
-description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+display_name: 并行Agent调度
+version: 1.0.0
+author: system
+description: "当面临 2+ 个独立任务时使用，这些任务可以并行处理，无共享状态或顺序依赖。Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. Dispatch one agent per independent problem domain."
+tags: [parallel, agents, dispatch, concurrent, multi-task, 并行, 调度, 并发, 多任务, subagent, 子Agent]
+allowed_tools: []
+max_iterations: 20
+timeout: 300
+enabled: true
+match_threshold: 0.70
+priority: 7
 ---
 
 # Dispatching Parallel Agents

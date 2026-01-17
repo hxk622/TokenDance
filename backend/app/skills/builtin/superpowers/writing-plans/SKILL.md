@@ -1,6 +1,16 @@
 ---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching code
+display_name: 编写计划
+version: 1.0.0
+author: system
+description: "当有多步骤任务的规格或需求时使用，在动代码之前。编写全面的实施计划，假设工程师对代码库零上下文。Use when you have a spec or requirements for a multi-step task, before touching code. Write comprehensive implementation plans."
+tags: [plan, planning, 计划, 规划, implementation, 实施, spec, 规格, design, 设计, task, 任务]
+allowed_tools: []
+max_iterations: 20
+timeout: 300
+enabled: true
+match_threshold: 0.65
+priority: 8
 ---
 
 # Writing Plans

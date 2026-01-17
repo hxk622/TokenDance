@@ -1,6 +1,16 @@
 ---
 name: verification-before-completion
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+display_name: 完成前验证
+version: 1.0.0
+author: system
+description: "在声称工作完成、修复或通过之前使用，在提交或创建 PR 之前。需要运行验证命令并确认输出后才能声称成功。证据先于断言。Use when about to claim work is complete - evidence before assertions always."
+tags: [verification, verify, complete, 验证, 完成, test, 测试, check, 检查, evidence, 证据]
+allowed_tools: []
+max_iterations: 15
+timeout: 300
+enabled: true
+match_threshold: 0.65
+priority: 8
 ---
 
 # Verification Before Completion

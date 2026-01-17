@@ -1,6 +1,16 @@
 ---
 name: subagent-driven-development
-description: Use when executing implementation plans with independent tasks in the current session
+display_name: 子Agent驱动开发
+version: 1.0.0
+author: system
+description: "在当前会话中执行包含独立任务的实施计划时使用。每个任务派送新的子Agent，并进行两阶段审查。Use when executing implementation plans with independent tasks - dispatch fresh subagent per task + two-stage review (spec then quality)."
+tags: [subagent, agent, development, 开发, 子Agent, dispatch, 派送, parallel, 并行, task, 任务]
+allowed_tools: []
+max_iterations: 30
+timeout: 600
+enabled: true
+match_threshold: 0.70
+priority: 7
 ---
 
 # Subagent-Driven Development

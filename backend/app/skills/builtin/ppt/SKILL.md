@@ -9,7 +9,7 @@ allowed_tools: [generate_ppt_outline, fill_ppt_content, render_ppt, export_ppt]
 max_iterations: 15
 timeout: 300
 enabled: true
-match_threshold: 0.7
+match_threshold: 0.65
 priority: 8
 ---
 

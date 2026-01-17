@@ -298,22 +298,21 @@ class TestComprehensiveAnalysisAPI:
         mock_technical_result
     ):
         """测试综合分析成功"""
-        with patch('app.api.v1.financial._get_financial_analyzer') as mock_fin, \
-             patch('app.api.v1.financial._get_valuation_analyzer') as mock_val, \
-             patch('app.api.v1.financial._get_technical_indicators') as mock_tech:
-            
-            # 设置 mock
-            mock_fin_analyzer = MagicMock()
-            mock_fin_analyzer.analyze = AsyncMock(return_value=mock_financial_result)
-            mock_fin.return_value = mock_fin_analyzer
-            
-            mock_val_analyzer = MagicMock()
-            mock_val_analyzer.analyze = AsyncMock(return_value=mock_valuation_result)
-            mock_val.return_value = mock_val_analyzer
-            
-            mock_tech_service = MagicMock()
-            mock_tech_service.analyze = AsyncMock(return_value=mock_technical_result)
-            mock_tech.return_value = mock_tech_service
+        # 直接 mock run_parallel_analysis 返回结果
+        mock_result = {
+            "symbol": "AAPL",
+            "market": "us",
+            "financial": mock_financial_result.to_dict(),
+            "valuation": mock_valuation_result.to_dict(),
+            "technical": mock_technical_result.to_dict(),
+            "summary": "财务状况良好",
+            "generated_at": "2026-01-17T00:00:00",
+            "cache_hits": [],
+            "elapsed_seconds": 0.5,
+        }
+        
+        with patch('app.services.financial.cache.run_parallel_analysis', new_callable=AsyncMock) as mock_parallel:
+            mock_parallel.return_value = mock_result
             
             response = client.post(
                 "/api/v1/financial/analysis/comprehensive",
@@ -339,17 +338,20 @@ class TestComprehensiveAnalysisAPI:
         mock_valuation_result
     ):
         """测试不包含技术分析的综合分析"""
-        with patch('app.api.v1.financial._get_financial_analyzer') as mock_fin, \
-             patch('app.api.v1.financial._get_valuation_analyzer') as mock_val, \
-             patch('app.api.v1.financial._get_technical_indicators') as mock_tech:
-            
-            mock_fin_analyzer = MagicMock()
-            mock_fin_analyzer.analyze = AsyncMock(return_value=mock_financial_result)
-            mock_fin.return_value = mock_fin_analyzer
-            
-            mock_val_analyzer = MagicMock()
-            mock_val_analyzer.analyze = AsyncMock(return_value=mock_valuation_result)
-            mock_val.return_value = mock_val_analyzer
+        mock_result = {
+            "symbol": "AAPL",
+            "market": "us",
+            "financial": mock_financial_result.to_dict(),
+            "valuation": mock_valuation_result.to_dict(),
+            "technical": None,
+            "summary": "",
+            "generated_at": "2026-01-17T00:00:00",
+            "cache_hits": [],
+            "elapsed_seconds": 0.3,
+        }
+        
+        with patch('app.services.financial.cache.run_parallel_analysis', new_callable=AsyncMock) as mock_parallel:
+            mock_parallel.return_value = mock_result
             
             response = client.post(
                 "/api/v1/financial/analysis/comprehensive",
@@ -359,9 +361,12 @@ class TestComprehensiveAnalysisAPI:
         assert response.status_code == 200
         data = response.json()
         
-        # 技术分析不应该被调用
-        mock_tech.assert_not_called()
+        # 结果中技术分析应为 None
         assert data["data"]["technical"] is None
+        # 确认调用时 include_technical=False
+        mock_parallel.assert_called_once()
+        call_kwargs = mock_parallel.call_args[1]
+        assert call_kwargs["include_technical"] is False
     
     def test_comprehensive_analysis_partial_failure(
         self, 
@@ -369,24 +374,21 @@ class TestComprehensiveAnalysisAPI:
         mock_financial_result
     ):
         """测试综合分析部分失败"""
-        with patch('app.api.v1.financial._get_financial_analyzer') as mock_fin, \
-             patch('app.api.v1.financial._get_valuation_analyzer') as mock_val, \
-             patch('app.api.v1.financial._get_technical_indicators') as mock_tech:
-            
-            # 财务分析成功
-            mock_fin_analyzer = MagicMock()
-            mock_fin_analyzer.analyze = AsyncMock(return_value=mock_financial_result)
-            mock_fin.return_value = mock_fin_analyzer
-            
-            # 估值分析失败
-            mock_val_analyzer = MagicMock()
-            mock_val_analyzer.analyze = AsyncMock(side_effect=Exception("Valuation Failed"))
-            mock_val.return_value = mock_val_analyzer
-            
-            # 技术分析失败
-            mock_tech_service = MagicMock()
-            mock_tech_service.analyze = AsyncMock(side_effect=Exception("Technical Failed"))
-            mock_tech.return_value = mock_tech_service
+        # 模拟部分分析失败的情况
+        mock_result = {
+            "symbol": "AAPL",
+            "market": "us",
+            "financial": mock_financial_result.to_dict(),
+            "valuation": {"error": "Valuation Failed"},
+            "technical": {"error": "Technical Failed"},
+            "summary": "",
+            "generated_at": "2026-01-17T00:00:00",
+            "cache_hits": [],
+            "elapsed_seconds": 0.2,
+        }
+        
+        with patch('app.services.financial.cache.run_parallel_analysis', new_callable=AsyncMock) as mock_parallel:
+            mock_parallel.return_value = mock_result
             
             response = client.post(
                 "/api/v1/financial/analysis/comprehensive",
@@ -399,8 +401,8 @@ class TestComprehensiveAnalysisAPI:
         # 即使部分失败，也应该返回成功
         assert data["success"] is True
         assert data["data"]["financial"] is not None
-        assert data["data"]["valuation"]["error"] == "Valuation Failed"
-        assert data["data"]["technical"]["error"] == "Technical Failed"
+        assert data["data"]["valuation"].get("error") == "Valuation Failed"
+        assert data["data"]["technical"].get("error") == "Technical Failed"
 
 
 # ============================================================

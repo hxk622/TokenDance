@@ -1,6 +1,16 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+display_name: 完成开发分支
+version: 1.0.0
+author: system
+description: "当实现完成、所有测试通过，需要决定如何集成工作时使用。通过展示 merge、PR 或 cleanup 的结构化选项来引导完成开发工作。Use when implementation is complete, all tests pass, and you need to decide how to integrate the work."
+tags: [git, branch, merge, pr, pull-request, finish, complete, 分支, 合并, 完成, cleanup, 清理]
+allowed_tools: []
+max_iterations: 15
+timeout: 300
+enabled: true
+match_threshold: 0.70
+priority: 6
 ---
 
 # Finishing a Development Branch

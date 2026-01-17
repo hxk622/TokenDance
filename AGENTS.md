@@ -107,6 +107,54 @@ For complex tasks, use these files in `docs/milestone/current/`:
 **Suggestion**: ...
 ```
 
+## Development Skills (开发技能)
+
+### 🔍 Systematic Debugging (系统化调试)
+
+**铁律**: 不找到根因不提 Fix
+
+**四阶段流程**:
+1. **Root Cause** - 读错误、复现、查 git diff、追踪数据流
+2. **Pattern** - 找工作的例子，对比差异
+3. **Hypothesis** - 单一假设，最小改动验证
+4. **Implementation** - 先写失败测试，再修复
+
+**3 次失败后**: 停下来质疑架构，不要继续猜
+
+### ✅ TDD (测试驱动开发)
+
+**铁律**: 没有失败的测试，不写实现代码
+
+**红绿重构循环**:
+1. **RED** - 写失败测试，运行确认失败
+2. **GREEN** - 写最小实现，运行确认通过
+3. **REFACTOR** - 重构，保持绿色
+
+**禁止**: 先写代码后补测试、测试立即通过、"就这一次跳过"
+
+### 🎯 Verification Before Completion (完成前验证)
+
+**铁律**: 证据先于断言
+
+**流程**:
+1. 识别验证命令 (什么证明完成?)
+2. 运行完整命令 (不是"应该行")
+3. 读完整输出 + 检查 exit code
+4. 确认后才能宣称完成
+
+**禁止词汇**: "should", "probably", "seems to", "应该没问题了"
+
+### 🎨 UI/UX Pre-Delivery Checklist
+
+提交前检查:
+- [ ] 无 emoji 图标 (用 Lucide Icons)
+- [ ] 所有可点击元素有 `cursor-pointer`
+- [ ] 浅色模式对比度 ≥ 4.5:1
+- [ ] 过渡 200-300ms
+- [ ] 响应式: 375px / 768px / 1024px
+
+---
+
 ## UI/UX Constraints
 
 **禁止 (DO NOT):**
@@ -138,6 +186,31 @@ If working on financial features:
 - ❌ No return promises
 - ❌ No insider information
 
+## Documentation Maintenance (文档维护原则)
+
+**核心原则**: 文档要压缩和变更，不要只追加内容
+
+**DO:**
+- ✅ 更新文档时，先审视现有内容是否需要合并/删除
+- ✅ 相似内容合并到一处，避免重复
+- ✅ 过时内容及时删除或标记 deprecated
+- ✅ 保持文档结构清晰，层级不超过 3 级
+- ✅ 每个文档控制在合理长度（建议 < 500 行）
+
+**DON'T:**
+- ❌ 只追加不删除，导致文档膨胀
+- ❌ 同一信息在多处重复
+- ❌ 保留过时/冲突的内容
+- ❌ 无限嵌套的目录结构
+
+**变更时检查清单:**
+1. 是否有可以合并的相似章节？
+2. 是否有过时需要删除的内容？
+3. 新增内容是否与现有内容冲突？
+4. 文档长度是否仍在合理范围？
+
+---
+
 ## Reminders
 
 - Context Graph records all decision traces
@@ -145,3 +218,4 @@ If working on financial features:
 - Context > 50K tokens → auto-summarize
 - Plans/TODOs always appended to context end
 - **规则同步**: 所有项目规则变动必须更新到 AGENTS.md，确保其他 Coding Agent 可理解本项目
+- **文档维护**: 更新文档时要压缩和变更，不要只追加内容，防止文档爆炸和内容混乱

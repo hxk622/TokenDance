@@ -44,25 +44,32 @@ class BaseEmbedding(ABC):
 class SentenceTransformerEmbedding(BaseEmbedding):
     """基于 sentence-transformers 的本地 Embedding
     
-    使用 all-MiniLM-L6-v2 模型：
+    默认使用 paraphrase-multilingual-MiniLM-L12-v2 模型：
     - 完全免费，本地运行
-    - 模型小（~80MB），加载快
+    - 支持 50+ 语言（包括中文、英文）
     - 384 维向量
-    - 多语言支持
+    - 中英文混合场景效果更好
+    
+    备选模型：
+    - all-MiniLM-L6-v2: 更小更快，但中文效果较差
+    - paraphrase-multilingual-mpnet-base-v2: 更大更准，但更慢
     """
+
+    # 默认模型：多语言支持，中英文效果都很好
+    DEFAULT_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
     def __init__(
         self,
-        model_name: str = "all-MiniLM-L6-v2",
+        model_name: Optional[str] = None,
         device: Optional[str] = None,
     ):
         """初始化
         
         Args:
-            model_name: 模型名称，默认 all-MiniLM-L6-v2
+            model_name: 模型名称，默认 paraphrase-multilingual-MiniLM-L12-v2
             device: 运行设备，None 表示自动选择（优先 GPU）
         """
-        self.model_name = model_name
+        self.model_name = model_name or self.DEFAULT_MODEL
         self.device = device
         self._model = None
         self._initialized = False
@@ -159,6 +166,8 @@ def get_embedding_model() -> BaseEmbedding:
     """获取全局 Embedding 模型单例
     
     默认使用 SentenceTransformerEmbedding（免费本地方案）
+    模型: paraphrase-multilingual-MiniLM-L12-v2
+    支持 50+ 语言，中英文混合场景效果更好
     """
     global _embedding_model
     if _embedding_model is None:

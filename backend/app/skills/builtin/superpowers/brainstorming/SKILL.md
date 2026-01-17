@@ -1,6 +1,16 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+display_name: 头脑风暴
+version: 1.0.0
+author: system
+description: "创意工作前的必备技能 - 用于探索用户意图、需求和设计。适用于创建功能、构建组件、添加新特性或修改行为。You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior."
+tags: [brainstorm, ideation, design, creative, thinking, planning, 头脑风暴, 创意, 设计, 思考, 规划, feature, requirements, 需求分析]
+allowed_tools: []
+max_iterations: 20
+timeout: 300
+enabled: true
+match_threshold: 0.65
+priority: 8
 ---
 
 # Brainstorming Ideas Into Designs

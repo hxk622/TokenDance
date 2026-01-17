@@ -1,6 +1,16 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+display_name: 请求代码审查
+version: 1.0.0
+author: system
+description: "完成任务、实现主要功能或合并前使用，验证工作是否满足要求。Use when completing tasks, implementing major features, or before merging to verify work meets requirements. Review early, review often."
+tags: [code-review, review, request, 代码审查, 请求审查, merge, 合并, quality, 质量]
+allowed_tools: []
+max_iterations: 15
+timeout: 300
+enabled: true
+match_threshold: 0.70
+priority: 6
 ---
 
 # Requesting Code Review

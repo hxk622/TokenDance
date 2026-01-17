@@ -444,62 +444,28 @@ async def run_comprehensive_analysis(request: ComprehensiveAnalysisRequest):
     """
     运行综合分析（财务 + 估值 + 技术）。
     
-    一次性运行所有分析模块，返回综合结果。
+    使用并行执行和缓存优化，将总耗时从 T1+T2+T3 优化为 max(T1,T2,T3)。
     
     Returns:
     - financial: 财务分析结果
     - valuation: 估值分析结果
     - technical: 技术分析结果 (若 include_technical=true)
     - summary: 综合摘要
+    - elapsed_seconds: 执行耗时
+    - cache_hits: 缓存命中列表
     """
     try:
+        from app.services.financial.cache import run_parallel_analysis
+        
         market = request.market or _detect_market(request.symbol)
         
-        results = {
-            "symbol": request.symbol,
-            "market": market,
-            "financial": None,
-            "valuation": None,
-            "technical": None,
-            "summary": "",
-            "generated_at": datetime.now().isoformat(),
-        }
-        
-        # 运行财务分析
-        try:
-            financial_analyzer = _get_financial_analyzer()
-            financial_result = await financial_analyzer.analyze(request.symbol, market)
-            results["financial"] = financial_result.to_dict()
-        except Exception as e:
-            results["financial"] = {"error": str(e)}
-        
-        # 运行估值分析
-        try:
-            valuation_analyzer = _get_valuation_analyzer()
-            valuation_result = await valuation_analyzer.analyze(request.symbol, market)
-            results["valuation"] = valuation_result.to_dict()
-        except Exception as e:
-            results["valuation"] = {"error": str(e)}
-        
-        # 运行技术分析
-        if request.include_technical:
-            try:
-                technical_service = _get_technical_indicators()
-                technical_result = await technical_service.analyze(request.symbol, market)
-                results["technical"] = technical_result.to_dict()
-            except Exception as e:
-                results["technical"] = {"error": str(e)}
-        
-        # 生成综合摘要
-        summaries = []
-        if results["financial"] and not results["financial"].get("error"):
-            summaries.append(results["financial"].get("summary", ""))
-        if results["valuation"] and not results["valuation"].get("error"):
-            summaries.append(results["valuation"].get("summary", ""))
-        if results["technical"] and not results["technical"].get("error"):
-            summaries.append(results["technical"].get("summary", ""))
-        
-        results["summary"] = " ".join(filter(None, summaries))
+        # 使用优化的并行分析
+        results = await run_parallel_analysis(
+            symbol=request.symbol,
+            market=market,
+            include_technical=request.include_technical,
+            use_cache=True,  # 启用缓存
+        )
         
         return {
             "success": True,

@@ -1,6 +1,16 @@
 ---
 name: executing-plans
-description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+display_name: 执行计划
+version: 1.0.0
+author: system
+description: "当有书面实施计划需要执行时使用，在单独会话中执行并设置审查检查点。Use when you have a written implementation plan to execute in a separate session with review checkpoints. Batch execution with checkpoints for architect review."
+tags: [execute, plan, implementation, execution, 执行, 计划, 实施, checkpoint, 检查点, review, 审查]
+allowed_tools: []
+max_iterations: 30
+timeout: 600
+enabled: true
+match_threshold: 0.65
+priority: 7
 ---
 
 # Executing Plans

@@ -1,6 +1,16 @@
 ---
 name: systematic-debugging
-description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+display_name: 系统化调试
+version: 1.0.0
+author: system
+description: "遇到任何 bug、测试失败或意外行为时使用，在提出修复方案之前进行系统化调试。Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes. Follow the four phases: Root Cause Investigation, Pattern Analysis, Hypothesis Testing, Implementation."
+tags: [debug, debugging, bug, fix, troubleshoot, error, 调试, 排查, 错误, bug修复, root-cause, 根因分析, test-failure, 测试失败]
+allowed_tools: []
+max_iterations: 30
+timeout: 600
+enabled: true
+match_threshold: 0.65
+priority: 9
 ---
 
 # Systematic Debugging

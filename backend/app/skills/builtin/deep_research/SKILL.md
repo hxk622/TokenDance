@@ -9,7 +9,7 @@ allowed_tools: [web_search, read_url, create_document, browser_open, browser_sna
 max_iterations: 30
 timeout: 600
 enabled: true
-match_threshold: 0.7
+match_threshold: 0.65
 priority: 10
 ---
 

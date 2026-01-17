@@ -1,6 +1,16 @@
 ---
 name: test-driven-development
-description: Use when implementing any feature or bugfix, before writing implementation code
+display_name: 测试驱动开发
+version: 1.0.0
+author: system
+description: "实现任何功能或修复 bug 时使用，在编写实现代码之前先写测试。Use when implementing any feature or bugfix - write the test first, watch it fail, write minimal code to pass. TDD 红绿重构循环。"
+tags: [tdd, test, testing, unit-test, 测试, 测试驱动, 单元测试, red-green-refactor, 红绿重构, development, 开发]
+allowed_tools: []
+max_iterations: 25
+timeout: 300
+enabled: true
+match_threshold: 0.65
+priority: 8
 ---
 
 # Test-Driven Development (TDD)

@@ -1,6 +1,16 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+display_name: 使用超能力
+version: 1.0.0
+author: system
+description: "开始任何对话时使用 - 确立如何查找和使用技能。在任何响应之前（包括澄清问题）都需要调用 Skill 工具。Use when starting any conversation - establishes how to find and use skills. If a skill might apply (even 1% chance), you MUST invoke it."
+tags: [skill, skills, superpower, 技能, 超能力, usage, 使用, guide, 指南, meta, 元]
+allowed_tools: []
+max_iterations: 10
+timeout: 120
+enabled: true
+match_threshold: 0.75
+priority: 10
 ---
 
 <EXTREMELY-IMPORTANT>

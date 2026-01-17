@@ -1,6 +1,16 @@
 ---
 name: writing-skills
-description: Use when creating new skills, editing existing skills, or verifying skills work before deployment
+display_name: 编写技能
+version: 1.0.0
+author: system
+description: "创建新技能、编辑现有技能或部署前验证技能时使用。将 TDD 应用于流程文档编写。Use when creating new skills, editing existing skills, or verifying skills work before deployment. Writing skills IS Test-Driven Development applied to process documentation."
+tags: [skill, skills, writing, 技能, 编写, create, 创建, edit, 编辑, documentation, 文档]
+allowed_tools: []
+max_iterations: 20
+timeout: 300
+enabled: true
+match_threshold: 0.70
+priority: 6
 ---
 
 # Writing Skills

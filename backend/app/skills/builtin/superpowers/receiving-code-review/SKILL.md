@@ -1,6 +1,16 @@
 ---
 name: receiving-code-review
-description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+display_name: 接受代码审查
+version: 1.0.0
+author: system
+description: "接收代码审查反馈时使用，在实施建议之前，特别是当反馈不清晰或技术上有疑问时。需要技术严谨和验证，而不是盲目实施。Use when receiving code review feedback - requires technical rigor and verification, not blind implementation."
+tags: [code-review, review, feedback, 代码审查, 审查, 反馈, verification, 验证, technical, 技术]
+allowed_tools: []
+max_iterations: 15
+timeout: 300
+enabled: true
+match_threshold: 0.70
+priority: 6
 ---
 
 # Code Review Reception
