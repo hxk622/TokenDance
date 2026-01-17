@@ -26,6 +26,32 @@ from .deep_research import DeepResearchAgent, ResearchState, ResearchSource, Sou
 from ..base import BaseAgent
 from ..types import SSEEvent, SSEEventType, AgentAction, ActionType
 
+# 导入金融分析服务（懒加载）
+_financial_analyzer = None
+_valuation_analyzer = None
+_technical_indicators = None
+
+def _get_financial_analyzer():
+    global _financial_analyzer
+    if _financial_analyzer is None:
+        from app.services.financial import get_financial_analyzer
+        _financial_analyzer = get_financial_analyzer()
+    return _financial_analyzer
+
+def _get_valuation_analyzer():
+    global _valuation_analyzer
+    if _valuation_analyzer is None:
+        from app.services.financial import get_valuation_analyzer
+        _valuation_analyzer = get_valuation_analyzer()
+    return _valuation_analyzer
+
+def _get_technical_indicators():
+    global _technical_indicators
+    if _technical_indicators is None:
+        from app.services.financial import get_technical_indicators
+        _technical_indicators = get_technical_indicators()
+    return _technical_indicators
+
 logger = logging.getLogger(__name__)
 
 
@@ -593,9 +619,59 @@ Do NOT call any more tools - provide the complete answer."""
         
         return False
     
+    async def _run_analysis_engine_if_needed(self) -> None:
+        """在报告生成前自动运行分析引擎
+        
+        检查是否已运行过分析，若没有则自动运行：
+        - FinancialAnalyzer: 财务分析
+        - ValuationAnalyzer: 估值分析
+        - TechnicalIndicators: 技术分析（可选）
+        """
+        if not self.financial_state or not self.financial_state.symbol:
+            logger.debug("Skipping analysis engine: no symbol")
+            return
+        
+        # 检查是否已运行过分析
+        existing_types = {d.data_type for d in self.financial_state.financial_data}
+        
+        # 运行财务分析
+        if "financial_analysis" not in existing_types:
+            logger.info("Running automated financial analysis...")
+            try:
+                await self.run_financial_analysis()
+            except Exception as e:
+                logger.warning(f"Financial analysis failed: {e}")
+        
+        # 运行估值分析
+        if "valuation_analysis" not in existing_types:
+            logger.info("Running automated valuation analysis...")
+            try:
+                await self.run_valuation_analysis()
+            except Exception as e:
+                logger.warning(f"Valuation analysis failed: {e}")
+        
+        # 运行技术分析（仅当有足够价格数据时）
+        if "technical_analysis" not in existing_types:
+            # 检查是否有价格数据（从已收集的数据中判断）
+            has_price_data = any(
+                d.data_type in ("quote", "history", "historical_price")
+                for d in self.financial_state.financial_data
+            )
+            if has_price_data:
+                logger.info("Running automated technical analysis...")
+                try:
+                    await self.run_technical_analysis()
+                except Exception as e:
+                    logger.warning(f"Technical analysis failed: {e}")
+            else:
+                logger.debug("Skipping technical analysis: no price data")
+    
     async def _generate_financial_report(self) -> AgentAction:
         """生成金融研究报告"""
         logger.info("Generating financial research report...")
+        
+        # 在报告生成前自动运行分析引擎
+        await self._run_analysis_engine_if_needed()
         
         # 构造报告生成提示
         system_prompt = """Generate a comprehensive financial research report.
@@ -687,14 +763,94 @@ Use markdown formatting. Every factual claim MUST have a citation."""
         formatted += f"**Market**: {self.financial_state.market.value}\n"
         formatted += f"**Scope**: {self.financial_state.scope.value}\n\n"
         
-        # 金融数据
-        for i, data in enumerate(self.financial_state.financial_data, 1):
-            formatted += f"### Data Source {i}: {data.source} - {data.data_type}\n"
-            formatted += f"```json\n{str(data.data)[:1000]}\n```\n\n"
+        # 分析引擎结果
+        financial_analysis = None
+        valuation_analysis = None
+        technical_analysis = None
+        
+        for data in self.financial_state.financial_data:
+            if data.data_type == "financial_analysis":
+                financial_analysis = data.data
+            elif data.data_type == "valuation_analysis":
+                valuation_analysis = data.data
+            elif data.data_type == "technical_analysis":
+                technical_analysis = data.data
+        
+        # 财务分析结果
+        if financial_analysis:
+            formatted += "### 📊 Financial Analysis (Automated)\n"
+            formatted += f"**Overall Score**: {financial_analysis.get('overall_score', 0):.1f}/100\n"
+            formatted += f"**Health Level**: {financial_analysis.get('health_level', 'N/A')}\n\n"
+            
+            # 维度得分
+            if "dimension_scores" in financial_analysis:
+                formatted += "| Dimension | Score |\n|-----------|-------|\n"
+                for dim, score in financial_analysis["dimension_scores"].items():
+                    formatted += f"| {dim.title()} | {score:.1f} |\n"
+                formatted += "\n"
+            
+            # 优势和风险
+            if financial_analysis.get("strengths"):
+                formatted += "**Strengths**: " + "; ".join(financial_analysis["strengths"][:3]) + "\n"
+            if financial_analysis.get("key_risks"):
+                formatted += "**Key Risks**: " + "; ".join(financial_analysis["key_risks"][:3]) + "\n\n"
+        
+        # 估值分析结果
+        if valuation_analysis:
+            formatted += "### 💰 Valuation Analysis (Automated)\n"
+            formatted += f"**Valuation Level**: {valuation_analysis.get('valuation_level', 'N/A')}\n"
+            formatted += f"**Current Price**: {valuation_analysis.get('current_price', 0):.2f}\n\n"
+            
+            if valuation_analysis.get("target_price_range"):
+                price_range = valuation_analysis["target_price_range"]
+                formatted += f"**Target Price Range**: {price_range.get('low', 0):.2f} - {price_range.get('high', 0):.2f}\n"
+                formatted += f"**Confidence**: {price_range.get('confidence', 'N/A')}\n\n"
+            
+            if valuation_analysis.get("key_points"):
+                formatted += "**Key Points**: " + "; ".join(valuation_analysis["key_points"][:3]) + "\n\n"
+        
+        # 技术分析结果
+        if technical_analysis:
+            formatted += "### 📈 Technical Analysis (Automated)\n"
+            formatted += f"**Overall Signal**: {technical_analysis.get('overall_signal', 'N/A')}\n"
+            formatted += f"**Score**: {technical_analysis.get('score', 0):.1f}/100\n\n"
+            
+            if technical_analysis.get("buy_signals"):
+                formatted += "**Buy Signals**: " + ", ".join(technical_analysis["buy_signals"][:3]) + "\n"
+            if technical_analysis.get("sell_signals"):
+                formatted += "**Sell Signals**: " + ", ".join(technical_analysis["sell_signals"][:3]) + "\n\n"
+        
+        # 关键发现（由分析引擎填充）
+        if self.financial_state.key_findings:
+            formatted += "### 🔍 Key Findings\n"
+            for finding in self.financial_state.key_findings[:5]:
+                formatted += f"- {finding}\n"
+            formatted += "\n"
+        
+        # 风险因素
+        if self.financial_state.risk_factors:
+            formatted += "### ⚠️ Risk Factors\n"
+            for risk in self.financial_state.risk_factors[:5]:
+                formatted += f"- {risk}\n"
+            formatted += "\n"
+        
+        # 投资论点
+        if self.financial_state.investment_thesis:
+            formatted += f"### 💡 Investment Thesis\n{self.financial_state.investment_thesis}\n\n"
+        
+        # 原始金融数据（非分析引擎产出）
+        other_data = [d for d in self.financial_state.financial_data 
+                      if d.data_type not in ("financial_analysis", "valuation_analysis", "technical_analysis")]
+        
+        if other_data:
+            formatted += "### 📁 Raw Financial Data\n\n"
+            for i, data in enumerate(other_data, 1):
+                formatted += f"**Data Source {i}**: {data.source} - {data.data_type}\n"
+                formatted += f"```json\n{str(data.data)[:800]}\n```\n\n"
         
         # 来源列表
         if self.financial_state.sources_collected:
-            formatted += "### Web Sources\n"
+            formatted += "### 🔗 Web Sources\n"
             for i, source in enumerate(self.financial_state.sources_collected, 1):
                 formatted += f"[{i}] {source.title} ({source.credibility.value})\n"
                 formatted += f"    URL: {source.url}\n"
@@ -752,6 +908,198 @@ This report is for informational purposes only and does NOT constitute investmen
         )
         self.financial_state.financial_data.append(financial_data)
         logger.info(f"Added financial data: {data_type} from {source}")
+    
+    # ==================== 分析服务集成 ====================
+    
+    async def run_financial_analysis(self) -> Optional[Dict[str, Any]]:
+        """运行完整财务分析
+        
+        使用 FinancialAnalyzer 服务进行：
+        - 盈利能力分析
+        - 成长能力分析
+        - 偿债能力分析
+        - 现金流分析
+        - 财务健康度评分
+        
+        Returns:
+            分析结果字典，失败返回 None
+        """
+        if not self.financial_state or not self.financial_state.symbol:
+            logger.warning("Cannot run financial analysis: no symbol")
+            return None
+        
+        try:
+            analyzer = _get_financial_analyzer()
+            result = await analyzer.analyze(
+                symbol=self.financial_state.symbol,
+                market=self.financial_state.market.value
+            )
+            
+            # 更新 state 中的 metrics
+            if result.overall_score > 0:
+                self.financial_state.metrics = FinancialMetrics(
+                    roe=result.profitability.roe,
+                    roa=result.profitability.roa,
+                    gross_margin=result.profitability.gross_margin,
+                    net_margin=result.profitability.net_margin,
+                    revenue_growth=result.growth.revenue_growth,
+                    profit_growth=result.growth.net_income_growth,
+                    debt_ratio=result.solvency.debt_to_assets,
+                    current_ratio=result.solvency.current_ratio,
+                )
+                
+                # 添加到 financial_data
+                self.add_financial_data(
+                    data_type="financial_analysis",
+                    source="FinancialAnalyzer",
+                    data=result.to_dict()
+                )
+                
+                # 记录关键发现
+                self.financial_state.key_findings.extend(result.strengths[:3])
+                self.financial_state.risk_factors.extend(result.key_risks[:3])
+            
+            logger.info(f"Financial analysis completed, score: {result.overall_score}")
+            return result.to_dict()
+            
+        except Exception as e:
+            logger.error(f"Financial analysis failed: {e}")
+            return None
+    
+    async def run_valuation_analysis(self) -> Optional[Dict[str, Any]]:
+        """运行估值分析
+        
+        使用 ValuationAnalyzer 服务进行：
+        - 相对估值 (PE/PB/PS)
+        - 历史估值对比
+        - 行业估值对比
+        - DCF 简化估值
+        
+        Returns:
+            估值结果字典，失败返回 None
+        """
+        if not self.financial_state or not self.financial_state.symbol:
+            logger.warning("Cannot run valuation analysis: no symbol")
+            return None
+        
+        try:
+            analyzer = _get_valuation_analyzer()
+            result = await analyzer.analyze(
+                symbol=self.financial_state.symbol,
+                market=self.financial_state.market.value
+            )
+            
+            # 更新 state 中的估值指标
+            if self.financial_state.metrics:
+                self.financial_state.metrics.pe_ttm = result.relative.pe_ttm
+                self.financial_state.metrics.pb = result.relative.pb
+                self.financial_state.metrics.ps = result.relative.ps
+                self.financial_state.metrics.market_cap = result.relative.market_cap
+                self.financial_state.metrics.price = result.current_price
+            
+            # 添加到 financial_data
+            self.add_financial_data(
+                data_type="valuation_analysis",
+                source="ValuationAnalyzer",
+                data=result.to_dict()
+            )
+            
+            # 记录估值结论
+            self.financial_state.key_findings.extend(result.key_points[:2])
+            self.financial_state.risk_factors.extend(result.risks[:2])
+            
+            # 设置投资论点（基于估值水平）
+            self.financial_state.investment_thesis = result.summary
+            
+            logger.info(f"Valuation analysis completed, level: {result.valuation_level.value}")
+            return result.to_dict()
+            
+        except Exception as e:
+            logger.error(f"Valuation analysis failed: {e}")
+            return None
+    
+    async def run_technical_analysis(self) -> Optional[Dict[str, Any]]:
+        """运行技术分析
+        
+        使用 TechnicalIndicators 服务进行：
+        - 趋势指标 (MACD, 均线)
+        - 动量指标 (RSI, KDJ)
+        - 波动率指标 (布林带, ATR)
+        - 成交量分析 (OBV)
+        
+        Returns:
+            技术分析结果字典，失败返回 None
+        """
+        if not self.financial_state or not self.financial_state.symbol:
+            logger.warning("Cannot run technical analysis: no symbol")
+            return None
+        
+        try:
+            service = _get_technical_indicators()
+            result = await service.analyze(
+                symbol=self.financial_state.symbol,
+                market=self.financial_state.market.value
+            )
+            
+            # 添加到 financial_data
+            self.add_financial_data(
+                data_type="technical_analysis",
+                source="TechnicalIndicators",
+                data=result.to_dict()
+            )
+            
+            # 记录技术信号
+            if result.buy_signals:
+                self.financial_state.key_findings.append(
+                    f"技术面买入信号: {', '.join(result.buy_signals[:3])}"
+                )
+            if result.sell_signals:
+                self.financial_state.risk_factors.append(
+                    f"技术面卖出信号: {', '.join(result.sell_signals[:3])}"
+                )
+            
+            logger.info(f"Technical analysis completed, signal: {result.overall_signal.value}")
+            return result.to_dict()
+            
+        except Exception as e:
+            logger.error(f"Technical analysis failed: {e}")
+            return None
+    
+    async def run_comprehensive_analysis(self) -> Dict[str, Any]:
+        """运行综合分析（财务+估值+技术）
+        
+        一次性运行所有分析模块，返回综合结果。
+        
+        Returns:
+            包含所有分析结果的字典
+        """
+        results = {
+            "symbol": self.financial_state.symbol if self.financial_state else None,
+            "market": self.financial_state.market.value if self.financial_state else None,
+            "financial": None,
+            "valuation": None,
+            "technical": None,
+            "summary": "",
+        }
+        
+        # 并行运行分析（实际上是顺序执行，因为共享数据源）
+        results["financial"] = await self.run_financial_analysis()
+        results["valuation"] = await self.run_valuation_analysis()
+        results["technical"] = await self.run_technical_analysis()
+        
+        # 生成综合摘要
+        summaries = []
+        if results["financial"]:
+            summaries.append(results["financial"].get("summary", ""))
+        if results["valuation"]:
+            summaries.append(results["valuation"].get("summary", ""))
+        if results["technical"]:
+            summaries.append(results["technical"].get("summary", ""))
+        
+        results["summary"] = " ".join(filter(None, summaries))
+        
+        logger.info(f"Comprehensive analysis completed for {results['symbol']}")
+        return results
 
 
 # ==================== 工厂函数 ====================

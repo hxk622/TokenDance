@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Agent Engine - 核心推理引擎
 """

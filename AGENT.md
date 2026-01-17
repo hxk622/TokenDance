@@ -148,6 +148,36 @@ MVP功能：AI Deep Research（Manus 主导 + Coworker 辅助）、AI PPT Genera
   ```
 - **提交粒度**: 每完成一个独立组件、修复一个bug、或完成一个TODO项时提交
 
+### 前端开发与 UI 设计规范 🎨
+
+**铁律**: 每次开发前端或设计 UI 之前，**必须先阅读 `docs/ux/` 目录下的设计文档**。
+
+#### 必读文档清单
+
+| 优先级 | 文档 | 内容 |
+|--------|------|------|
+| P0 | `DESIGN-PRINCIPLES.md` | 三大核心原则 + 避免 AI 味道 |
+| P0 | `EXECUTION-PAGE-LAYOUT.md` | 执行页三栏布局规范 |
+| P1 | `DESIGN-SYSTEM.md` | 色彩/排版/间距/动画/图标系统 |
+| P1 | `COMPONENT-CHECKLIST.md` | 25 项组件交付检查点 |
+
+#### 核心目标
+
+1. **风格一致性** - 所有 UI 组件必须遵循统一的设计系统
+2. **去 AI 味** - 禁止 AI 助手式文案、Emoji 图标、彩虹渐变等
+3. **新一代 UX** - 对标 Linear/Notion/Vercel 的专业感与克制感
+
+#### 开发流程
+
+```
+1. 阅读 docs/ux/DESIGN-PRINCIPLES.md → 理解设计理念
+2. 阅读相关布局文档 → 确认组件位置与交互
+3. 参考 DESIGN-SYSTEM.md → 使用正确的色彩/字体/间距
+4. 开发完成后对照 COMPONENT-CHECKLIST.md → 自查交付质量
+```
+
+**违规处理**: 未遵循设计规范的 UI 代码将在 Code Review 中被退回。
+
 ### 三文件工作法 (Manus)
 
 **核心理念**: 文件系统指针 > 内联文本，节省Context 60-80%
