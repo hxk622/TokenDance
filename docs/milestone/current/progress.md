@@ -866,3 +866,83 @@
 - ✅ 三文件工作法 → 更新 task_plan.md 和 progress.md
 
 ---
+
+## 📅 金融场景开发日志 (2026-01-17)
+
+### Session 18: FinancialResearchAgent 核心实现
+**时间**: 2026-01-17 10:00 - 11:30
+**目标**: 实现金融投研专用 Agent
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/agent/agents/financial_research.py` (796行)
+   - 继承 DeepResearchAgent
+   - 6阶段工作流: scoping→collecting→analyzing→valuating→sentiment→reporting
+   - 自动市场检测 (US/CN/HK)
+   - 金融专属数据模型: ResearchScope, FinancialData, FinancialMetrics, SentimentData
+   - 合规免责声明生成
+   - 2-Action Rule 集成
+
+**技术决策**:
+- 选择继承 DeepResearchAgent 而非从头实现，复用搜索+综合能力
+- 新增 valuating 和 sentiment 阶段，针对金融分析场景
+
+---
+
+### Session 19: 金融数据工具集 (BaseTool 封装)
+**时间**: 2026-01-17 11:30 - 12:30
+**目标**: 创建符合 BaseTool 接口的金融工具
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/agent/tools/builtin/financial/tools.py` (651行)
+   - GetStockQuoteTool: 实时/延迟行情
+   - GetFinancialStatementsTool: 财务报表 (利润表/资产负债表/现金流)
+   - GetValuationMetricsTool: 估值指标 (PE/PB/PS)
+   - GetHistoricalPriceTool: 历史K线数据
+   - GetFinancialNewsTool: 财经新闻
+   - GetNorthFlowTool: 北向资金 (A股专用)
+   - GetDragonTigerTool: 龙虎榜 (A股专用)
+   - FinancialDataToolWrapper: 统一入口
+
+2. ✅ 更新 `backend/app/agent/tools/builtin/financial/__init__.py`
+   - 导出所有新工具
+   - 添加 get_financial_tools() 工厂函数
+
+3. ✅ 更新 `backend/app/agent/tools/init_tools.py`
+   - 注册金融工具到全局 ToolRegistry
+   - 添加 Financial Data 分类
+   - 更新工具描述文档
+
+---
+
+### Session 20: 多源降级策略 (FinancialDataProvider)
+**时间**: 2026-01-17 12:30 - 13:00
+**目标**: 实现金融数据的多源降级
+
+#### 执行步骤
+1. ✅ 创建 `backend/app/agent/tools/builtin/financial/provider.py` (400行)
+   - ProviderConfig: 数据提供者配置
+   - FinancialDataProvider: 多源降级服务
+   - 降级链: OpenBB (yfinance) → OpenBB (fmp) → 失败
+   - A股使用 AkShare，无降级源
+   - 市场自动检测 + 路由
+
+2. ✅ 更新 `__init__.py` 导出 Provider
+
+#### 代码统计
+| 文件 | 行数 | 描述 |
+|------|------|------|
+| financial_research.py | 796 | 金融研究 Agent |
+| tools.py | 651 | BaseTool 封装 |
+| provider.py | 400 | 多源降级 |
+| init_tools.py | +30 | 工具注册 |
+| __init__.py | +30 | 导出更新 |
+| **总计** | **~1,907** | |
+
+#### 架构亮点
+1. **继承复用**: FinancialResearchAgent 继承 DeepResearchAgent
+2. **接口统一**: 所有工具符合 BaseTool 接口
+3. **多源降级**: yfinance → fmp 自动切换
+4. **合规设计**: 所有返回数据附带免责声明
+5. **工厂模式**: get_financial_tools() 返回完整工具集
+
+---

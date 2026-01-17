@@ -286,10 +286,12 @@ docs/
 ├── architecture/         # 架构设计
 │   ├── HLD.md
 │   └── LLD.md
-├── ux/                   # UI/UX设计（合并了UI和design）
-│   ├── Three-Column-Layout.md  (必读)
-│   ├── UI-Design.md
-│   └── Chain-of-Thought-UI.md
+├── ux/                   # UI/UX设计
+│   ├── DESIGN-SYSTEM.md       # 设计系统（色彩/排版/动画）
+│   ├── DESIGN-PRINCIPLES.md   # 设计原则（必读！）
+│   ├── EXECUTION-PAGE-LAYOUT.md  # 执行页布局（必读！）
+│   ├── COMPONENT-CHECKLIST.md # 组件交付检查清单
+│   └── reference/             # 参考资料
 ├── modules/              # 模块设计
 │   ├── Context-Management.md
 │   ├── Memory.md
@@ -334,10 +336,10 @@ docs/
 - `docs/architecture/LLD.md` - 低层设计 (API + DB Schema)
 
 **UX设计**:
-- `docs/ux/Three-Column-Layout.md` - 三栏布局规范（必读！）
-- `docs/ux/UI-Design.md` - UI设计规范
-- `docs/ux/UI-UX-Pro-Max-Integration.md` - UI/UX Pro Max 规范整合（必读！）
-- `docs/ux/Chain-of-Thought-UI.md` - 执行追踪UI
+- `docs/ux/DESIGN-PRINCIPLES.md` - 设计原则（三大核心 + 避免AI味）（必读！）
+- `docs/ux/DESIGN-SYSTEM.md` - 设计系统（色彩/排版/间距/动画/图标）
+- `docs/ux/EXECUTION-PAGE-LAYOUT.md` - 执行页三栏布局规范（必读！）
+- `docs/ux/COMPONENT-CHECKLIST.md` - 组件交付检查清单（25项）
 
 **核心模块**:
 - `docs/modules/Context-Management.md` - Context管理

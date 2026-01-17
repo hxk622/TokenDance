@@ -106,6 +106,17 @@ def register_builtin_tools(registry: ToolRegistry) -> List[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register file_converter tool: {e}")
     
+    # Financial Data Tools - 金融数据工具集
+    try:
+        from app.agent.tools.builtin.financial import get_financial_tools
+        financial_tools = get_financial_tools()
+        for tool in financial_tools:
+            registry.register(tool)
+            tools.append(tool)
+            logger.info(f"Registered financial tool: {tool.name}")
+    except Exception as e:
+        logger.error(f"Failed to register financial tools: {e}")
+    
     logger.info(f"Total registered tools: {len(tools)}")
     return tools
 
@@ -116,7 +127,17 @@ def get_tool_categories() -> dict:
         "Web & Research": ["web_search", "read_url"],
         "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
-        "Content Generation": ["image_generation", "ppt_generator", "report_generator"]
+        "Content Generation": ["image_generation", "ppt_generator", "report_generator"],
+        "Financial Data": [
+            "get_stock_quote",
+            "get_financial_statements",
+            "get_valuation_metrics",
+            "get_historical_price",
+            "get_financial_news",
+            "get_north_flow",
+            "get_dragon_tiger",
+            "financial_data",  # unified wrapper
+        ],
     }
 
 
@@ -132,5 +153,14 @@ def get_tool_descriptions() -> dict:
         "image_generation": "Generate images using AI",
         "ppt_generator": "Generate PowerPoint presentations",
         "report_generator": "Generate reports from data",
-        "exit": "Exit the current task"
+        "exit": "Exit the current task",
+        # Financial Data Tools
+        "get_stock_quote": "Get real-time/delayed stock quote (US, A-share, HK)",
+        "get_financial_statements": "Get company financial statements (income, balance, cashflow)",
+        "get_valuation_metrics": "Get valuation metrics (PE, PB, PS, dividend yield)",
+        "get_historical_price": "Get historical OHLCV price data",
+        "get_financial_news": "Get stock-related financial news",
+        "get_north_flow": "Get northbound capital flow (A-share only)",
+        "get_dragon_tiger": "Get dragon and tiger list (A-share only)",
+        "financial_data": "Unified financial data tool (all data types)",
     }
