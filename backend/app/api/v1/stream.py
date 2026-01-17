@@ -26,7 +26,19 @@ router = APIRouter()
 
 
 class SSEEventType(str, Enum):
-    """SSE Event Types"""
+    """SSE Event Types - 前后端统一定义
+    
+    详细规范见: docs/architecture/SSE-Events-Spec.md
+    """
+    # Session events
+    SESSION_STARTED = "session_started"
+    SESSION_COMPLETED = "session_completed"
+    SESSION_FAILED = "session_failed"
+    
+    # Skill events
+    SKILL_MATCHED = "skill_matched"
+    SKILL_COMPLETED = "skill_completed"
+    
     # Agent events
     AGENT_THINKING = "agent_thinking"
     AGENT_TOOL_CALL = "agent_tool_call"
@@ -34,27 +46,42 @@ class SSEEventType(str, Enum):
     AGENT_MESSAGE = "agent_message"
     AGENT_ERROR = "agent_error"
     
-    # Session events
-    SESSION_STARTED = "session_started"
-    SESSION_COMPLETED = "session_completed"
-    SESSION_FAILED = "session_failed"
-    
-    # Workflow events
+    # Workflow node events
     NODE_STARTED = "node_started"
     NODE_COMPLETED = "node_completed"
     NODE_FAILED = "node_failed"
-    
-    # Skill events
-    SKILL_MATCHED = "skill_matched"
-    SKILL_COMPLETED = "skill_completed"
     
     # File events
     FILE_CREATED = "file_created"
     FILE_MODIFIED = "file_modified"
     FILE_DELETED = "file_deleted"
+    FILE_READ = "file_read"
     
-    # Keepalive
+    # Browser events
+    BROWSER_OPENED = "browser_opened"
+    BROWSER_NAVIGATED = "browser_navigated"
+    BROWSER_ACTION = "browser_action"
+    BROWSER_SCREENSHOT = "browser_screenshot"
+    BROWSER_CLOSED = "browser_closed"
+    
+    # HITL (Human-in-the-Loop) events
+    HITL_REQUEST = "hitl_request"
+    HITL_TIMEOUT = "hitl_timeout"
+    
+    # Artifact events
+    ARTIFACT_CREATED = "artifact_created"
+    ARTIFACT_UPDATED = "artifact_updated"
+    
+    # Progress events
+    PROGRESS_UPDATE = "progress_update"
+    ITERATION_START = "iteration_start"
+    
+    # Token/Cost events
+    TOKEN_USAGE = "token_usage"
+    
+    # System events
     PING = "ping"
+    ERROR = "error"
 
 
 def format_sse(event: str, data: dict) -> str:

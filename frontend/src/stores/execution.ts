@@ -68,7 +68,8 @@ export interface FileOperation {
  */
 export interface BrowserOperation {
   id: string
-  type: 'open' | 'click' | 'fill' | 'snapshot' | 'screenshot' | 'close'
+  type: 'open' | 'navigate' | 'click' | 'fill' | 'screenshot' | 'close'
+  url?: string
   target?: string
   value?: string
   status: 'pending' | 'running' | 'success' | 'error'
@@ -77,6 +78,53 @@ export interface BrowserOperation {
   duration?: number
   timestamp: string
   screenshotPath?: string
+}
+
+/**
+ * Current Skill Info for SkillIndicator
+ */
+export interface CurrentSkillInfo {
+  id: string
+  name: string
+  displayName: string
+  description?: string
+  icon?: string
+  color?: string
+  matchedAt: number
+  confidence?: number
+}
+
+/**
+ * Progress Info
+ */
+export interface ProgressInfo {
+  current: number
+  total: number
+  message?: string
+  percentage: number
+}
+
+/**
+ * Token Usage Info
+ */
+export interface TokenUsageInfo {
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  model?: string
+}
+
+/**
+ * HITL Request
+ */
+export interface HITLRequest {
+  requestId: string
+  tool: string
+  args: Record<string, unknown>
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  description: string
+  timeout?: number
+  timestamp: number
 }
 
 export const useExecutionStore = defineStore('execution', () => {
@@ -100,6 +148,21 @@ export const useExecutionStore = defineStore('execution', () => {
   // Browser operations state
   const browserOperations = ref<BrowserOperation[]>([])
 
+  // Current skill state
+  const currentSkill = ref<CurrentSkillInfo | null>(null)
+  const skillHistory = ref<CurrentSkillInfo[]>([])
+
+  // Progress state
+  const progress = ref<ProgressInfo | null>(null)
+  const currentIteration = ref(0)
+  const maxIterations = ref(50)
+
+  // Token usage state
+  const tokenUsage = ref<TokenUsageInfo | null>(null)
+
+  // HITL state
+  const pendingHITL = ref<HITLRequest | null>(null)
+
   // Messages & Artifacts
   const messages = ref<Message[]>([])
   const artifacts = ref<Artifact[]>([])
@@ -111,6 +174,7 @@ export const useExecutionStore = defineStore('execution', () => {
   const isRunning = computed(() => session.value?.status === 'running')
   const isCompleted = computed(() => session.value?.status === 'completed')
   const activeNodeId = computed(() => nodes.value.find(n => n.status === 'active')?.id)
+  const progressPercentage = computed(() => progress.value?.percentage || 0)
 
   /**
    * Load session data
@@ -284,6 +348,149 @@ export const useExecutionStore = defineStore('execution', () => {
           session.value.status = 'failed' as any
         }
         break
+
+      // Skill events
+      case SSEEventType.SKILL_MATCHED:
+        setCurrentSkill({
+          id: event.data.skill_id,
+          name: event.data.skill_name,
+          displayName: event.data.display_name || event.data.skill_name,
+          description: event.data.description,
+          icon: event.data.icon,
+          color: event.data.color,
+          matchedAt: Date.now(),
+          confidence: event.data.confidence,
+        })
+        addLog({
+          type: 'thinking',
+          nodeId: activeNodeId.value || '0',
+          content: `匹配 Skill: ${event.data.display_name || event.data.skill_name}`,
+        })
+        break
+
+      case SSEEventType.SKILL_COMPLETED:
+        clearCurrentSkill()
+        break
+
+      // Browser events
+      case SSEEventType.BROWSER_OPENED:
+        addBrowserOperation({
+          id: event.data.browser_id || crypto.randomUUID(),
+          type: 'open',
+          url: event.data.url,
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
+        break
+
+      case SSEEventType.BROWSER_NAVIGATED:
+        addBrowserOperation({
+          id: event.data.browser_id || crypto.randomUUID(),
+          type: 'navigate',
+          url: event.data.url,
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
+        break
+
+      case SSEEventType.BROWSER_ACTION:
+        addBrowserOperation({
+          id: event.data.browser_id || crypto.randomUUID(),
+          type: event.data.action as BrowserOperation['type'] || 'click',
+          target: event.data.target,
+          value: event.data.value,
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
+        break
+
+      case SSEEventType.BROWSER_SCREENSHOT:
+        addBrowserOperation({
+          id: event.data.browser_id || crypto.randomUUID(),
+          type: 'screenshot',
+          screenshotPath: event.data.path,
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
+        break
+
+      case SSEEventType.BROWSER_CLOSED:
+        addBrowserOperation({
+          id: event.data.browser_id || crypto.randomUUID(),
+          type: 'close',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
+        break
+
+      // HITL events
+      case SSEEventType.HITL_REQUEST:
+        pendingHITL.value = {
+          requestId: event.data.request_id,
+          tool: event.data.tool,
+          args: event.data.args,
+          riskLevel: event.data.risk_level,
+          description: event.data.description,
+          timeout: event.data.timeout,
+          timestamp: Date.now(),
+        }
+        break
+
+      case SSEEventType.HITL_TIMEOUT:
+        if (pendingHITL.value?.requestId === event.data.request_id) {
+          pendingHITL.value = null
+        }
+        break
+
+      // Artifact events
+      case SSEEventType.ARTIFACT_CREATED:
+      case SSEEventType.ARTIFACT_UPDATED:
+        // Refresh artifacts list
+        if (sessionId.value) {
+          sessionService.getSessionArtifacts(sessionId.value).then(res => {
+            artifacts.value = res.artifacts
+          })
+        }
+        break
+
+      // Progress events
+      case SSEEventType.PROGRESS_UPDATE:
+        progress.value = {
+          current: event.data.current,
+          total: event.data.total,
+          message: event.data.message,
+          percentage: event.data.percentage,
+        }
+        break
+
+      case SSEEventType.ITERATION_START:
+        currentIteration.value = event.data.iteration
+        maxIterations.value = event.data.max_iterations
+        break
+
+      // Token usage events
+      case SSEEventType.TOKEN_USAGE:
+        tokenUsage.value = {
+          inputTokens: event.data.input_tokens,
+          outputTokens: event.data.output_tokens,
+          totalTokens: event.data.total_tokens,
+          model: event.data.model,
+        }
+        break
+
+      // System events
+      case SSEEventType.ERROR:
+        error.value = event.data.message
+        addLog({
+          type: 'error',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.message,
+        })
+        break
+
+      case SSEEventType.PING:
+        // Keepalive, no action needed
+        break
     }
   }
 
@@ -337,6 +544,53 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   /**
+   * Add browser operation
+   */
+  function addBrowserOperation(op: BrowserOperation) {
+    browserOperations.value.unshift(op)
+
+    // Limit count
+    if (browserOperations.value.length > 100) {
+      browserOperations.value = browserOperations.value.slice(0, 100)
+    }
+  }
+
+  /**
+   * Set current skill
+   */
+  function setCurrentSkill(skill: CurrentSkillInfo) {
+    // Save previous skill to history
+    if (currentSkill.value) {
+      skillHistory.value.unshift(currentSkill.value)
+      // Limit history
+      if (skillHistory.value.length > 10) {
+        skillHistory.value = skillHistory.value.slice(0, 10)
+      }
+    }
+    currentSkill.value = skill
+  }
+
+  /**
+   * Clear current skill
+   */
+  function clearCurrentSkill() {
+    if (currentSkill.value) {
+      skillHistory.value.unshift(currentSkill.value)
+      if (skillHistory.value.length > 10) {
+        skillHistory.value = skillHistory.value.slice(0, 10)
+      }
+    }
+    currentSkill.value = null
+  }
+
+  /**
+   * Clear HITL request
+   */
+  function clearHITLRequest() {
+    pendingHITL.value = null
+  }
+
+  /**
    * Disconnect SSE and cleanup
    */
   function disconnect() {
@@ -356,6 +610,12 @@ export const useExecutionStore = defineStore('execution', () => {
     logs.value = []
     fileOperations.value = []
     browserOperations.value = []
+    currentSkill.value = null
+    skillHistory.value = []
+    progress.value = null
+    currentIteration.value = 0
+    tokenUsage.value = null
+    pendingHITL.value = null
     messages.value = []
     artifacts.value = []
     error.value = null
@@ -372,6 +632,13 @@ export const useExecutionStore = defineStore('execution', () => {
     logs,
     fileOperations,
     browserOperations,
+    currentSkill,
+    skillHistory,
+    progress,
+    currentIteration,
+    maxIterations,
+    tokenUsage,
+    pendingHITL,
     messages,
     artifacts,
 
@@ -379,6 +646,7 @@ export const useExecutionStore = defineStore('execution', () => {
     isRunning,
     isCompleted,
     activeNodeId,
+    progressPercentage,
 
     // Actions
     loadSession,
@@ -388,5 +656,9 @@ export const useExecutionStore = defineStore('execution', () => {
     addLog,
     updateNodeStatus,
     addFileOperation,
+    addBrowserOperation,
+    setCurrentSkill,
+    clearCurrentSkill,
+    clearHITLRequest,
   }
 })

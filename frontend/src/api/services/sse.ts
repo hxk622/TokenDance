@@ -6,6 +6,15 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 export enum SSEEventType {
+  // Session events
+  SESSION_STARTED = 'session_started',
+  SESSION_COMPLETED = 'session_completed',
+  SESSION_FAILED = 'session_failed',
+  
+  // Skill events
+  SKILL_MATCHED = 'skill_matched',
+  SKILL_COMPLETED = 'skill_completed',
+  
   // Agent events
   AGENT_THINKING = 'agent_thinking',
   AGENT_TOOL_CALL = 'agent_tool_call',
@@ -13,12 +22,7 @@ export enum SSEEventType {
   AGENT_MESSAGE = 'agent_message',
   AGENT_ERROR = 'agent_error',
   
-  // Session events
-  SESSION_STARTED = 'session_started',
-  SESSION_COMPLETED = 'session_completed',
-  SESSION_FAILED = 'session_failed',
-  
-  // Workflow events
+  // Workflow node events
   NODE_STARTED = 'node_started',
   NODE_COMPLETED = 'node_completed',
   NODE_FAILED = 'node_failed',
@@ -27,9 +31,33 @@ export enum SSEEventType {
   FILE_CREATED = 'file_created',
   FILE_MODIFIED = 'file_modified',
   FILE_DELETED = 'file_deleted',
+  FILE_READ = 'file_read',
   
-  // Keepalive
+  // Browser events
+  BROWSER_OPENED = 'browser_opened',
+  BROWSER_NAVIGATED = 'browser_navigated',
+  BROWSER_ACTION = 'browser_action',
+  BROWSER_SCREENSHOT = 'browser_screenshot',
+  BROWSER_CLOSED = 'browser_closed',
+  
+  // HITL events
+  HITL_REQUEST = 'hitl_request',
+  HITL_TIMEOUT = 'hitl_timeout',
+  
+  // Artifact events
+  ARTIFACT_CREATED = 'artifact_created',
+  ARTIFACT_UPDATED = 'artifact_updated',
+  
+  // Progress events
+  PROGRESS_UPDATE = 'progress_update',
+  ITERATION_START = 'iteration_start',
+  
+  // Token/Cost events
+  TOKEN_USAGE = 'token_usage',
+  
+  // System events
   PING = 'ping',
+  ERROR = 'error',
 }
 
 export interface SSEEvent<T = any> {
@@ -69,6 +97,74 @@ export interface FileEvent {
   path: string
   action: 'read' | 'created' | 'modified' | 'deleted'
   content?: string
+}
+
+// Skill events
+export interface SkillMatchedEvent {
+  skill_id: string
+  skill_name: string
+  display_name: string
+  description?: string
+  icon?: string
+  color?: string
+  confidence?: number
+}
+
+export interface SkillCompletedEvent {
+  skill_id: string
+  status: 'success' | 'error'
+  duration_ms?: number
+}
+
+// Browser events
+export interface BrowserEvent {
+  browser_id: string
+  url?: string
+  title?: string
+  action?: string
+  target?: string
+  value?: string
+  path?: string
+}
+
+// HITL events
+export interface HITLRequestEvent {
+  request_id: string
+  tool: string
+  args: Record<string, any>
+  risk_level: 'low' | 'medium' | 'high' | 'critical'
+  description: string
+  timeout?: number
+}
+
+// Artifact events
+export interface ArtifactEvent {
+  artifact_id: string
+  type: string
+  name: string
+  path?: string
+  changes?: string
+}
+
+// Progress events
+export interface ProgressEvent {
+  current: number
+  total: number
+  message?: string
+  percentage: number
+}
+
+export interface IterationEvent {
+  iteration: number
+  max_iterations: number
+}
+
+// Token usage event
+export interface TokenUsageEvent {
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  model?: string
 }
 
 /**
