@@ -154,6 +154,11 @@ packages = ["app"]
 index-url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
 native-tls = true
 
+# Override to exclude onnxruntime on macOS 12 arm64 (no compatible wheels)
+override-dependencies = [
+    "onnxruntime ; sys_platform == 'never'",  # effectively exclude it
+]
+
 [tool.black]
 line-length = 100
 target-version = ['py311']
