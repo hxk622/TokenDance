@@ -1,7 +1,7 @@
 <template>
   <div class="financial-analysis-card">
     <div class="card-header">
-      <h3 class="card-title">📊 财务分析</h3>
+      <h3 class="card-title">财务分析</h3>
       <span v-if="result" class="health-badge" :class="healthClass">
         {{ healthLabel }}
       </span>
@@ -355,7 +355,7 @@ function formatNumber(value: number | null): string {
 .bar-fill {
   height: 100%;
   border-radius: 3px;
-  transition: width 500ms ease;
+  transition: width var(--transition-slow) var(--ease-default);
 }
 
 .bar-fill.excellent { background: #10b981; }

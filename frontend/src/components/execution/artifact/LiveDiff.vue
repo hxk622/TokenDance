@@ -234,7 +234,6 @@ defineExpose({
   <div class="live-diff">
     <div class="diff-header">
       <div class="file-path">
-        <span class="path-icon">📄</span>
         <span class="path-text">{{ currentDiff.path }}</span>
         <span :class="['action-tag', currentDiff.action]">
           {{ currentDiff.action }}

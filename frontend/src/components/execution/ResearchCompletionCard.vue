@@ -7,7 +7,7 @@
  * - 关键发现列表
  * - 数据统计
  * - 「导出报告」按钮
- * - 「生成汇报 PPT」按钮 (核心功能)
+ * - 「撰写汇报 PPT」按钮 (核心功能)
  */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -45,24 +45,24 @@ const error = ref<string | null>(null)
 const selectedStyle = ref<PPTStyle>('business')
 
 // PPT 风格选项
-const styleOptions: { value: PPTStyle; label: string; icon: string }[] = [
-  { value: 'business', label: '商务风', icon: '💼' },
-  { value: 'tech', label: '科技风', icon: '🔬' },
-  { value: 'minimal', label: '简约风', icon: '✨' },
-  { value: 'academic', label: '学术风', icon: '🎓' },
+const styleOptions: { value: PPTStyle; label: string }[] = [
+  { value: 'business', label: '商务风' },
+  { value: 'tech', label: '科技风' },
+  { value: 'minimal', label: '简约风' },
+  { value: 'academic', label: '学术风' },
 ]
 
-// Computed
-const importanceIcon = (importance: string) => {
+// Computed - importance badges
+const getImportanceClass = (importance: string): string => {
   switch (importance) {
     case 'high':
-      return '🔴'
+      return 'importance-high'
     case 'medium':
-      return '🟡'
+      return 'importance-medium'
     case 'low':
-      return '🟢'
+      return 'importance-low'
     default:
-      return '⚪'
+      return 'importance-default'
   }
 }
 
@@ -112,7 +112,7 @@ const generatePPT = async () => {
       router.push(response.edit_url)
     }
   } catch (err: any) {
-    error.value = err.response?.data?.detail || 'PPT 生成失败'
+    error.value = err.response?.data?.detail || 'PPT 撰写失败'
     console.error('Failed to generate PPT:', err)
   } finally {
     generating.value = false

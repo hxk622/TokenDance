@@ -33,7 +33,6 @@
 
     <!-- Empty State -->
     <div v-else-if="!historicalData || historicalData.length === 0" class="empty-state">
-      <div class="empty-icon">📈</div>
       <p>暂无图表数据</p>
       <p class="hint">选择股票后将显示价格走势</p>
     </div>

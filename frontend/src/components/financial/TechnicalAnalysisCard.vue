@@ -1,7 +1,7 @@
 <template>
   <div class="technical-analysis-card">
     <div class="card-header">
-      <h3 class="card-title">📈 技术分析</h3>
+      <h3 class="card-title">技术分析</h3>
       <span v-if="result" class="signal-badge" :class="signalClass">
         {{ signalLabel }}
       </span>

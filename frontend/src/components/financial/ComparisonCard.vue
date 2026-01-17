@@ -33,7 +33,6 @@
       <!-- Technical Side -->
       <div class="comparison-side technical">
         <div class="side-header">
-          <div class="side-icon">📊</div>
           <h4 class="side-title">技术面</h4>
         </div>
 

@@ -137,7 +137,7 @@
 
       <!-- Key Points -->
       <div v-if="result.key_points.length > 0" class="insights-section">
-        <h4 class="section-title">📌 要点</h4>
+        <h4 class="section-title">要点</h4>
         <ul class="insight-list">
           <li v-for="(point, idx) in result.key_points.slice(0, 3)" :key="idx">{{ point }}</li>
         </ul>
@@ -145,7 +145,7 @@
 
       <!-- Risks -->
       <div v-if="result.risks.length > 0" class="insights-section">
-        <h4 class="section-title">⚠️ 风险提示</h4>
+        <h4 class="section-title">风险提示</h4>
         <ul class="insight-list risk">
           <li v-for="(risk, idx) in result.risks.slice(0, 3)" :key="idx">{{ risk }}</li>
         </ul>
