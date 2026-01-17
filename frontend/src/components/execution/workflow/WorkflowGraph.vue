@@ -445,9 +445,12 @@ watch(() => props.sessionId, (newId) => {
   width: 100%;
   height: 100%;
   position: relative;
-  background: var(--bg-primary, rgba(18, 18, 18, 0.95));
+  background: rgba(18, 18, 18, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   display: flex;
   flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Toolbar */
@@ -498,22 +501,35 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .edge.active {
-  stroke: rgba(0, 217, 255, 0.9);
+  stroke: var(--vibe-color-active);
   stroke-width: 3;
-  stroke-dasharray: 15 10;
-  animation: flow-energy 1s linear infinite;
-  filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
+  stroke-dasharray: 12 6;
+  animation: vibe-edge-flow 0.8s linear infinite;
+  filter: drop-shadow(0 0 6px var(--vibe-color-active-glow));
 }
 
-@keyframes flow-energy {
+@keyframes vibe-edge-flow {
   0% {
-    stroke-dashoffset: 25;
-    opacity: 1;
+    stroke-dashoffset: 18;
   }
   100% {
     stroke-dashoffset: 0;
-    opacity: 0.95;
   }
+}
+
+/* Edge glow effect layer */
+.edge.active-glow {
+  stroke: var(--vibe-color-active);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.3;
+  filter: blur(4px);
+  animation: vibe-edge-glow-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes vibe-edge-glow-pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.4; }
 }
 
 .edge-hitbox {
@@ -551,22 +567,66 @@ watch(() => props.sessionId, (newId) => {
   stroke-width: 3;
 }
 
-/* Pulse animation for active nodes */
+/* Pulse animation for active nodes - Enhanced Vibe breathing */
 .node circle.pulse {
-  animation: pulse-breath 1.5s ease-in-out infinite;
+  animation: vibe-node-breath 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse-breath {
+@keyframes vibe-node-breath {
   0%, 100% {
     transform: scale(1);
     opacity: 1;
-    filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor);
+    filter: drop-shadow(0 0 12px var(--vibe-color-active-glow)) 
+            drop-shadow(0 0 24px var(--vibe-color-active-glow));
   }
   50% {
-    transform: scale(1.15);
-    opacity: 0.9;
-    filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 40px currentColor);
+    transform: scale(1.18);
+    opacity: 0.92;
+    filter: drop-shadow(0 0 24px var(--vibe-color-active-glow-strong)) 
+            drop-shadow(0 0 48px var(--vibe-color-active-glow-strong));
   }
+}
+
+/* Pending node animation - slower breathing */
+.node.pending circle {
+  animation: vibe-node-pending 2s ease-in-out infinite;
+}
+
+@keyframes vibe-node-pending {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px var(--vibe-color-pending-glow));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px var(--vibe-color-pending-glow-strong));
+  }
+}
+
+/* Success node animation - brief celebration */
+.node.success circle {
+  filter: drop-shadow(0 0 12px var(--vibe-color-success-glow));
+}
+
+.node.success.just-completed circle {
+  animation: vibe-node-success-pop 0.5s var(--vibe-ease-bounce);
+}
+
+@keyframes vibe-node-success-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.25); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Error node animation - shake */
+.node.error circle {
+  animation: vibe-node-error 0.4s ease-in-out;
+  filter: drop-shadow(0 0 12px var(--vibe-color-error-glow));
+}
+
+@keyframes vibe-node-error {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
 }
 
 .node-label {
@@ -576,7 +636,7 @@ watch(() => props.sessionId, (newId) => {
   pointer-events: none;
 }
 
-/* Legend */
+/* Legend - Glass panel style */
 .graph-legend {
   position: absolute;
   bottom: 16px;
@@ -584,11 +644,12 @@ watch(() => props.sessionId, (newId) => {
   display: flex;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba(28, 28, 30, 0.7);
+  background: rgba(28, 28, 30, 0.75);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 8px;
-  border: 1px solid var(--divider-color);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .legend-item {
@@ -606,19 +667,29 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .legend-dot.active {
-  background: #00D9FF;
+  background: var(--vibe-color-active);
+  box-shadow: 0 0 8px var(--vibe-color-active-glow);
+  animation: vibe-legend-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes vibe-legend-pulse {
+  0%, 100% { box-shadow: 0 0 6px var(--vibe-color-active-glow); }
+  50% { box-shadow: 0 0 12px var(--vibe-color-active-glow-strong); }
 }
 
 .legend-dot.success {
-  background: #00FF88;
+  background: var(--vibe-color-success);
+  box-shadow: 0 0 6px var(--vibe-color-success-glow);
 }
 
 .legend-dot.pending {
-  background: #FFB800;
+  background: var(--vibe-color-pending);
+  box-shadow: 0 0 6px var(--vibe-color-pending-glow);
 }
 
 .legend-dot.error {
-  background: #FF3B30;
+  background: var(--vibe-color-error);
+  box-shadow: 0 0 6px var(--vibe-color-error-glow);
 }
 
 /* Collapse Mode */
@@ -652,15 +723,19 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .mini-node.active {
-  animation: mini-pulse 1.5s ease-in-out infinite;
+  animation: vibe-mini-pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes mini-pulse {
+@keyframes vibe-mini-pulse {
   0%, 100% {
-    box-shadow: 0 0 12px currentColor, 0 0 24px currentColor;
+    box-shadow: 0 0 12px var(--vibe-color-active-glow), 
+                0 0 24px var(--vibe-color-active-glow);
+    transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+    box-shadow: 0 0 20px var(--vibe-color-active-glow-strong), 
+                0 0 40px var(--vibe-color-active-glow-strong);
+    transform: scale(1.08);
   }
 }
 
@@ -668,19 +743,29 @@ watch(() => props.sessionId, (newId) => {
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  border: 2px solid currentColor;
-  animation: pulse-ring 1.5s ease-out infinite;
+  border: 2px solid var(--vibe-color-active);
+  animation: vibe-ring-expand 1.5s ease-out infinite;
 }
 
-@keyframes pulse-ring {
+@keyframes vibe-ring-expand {
   0% {
     transform: scale(1);
-    opacity: 1;
+    opacity: 0.8;
   }
   100% {
-    transform: scale(1.5);
+    transform: scale(1.6);
     opacity: 0;
   }
+}
+
+/* Second ring for layered effect */
+.mini-node.active::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid var(--vibe-color-active);
+  animation: vibe-ring-expand 1.5s ease-out infinite 0.3s;
 }
 
 /* Skeleton Loading */

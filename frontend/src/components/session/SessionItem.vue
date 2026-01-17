@@ -32,10 +32,10 @@ const formattedDate = computed(() => {
 
 const statusIcon = computed(() => {
   switch (props.session.status) {
-    case 'active': return '🟢'
-    case 'completed': return '✅'
-    case 'failed': return '❌'
-    case 'archived': return '📦'
+    case 'ACTIVE': return '🟢'
+    case 'COMPLETED': return '✅'
+    case 'FAILED': return '❌'
+    case 'ARCHIVED': return '📦'
     default: return ''
   }
 })

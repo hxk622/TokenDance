@@ -1,5 +1,12 @@
 # AGENTS.md - TokenDance
 
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 拆分并迁移到：
+> - 核心 Agent 开发指南: [`docs/guides/developer/agent-development.md`](docs/guides/developer/agent-development.md)
+> - 后端开发指南: [`backend/DEVELOPMENT.md`](backend/DEVELOPMENT.md)
+> - 前端开发指南: [`frontend/DEVELOPMENT.md`](frontend/DEVELOPMENT.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
 > Vibe-Agentic Workflow Platform - 人机共生的智能工作台
 
 ## Quick Context

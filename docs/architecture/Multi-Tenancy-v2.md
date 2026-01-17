@@ -1,9 +1,13 @@
 # 多租户架构设计文档（v2.0）
 
-> **核心理念**：Personal+Workspace（个人）vs Teams+Workspace（团队协作）  
-> **超越 Manus**：Workspace = KV-Cache 物理隔离环境 + 长期资产沉淀  
-> **UI 哲学**：从 "被动观察" 到 "主动指挥" - 可控的透明度  
-> Version: 2.0.1  
+> **⚠️ 文档将合并**: 此文件将于 **2026-03-01** 成为主版本 [`docs/architecture/multi-tenancy.md`](multi-tenancy.md)，v1 版本将归档
+>
+> 这是最新版本，推荐使用。
+
+> **核心理念**：Personal+Workspace（个人）vs Teams+Workspace（团队协作）
+> **超越 Manus**：Workspace = KV-Cache 物理隔离环境 + 长期资产沉淀
+> **UI 哲学**：从 "被动观察" 到 "主动指挥" - 可控的透明度
+> Version: 2.0.1
 > Last Updated: 2026-01-12
 
 **相关文档**：

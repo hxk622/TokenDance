@@ -12,6 +12,7 @@ export interface StockInfo {
   market_cap?: string
   industry?: string
   description?: string
+  pe_ratio?: number
 }
 
 export interface StockQuote {
@@ -19,10 +20,12 @@ export interface StockQuote {
   current_price: number
   change: number
   change_percent: number
+  change_amount?: number
   open: number
   high: number
   low: number
   volume: number
+  turnover_rate?: number
   timestamp?: string
 }
 
@@ -43,8 +46,12 @@ export interface HistoricalData {
   end_date: string
 }
 
+// Alias for backward compatibility
+export type HistoricalDataPoint = HistoricalRecord
+
 export interface SentimentPost {
   id: string
+  post_id?: string  // Alias for id
   content: string
   author: string
   timestamp: string | null
@@ -56,6 +63,7 @@ export interface SentimentPost {
   symbol: string
   sentiment_score?: number
   sentiment_label?: 'bullish' | 'bearish' | 'neutral'
+  sentiment?: 'bullish' | 'bearish' | 'neutral'  // Alias for sentiment_label
   key_points?: string[]
 }
 

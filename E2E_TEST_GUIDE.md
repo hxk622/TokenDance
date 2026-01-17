@@ -1,5 +1,9 @@
 # E2E 测试指南
 
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 移动到 [`docs/guides/developer/testing-guide.md`](docs/guides/developer/testing-guide.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
 ## 当前状态
 
 ✅ **Phase 1-3 已完成** - 代码已推送到 GitHub

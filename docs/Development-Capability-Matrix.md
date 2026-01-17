@@ -1,5 +1,9 @@
 # TokenDance 能力覆盖矩阵
 
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 移动到 [`docs/reference/development-capability-matrix.md`](reference/development-capability-matrix.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
 > 基于所有设计文档的完整能力梳理
 > 创建时间: 2026-01-13
 > 用途: 指导开发优先级，确保无遗漏

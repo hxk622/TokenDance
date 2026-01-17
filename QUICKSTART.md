@@ -1,5 +1,9 @@
 # TokenDance 快速启动指南 🚀
 
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 移动到 [`docs/getting-started/quickstart.md`](docs/getting-started/quickstart.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
 > **5分钟上手，立即体验 Vibe-Agentic Workflow**
 
 ---

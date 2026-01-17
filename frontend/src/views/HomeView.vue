@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FileDropZone from '@/components/home/FileDropZone.vue'
 import SessionListPanel from '@/components/session/SessionListPanel.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useSessionStore } from '@/stores/session'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const sessionStore = useSessionStore()
 
 const inputValue = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)

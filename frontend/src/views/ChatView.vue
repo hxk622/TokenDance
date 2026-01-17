@@ -49,7 +49,6 @@ let hitlPollingInterval: ReturnType<typeof setInterval> | null = null
 
 // Session State
 const currentSessionId = computed(() => route.params.sessionId as string | undefined)
-const isNewSession = computed(() => !currentSessionId.value || currentSessionId.value === 'new')
 
 // API base URL
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'

@@ -8,7 +8,6 @@ import {
   type User, 
   type LoginRequest, 
   type RegisterRequest, 
-  type TokenResponse,
   type WeChatAuthRequest,
   type GmailAuthRequest
 } from '@/api/auth'

@@ -89,7 +89,7 @@ const tooltipState = ref({
 // Context menu state
 const contextMenuState = ref({
   visible: false,
-  node: null as { id: string; type: 'manus' | 'coworker'; status: string; label: string } | null,
+  node: null as { id: string; type: 'manus' | 'coworker'; status: 'active' | 'success' | 'pending' | 'error' | 'inactive'; label: string } | null,
   x: 0,
   y: 0
 })

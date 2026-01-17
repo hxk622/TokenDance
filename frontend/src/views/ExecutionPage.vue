@@ -160,13 +160,7 @@ function checkResponsiveMode() {
   isCompactMode.value = window.innerWidth < 1280
 }
 
-// Toggle panel in compact mode (used in template via activePanel assignment)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _togglePanel() {
-  activePanel.value = activePanel.value === 'left' ? 'right' : 'left'
-}
-
-// Load saved ratios from localStorage
+// Load saved ratios
 onMounted(async () => {
   const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
   const savedVertical = localStorage.getItem('execution-vertical-ratio')
@@ -240,11 +234,8 @@ function startElapsedTimer() {
   }, 1000)
 }
 
-// Handle pause/stop actions
-function handlePause() {
-  console.log('Pause execution')
-  // TODO: Call API to pause
-}
+// Handle stop action
+// Note: handlePause removed as pause is not yet implemented
 
 function handleStop() {
   executionStore.disconnect()
@@ -465,15 +456,30 @@ onUnmounted(() => {
       </div>
     </header>
 
-    <!-- Focus Mode Banner -->
+    <!-- Focus Mode Banner with Breadcrumb -->
     <Transition name="slide-down">
-      <div v-if="isFocusMode" class="focus-mode-banner">
-        <ViewfinderCircleIcon class="w-5 h-5 focus-icon" />
-        <span class="focus-text">聚焦模式: 节点 {{ focusedNodeId }}</span>
-        <button class="focus-exit-btn" @click="exitFocusMode">
-          <span>退出聚焦</span>
-          <kbd>ESC</kbd>
-        </button>
+      <div v-if="isFocusMode" class="focus-mode-banner glass-panel-medium">
+        <div class="focus-left">
+          <ViewfinderCircleIcon class="focus-icon vibe-breathing-active" />
+          <div class="focus-breadcrumb">
+            <button class="breadcrumb-item" @click="exitFocusMode">
+              执行流程
+            </button>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-current">
+              节点 {{ focusedNodeId }}
+            </span>
+          </div>
+        </div>
+        <div class="focus-right">
+          <span class="focus-hint">按 ESC 退出</span>
+          <button class="focus-exit-btn glass-button" @click="exitFocusMode">
+            <svg class="exit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>退出聚焦</span>
+          </button>
+        </div>
       </div>
     </Transition>
     
@@ -618,19 +624,31 @@ onUnmounted(() => {
   min-height: 100dvh; /* Dynamic viewport height for mobile */
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary, rgba(18, 18, 18, 0.95));
-  color: var(--text-primary, #ffffff);
+  background: rgba(18, 18, 18, 0.95);
+  color: #ffffff;
 }
 
-/* Header */
+/* Global cursor-pointer for interactive elements */
+.execution-page button,
+.execution-page [role="button"],
+.execution-page .clickable {
+  cursor: pointer;
+}
+
+/* Global hover scale for buttons */
+.execution-page button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Header - Glass morphism */
 .execution-header {
   height: 64px;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
-  background: rgba(28, 28, 30, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(28, 28, 30, 0.75);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
@@ -662,7 +680,23 @@ onUnmounted(() => {
 
 .status-badge.running {
   background: rgba(0, 217, 255, 0.2);
-  color: #00D9FF;
+  color: var(--vibe-color-active);
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-badge.completed {
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--vibe-color-success);
+}
+
+.status-badge.error {
+  background: rgba(255, 59, 48, 0.2);
+  color: var(--vibe-color-error);
 }
 
 .time {
@@ -715,9 +749,24 @@ onUnmounted(() => {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00D9FF, #00FF88);
+  background: linear-gradient(90deg, var(--vibe-color-active), var(--vibe-color-success));
   border-radius: 2px;
   transition: width 300ms ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: progress-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .progress-percent {
@@ -851,51 +900,82 @@ onUnmounted(() => {
   font-size: 10px;
 }
 
-/* Focus Mode Banner */
+/* Focus Mode Banner - Enhanced */
 .focus-mode-banner {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 10px 24px;
-  background: rgba(0, 217, 255, 0.15);
-  border-bottom: 1px solid rgba(0, 217, 255, 0.3);
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(0, 217, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.focus-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .focus-icon {
-  font-size: 16px;
+  width: 20px;
+  height: 20px;
+  color: var(--vibe-color-active);
 }
 
-.focus-text {
-  font-size: 14px;
-  color: var(--color-node-active, #00D9FF);
+.focus-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breadcrumb-item {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.breadcrumb-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.breadcrumb-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.breadcrumb-current {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vibe-color-active);
+}
+
+.focus-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.focus-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .focus-exit-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(0, 217, 255, 0.3);
-  border-radius: 6px;
-  color: var(--text-primary);
+  gap: 6px;
+  padding: 6px 14px;
   font-size: 13px;
-  cursor: pointer;
-  transition: all 150ms ease-out;
 }
 
-.focus-exit-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(0, 217, 255, 0.5);
-}
-
-.focus-exit-btn kbd {
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: inherit;
+.exit-icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* Slide Down Transition */
@@ -910,7 +990,7 @@ onUnmounted(() => {
   transform: translateY(-100%);
 }
 
-/* 完成庆祝动画 */
+/* 完成庆祝动画 - Enhanced with Confetti */
 .completion-celebration {
   position: fixed;
   inset: 0;
@@ -918,45 +998,107 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+/* Confetti particles */
+.completion-celebration::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, var(--vibe-color-success) 2px, transparent 2px),
+    radial-gradient(circle at 80% 20%, var(--vibe-color-active) 2px, transparent 2px),
+    radial-gradient(circle at 40% 70%, #FFB800 2px, transparent 2px),
+    radial-gradient(circle at 70% 60%, #FF6B6B 2px, transparent 2px),
+    radial-gradient(circle at 10% 80%, var(--vibe-color-success) 2px, transparent 2px),
+    radial-gradient(circle at 90% 90%, var(--vibe-color-active) 2px, transparent 2px);
+  background-size: 100px 100px;
+  animation: confetti-fall 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
 }
 
 .celebration-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 48px;
+  gap: 20px;
+  padding: 56px 72px;
   background: rgba(28, 28, 30, 0.95);
-  border: 1px solid rgba(0, 255, 136, 0.3);
+  border: 1px solid rgba(0, 255, 136, 0.4);
   border-radius: 24px;
-  box-shadow: 0 0 60px rgba(0, 255, 136, 0.2);
-  animation: celebration-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 
+    0 0 80px rgba(0, 255, 136, 0.25),
+    0 0 120px rgba(0, 217, 255, 0.15);
+  animation: celebration-pop 0.5s var(--vibe-ease-bounce);
 }
 
 @keyframes celebration-pop {
   0% {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.6) rotate(-2deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(1deg);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) rotate(0);
   }
 }
 
+.celebration-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--vibe-color-success);
+  animation: success-bounce 0.6s var(--vibe-ease-bounce) 0.3s both;
+}
+
+@keyframes success-bounce {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .celebration-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
-  color: #00FF88;
+  color: var(--vibe-color-success);
   margin: 0;
+  text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
 }
 
 .celebration-desc {
   font-size: 16px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
+}
+
+.celebration-dismiss {
+  margin-top: 8px;
+  padding: 10px 28px;
+  background: var(--vibe-color-success);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.celebration-dismiss:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
 }
 
 /* Celebration Fade Transition */
@@ -977,6 +1119,45 @@ onUnmounted(() => {
 
 .streaming-info-container {
   overflow: hidden;
+}
+
+/* Skeleton loading styles */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 100%;
+}
+
+.skeleton-text-short {
+  height: 14px;
+  width: 60%;
+}
+
+.skeleton-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-rect {
+  height: 80px;
+  width: 100%;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Right Panel */

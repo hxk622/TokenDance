@@ -144,8 +144,10 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
 
-interface ExtendedHITLRequest extends HITLRequest {
-  context?: {
+interface ExtendedHITLRequest extends Omit<HITLRequest, 'context'> {
+  operation?: string  // legacy alias for type
+  request_id?: string  // legacy alias for id
+  context: {
     tool?: string
     args?: Record<string, unknown>
     risk_level?: string
@@ -283,7 +285,7 @@ const handleApprove = async () => {
       ? `[remember] ${feedback.value || ''}`.trim()
       : feedback.value || null
 
-    await hitlApi.confirm(props.request.request_id, {
+    await hitlApi.confirm(props.request.request_id || props.request.id, {
       approved: true,
       user_feedback: feedbackText,
     })
@@ -301,7 +303,7 @@ const handleReject = async () => {
 
   loading.value = true
   try {
-    await hitlApi.confirm(props.request.request_id, {
+    await hitlApi.confirm(props.request.request_id || props.request.id, {
       approved: false,
       user_feedback: feedback.value || null,
     })

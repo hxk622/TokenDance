@@ -43,7 +43,7 @@
     <div v-else class="post-grid">
       <div
         v-for="post in filteredPosts"
-        :key="post.post_id"
+        :key="post.post_id || post.id"
         class="post-card"
       >
         <!-- Post header -->
@@ -54,26 +54,26 @@
             </div>
             <div class="author-info">
               <span class="author-name">{{ post.author }}</span>
-              <span class="post-time">{{ formatTime(post.timestamp) }}</span>
+              <span class="post-time">{{ formatTime(post.timestamp || '') }}</span>
             </div>
           </div>
           
-          <div class="sentiment-badge" :class="`sentiment-${post.sentiment}`">
-            {{ getSentimentLabel(post.sentiment) }}
+          <div class="sentiment-badge" :class="`sentiment-${post.sentiment || post.sentiment_label || 'neutral'}`">
+            {{ getSentimentLabel(post.sentiment || post.sentiment_label || 'neutral') }}
           </div>
         </div>
 
         <!-- Post content -->
         <div class="post-content">
-          <p class="post-text" :class="{ 'is-expanded': expandedPosts.has(post.post_id) }">
+          <p class="post-text" :class="{ 'is-expanded': expandedPosts.has(post.post_id || post.id) }">
             {{ post.content }}
           </p>
           <button
             v-if="post.content.length > 200"
             class="expand-button"
-            @click="toggleExpand(post.post_id)"
+            @click="toggleExpand(post.post_id || post.id)"
           >
-            {{ expandedPosts.has(post.post_id) ? '收起' : '展开' }}
+            {{ expandedPosts.has(post.post_id || post.id) ? '收起' : '展开' }}
           </button>
         </div>
 
@@ -154,18 +154,19 @@ function getInitial(name: string): string {
 }
 
 // Format timestamp
-function formatTime(timestamp: string): string {
+function formatTime(timestamp: string | null): string {
+  if (!timestamp) return '未知时间'
   return dayjs(timestamp).fromNow()
 }
 
 // Get sentiment label
-function getSentimentLabel(sentiment: string): string {
+function getSentimentLabel(sentiment?: string): string {
   const labels: Record<string, string> = {
     bullish: '看多',
     bearish: '看空',
     neutral: '中性',
   }
-  return labels[sentiment] || sentiment
+  return sentiment ? (labels[sentiment] || sentiment) : '未知'
 }
 
 // Toggle expand/collapse
@@ -181,15 +182,17 @@ function toggleExpand(postId: string) {
 function getFilterCount(filter: string): number {
   if (!props.posts) return 0
   
+  const getSentiment = (p: SentimentPost) => p.sentiment || p.sentiment_label
+  
   switch (filter) {
     case 'all':
       return props.posts.length
     case 'bullish':
-      return props.posts.filter(p => p.sentiment === 'bullish').length
+      return props.posts.filter(p => getSentiment(p) === 'bullish').length
     case 'bearish':
-      return props.posts.filter(p => p.sentiment === 'bearish').length
+      return props.posts.filter(p => getSentiment(p) === 'bearish').length
     case 'neutral':
-      return props.posts.filter(p => p.sentiment === 'neutral').length
+      return props.posts.filter(p => getSentiment(p) === 'neutral').length
     case 'popular':
       return props.posts.filter(p => (p.likes || 0) >= 10).length
     default:

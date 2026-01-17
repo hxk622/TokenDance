@@ -107,7 +107,7 @@
       <section v-if="store.historicalData" class="test-section">
         <h2>8. K线图+舆情 - CombinedChart</h2>
         <CombinedChart
-          :historical-data="store.historicalData"
+          :historical-data="store.historicalData.records"
           :is-loading="store.historicalLoading"
           :error="store.historicalError"
         />

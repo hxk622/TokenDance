@@ -3,7 +3,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { sessionApi, type Session, type SessionCreate, type SessionUpdate } from '@/api/session'
+import { sessionApi, type Session, type SessionCreate, type SessionUpdate, type Message } from '@/api/session'
 
 export const useSessionStore = defineStore('session', () => {
   // State
@@ -242,6 +242,32 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
+  /**
+   * Add a message to current session
+   */
+  function addMessage(message: Message) {
+    if (currentSession.value) {
+      if (!currentSession.value.messages) {
+        currentSession.value.messages = []
+      }
+      currentSession.value.messages.push(message)
+      currentSession.value.message_count = currentSession.value.messages.length
+    }
+  }
+
+  /**
+   * Update the last message in current session
+   */
+  function updateLastMessage(updates: Partial<Message>) {
+    if (currentSession.value?.messages && currentSession.value.messages.length > 0) {
+      const lastIndex = currentSession.value.messages.length - 1
+      currentSession.value.messages[lastIndex] = {
+        ...currentSession.value.messages[lastIndex],
+        ...updates
+      }
+    }
+  }
+
   return {
     // State
     sessions,
@@ -268,6 +294,8 @@ export const useSessionStore = defineStore('session', () => {
     setCurrentWorkspace,
     loadMore,
     refreshCurrentSession,
-    initialize
+    initialize,
+    addMessage,
+    updateLastMessage
   }
 })

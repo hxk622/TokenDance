@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import CoworkerFileTree from '../workflow/CoworkerFileTree.vue'
+// @ts-expect-error - vue-tsc fails to detect default export in script setup components with monaco-editor
 import LiveDiff from './LiveDiff.vue'
 
 interface Props {

@@ -1,5 +1,9 @@
 # Neo4j图数据库集成指南
 
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 移动到 [`docs/reference/neo4j-integration.md`](reference/neo4j-integration.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
 ## 📋 架构决策
 
 基于MemMachine的实践和长期考虑，TokenDance采用**PostgreSQL + Neo4j混合架构**：

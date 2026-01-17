@@ -1,0 +1,464 @@
+/**
+ * TokenDance Vibe Animations Library
+ * 核心动效系统 - 呼吸、流光、波纹
+ */
+
+/* ==========================================
+   1. CSS 变量 - 色球状态色系统
+   ========================================== */
+:root {
+  /* 青色脉冲 - Agent 正在计算 */
+  --vibe-color-active: #00D9FF;
+  --vibe-color-active-glow: rgba(0, 217, 255, 0.5);
+  --vibe-color-active-glow-strong: rgba(0, 217, 255, 0.8);
+
+  /* 绿色锁定 - 节点已完成 */
+  --vibe-color-success: #00FF88;
+  --vibe-color-success-glow: rgba(0, 255, 136, 0.3);
+  --vibe-color-success-glow-strong: rgba(0, 255, 136, 0.6);
+
+  /* 琥珀暂停 - 等待人工介入 */
+  --vibe-color-pending: #FFB800;
+  --vibe-color-pending-glow: rgba(255, 184, 0, 0.4);
+  --vibe-color-pending-glow-strong: rgba(255, 184, 0, 0.7);
+
+  /* 红色冲突 - 执行失败 */
+  --vibe-color-error: #FF3B30;
+  --vibe-color-error-glow: rgba(255, 59, 48, 0.5);
+  --vibe-color-error-glow-strong: rgba(255, 59, 48, 0.8);
+
+  /* 灰色待执行 - 预演节点 */
+  --vibe-color-inactive: #8E8E93;
+  --vibe-color-inactive-glow: rgba(142, 142, 147, 0.2);
+
+  /* 能量连线色 */
+  --vibe-edge-default: rgba(255, 255, 255, 0.3);
+  --vibe-edge-active: rgba(0, 217, 255, 0.8);
+  --vibe-edge-error: rgba(255, 59, 48, 0.6);
+
+  /* 动画时间变量 */
+  --vibe-breath-duration: 1.5s;
+  --vibe-flow-duration: 1s;
+  --vibe-ring-duration: 1.5s;
+  --vibe-transition-fast: 120ms;
+  --vibe-transition-normal: 200ms;
+  --vibe-transition-slow: 300ms;
+
+  /* 缓动函数 */
+  --vibe-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --vibe-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --vibe-ease-out: ease-out;
+}
+
+/* ==========================================
+   2. 呼吸动画 - Pulse Breath
+   ========================================== */
+
+/* 基础呼吸动画 */
+@keyframes vibe-pulse-breath {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.9;
+  }
+}
+
+/* 带发光的呼吸动画 */
+@keyframes vibe-pulse-breath-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px var(--glow-color, var(--vibe-color-active-glow)))
+            drop-shadow(0 0 16px var(--glow-color, var(--vibe-color-active-glow)));
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.92;
+    filter: drop-shadow(0 0 16px var(--glow-color, var(--vibe-color-active-glow)))
+            drop-shadow(0 0 32px var(--glow-color, var(--glow-color-strong, var(--vibe-color-active-glow-strong))));
+  }
+}
+
+/* 应用类 */
+.vibe-breathing {
+  animation: vibe-pulse-breath var(--vibe-breath-duration) ease-in-out infinite;
+}
+
+.vibe-breathing-glow {
+  animation: vibe-pulse-breath-glow var(--vibe-breath-duration) ease-in-out infinite;
+}
+
+/* 不同状态的呼吸动画 */
+.vibe-breathing-active {
+  --glow-color: var(--vibe-color-active-glow);
+  --glow-color-strong: var(--vibe-color-active-glow-strong);
+  animation: vibe-pulse-breath-glow var(--vibe-breath-duration) ease-in-out infinite;
+}
+
+.vibe-breathing-pending {
+  --glow-color: var(--vibe-color-pending-glow);
+  --glow-color-strong: var(--vibe-color-pending-glow-strong);
+  animation: vibe-pulse-breath-glow 2s ease-in-out infinite;
+}
+
+.vibe-breathing-error {
+  --glow-color: var(--vibe-color-error-glow);
+  --glow-color-strong: var(--vibe-color-error-glow-strong);
+  animation: vibe-pulse-breath-glow 0.8s ease-in-out infinite;
+}
+
+/* ==========================================
+   3. 能量流光动画 - Flow Energy
+   ========================================== */
+
+/* 基础流光动画 */
+@keyframes vibe-flow-energy {
+  0% {
+    stroke-dashoffset: 50;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 反向流光 */
+@keyframes vibe-flow-energy-reverse {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 50;
+  }
+}
+
+/* 双向流光 */
+@keyframes vibe-flow-energy-pulse {
+  0%, 100% {
+    stroke-dashoffset: 50;
+    opacity: 0.6;
+  }
+  50% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* 应用类 */
+.vibe-edge-flowing {
+  stroke-dasharray: 10 5;
+  animation: vibe-flow-energy var(--vibe-flow-duration) linear infinite;
+}
+
+.vibe-edge-flowing-fast {
+  stroke-dasharray: 8 4;
+  animation: vibe-flow-energy 0.6s linear infinite;
+}
+
+.vibe-edge-flowing-slow {
+  stroke-dasharray: 15 8;
+  animation: vibe-flow-energy 2s linear infinite;
+}
+
+.vibe-edge-pulsing {
+  stroke-dasharray: 10 5;
+  animation: vibe-flow-energy-pulse 2s ease-in-out infinite;
+}
+
+/* ==========================================
+   4. 扩散波纹动画 - Pulse Ring
+   ========================================== */
+
+@keyframes vibe-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes vibe-pulse-ring-subtle {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* 多层波纹 */
+@keyframes vibe-pulse-ring-multi {
+  0% {
+    box-shadow: 
+      0 0 0 0 var(--ring-color, rgba(0, 217, 255, 0.4)),
+      0 0 0 0 var(--ring-color, rgba(0, 217, 255, 0.3)),
+      0 0 0 0 var(--ring-color, rgba(0, 217, 255, 0.2));
+  }
+  100% {
+    box-shadow: 
+      0 0 0 10px transparent,
+      0 0 0 20px transparent,
+      0 0 0 30px transparent;
+  }
+}
+
+/* 应用类 */
+.vibe-ring {
+  animation: vibe-pulse-ring var(--vibe-ring-duration) ease-out infinite;
+}
+
+.vibe-ring-subtle {
+  animation: vibe-pulse-ring-subtle 2s ease-out infinite;
+}
+
+.vibe-ring-multi {
+  animation: vibe-pulse-ring-multi 2s ease-out infinite;
+}
+
+/* ==========================================
+   5. 状态过渡动画
+   ========================================== */
+
+/* 节点状态切换 */
+@keyframes vibe-node-enter {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes vibe-node-exit {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes vibe-node-success {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.2);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes vibe-node-error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-4px);
+  }
+  40%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+.vibe-node-enter {
+  animation: vibe-node-enter 0.4s var(--vibe-ease-bounce) forwards;
+}
+
+.vibe-node-exit {
+  animation: vibe-node-exit 0.3s var(--vibe-ease-smooth) forwards;
+}
+
+.vibe-node-success-pop {
+  animation: vibe-node-success 0.5s var(--vibe-ease-bounce);
+}
+
+.vibe-node-error-shake {
+  animation: vibe-node-error-shake 0.4s ease-in-out;
+}
+
+/* ==========================================
+   6. 加载动画 - Shimmer & Skeleton
+   ========================================== */
+
+@keyframes vibe-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes vibe-skeleton-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.vibe-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.vibe-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  animation: vibe-shimmer 1.5s infinite;
+}
+
+.vibe-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  animation: vibe-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* ==========================================
+   7. 庆祝动画 - Celebration
+   ========================================== */
+
+@keyframes vibe-confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes vibe-celebration-burst {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes vibe-checkmark-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.vibe-celebration-burst {
+  animation: vibe-celebration-burst 0.6s ease-out forwards;
+}
+
+.vibe-checkmark-animate {
+  stroke-dasharray: 100;
+  animation: vibe-checkmark-draw 0.5s ease-out forwards;
+}
+
+/* ==========================================
+   8. 通用过渡效果
+   ========================================== */
+
+.vibe-transition-fast {
+  transition: all var(--vibe-transition-fast) var(--vibe-ease-out);
+}
+
+.vibe-transition-normal {
+  transition: all var(--vibe-transition-normal) var(--vibe-ease-smooth);
+}
+
+.vibe-transition-slow {
+  transition: all var(--vibe-transition-slow) var(--vibe-ease-smooth);
+}
+
+.vibe-transition-bounce {
+  transition: all var(--vibe-transition-slow) var(--vibe-ease-bounce);
+}
+
+/* Hover 缩放效果 */
+.vibe-hover-scale {
+  transition: transform var(--vibe-transition-fast) var(--vibe-ease-out);
+}
+
+.vibe-hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.vibe-hover-scale-subtle:hover {
+  transform: scale(1.02);
+}
+
+/* Hover 发光效果 */
+.vibe-hover-glow {
+  transition: box-shadow var(--vibe-transition-normal) var(--vibe-ease-out);
+}
+
+.vibe-hover-glow:hover {
+  box-shadow: 0 0 20px var(--vibe-color-active-glow);
+}
+
+/* ==========================================
+   9. 辅助类
+   ========================================== */
+
+/* 暂停所有动画（用于性能或用户偏好） */
+.vibe-pause-animations,
+.vibe-pause-animations * {
+  animation-play-state: paused !important;
+}
+
+/* 减弱动画（用于 prefers-reduced-motion） */
+@media (prefers-reduced-motion: reduce) {
+  .vibe-breathing,
+  .vibe-breathing-glow,
+  .vibe-breathing-active,
+  .vibe-breathing-pending,
+  .vibe-breathing-error,
+  .vibe-ring,
+  .vibe-ring-subtle,
+  .vibe-ring-multi,
+  .vibe-edge-flowing,
+  .vibe-edge-flowing-fast,
+  .vibe-edge-flowing-slow,
+  .vibe-edge-pulsing {
+    animation: none;
+  }
+}

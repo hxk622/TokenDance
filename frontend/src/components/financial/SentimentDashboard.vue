@@ -39,8 +39,8 @@
       <div class="score-section">
         <div class="score-label">
           <span class="label-text">整体情绪</span>
-          <span class="score-value" :class="getSentimentClass(sentiment.analysis.overall_label)">
-            {{ getSentimentLabel(sentiment.analysis.overall_label) }}
+          <span class="score-value" :class="getSentimentClass(sentiment.analysis?.overall_label || 'neutral')">
+            {{ getSentimentLabel(sentiment.analysis?.overall_label || 'neutral') }}
           </span>
         </div>
         
@@ -57,11 +57,11 @@
             <!-- Score indicator -->
             <div 
               class="score-indicator" 
-              :style="{ left: getScorePosition(sentiment.analysis.overall_score) }"
-              :class="getSentimentClass(sentiment.analysis.overall_label)"
+              :style="{ left: getScorePosition(sentiment.analysis?.overall_score || 0) }"
+              :class="getSentimentClass(sentiment.analysis?.overall_label || 'neutral')"
             >
               <div class="indicator-dot"></div>
-              <div class="indicator-label">{{ sentiment.analysis.overall_score.toFixed(2) }}</div>
+              <div class="indicator-label">{{ (sentiment.analysis?.overall_score || 0).toFixed(2) }}</div>
             </div>
           </div>
           
@@ -136,7 +136,7 @@
           <div class="metric-icon">📈</div>
           <div class="metric-content">
             <span class="metric-label">看多</span>
-            <span class="metric-value bullish">{{ sentiment.analysis.bullish_count }}</span>
+            <span class="metric-value bullish">{{ sentiment.analysis?.bullish_count || 0 }}</span>
           </div>
         </div>
         
@@ -144,7 +144,7 @@
           <div class="metric-icon">📉</div>
           <div class="metric-content">
             <span class="metric-label">看空</span>
-            <span class="metric-value bearish">{{ sentiment.analysis.bearish_count }}</span>
+            <span class="metric-value bearish">{{ sentiment.analysis?.bearish_count || 0 }}</span>
           </div>
         </div>
         
@@ -152,7 +152,7 @@
           <div class="metric-icon">➖</div>
           <div class="metric-content">
             <span class="metric-label">中性</span>
-            <span class="metric-value neutral">{{ sentiment.analysis.neutral_count }}</span>
+            <span class="metric-value neutral">{{ sentiment.analysis?.neutral_count || 0 }}</span>
           </div>
         </div>
       </div>
@@ -212,7 +212,9 @@ function getScorePosition(score: number): string {
 const distributionData = computed(() => {
   if (!props.sentiment) return []
 
-  const { bullish_count, bearish_count, neutral_count } = props.sentiment.analysis
+  const analysis = props.sentiment.analysis
+  if (!analysis) return []
+  const { bullish_count, bearish_count, neutral_count } = analysis
   const total = bullish_count + bearish_count + neutral_count
 
   return [

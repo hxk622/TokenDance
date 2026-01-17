@@ -1,5 +1,9 @@
 # 多租户架构设计文档
 
+> **⚠️ 文档已合并**: 此文件将于 **2026-03-01** 与 v2 版本合并到 [`docs/architecture/multi-tenancy.md`](multi-tenancy.md)，并归档到 [`docs/archive/deprecated/multi-tenancy-v1.md`](../archive/deprecated/multi-tenancy-v1.md)
+>
+> 请使用最新的 v2 版本。当前内容将保留 6 周以确保向后兼容。
+
 > **核心理念**：Organization → Team → Workspace 三层隔离，支持企业级协作
 > Version: 1.0.0
 > Last Updated: 2026-01-09

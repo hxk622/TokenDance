@@ -1,0 +1,480 @@
+/**
+ * TokenDance Glass Morphism Library
+ * 毛玻璃效果系统
+ */
+
+/* ==========================================
+   1. 基础毛玻璃面板
+   ========================================== */
+
+.glass-panel {
+  background: rgba(28, 28, 30, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+/* 浅层毛玻璃 - 用于嵌套面板 */
+.glass-panel-light {
+  background: rgba(28, 28, 30, 0.5);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+/* 中等毛玻璃 - 标准面板 */
+.glass-panel-medium {
+  background: rgba(28, 28, 30, 0.7);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+/* 深层毛玻璃 - 模态框/重要面板 */
+.glass-panel-heavy {
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================
+   2. 发光边框效果
+   ========================================== */
+
+/* 青色发光边框 - Active 状态 */
+.glass-border-glow-active {
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  box-shadow: 
+    0 0 0 1px rgba(0, 217, 255, 0.1),
+    0 0 20px rgba(0, 217, 255, 0.15),
+    inset 0 0 20px rgba(0, 217, 255, 0.05);
+}
+
+/* 绿色发光边框 - Success 状态 */
+.glass-border-glow-success {
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  box-shadow: 
+    0 0 0 1px rgba(0, 255, 136, 0.1),
+    0 0 20px rgba(0, 255, 136, 0.15),
+    inset 0 0 20px rgba(0, 255, 136, 0.05);
+}
+
+/* 琥珀发光边框 - Warning/Pending 状态 */
+.glass-border-glow-warning {
+  border: 1px solid rgba(255, 184, 0, 0.3);
+  box-shadow: 
+    0 0 0 1px rgba(255, 184, 0, 0.1),
+    0 0 20px rgba(255, 184, 0, 0.15),
+    inset 0 0 20px rgba(255, 184, 0, 0.05);
+}
+
+/* 红色发光边框 - Error 状态 */
+.glass-border-glow-error {
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  box-shadow: 
+    0 0 0 1px rgba(255, 59, 48, 0.1),
+    0 0 20px rgba(255, 59, 48, 0.15),
+    inset 0 0 20px rgba(255, 59, 48, 0.05);
+}
+
+/* ==========================================
+   3. 毛玻璃按钮
+   ========================================== */
+
+.glass-button {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.glass-button:active {
+  background: rgba(255, 255, 255, 0.06);
+  transform: scale(0.98);
+}
+
+/* Primary 毛玻璃按钮 */
+.glass-button-primary {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.3);
+  color: #00D9FF;
+}
+
+.glass-button-primary:hover {
+  background: rgba(0, 217, 255, 0.25);
+  border-color: rgba(0, 217, 255, 0.4);
+  box-shadow: 0 0 16px rgba(0, 217, 255, 0.2);
+}
+
+/* Success 毛玻璃按钮 */
+.glass-button-success {
+  background: rgba(0, 255, 136, 0.15);
+  border-color: rgba(0, 255, 136, 0.3);
+  color: #00FF88;
+}
+
+.glass-button-success:hover {
+  background: rgba(0, 255, 136, 0.25);
+  border-color: rgba(0, 255, 136, 0.4);
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.2);
+}
+
+/* Danger 毛玻璃按钮 */
+.glass-button-danger {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: rgba(255, 59, 48, 0.3);
+  color: #FF3B30;
+}
+
+.glass-button-danger:hover {
+  background: rgba(255, 59, 48, 0.25);
+  border-color: rgba(255, 59, 48, 0.4);
+  box-shadow: 0 0 16px rgba(255, 59, 48, 0.2);
+}
+
+/* ==========================================
+   4. 毛玻璃卡片
+   ========================================== */
+
+.glass-card {
+  background: rgba(28, 28, 30, 0.6);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 200ms ease-out;
+}
+
+.glass-card:hover {
+  background: rgba(28, 28, 30, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 可选中的卡片 */
+.glass-card-selectable {
+  cursor: pointer;
+}
+
+.glass-card-selectable.selected {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: rgba(0, 217, 255, 0.3);
+  box-shadow: 0 0 0 1px rgba(0, 217, 255, 0.2);
+}
+
+/* ==========================================
+   5. 毛玻璃输入框
+   ========================================== */
+
+.glass-input {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-size: 14px;
+  transition: all 150ms ease-out;
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(0, 217, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+}
+
+.glass-input:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================================
+   6. 毛玻璃工具栏
+   ========================================== */
+
+.glass-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(28, 28, 30, 0.7);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.glass-toolbar-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.glass-toolbar-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.glass-toolbar-button:active {
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(0.95);
+}
+
+.glass-toolbar-button.active {
+  background: rgba(0, 217, 255, 0.2);
+  border-color: rgba(0, 217, 255, 0.3);
+  color: #00D9FF;
+}
+
+/* ==========================================
+   7. 毛玻璃 Tooltip
+   ========================================== */
+
+.glass-tooltip {
+  position: fixed;
+  z-index: 9999;
+  padding: 8px 12px;
+  background: rgba(18, 18, 18, 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+/* ==========================================
+   8. 毛玻璃模态框
+   ========================================== */
+
+.glass-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.glass-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  min-width: 400px;
+  max-width: 90vw;
+  max-height: 90vh;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.glass-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
+}
+
+.glass-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================
+   9. 毛玻璃分隔线
+   ========================================== */
+
+.glass-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}
+
+.glass-divider-vertical {
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}
+
+/* ==========================================
+   10. 毛玻璃 Tab 组件
+   ========================================== */
+
+.glass-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.glass-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.glass-tab:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.glass-tab.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================
+   11. 毛玻璃徽章
+   ========================================== */
+
+.glass-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.glass-badge-active {
+  background: rgba(0, 217, 255, 0.2);
+  color: #00D9FF;
+}
+
+.glass-badge-success {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00FF88;
+}
+
+.glass-badge-warning {
+  background: rgba(255, 184, 0, 0.2);
+  color: #FFB800;
+}
+
+.glass-badge-error {
+  background: rgba(255, 59, 48, 0.2);
+  color: #FF3B30;
+}
+
+/* ==========================================
+   12. 毛玻璃滚动条
+   ========================================== */
+
+.glass-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.glass-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.glass-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 150ms ease-out;
+}
+
+.glass-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ==========================================
+   13. 响应式适配
+   ========================================== */
+
+/* 低端设备降级 - 减少模糊效果 */
+@supports not (backdrop-filter: blur(20px)) {
+  .glass-panel,
+  .glass-panel-light,
+  .glass-panel-medium,
+  .glass-panel-heavy {
+    background: rgba(28, 28, 30, 0.95);
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .glass-panel-heavy {
+    border-radius: 12px;
+  }
+
+  .glass-modal {
+    min-width: unset;
+    width: calc(100% - 32px);
+    border-radius: 12px;
+  }
+}

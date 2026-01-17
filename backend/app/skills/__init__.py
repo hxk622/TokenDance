@@ -72,6 +72,24 @@ from .embedding import (
     set_embedding_model,
 )
 
+# Hot Reload
+from .hot_reload import (
+    SkillHotReloader,
+    get_skill_hot_reloader,
+    start_skill_hot_reload,
+    stop_skill_hot_reload,
+    setup_hot_reload_for_app,
+)
+
+# Monitoring
+from .monitoring import (
+    SkillMonitor,
+    MatchTimer,
+    ExecutionTimer,
+    get_skill_monitor,
+    reset_skill_monitor,
+)
+
 __all__ = [
     # Registry
     "SkillRegistry",
@@ -104,4 +122,16 @@ __all__ = [
     "SentenceTransformerEmbedding",
     "get_embedding_model",
     "set_embedding_model",
+    # Hot Reload
+    "SkillHotReloader",
+    "get_skill_hot_reloader",
+    "start_skill_hot_reload",
+    "stop_skill_hot_reload",
+    "setup_hot_reload_for_app",
+    # Monitoring
+    "SkillMonitor",
+    "MatchTimer",
+    "ExecutionTimer",
+    "get_skill_monitor",
+    "reset_skill_monitor",
 ]

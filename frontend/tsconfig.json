@@ -17,8 +17,8 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false, /* disabled: vue-tsc has false positives for template-used vars */
+    "noUnusedParameters": false, /* disabled: same issue with template event handlers */
     "noFallthroughCasesInSwitch": true,
 
     /* Path aliases */

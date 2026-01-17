@@ -802,19 +802,24 @@ async def test_skill_load():
 
 ---
 
-## 7. 实现状态与待完成工作 (2026-01-17)
+## 7. 实现状态与待完成工作 (2026-01-17 更新)
 
 ### 7.1 当前 Skill 清单
 
 #### 一级 builtin skill（6个）
 | Skill ID | 显示名 | 状态 | 说明 |
 |----------|--------|------|------|
-| deep_research | 深度研究 | ✅ L1+L2 | 有 templates.yaml |
-| ppt | PPT生成 | ✅ L1+L2 | 有 templates.yaml |
-| image_generation | 图片生成 | ✅ L1+L2 | - |
+| deep_research | 深度研究 | ✅ L1+L2+L3 | 有 templates.yaml + execute.py |
+| ppt | PPT生成 | ✅ L1+L2+L3 | 有 templates.yaml + execute.py |
+| image_generation | 图片生成 | ✅ L1+L2+L3 | 有 execute.py |
 | frontend-design | 前端设计 | ✅ L1+L2 | - |
 | planning-with-files | 三文件规划法 | ✅ L1+L2 | - |
 | ui-ux-pro-max | UI/UX Pro Max | ✅ L1+L2 | - |
+
+#### Superpowers skills（14个）
+| Skill ID | 状态 | 说明 |
+|----------|------|------|
+| brainstorming, code-review, critical-thinking 等 | ✅ L1+L2 | 已丰富双语 tags |
 
 #### Scientific skills（139个）
 按分类：visualization (5)、database (13+)、data-science、biology、chemistry、physics、clinical 等
@@ -827,86 +832,75 @@ async def test_skill_load():
 | SkillMatcher | `matcher.py` | ✅ 完成 | 关键词 + Embedding + LLM Rerank |
 | SkillLoader | `loader.py` | ✅ 完成 | L2/L3 内容加载、缓存 |
 | SkillExecutor | `executor.py` | ✅ 完成 | L3 脚本执行框架 |
-| Embedding | `embedding.py` | ✅ 完成 | SentenceTransformer (all-MiniLM-L6-v2) |
+| Embedding | `embedding.py` | ✅ 完成 | **已升级**: paraphrase-multilingual-MiniLM-L12-v2 |
 | TemplateRegistry | `template_registry.py` | ✅ 完成 | 模板管理 |
-| ExecutionRouter | `routing/router.py` | ⚠️ 有Bug | 见下方问题 |
+| ExecutionRouter | `routing/router.py` | ✅ 已修复 | route() 改为 async def |
+| HotReload | `hot_reload.py` | ✅ 新增 | 文件监听自动重载 |
+| Monitoring | `monitoring.py` | ✅ 新增 | 匹配/执行统计 |
 | API 端点 | `api/v1/skills.py` | ✅ 完成 | Skill/模板/场景 API |
 | Agent 集成 | `agent/engine.py` | ✅ 完成 | 完整的混合执行路由 |
-| 测试 | `tests/test_skill_system.py` | ✅ 基础 | 覆盖 Registry/Matcher/Loader |
+| 测试 | `tests/` | ✅ 增强 | 新增 85+ 测试用例的 benchmark 测试集 |
 
-### 7.3 🚨 待完成工作（按优先级）
+### 7.3 ✅ 已完成工作（2026-01-17）
 
-#### P0 - 阻塞自动化执行
+#### P0 - 阻塞自动化执行（已解决）
 
-**1. 所有 Skill 缺少 `execute.py`（L3 脚本）**
-```
-问题：145+ 个 Skill 都没有 resources/execute.py
-影响：SkillExecutor.can_execute() 始终返回 False
-      导致 Skill 只能注入 L2 指令，无法自动化执行任务
-解决：为核心 Skill（deep_research, ppt 等）实现 execute.py
-```
+**1. ✅ 核心 Skill 实现 `execute.py`（L3 脚本）**
+- `deep_research/resources/execute.py` - 多源搜索、信息聚合
+- `ppt/resources/execute.py` - Marp Markdown 生成
+- `image_generation/resources/execute.py` - 多后端图像生成
 
-**2. ExecutionRouter 同步调用异步方法 Bug**
-```python
-# router.py:129 - 错误代码
-skill_match = self.skill_matcher.match(user_message)  # match() 是 async!
+**2. ✅ ExecutionRouter 同步调用异步方法 Bug 已修复**
+- `router.py:115`: `def route()` → `async def route()`
+- `engine.py:850`: 调用处添加 `await`
 
-# 修复方案：将 route() 改为 async，或创建同步匹配方法
-```
+#### P1 - 提升触发准确性（已完成）
 
-#### P1 - 提升触发准确性
+**3. ✅ 创建 benchmark 测试集**
+- 文件: `tests/test_skill_matching_benchmark.py`
+- 85+ 测试用例，覆盖:
+  - 标准表达、自然语言、口语化
+  - 中英文混合、专业术语、简写
+  - 边界情况、负面测试
 
-**3. 增加更多测试用例验证匹配准确性**
-```
-当前匹配策略：
-- 关键词匹配：基于 tags 和 display_name（权重 0.3-0.4）
-- Embedding 匹配：SentenceTransformer 语义相似度
-- 阈值：默认 0.7，路由时用 0.85
+**4. ✅ 丰富 Skill 的 tags 和 description**
+- 14 个 superpowers skills 全部增加双语 tags
+- 添加 display_name、version、match_threshold、priority
 
-建议：
-- 创建 benchmark 测试集
-- 评估不同阈值的 precision/recall
-- 考虑添加 few-shot examples 提升匹配
-```
+**5. ✅ 升级为多语言 Embedding 模型**
+- 从 `all-MiniLM-L6-v2` 升级到 `paraphrase-multilingual-MiniLM-L12-v2`
+- 支持 50+ 语言，中英文混合场景效果更好
 
-**4. 为更多 Skill 添加 templates.yaml**
-```
-当前只有 deep_research 和 ppt 有模板
-建议为 scientific skills 中的高频使用 Skill 添加模板
-```
+**6. ✅ 调优高频 Skill 的 match_threshold**
+- deep_research: 0.7 → 0.65
+- ppt: 0.7 → 0.65
+- image_generation: 0.70（保持）
 
-#### P2 - 增强功能
+#### P2 - 增强功能（已完成）
 
-**5. 实现 Skill 热重载**
-```
-当前需重启服务才能加载新 Skill
-可通过文件监听实现热重载
-```
+**7. ✅ 实现 Skill 热重载**
+- 文件: `hot_reload.py`
+- 支持 watchdog（优先）和轮询两种模式
+- 自动重载 Registry、清除缓存、重建 Embedding 索引
 
-**6. Skill 执行监控和统计**
-```
-- 执行成功率
-- 平均耗时
-- Token 消耗
-```
+**8. ✅ Skill 执行监控和统计**
+- 文件: `monitoring.py`
+- 记录: 匹配成功率、执行耗时、Token 消耗
+- 提供: MatchTimer、ExecutionTimer 上下文管理器
+- API: get_summary()、get_top_skills()、get_recent_events()
 
-### 7.4 Skill 触发准确性分析
+### 7.4 Skill 触发准确性（已优化）
 
 **匹配流程**：
 ```
 用户消息 → 关键词初筛 → Embedding 语义匹配 → (可选) LLM Rerank → 阈值过滤
 ```
 
-**当前阈值设置**：
-- `SkillMatch.is_confident()`: 默认 0.7 或 Skill 自定义
-- `ExecutionRouter.skill_confidence_threshold`: 0.85（更严格）
+**优化后配置**：
+- Embedding 模型: `paraphrase-multilingual-MiniLM-L12-v2`（多语言）
+- 高频 Skill 阈值: 0.65（降低误拒率）
+- 所有 superpowers skills 双语 tags
 
-**评估**：
-- 关键词匹配：快速但依赖 tags 质量
-- Embedding 匹配：语义理解较好，但中英文混合场景可能不够准确
-- LLM Rerank：默认关闭，开启后准确性最高但增加延迟和成本
-
-**建议优化**：
-1. 丰富 Skill 的 tags 和 description
-2. 考虑使用多语言 Embedding 模型（如 multilingual-MiniLM）
-3. 对高频 Skill 调优 match_threshold
+**验证**：
+- 85+ 测试用例覆盖多种表达方式
+- 运行: `uv run pytest tests/test_skill_matching_benchmark.py`

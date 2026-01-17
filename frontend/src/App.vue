@@ -1,15 +1,63 @@
 <template>
   <div id="app" class="min-h-screen bg-bg-primary text-text-primary">
     <RouterView v-slot="{ Component, route }">
-      <Transition :name="route.meta.transition || 'page-fade'" mode="out-in">
+      <Transition :name="(route.meta.transition as string) || 'page-fade'" mode="out-in">
         <component :is="Component" :key="route.path" />
       </Transition>
     </RouterView>
+
+    <!-- Login Prompt Modal -->
+    <LoginPromptModal
+      :visible="showLoginPrompt"
+      @close="handleCloseLoginPrompt"
+      @success="handleLoginSuccess"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import LoginPromptModal from '@/components/common/LoginPromptModal.vue'
+
+const route = useRoute()
+const authStore = useAuthStore()
+
+const loginPromptDismissed = ref(false)
+
+// Pages that don't need login prompt
+const excludedPaths = ['/login', '/register']
+
+// Show login prompt if:
+// 1. User is not authenticated
+// 2. User hasn't dismissed the prompt in this session
+// 3. Not on login/register page
+const showLoginPrompt = computed(() => {
+  return !authStore.isAuthenticated &&
+         !loginPromptDismissed.value &&
+         !excludedPaths.includes(route.path)
+})
+
+function handleCloseLoginPrompt() {
+  loginPromptDismissed.value = true
+  // Remember dismissal for this session
+  sessionStorage.setItem('login_prompt_dismissed', 'true')
+}
+
+function handleLoginSuccess() {
+  loginPromptDismissed.value = true
+}
+
+onMounted(async () => {
+  // Initialize auth state
+  await authStore.initialize()
+  
+  // Check if prompt was already dismissed in this session
+  if (sessionStorage.getItem('login_prompt_dismissed') === 'true') {
+    loginPromptDismissed.value = true
+  }
+})
 </script>
 
 <style>

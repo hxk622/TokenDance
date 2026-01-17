@@ -43,6 +43,12 @@ export const useFinancialStore = defineStore('financial', () => {
   // Combined analysis
   const combinedAnalysis = ref<CombinedAnalysis | null>(null)
   
+  // Analysis engine results
+  const financialAnalysis = ref<FinancialAnalysisResult | null>(null)
+  const valuationAnalysis = ref<ValuationAnalysisResult | null>(null)
+  const technicalAnalysis = ref<TechnicalAnalysisResult | null>(null)
+  const comprehensiveAnalysis = ref<ComprehensiveAnalysisResult | null>(null)
+  
   // Loading states
   const loadingStockInfo = ref(false)
   const loadingStockQuote = ref(false)
@@ -69,7 +75,7 @@ export const useFinancialStore = defineStore('financial', () => {
   const cache = ref<Map<string, CacheEntry<any>>>(new Map())
   
   // Watch list
-  const watchList = ref<string[]>([])
+  const watchList = ref<{ symbol: string; name: string }[]>([])
   
   // ==================== Getters ====================
   
@@ -343,9 +349,9 @@ export const useFinancialStore = defineStore('financial', () => {
   /**
    * Add to watch list
    */
-  function addToWatchList(symbol: string) {
-    if (!watchList.value.includes(symbol)) {
-      watchList.value.push(symbol)
+  function addToWatchList(item: { symbol: string; name: string }) {
+    if (!watchList.value.some(s => s.symbol === item.symbol)) {
+      watchList.value.push(item)
       // Persist to localStorage
       localStorage.setItem('financial:watchList', JSON.stringify(watchList.value))
     }
@@ -355,7 +361,7 @@ export const useFinancialStore = defineStore('financial', () => {
    * Remove from watch list
    */
   function removeFromWatchList(symbol: string) {
-    const index = watchList.value.indexOf(symbol)
+    const index = watchList.value.findIndex(s => s.symbol === symbol)
     if (index !== -1) {
       watchList.value.splice(index, 1)
       localStorage.setItem('financial:watchList', JSON.stringify(watchList.value))
@@ -388,7 +394,7 @@ export const useFinancialStore = defineStore('financial', () => {
   /**
    * 运行财务分析
    */
-  async function runFinancialAnalysis(symbol: string, market?: string) {
+  async function runFinancialAnalysis(symbol: string, market?: 'cn' | 'us' | 'hk') {
     loadingFinancialAnalysis.value = true
     financialAnalysisError.value = null
     
@@ -410,7 +416,7 @@ export const useFinancialStore = defineStore('financial', () => {
   /**
    * 运行估值分析
    */
-  async function runValuationAnalysis(symbol: string, market?: string) {
+  async function runValuationAnalysis(symbol: string, market?: 'cn' | 'us' | 'hk') {
     loadingValuationAnalysis.value = true
     valuationAnalysisError.value = null
     
@@ -432,7 +438,7 @@ export const useFinancialStore = defineStore('financial', () => {
   /**
    * 运行技术分析
    */
-  async function runTechnicalAnalysis(symbol: string, market?: string) {
+  async function runTechnicalAnalysis(symbol: string, market?: 'cn' | 'us' | 'hk') {
     loadingTechnicalAnalysis.value = true
     technicalAnalysisError.value = null
     
@@ -456,7 +462,7 @@ export const useFinancialStore = defineStore('financial', () => {
    */
   async function runComprehensiveAnalysis(
     symbol: string,
-    market?: string,
+    market?: 'cn' | 'us' | 'hk',
     includeTechnical = true
   ) {
     loadingComprehensiveAnalysis.value = true
@@ -515,6 +521,13 @@ export const useFinancialStore = defineStore('financial', () => {
     comprehensiveAnalysisError.value = null
   }
   
+  /**
+   * 设置当前股票代码
+   */
+  function setCurrentSymbol(symbol: string) {
+    currentSymbol.value = symbol
+  }
+  
   // Load watch list on init
   loadWatchList()
   
@@ -545,6 +558,9 @@ export const useFinancialStore = defineStore('financial', () => {
     loadingTechnicalAnalysis,
     loadingComprehensiveAnalysis,
     isLoading,
+    // Loading state aliases for backwards compatibility
+    sentimentLoading: loadingSentiment,
+    historicalLoading: loadingHistorical,
     
     // Error states
     stockInfoError,
@@ -574,6 +590,7 @@ export const useFinancialStore = defineStore('financial', () => {
     removeFromWatchList,
     loadWatchList,
     clearCache,
+    setCurrentSymbol,
     
     // 分析引擎 Actions
     runFinancialAnalysis,

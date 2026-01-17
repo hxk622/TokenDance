@@ -1,7 +1,11 @@
 # TokenDance Agent 健壮性评估 & 优化路线图
 
-**日期**: 2025-01-16  
-**评估范围**: Agent 长时间运行能力、自我修正机制、平台竞争力  
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 移动到 [`docs/reference/agent-robustness-assessment.md`](docs/reference/agent-robustness-assessment.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
+**日期**: 2025-01-16
+**评估范围**: Agent 长时间运行能力、自我修正机制、平台竞争力
 **输出**: 当前状态分析 + 分阶段优化方案
 
 ---

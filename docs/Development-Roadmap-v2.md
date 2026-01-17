@@ -1,6 +1,10 @@
 # TokenDance 开发路线图 v2.0
 
-> 更新时间: 2026-01-13  
+> **⚠️ 文档已迁移**: 此文件将于 **2026-03-01** 移动到 [`docs/reference/development-roadmap-v2.md`](reference/development-roadmap-v2.md)
+>
+> 请更新您的书签。当前内容将保留 6 周以确保向后兼容。
+
+> 更新时间: 2026-01-13
 > 基于核心架构原则和产品理念的完整开发计划
 
 ---

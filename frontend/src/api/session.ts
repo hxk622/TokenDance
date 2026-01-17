@@ -33,6 +33,35 @@ export interface Session {
   created_at: string
   updated_at: string
   completed_at?: string
+  messages?: Message[]
+}
+
+export interface Citation {
+  index: number
+  url: string
+  title?: string
+  domain?: string
+}
+
+export interface ToolCall {
+  id: string
+  name: string
+  args?: Record<string, unknown>
+  status: 'pending' | 'running' | 'success' | 'error' | 'cancelled'
+  result?: unknown
+  error?: string
+}
+
+export interface Message {
+  id: string
+  session_id?: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  thinking?: string
+  tool_calls?: ToolCall[]
+  citations?: Citation[]
+  tokens_used?: number
+  created_at: string
 }
 
 export interface SessionList {

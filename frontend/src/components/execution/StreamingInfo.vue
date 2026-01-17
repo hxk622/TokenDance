@@ -1,19 +1,40 @@
 <template>
-  <div class="streaming-info">
+  <div class="streaming-info glass-panel">
     <div class="toolbar">
-      <div class="mode-tabs">
-        <button :class="{ active: mode === 'all' }" @click="mode = 'all'">全部</button>
-        <button :class="{ active: mode === 'coworker' }" @click="mode = 'coworker'">Coworker</button>
-        <button :class="{ active: mode === 'browser' }" @click="mode = 'browser'">
-          <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-          </svg>
+      <div class="mode-tabs glass-tabs">
+        <button :class="['glass-tab', { active: mode === 'all' }]" @click="mode = 'all'">
+          全部
+        </button>
+        <button :class="['glass-tab', { active: mode === 'coworker' }]" @click="mode = 'coworker'">
+          Coworker
+        </button>
+        <button :class="['glass-tab', { active: mode === 'browser' }]" @click="mode = 'browser'">
           浏览器
         </button>
       </div>
-      <button v-if="isFocusMode" class="btn-exit-focus" @click="exitFocusMode">
-        退出聚焦模式
-      </button>
+      <div class="toolbar-actions">
+        <button 
+          v-if="isFocusMode" 
+          class="btn-exit-focus glass-button" 
+          @click="exitFocusMode"
+        >
+          退出聚焦
+        </button>
+        <button 
+          :class="['btn-lock', { active: isUserReading }]"
+          @click="toggleScrollLock"
+          :title="isUserReading ? '解锁滚动' : '锁定滚动'"
+        >
+          <svg v-if="isUserReading" class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="5" y="11" width="14" height="10" rx="2" stroke-width="2"/>
+            <path d="M8 11V7a4 4 0 118 0v4" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <svg v-else class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="5" y="11" width="14" height="10" rx="2" stroke-width="2"/>
+            <path d="M8 11V7a4 4 0 017.83-1" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Browser Operation Log -->
@@ -26,20 +47,91 @@
       />
     </div>
 
+    <!-- Coworker Mode: FileTree + LiveDiff -->
+    <div v-else-if="mode === 'coworker'" class="coworker-container">
+      <div class="coworker-split">
+        <div class="coworker-left" :style="{ flex: coworkerSplitRatio }">
+          <CoworkerFileTree 
+            :operations="executionStore.fileOperations"
+            @file-select="handleFileSelect"
+          />
+        </div>
+        <div class="coworker-divider"></div>
+        <div class="coworker-right" :style="{ flex: 100 - coworkerSplitRatio }">
+          <LiveDiff 
+            v-if="selectedFileOperation"
+            :file-path="selectedFileOperation.path"
+          />
+          <div v-else class="no-selection">
+            <p>选择文件查看变更</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Regular Logs -->
-    <div v-else class="logs-container" ref="logsContainerRef" @scroll="handleScroll">
+    <div v-else class="logs-container" ref="logsContainerRef">
+      <!-- Timeline track -->
+      <div class="timeline-track"></div>
+      
       <div 
         v-for="log in displayLogs" 
         :key="log.id"
-        :class="['log-entry', `type-${log.type}`]"
+        :class="[
+          'log-entry', 
+          `type-${log.type}`,
+          { expanded: isLogExpanded(log.id) }
+        ]"
         :data-node-id="log.nodeId"
+        @click="toggleLogExpand(log.id)"
       >
-        <div class="log-header">
-          <span class="log-type">{{ log.type }}</span>
-          <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+        <!-- Timeline dot -->
+        <div class="timeline-dot" :style="{ background: getLogColor(log.type) }"></div>
+        
+        <div class="log-card">
+          <div class="log-header">
+            <div class="log-type-wrapper">
+              <component 
+                :is="getLogIcon(log.type)" 
+                class="log-icon"
+                :style="{ color: getLogColor(log.type) }"
+              />
+              <span class="log-type" :style="{ color: getLogColor(log.type) }">
+                {{ log.type }}
+              </span>
+            </div>
+            <div class="log-meta">
+              <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+              <ChevronDownIcon v-if="isLogExpanded(log.id)" class="expand-icon" />
+              <ChevronRightIcon v-else class="expand-icon" />
+            </div>
+          </div>
+          
+          <!-- Collapsed preview -->
+          <div v-if="!isLogExpanded(log.id)" class="log-preview">
+            {{ log.content.slice(0, 100) }}{{ log.content.length > 100 ? '...' : '' }}
+          </div>
+          
+          <!-- Expanded content -->
+          <Transition name="expand">
+            <div v-if="isLogExpanded(log.id)" class="log-content">
+              {{ log.content }}
+            </div>
+          </Transition>
         </div>
-        <div class="log-content">{{ log.content }}</div>
       </div>
+      
+      <!-- Jump to latest button -->
+      <Transition name="fade-up">
+        <button 
+          v-if="showJumpToLatest" 
+          class="jump-to-latest glass-button-primary"
+          @click="scrollToBottom()"
+        >
+          <ArrowDownIcon class="jump-icon" />
+          <span>{{ newContentCount }} 条新日志</span>
+        </button>
+      </Transition>
     </div>
 
     <!-- TimeLapse Gallery Modal -->
@@ -72,10 +164,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useExecutionStore } from '@/stores/execution'
 import { BrowserOperationLog, TimeLapseGallery } from './browser'
 import type { BrowserOperation, TimeLapsePlayback } from './browser/types'
+import CoworkerFileTree from './workflow/CoworkerFileTree.vue'
+// @ts-expect-error - vue-tsc fails to detect default export in script setup components with monaco-editor
+import LiveDiff from './artifact/LiveDiff.vue'
+import { useScrollSync } from '@/composables/useScrollSync'
+import {
+  LightBulbIcon,
+  WrenchScrewdriverIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ArrowDownIcon
+} from '@heroicons/vue/24/outline'
 
 interface Props {
   sessionId: string
@@ -90,7 +195,24 @@ const mode = ref<'all' | 'coworker' | 'browser'>('all')
 const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 const logsContainerRef = ref<HTMLElement | null>(null)
-const autoScroll = ref(true)
+
+// Use scroll sync composable
+const {
+  showJumpToLatest,
+  newContentCount,
+  scrollToBottom,
+  notifyNewContent,
+  lockScroll,
+  unlockScroll,
+  isUserReading
+} = useScrollSync(logsContainerRef)
+
+// Coworker mode state
+const selectedFileOperation = ref<any>(null)
+const coworkerSplitRatio = ref(50) // 50% FileTree, 50% LiveDiff
+
+// Log expansion state
+const expandedLogs = ref<Set<string>>(new Set())
 
 // Use logs from store
 const displayLogs = computed(() => {
@@ -108,26 +230,63 @@ const displayLogs = computed(() => {
 watch(
   () => executionStore.logs.length,
   () => {
-    if (autoScroll.value) {
-      nextTick(() => {
-        if (logsContainerRef.value) {
-          logsContainerRef.value.scrollTop = logsContainerRef.value.scrollHeight
-        }
-      })
-    }
+    notifyNewContent()
   }
 )
-
-// Detect user scroll to pause auto-scroll
-function handleScroll(event: Event) {
-  const el = event.target as HTMLElement
-  const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
-  autoScroll.value = isAtBottom
-}
 
 function formatTime(timestamp: number) {
   const date = new Date(timestamp)
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+// Get icon for log type
+function getLogIcon(type: string) {
+  switch (type) {
+    case 'thinking': return LightBulbIcon
+    case 'tool-call': return WrenchScrewdriverIcon
+    case 'result': return CheckCircleIcon
+    case 'error': return ExclamationTriangleIcon
+    default: return LightBulbIcon
+  }
+}
+
+// Get color for log type
+function getLogColor(type: string): string {
+  switch (type) {
+    case 'thinking': return 'var(--vibe-color-active)'
+    case 'tool-call': return 'var(--vibe-color-pending)'
+    case 'result': return 'var(--vibe-color-success)'
+    case 'error': return 'var(--vibe-color-error)'
+    default: return 'var(--vibe-color-active)'
+  }
+}
+
+// Toggle log expansion
+function toggleLogExpand(logId: string) {
+  if (expandedLogs.value.has(logId)) {
+    expandedLogs.value.delete(logId)
+  } else {
+    expandedLogs.value.add(logId)
+  }
+}
+
+// Check if log is expanded
+function isLogExpanded(logId: string): boolean {
+  return expandedLogs.value.has(logId)
+}
+
+// Handle file select in Coworker mode
+function handleFileSelect(operation: any) {
+  selectedFileOperation.value = operation
+}
+
+// Toggle scroll lock
+function toggleScrollLock() {
+  if (isUserReading.value) {
+    unlockScroll()
+  } else {
+    lockScroll()
+  }
 }
 
 function scrollToNode(nodeId: string) {
@@ -210,7 +369,6 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: rgba(18, 18, 18, 0.8);
 }
 
 .toolbar {
@@ -218,37 +376,45 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.mode-tabs {
+.toolbar-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.mode-tabs button {
-  padding: 6px 12px;
-  border: 1px solid var(--divider-color);
+.btn-lock {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-  font-size: 13px;
   cursor: pointer;
   transition: all 120ms ease-out;
 }
 
-.mode-tabs button.active {
-  background: rgba(0, 217, 255, 0.2);
-  border-color: #00D9FF;
-  color: #00D9FF;
+.btn-lock:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.mode-tabs button svg {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
-  vertical-align: middle;
+.btn-lock.active {
+  background: rgba(255, 184, 0, 0.2);
+  border-color: var(--vibe-color-pending);
+}
+
+.lock-icon {
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.btn-lock.active .lock-icon {
+  color: var(--vibe-color-pending);
 }
 
 .browser-log-container {
@@ -257,92 +423,211 @@ defineExpose({
   padding: 16px;
 }
 
-.btn-exit-focus {
-  padding: 6px 12px;
-  border: 1px solid #FFB800;
-  border-radius: 6px;
-  background: rgba(255, 184, 0, 0.2);
-  color: #FFB800;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 120ms ease-out;
+/* Coworker split view */
+.coworker-container {
+  flex: 1;
+  overflow: hidden;
 }
 
-.btn-exit-focus:hover {
-  background: rgba(255, 184, 0, 0.3);
+.coworker-split {
+  display: flex;
+  height: 100%;
 }
 
+.coworker-left,
+.coworker-right {
+  overflow: hidden;
+}
+
+.coworker-divider {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.no-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+}
+
+/* Logs container with timeline */
 .logs-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 16px 16px 32px;
+  position: relative;
 }
 
+.timeline-track {
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Log entry with timeline dot */
 .log-entry {
-  margin-bottom: 16px;
-  padding: 12px;
-  border-left: 3px solid;
-  background: rgba(28, 28, 30, 0.6);
-  border-radius: 4px;
+  position: relative;
+  margin-bottom: 12px;
+  cursor: pointer;
 }
 
-.log-entry.type-thinking {
-  border-color: #00D9FF;
+.timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  z-index: 1;
 }
 
-.log-entry.type-tool-call {
-  border-color: #FFB800;
+.log-card {
+  padding: 12px 16px;
+  background: rgba(28, 28, 30, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 150ms ease-out;
 }
 
-.log-entry.type-result {
-  border-color: #00FF88;
+.log-entry:hover .log-card {
+  background: rgba(28, 28, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.log-entry.type-error {
-  border-color: #FF3B30;
+.log-entry.expanded .log-card {
+  background: rgba(28, 28, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .log-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+}
+
+.log-type-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .log-type {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-primary, #ffffff);
+}
+
+.log-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .log-time {
   font-size: 11px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.4));
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.expand-icon {
+  width: 14px;
+  height: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  transition: transform 150ms ease-out;
+}
+
+.log-preview {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
 }
 
 .log-content {
-  font-size: 14px;
+  margin-top: 12px;
+  font-size: 13px;
   line-height: 1.6;
-  color: var(--text-primary, rgba(255, 255, 255, 0.9));
-  font-family: 'Monaco', 'Menlo', monospace;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'SF Mono', 'Monaco', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-/* 滚动条样式 */
+/* Jump to latest button */
+.jump-to-latest {
+  position: sticky;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.jump-icon {
+  width: 16px;
+  height: 16px;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+/* Expand transition */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 200ms ease-out;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+/* Fade up transition for jump button */
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: all 200ms ease-out;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+}
+
+/* Scrollbar */
 .logs-container::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .logs-container::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
 }
 
 .logs-container::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-.logs-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 </style>

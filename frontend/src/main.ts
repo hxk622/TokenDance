@@ -4,6 +4,9 @@ import App from './App.vue'
 import router from './router'
 import './assets/main.css'
 import './styles/vibe.css'
+import './styles/vibe-animations.css'
+import './styles/glass-morphism.css'
+import './styles/micro-interactions.css'
 
 const app = createApp(App)
 

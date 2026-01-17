@@ -102,17 +102,17 @@
             <div class="metric-value">
               <span 
                 class="sentiment-badge" 
-                :class="`sentiment-${sentimentResult?.analysis.overall_label}`"
+                :class="`sentiment-${sentimentResult?.analysis?.overall_label || 'neutral'}`"
               >
-                {{ getSentimentLabel(sentimentResult?.analysis.overall_label) }}
+                {{ getSentimentLabel(sentimentResult?.analysis?.overall_label) }}
               </span>
             </div>
           </div>
 
           <div class="metric-item">
             <div class="metric-label">情绪评分</div>
-            <div class="metric-value" :class="getSentimentScoreClass(sentimentResult?.analysis.overall_score || 0)">
-              {{ sentimentResult?.analysis.overall_score?.toFixed(2) || '--' }}
+            <div class="metric-value" :class="getSentimentScoreClass(sentimentResult?.analysis?.overall_score || 0)">
+              {{ sentimentResult?.analysis?.overall_score?.toFixed(2) || '--' }}
             </div>
           </div>
 
@@ -167,7 +167,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+// Note: computed is available via Vue's template compiler
+import { } from 'vue'
 import type { StockInfo, StockQuote, SentimentResult } from '@/types/financial'
 
 interface Props {
@@ -218,12 +219,14 @@ function getSourceLabel(source: string): string {
 }
 
 // Format market cap
-function formatMarketCap(cap?: number): string {
+function formatMarketCap(cap?: string | number): string {
   if (!cap) return '--'
-  if (cap >= 1e12) return `${(cap / 1e12).toFixed(2)}万亿`
-  if (cap >= 1e8) return `${(cap / 1e8).toFixed(2)}亿`
-  if (cap >= 1e4) return `${(cap / 1e4).toFixed(2)}万`
-  return cap.toString()
+  const numCap = typeof cap === 'string' ? parseFloat(cap) : cap
+  if (isNaN(numCap)) return cap.toString()
+  if (numCap >= 1e12) return `${(numCap / 1e12).toFixed(2)}万亿`
+  if (numCap >= 1e8) return `${(numCap / 1e8).toFixed(2)}亿`
+  if (numCap >= 1e4) return `${(numCap / 1e4).toFixed(2)}万`
+  return numCap.toString()
 }
 
 // Format volume
@@ -236,7 +239,7 @@ function formatVolume(volume?: number): string {
 
 // Get bullish percentage
 function getBullishPercentage(): number {
-  if (!props.sentimentResult) return 0
+  if (!props.sentimentResult?.analysis) return 0
   const { bullish_count, bearish_count, neutral_count } = props.sentimentResult.analysis
   const total = bullish_count + bearish_count + neutral_count
   return total > 0 ? Math.round((bullish_count / total) * 100) : 0
@@ -244,7 +247,7 @@ function getBullishPercentage(): number {
 
 // Get bearish percentage
 function getBearishPercentage(): number {
-  if (!props.sentimentResult) return 0
+  if (!props.sentimentResult?.analysis) return 0
   const { bullish_count, bearish_count, neutral_count } = props.sentimentResult.analysis
   const total = bullish_count + bearish_count + neutral_count
   return total > 0 ? Math.round((bearish_count / total) * 100) : 0
@@ -255,7 +258,7 @@ function getAlignment(): number {
   if (!props.stockQuote || !props.sentimentResult) return 50
 
   const priceChange = props.stockQuote.change_percent || 0
-  const sentimentScore = props.sentimentResult.analysis.overall_score
+  const sentimentScore = props.sentimentResult.analysis?.overall_score || 0
 
   // Both positive or both negative = high alignment
   if ((priceChange > 0 && sentimentScore > 0) || (priceChange < 0 && sentimentScore < 0)) {
