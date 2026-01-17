@@ -101,3 +101,30 @@ Copy `.env.example` to `.env` and configure:
 - `REDIS_URL`
 - `ANTHROPIC_API_KEY`
 - `OPENROUTER_API_KEY`
+
+## Git Workflow
+
+**自动提交规则 (必须遵循):**
+
+每次完成代码修改后，必须自动提交并推送代码：
+
+```bash
+# 1. Stage changes
+git add <modified-files>
+
+# 2. Commit with descriptive message
+git commit -m "<type>(<scope>): <description>
+
+<detailed-changes>
+
+Co-Authored-By: Warp <agent@warp.dev>"
+
+# 3. Push to remote (IMPORTANT)
+git push
+```
+
+**Commit Message 规范:**
+- Type: feat/fix/docs/style/refactor/test/chore
+- Scope: backend/frontend/docs/etc
+- 必须包含 Co-Authored-By 标记
+- 提交后必须立即 push 到远程仓库
