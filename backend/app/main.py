@@ -46,6 +46,94 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class APILoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log full request and response details for debugging."""
+
+    async def dispatch(self, request: Request, call_next):
+        import json
+        import time
+        
+        request_id = request.headers.get("X-Request-ID", "unknown")
+        start_time = time.time()
+        
+        # Read and log request body
+        request_body = None
+        if request.method in ["POST", "PUT", "PATCH"]:
+            try:
+                body_bytes = await request.body()
+                if body_bytes:
+                    try:
+                        request_body = json.loads(body_bytes.decode("utf-8"))
+                    except json.JSONDecodeError:
+                        request_body = body_bytes.decode("utf-8", errors="replace")
+            except Exception as e:
+                request_body = f"<error reading body: {e}>"
+        
+        # Log request
+        logger.info(
+            "api_request",
+            request_id=request_id,
+            method=request.method,
+            url=str(request.url),
+            path=request.url.path,
+            query_params=dict(request.query_params),
+            headers={k: v for k, v in request.headers.items() if k.lower() not in ["authorization", "cookie"]},
+            body=request_body,
+            client_host=request.client.host if request.client else None,
+        )
+        
+        # Process request
+        response = await call_next(request)
+        
+        # Calculate duration
+        duration_ms = (time.time() - start_time) * 1000
+        
+        # Read response body for logging (need to create new response)
+        response_body = None
+        if response.status_code != 204:  # No content
+            try:
+                response_body_bytes = b""
+                async for chunk in response.body_iterator:
+                    response_body_bytes += chunk
+                
+                if response_body_bytes:
+                    content_type = response.headers.get("content-type", "")
+                    if "application/json" in content_type:
+                        try:
+                            response_body = json.loads(response_body_bytes.decode("utf-8"))
+                        except json.JSONDecodeError:
+                            response_body = response_body_bytes.decode("utf-8", errors="replace")
+                    elif "text/" in content_type:
+                        response_body = response_body_bytes.decode("utf-8", errors="replace")[:1000]  # Truncate text
+                    else:
+                        response_body = f"<binary data, {len(response_body_bytes)} bytes>"
+                
+                # Create new response with the same body
+                from starlette.responses import Response as StarletteResponse
+                response = StarletteResponse(
+                    content=response_body_bytes,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.media_type,
+                )
+            except Exception as e:
+                logger.warning("response_body_read_error", error=str(e))
+        
+        # Log response
+        logger.info(
+            "api_response",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=round(duration_ms, 2),
+            response_headers={k: v for k, v in response.headers.items()},
+            body=response_body,
+        )
+        
+        return response
+
+
 class MetricsMiddleware(BaseHTTPMiddleware):
     """Middleware to collect Prometheus metrics."""
 
@@ -123,8 +211,9 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Custom middlewares
+    # Custom middlewares (order matters - first added = outermost)
     app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(APILoggingMiddleware)  # Log all API requests/responses
     app.add_middleware(MetricsMiddleware)
     
     # Health check endpoints

@@ -12,6 +12,18 @@
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
   </head>
   <body>
+    <script>
+      console.log('[index.html] Inline script executed - HTML loaded successfully');
+      console.log('[index.html] Document readyState:', document.readyState);
+      window.onerror = function(msg, url, line, col, error) {
+        console.error('[index.html] Global error caught:', msg, 'at', url, ':', line, ':', col);
+        console.error('[index.html] Error object:', error);
+        return false;
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('[index.html] Unhandled promise rejection:', event.reason);
+      });
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

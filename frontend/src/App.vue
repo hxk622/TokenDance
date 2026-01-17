@@ -16,15 +16,35 @@
 </template>
 
 <script setup lang="ts">
+console.log('[App.vue] Script setup start')
+
+console.log('[App.vue] Importing vue...')
 import { ref, onMounted, computed } from 'vue'
+console.log('[App.vue] vue imported')
+
+console.log('[App.vue] Importing vue-router...')
 import { RouterView, useRoute } from 'vue-router'
+console.log('[App.vue] vue-router imported')
+
+console.log('[App.vue] Importing auth store...')
 import { useAuthStore } from '@/stores/auth'
+console.log('[App.vue] auth store imported')
+
+console.log('[App.vue] Importing LoginPromptModal...')
 import LoginPromptModal from '@/components/common/LoginPromptModal.vue'
+console.log('[App.vue] LoginPromptModal imported')
 
+console.log('[App.vue] Calling useRoute()...')
 const route = useRoute()
-const authStore = useAuthStore()
+console.log('[App.vue] useRoute() done')
 
+console.log('[App.vue] Calling useAuthStore()...')
+const authStore = useAuthStore()
+console.log('[App.vue] useAuthStore() done')
+
+console.log('[App.vue] Setting up reactive state...')
 const loginPromptDismissed = ref(false)
+console.log('[App.vue] loginPromptDismissed ref created')
 
 // Pages that don't need login prompt
 const excludedPaths = ['/login', '/register']
@@ -33,29 +53,44 @@ const excludedPaths = ['/login', '/register']
 // 1. User is not authenticated
 // 2. User hasn't dismissed the prompt in this session
 // 3. Not on login/register page
+console.log('[App.vue] Setting up showLoginPrompt computed...')
 const showLoginPrompt = computed(() => {
+  console.log('[App.vue] showLoginPrompt computed evaluating...')
   return !authStore.isAuthenticated &&
          !loginPromptDismissed.value &&
          !excludedPaths.includes(route.path)
 })
+console.log('[App.vue] showLoginPrompt computed created')
 
 function handleCloseLoginPrompt() {
+  console.log('[App.vue] handleCloseLoginPrompt called')
   loginPromptDismissed.value = true
   // Remember dismissal for this session
   sessionStorage.setItem('login_prompt_dismissed', 'true')
 }
 
 function handleLoginSuccess() {
+  console.log('[App.vue] handleLoginSuccess called')
   loginPromptDismissed.value = true
 }
 
+console.log('[App.vue] Script setup complete')
+
 onMounted(async () => {
-  // Initialize auth state
-  await authStore.initialize()
-  
-  // Check if prompt was already dismissed in this session
-  if (sessionStorage.getItem('login_prompt_dismissed') === 'true') {
-    loginPromptDismissed.value = true
+  console.log('[App] onMounted start')
+  try {
+    // Initialize auth state
+    console.log('[App] calling authStore.initialize()')
+    await authStore.initialize()
+    console.log('[App] authStore.initialize() completed')
+    
+    // Check if prompt was already dismissed in this session
+    if (sessionStorage.getItem('login_prompt_dismissed') === 'true') {
+      loginPromptDismissed.value = true
+    }
+    console.log('[App] onMounted completed successfully')
+  } catch (error) {
+    console.error('[App] onMounted error:', error)
   }
 })
 </script>

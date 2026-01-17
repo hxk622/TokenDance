@@ -121,14 +121,19 @@
 </template>
 
 <script setup lang="ts">
+console.log('[LoginPromptModal] Script setup start')
+
 import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
 import type { LoginRequest } from '@/api/auth'
 
+console.log('[LoginPromptModal] Imports done')
+
 const props = defineProps<{
   visible: boolean
 }>()
+console.log('[LoginPromptModal] Props defined')
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -154,10 +159,12 @@ watch(() => props.visible, (visible) => {
 })
 
 function handleClose() {
+  console.log('[LoginPromptModal] handleClose called')
   emit('close')
 }
 
 async function handleEmailLogin() {
+  console.log('[LoginPromptModal] handleEmailLogin called')
   isLoading.value = true
   error.value = null
 
@@ -173,6 +180,7 @@ async function handleEmailLogin() {
 }
 
 async function handleGoogleLogin() {
+  console.log('[LoginPromptModal] handleGoogleLogin called')
   isLoading.value = true
   error.value = null
 
@@ -185,7 +193,10 @@ async function handleGoogleLogin() {
   }
 }
 
+console.log('[LoginPromptModal] Script setup complete')
+
 async function handleWeChatLogin() {
+  console.log('[LoginPromptModal] handleWeChatLogin called')
   isLoading.value = true
   error.value = null
 

@@ -34,21 +34,34 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
     
-    # CORS
+    # CORS - allow common dev ports
     BACKEND_CORS_ORIGINS: list[str] = Field(
-        default=["http://localhost:5173", "http://localhost:3000"]
+        default=[
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176",
+            "http://localhost:3000",
+        ]
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str] | None) -> list[str]:
+        default_origins = [
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176",
+            "http://localhost:3000",
+        ]
         if v is None:
-            return ["http://localhost:5173", "http://localhost:3000"]
+            return default_origins
         if isinstance(v, str) and v:
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         if isinstance(v, list):
             return v
-        return ["http://localhost:5173", "http://localhost:3000"]
+        return default_origins
 
     # Database
     POSTGRES_HOST: str = "localhost"

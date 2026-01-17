@@ -171,7 +171,9 @@ export const useAuthStore = defineStore('auth', () => {
    * Fetch current user info
    */
   async function fetchCurrentUser() {
+    console.log('[AuthStore] fetchCurrentUser start, accessToken:', !!accessToken.value)
     if (!accessToken.value) {
+      console.log('[AuthStore] fetchCurrentUser: no token, returning early')
       return
     }
     
@@ -179,18 +181,23 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
+      console.log('[AuthStore] fetchCurrentUser: calling authApi.getCurrentUser()')
       const currentUser = await authApi.getCurrentUser()
+      console.log('[AuthStore] fetchCurrentUser: got user', currentUser?.email)
       user.value = currentUser
       return currentUser
     } catch (err: any) {
+      console.error('[AuthStore] fetchCurrentUser error:', err)
       error.value = err.response?.data?.detail || 'Failed to fetch user'
       // If 401, clear auth state
       if (err.response?.status === 401) {
+        console.log('[AuthStore] fetchCurrentUser: 401, logging out')
         logout()
       }
       throw err
     } finally {
       isLoading.value = false
+      console.log('[AuthStore] fetchCurrentUser: finally, isLoading=false')
     }
   }
 
@@ -212,12 +219,20 @@ export const useAuthStore = defineStore('auth', () => {
    * Initialize auth state from localStorage
    */
   async function initialize() {
+    console.log('[AuthStore] initialize start')
     const storedToken = localStorage.getItem('access_token')
+    console.log('[AuthStore] initialize: storedToken exists:', !!storedToken)
     if (storedToken) {
       accessToken.value = storedToken
       refreshToken.value = localStorage.getItem('refresh_token')
-      await fetchCurrentUser()
+      console.log('[AuthStore] initialize: tokens set, calling fetchCurrentUser')
+      try {
+        await fetchCurrentUser()
+      } catch (e) {
+        console.error('[AuthStore] initialize: fetchCurrentUser failed', e)
+      }
     }
+    console.log('[AuthStore] initialize completed')
   }
 
   return {

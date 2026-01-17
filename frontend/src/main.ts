@@ -1,21 +1,52 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import App from './App.vue'
-import router from './router'
-import './assets/main.css'
-import './styles/vibe.css'
-import './styles/vibe-animations.css'
-import './styles/glass-morphism.css'
-import './styles/micro-interactions.css'
+console.log('[Main] Script start - before any imports')
 
+console.log('[Main] Importing vue...')
+import { createApp } from 'vue'
+console.log('[Main] vue imported')
+
+console.log('[Main] Importing pinia...')
+import { createPinia } from 'pinia'
+console.log('[Main] pinia imported')
+
+console.log('[Main] Importing App.vue...')
+import App from './App.vue'
+console.log('[Main] App.vue imported')
+
+console.log('[Main] Importing router...')
+import router from './router'
+console.log('[Main] router imported')
+
+console.log('[Main] Importing main.css...')
+import './assets/main.css'
+console.log('[Main] main.css imported')
+
+console.log('[Main] Importing vibe.css...')
+import './styles/vibe.css'
+console.log('[Main] vibe.css imported')
+
+console.log('[Main] Importing vibe-animations.css...')
+import './styles/vibe-animations.css'
+console.log('[Main] vibe-animations.css imported')
+
+console.log('[Main] Importing glass-morphism.css...')
+import './styles/glass-morphism.css'
+console.log('[Main] glass-morphism.css imported')
+
+console.log('[Main] Importing micro-interactions.css...')
+import './styles/micro-interactions.css'
+console.log('[Main] micro-interactions.css imported')
+
+console.log('[Main] All imports done, creating app')
 const app = createApp(App)
 
+console.log('[Main] Installing Pinia')
 app.use(createPinia())
+
+console.log('[Main] Installing Router')
 app.use(router)
 
-// Initialize auth store
-const { useAuthStore } = await import('@/stores/auth')
-const authStore = useAuthStore()
-await authStore.initialize()
-
+console.log('[Main] Mounting app')
 app.mount('#app')
+console.log('[Main] App mounted')
+
+// Auth initialization is handled in App.vue onMounted

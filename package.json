@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "logs": "tail -f /tmp/frontend.log /tmp/backend.log"
   },
   "keywords": [],
   "author": "",

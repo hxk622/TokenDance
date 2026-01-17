@@ -24,6 +24,7 @@
     "dayjs": "^1.11.19",
     "echarts": "^6.0.0",
     "highlight.js": "^11.11.1",
+    "klinecharts": "10.0.0-beta1",
     "marked": "^17.0.1",
     "monaco-editor": "^0.55.1",
     "pinia": "^2.1.7",
