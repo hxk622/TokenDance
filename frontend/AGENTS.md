@@ -8,8 +8,8 @@
 # Setup
 pnpm install
 
-# Run dev server
-pnpm dev
+# Run dev server (logs to /tmp/frontend.log)
+pnpm dev >> /tmp/frontend.log 2>&1
 
 # Build
 pnpm build
@@ -19,7 +19,7 @@ pnpm build
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev` | Dev server (auto host 0.0.0.0) |
+| `pnpm dev >> /tmp/frontend.log 2>&1` | Dev server (logs to /tmp/frontend.log) |
 | `pnpm build` | Production build |
 | `pnpm build:with-check` | Build with type check |
 | `pnpm preview` | Preview production build |
@@ -191,6 +191,14 @@ frontend/
 | echarts / vue-echarts | Charts |
 | monaco-editor | Code editor |
 | marked + highlight.js | Markdown rendering |
+
+## Logging
+
+**日志输出规则 (必须遵循):**
+
+- 前端日志必须输出到 `/tmp/frontend.log`，不要输出到 stdout
+- 启动命令: `pnpm dev >> /tmp/frontend.log 2>&1`
+- 查看日志: `tail -f /tmp/frontend.log`
 
 ## Git Workflow
 

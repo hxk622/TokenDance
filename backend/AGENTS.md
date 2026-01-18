@@ -8,8 +8,8 @@
 # Setup
 uv sync --all-extras
 
-# Run dev server
-uv run uvicorn app.main:app --reload
+# Run dev server (logs to /tmp/backend.log)
+uv run uvicorn app.main:app --reload >> /tmp/backend.log 2>&1
 
 # Run tests
 uv run pytest tests/
@@ -20,7 +20,7 @@ uv run pytest tests/
 | Command | Purpose |
 |---------|---------|
 | `uv sync --all-extras` | Install all dependencies |
-| `uv run uvicorn app.main:app --reload` | Dev server (port 8000) |
+| `uv run uvicorn app.main:app --reload >> /tmp/backend.log 2>&1` | Dev server (logs to /tmp/backend.log) |
 | `uv run pytest tests/` | Run tests with coverage |
 | `uv run pytest tests/ -k "test_name"` | Run specific test |
 | `uv run ruff check .` | Lint check |
@@ -105,6 +105,14 @@ Copy `.env.example` to `.env` and configure:
 - `REDIS_URL`
 - `ANTHROPIC_API_KEY`
 - `OPENROUTER_API_KEY`
+
+## Logging
+
+**日志输出规则 (必须遵循):**
+
+- 后端日志必须输出到 `/tmp/backend.log`，不要输出到 stdout
+- 启动命令: `uv run uvicorn app.main:app --reload >> /tmp/backend.log 2>&1`
+- 查看日志: `tail -f /tmp/backend.log`
 
 ## Git Workflow
 
