@@ -114,23 +114,23 @@ function handleDoubleClick() {
 </script>
 
 <style scoped>
-/* 通用样式 */
+/* ResizableDivider - 使用全局主题变量 */
 .resizable-divider {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--divider-color, rgba(255, 255, 255, 0.1));
-  transition: background 120ms ease-out;
+  background: var(--any-border);
+  transition: background var(--any-duration-fast) var(--any-ease-out);
   z-index: 10;
 }
 
 .resizable-divider:hover {
-  background: var(--divider-hover, rgba(0, 217, 255, 0.5));
+  background: var(--td-state-thinking);
 }
 
 .resizable-divider.dragging {
-  background: var(--color-node-active, #00D9FF);
+  background: var(--td-state-thinking);
   z-index: 1000;
 }
 
@@ -162,37 +162,38 @@ function handleDoubleClick() {
 .divider-horizontal .divider-handle {
   width: 2px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--any-text-muted);
   border-radius: 2px;
 }
 
 .divider-vertical .divider-handle {
   width: 40px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--any-text-muted);
   border-radius: 2px;
 }
 
 .resizable-divider:hover .divider-handle {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--any-text-primary);
 }
 
 .resizable-divider.dragging .divider-handle {
-  background: white;
+  background: var(--any-text-primary);
 }
 
 /* 实时比例提示 */
 .ratio-hint {
   position: absolute;
   padding: 4px 12px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-primary);
   font-size: 12px;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: var(--any-radius-sm);
   pointer-events: none;
   white-space: nowrap;
   z-index: 1001;
+  border: 1px solid var(--any-border);
 }
 
 .divider-horizontal .ratio-hint {
@@ -209,19 +210,10 @@ function handleDoubleClick() {
 
 /* 拖拽动画 */
 .resizable-divider {
-  transition: background 120ms ease-out;
+  transition: background var(--any-duration-fast) var(--any-ease-out);
 }
 
 .resizable-divider.dragging {
   transition: none;
-}
-
-/* 暗色主题适配 */
-@media (prefers-color-scheme: dark) {
-  .resizable-divider {
-    --divider-color: rgba(255, 255, 255, 0.1);
-    --divider-hover: rgba(0, 217, 255, 0.5);
-    --color-node-active: #00D9FF;
-  }
 }
 </style>

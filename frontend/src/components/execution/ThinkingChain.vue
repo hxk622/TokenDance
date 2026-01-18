@@ -295,6 +295,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 </template>
 
 <style scoped>
+/* ThinkingChain - 使用全局主题变量 */
 .thinking-chain {
   padding: 16px;
   height: 100%;
@@ -307,7 +308,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
   justify-content: space-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .header-title {
@@ -316,13 +317,13 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--any-text-primary);
 }
 
 .header-icon {
   width: 18px;
   height: 18px;
-  color: var(--vibe-color-active);
+  color: var(--td-state-thinking);
 }
 
 .header-meta {
@@ -333,7 +334,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 
 .step-count {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
 }
 
 .streaming-badge {
@@ -341,18 +342,18 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: rgba(0, 217, 255, 0.15);
+  background: var(--td-state-thinking-bg);
   border-radius: 12px;
   font-size: 12px;
-  color: var(--vibe-color-active);
+  color: var(--td-state-thinking);
 }
 
 .streaming-dot {
   width: 6px;
   height: 6px;
-  background: var(--vibe-color-active);
+  background: var(--td-state-thinking);
   border-radius: 50%;
-  animation: vibe-pulse-breath 1s ease-in-out infinite;
+  animation: ambient-breathe 1s ease-in-out infinite;
 }
 
 /* Timeline */
@@ -368,7 +369,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 }
 
 .timeline-step.current .connector-dot {
-  animation: vibe-pulse-breath 1.5s ease-in-out infinite;
+  animation: ambient-pulse 1.5s ease-in-out infinite;
 }
 
 /* Timeline connector */
@@ -383,7 +384,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 .connector-line {
   width: 2px;
   flex: 1;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-border);
   margin-top: 4px;
 }
 
@@ -405,28 +406,28 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 .dot-icon {
   width: 12px;
   height: 12px;
-  color: rgba(0, 0, 0, 0.8);
+  color: var(--any-text-inverse);
 }
 
 /* Step content */
 .step-content {
   flex: 1;
   padding: 12px;
-  background: rgba(28, 28, 30, 0.5);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-secondary);
+  border-radius: var(--any-radius-md);
+  border: 1px solid var(--any-border-light);
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .step-content:hover {
-  background: rgba(28, 28, 30, 0.7);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-tertiary);
+  border-color: var(--any-border);
 }
 
 .timeline-step.expanded .step-content {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-tertiary);
+  border-color: var(--any-border);
 }
 
 .step-header {
@@ -450,18 +451,18 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 
 .step-duration {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  background: var(--any-bg-hover);
+  border-radius: var(--any-radius-sm);
 }
 
 .step-confidence {
   font-size: 11px;
-  color: var(--vibe-color-success);
+  color: var(--td-state-executing);
   padding: 2px 6px;
-  background: rgba(0, 255, 136, 0.1);
-  border-radius: 4px;
+  background: var(--td-state-executing-bg);
+  border-radius: var(--any-radius-sm);
 }
 
 .expand-btn {
@@ -472,24 +473,24 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--any-radius-sm);
   cursor: pointer;
-  transition: all 120ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .expand-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-hover);
 }
 
 .expand-icon {
   width: 14px;
   height: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
 }
 
 .step-preview {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--any-text-secondary);
   line-height: 1.5;
 }
 
@@ -499,14 +500,14 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 
 .step-text {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--any-text-primary);
   line-height: 1.6;
   white-space: pre-wrap;
 }
 
 .step-text :deep(.keyword-highlight) {
-  background: rgba(0, 217, 255, 0.2);
-  color: var(--vibe-color-active);
+  background: var(--td-state-thinking-bg);
+  color: var(--td-state-thinking);
   padding: 1px 4px;
   border-radius: 3px;
 }
@@ -517,22 +518,22 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
   gap: 6px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--any-border-light);
 }
 
 .keyword-tag {
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--any-bg-hover);
   border-radius: 12px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--any-text-secondary);
   cursor: pointer;
-  transition: all 120ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .keyword-tag:hover {
-  background: rgba(0, 217, 255, 0.2);
-  color: var(--vibe-color-active);
+  background: var(--td-state-thinking-bg);
+  color: var(--td-state-thinking);
 }
 
 /* Streaming indicator */
@@ -550,7 +551,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 .streaming-dots span {
   width: 8px;
   height: 8px;
-  background: var(--vibe-color-active);
+  background: var(--td-state-thinking);
   border-radius: 50%;
   animation: streaming-bounce 1.4s ease-in-out infinite;
 }
@@ -598,12 +599,12 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
 }
 
 .thinking-chain::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--any-bg-tertiary);
   border-radius: 3px;
 }
 
 .thinking-chain::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 3px;
 }
 </style>

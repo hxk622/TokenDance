@@ -456,6 +456,7 @@ defineExpose({
 </script>
 
 <style scoped>
+/* StreamingInfo - 使用全局主题变量 */
 .streaming-info {
   width: 100%;
   height: 100%;
@@ -468,7 +469,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .toolbar-actions {
@@ -483,30 +484,30 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  background: var(--any-bg-hover);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-md);
   cursor: pointer;
-  transition: all 120ms ease-out;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .btn-lock:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-active);
 }
 
 .btn-lock.active {
-  background: rgba(255, 184, 0, 0.2);
-  border-color: var(--vibe-color-pending);
+  background: var(--td-state-waiting-bg);
+  border-color: var(--td-state-waiting);
 }
 
 .lock-icon {
   width: 16px;
   height: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--any-text-secondary);
 }
 
 .btn-lock.active .lock-icon {
-  color: var(--vibe-color-pending);
+  color: var(--td-state-waiting);
 }
 
 .browser-log-container {
@@ -533,7 +534,7 @@ defineExpose({
 
 .coworker-divider {
   width: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-border);
 }
 
 .no-selection {
@@ -541,7 +542,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
   font-size: 14px;
 }
 
@@ -559,7 +560,7 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-border);
 }
 
 /* Log entry with timeline dot */
@@ -582,20 +583,20 @@ defineExpose({
 
 .log-card {
   padding: 12px 16px;
-  background: rgba(28, 28, 30, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  transition: all 150ms ease-out;
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border-light);
+  border-radius: var(--any-radius-md);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .log-entry:hover .log-card {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-tertiary);
+  border-color: var(--any-border);
 }
 
 .log-entry.expanded .log-card {
-  background: rgba(28, 28, 30, 0.9);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--any-bg-tertiary);
+  border-color: var(--any-border-hover);
 }
 
 .log-header {
@@ -629,20 +630,20 @@ defineExpose({
 
 .log-time {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
 }
 
 .expand-icon {
   width: 14px;
   height: 14px;
-  color: rgba(255, 255, 255, 0.4);
-  transition: transform 150ms ease-out;
+  color: var(--any-text-muted);
+  transition: transform var(--any-duration-fast) var(--any-ease-out);
 }
 
 .log-preview {
   margin-top: 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--any-text-secondary);
   line-height: 1.5;
 }
 
@@ -650,7 +651,7 @@ defineExpose({
   margin-top: 12px;
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--any-text-primary);
   font-family: 'SF Mono', 'Monaco', monospace;
   white-space: pre-wrap;
   word-break: break-word;
@@ -714,12 +715,12 @@ defineExpose({
 }
 
 .logs-container::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--any-bg-tertiary);
   border-radius: 3px;
 }
 
 .logs-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 3px;
 }
 </style>
