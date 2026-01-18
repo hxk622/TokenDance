@@ -66,12 +66,12 @@
                 TokenDance
               </h1>
             </div>
-            <h2 class="modal-title">
-              登录
-            </h2>
-            <p class="modal-subtitle">
-              登录后可使用完整的 AI 智能工作台功能
-            </p>
+          <h2 class="modal-title">
+            登录
+          </h2>
+          <p class="modal-subtitle">
+            {{ props.message || '登录后可使用完整的 AI 智能工作台功能' }}
+          </p>
           </div>
 
           <!-- OAuth Buttons -->
@@ -207,13 +207,14 @@ import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
 import type { LoginRequest } from '@/api/auth'
+import { getApiErrorMessage } from '@/utils/errorMessages'
 
 console.log('[LoginPromptModal] Imports done')
 
 const props = defineProps<{
   visible: boolean
+  message?: string  // Custom message for context-aware prompts
 }>()
-console.log('[LoginPromptModal] Props defined')
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -253,7 +254,8 @@ async function handleEmailLogin() {
     emit('success')
     emit('close')
   } catch (err: any) {
-    error.value = err.response?.data?.detail || '登录失败，请重试'
+    console.log('[LoginPromptModal] Login failed:', err)
+    error.value = getApiErrorMessage(err, '登录失败，请重试')
   } finally {
     isLoading.value = false
   }
@@ -268,7 +270,8 @@ async function handleGoogleLogin() {
     const { authorization_url } = await authApi.getGmailAuthUrl()
     window.location.href = authorization_url
   } catch (err: any) {
-    error.value = err.response?.data?.detail || '获取 Google 授权链接失败'
+    console.log('[LoginPromptModal] Google login failed:', err)
+    error.value = getApiErrorMessage(err, '获取 Google 授权链接失败')
     isLoading.value = false
   }
 }
@@ -284,7 +287,8 @@ async function handleWeChatLogin() {
     const { authorization_url } = await authApi.getWeChatAuthUrl()
     window.location.href = authorization_url
   } catch (err: any) {
-    error.value = err.response?.data?.detail || '获取微信授权链接失败'
+    console.log('[LoginPromptModal] WeChat login failed:', err)
+    error.value = getApiErrorMessage(err, '获取微信授权链接失败')
     isLoading.value = false
   }
 }

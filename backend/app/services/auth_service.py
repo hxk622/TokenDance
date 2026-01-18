@@ -9,7 +9,9 @@ from pydantic import BaseModel, EmailStr, field_validator
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.user import AuthProvider, User
+from app.models.workspace import Workspace
 from app.repositories.user_repository import UserRepository
+from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.gmail_oauth_service import GmailOAuthService
 from app.services.wechat_oauth_service import WeChatOAuthService
 
@@ -85,8 +87,9 @@ class GmailAuthRequest(BaseModel):
 class AuthService:
     """Authentication service for user registration and login with multiple providers."""
 
-    def __init__(self, user_repo: UserRepository):
+    def __init__(self, user_repo: UserRepository, workspace_repo: WorkspaceRepository | None = None):
         self.user_repo = user_repo
+        self.workspace_repo = workspace_repo
         self.wechat_service = WeChatOAuthService()
         self.gmail_service = GmailOAuthService()
 
@@ -199,7 +202,7 @@ class AuthService:
         email: str,
         username: str,
         password: str,
-    ) -> tuple[User, TokenPair]:
+    ) -> tuple[User, TokenPair, Workspace]:
         """Register a new user with email and password.
 
         Args:
@@ -208,7 +211,7 @@ class AuthService:
             password: Plain text password
 
         Returns:
-            Tuple of (User, TokenPair)
+            Tuple of (User, TokenPair, Workspace)
 
         Raises:
             ValueError: If email or username already exists
@@ -234,6 +237,21 @@ class AuthService:
             auth_provider=AuthProvider.EMAIL_PASSWORD.value,
         )
 
+        # Create default workspace for the user
+        workspace = None
+        if self.workspace_repo:
+            workspace = await self.workspace_repo.create(
+                owner_id=str(user.id),
+                name="默认工作区",
+                slug="default",
+                description="Your personal workspace",
+            )
+            logger.info(
+                "default_workspace_created",
+                user_id=str(user.id),
+                workspace_id=workspace.id,
+            )
+
         # Generate tokens
         access_token = self.create_access_token(str(user.id), user.email)
         refresh_token = self.create_refresh_token(str(user.id), user.email)
@@ -243,9 +261,9 @@ class AuthService:
         return user, TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
-        )
+        ), workspace
 
-    async def login(self, email: str, password: str) -> tuple[User, TokenPair]:
+    async def login(self, email: str, password: str) -> tuple[User, TokenPair, str | None]:
         """Login user with email and password.
 
         Args:
@@ -253,7 +271,7 @@ class AuthService:
             password: Plain text password
 
         Returns:
-            Tuple of (User, TokenPair)
+            Tuple of (User, TokenPair, default_workspace_id)
 
         Raises:
             ValueError: If credentials are invalid
@@ -274,6 +292,13 @@ class AuthService:
             logger.info("login_failed_wrong_password", user_id=str(user.id))
             raise ValueError("Invalid credentials")
 
+        # Get user's default workspace
+        default_workspace_id = None
+        if self.workspace_repo:
+            workspaces, _ = await self.workspace_repo.get_by_owner(str(user.id), limit=1)
+            if workspaces:
+                default_workspace_id = workspaces[0].id
+
         # Generate tokens
         access_token = self.create_access_token(str(user.id), user.email)
         refresh_token = self.create_refresh_token(str(user.id), user.email)
@@ -283,7 +308,7 @@ class AuthService:
         return user, TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
-        )
+        ), default_workspace_id
 
     async def login_with_wechat(self, code: str) -> tuple[User, TokenPair]:
         """Login or register user with WeChat OAuth.

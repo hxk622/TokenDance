@@ -3,18 +3,20 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
+import { useAuthGuard } from '@/composables/useAuthGuard'
 import { chatApi } from '@/api/chat'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
   Languages, MoreHorizontal, Bell, FolderOpen,
-  History, Settings, LayoutGrid
+  History, Settings, LayoutGrid, User
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
+const { requireAuth, showLogin } = useAuthGuard()
 
 const inputValue = ref('')
 const inputRef = ref<HTMLTextAreaElement | null>(null)
@@ -127,6 +129,10 @@ const placeholderText = '描述你要完成的任务...'
 const handleSubmit = async () => {
   if (!inputValue.value.trim() || isLoading.value) return
   
+  // 需要登录才能提交任务
+  const canProceed = await requireAuth('请先登录后发送请求')
+  if (!canProceed) return
+  
   isLoading.value = true
   try {
     // 获取当前 workspace_id
@@ -168,6 +174,10 @@ const handleKeydown = (e: KeyboardEvent) => {
 const handleChipClick = async (chip: typeof quickChips[0]) => {
   if (isLoading.value) return
   
+  // 需要登录才能使用快捷操作
+  const canProceed = await requireAuth('请先登录后使用快捷操作')
+  if (!canProceed) return
+  
   isLoading.value = true
   try {
     const workspaceId = sessionStore.currentWorkspaceId || 'default'
@@ -196,6 +206,10 @@ const handleChipClick = async (chip: typeof quickChips[0]) => {
 // 处理模板点击 - 创建 session 并跳转到执行页面
 const handleTemplateClick = async (template: typeof templates[0]) => {
   if (isLoading.value) return
+  
+  // 需要登录才能使用模板
+  const canProceed = await requireAuth('请先登录后使用模板')
+  if (!canProceed) return
   
   isLoading.value = true
   try {
@@ -232,6 +246,13 @@ const handleFileSelect = async (e: Event) => {
   const input = e.target as HTMLInputElement
   if (input.files && input.files.length > 0 && !isLoading.value) {
     const fileNames = Array.from(input.files).map(f => f.name).join(', ')
+    
+    // 需要登录才能上传文件
+    const canProceed = await requireAuth('请先登录后上传文件')
+    if (!canProceed) {
+      input.value = '' // 清空文件选择
+      return
+    }
     
     isLoading.value = true
     try {
@@ -323,20 +344,34 @@ onUnmounted(() => {
     
     <!-- 右上角个人信息栏 - 固定定位 -->
     <header class="top-header">
-      <!-- 通知铃铛 -->
-      <button class="header-icon-btn" data-tooltip="通知">
-        <Bell class="w-4 h-4" />
-        <span class="notification-badge">4</span>
-      </button>
-      <!-- 积分/Token -->
-      <div class="credits-badge">
-        <Sparkles class="w-3 h-3" />
-        <span>1,200</span>
-      </div>
-      <!-- 用户头像 -->
-      <button class="avatar-btn">
-        <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
-      </button>
+      <!-- 游客模式：显示登录按钮 -->
+      <template v-if="!authStore.isAuthenticated">
+        <button 
+          class="sign-in-btn"
+          @click="showLogin()"
+        >
+          <User class="w-4 h-4" />
+          <span>Sign in</span>
+        </button>
+      </template>
+      
+      <!-- 已登录：显示通知、积分、头像 -->
+      <template v-else>
+        <!-- 通知铃铛 -->
+        <button class="header-icon-btn" data-tooltip="通知">
+          <Bell class="w-4 h-4" />
+          <span class="notification-badge">4</span>
+        </button>
+        <!-- 积分/Token -->
+        <div class="credits-badge">
+          <Sparkles class="w-3 h-3" />
+          <span>1,200</span>
+        </div>
+        <!-- 用户头像 -->
+        <button class="avatar-btn">
+          <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
+        </button>
+      </template>
     </header>
     
     <!-- 错误提示 Toast -->
@@ -713,6 +748,22 @@ onUnmounted(() => {
 
 .avatar-btn:hover {
   @apply bg-purple-600;
+}
+
+/* Sign in button for guest mode */
+.sign-in-btn {
+  @apply flex items-center gap-1.5 px-4 py-2
+         text-sm font-medium rounded-full
+         cursor-pointer;
+  color: var(--any-text-primary);
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.sign-in-btn:hover {
+  background: var(--any-bg-tertiary);
+  border-color: var(--any-border-hover);
 }
 
 /* Main Content */

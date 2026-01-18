@@ -87,11 +87,20 @@ apiClient.interceptors.response.use(
     
     // Handle 401 Unauthorized - refresh token or redirect to login
     if (error.response?.status === 401) {
-      // TODO: Implement token refresh logic
-      // For now, just clear token and redirect to login
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      window.location.href = '/login'
+      const requestUrl = error.config?.url || ''
+      const isAuthRequest = requestUrl.includes('/auth/login') ||
+                           requestUrl.includes('/auth/register') ||
+                           requestUrl.includes('/auth/wechat') ||
+                           requestUrl.includes('/auth/gmail')
+      
+      // Don't redirect for auth requests - let the component handle the error
+      if (!isAuthRequest) {
+        // Clear tokens and redirect for other 401 errors
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        window.location.href = '/login'
+      }
+      // For auth requests, just pass the error through to be handled by the component
     }
     
     return Promise.reject(error)

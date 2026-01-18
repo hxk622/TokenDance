@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAgentStream } from '@/composables/useAgentStream'
+import { useAuthGuard } from '@/composables/useAuthGuard'
 import MessageList, { type Message } from '@/components/MessageList.vue'
 import InputBox from '@/components/InputBox.vue'
 import ThinkingTrace from '@/components/ThinkingTrace.vue'
@@ -28,6 +29,7 @@ const router = useRouter()
 
 // Stores
 const sessionStore = useSessionStore()
+const { requireAuth } = useAuthGuard()
 
 // State
 const messages = ref<Message[]>([])
@@ -128,6 +130,10 @@ const {
 
 // Methods
 const handleSendMessage = async (content: string) => {
+  // 需要登录才能发送消息
+  const canProceed = await requireAuth('请先登录后发送消息')
+  if (!canProceed) return
+  
   let sessionId = currentSessionId.value
   
   if (!sessionId || sessionId === 'new') {

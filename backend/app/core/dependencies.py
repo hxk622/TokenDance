@@ -53,20 +53,6 @@ def get_user_repo(db: AsyncSession = Depends(get_db)) -> UserRepository:
     return UserRepository(db)
 
 
-def get_auth_service(
-    user_repo: UserRepository = Depends(get_user_repo),
-) -> AuthService:
-    """Get AuthService instance.
-
-    Args:
-        user_repo: UserRepository instance
-
-    Returns:
-        AuthService instance
-    """
-    return AuthService(user_repo)
-
-
 def get_workspace_repo(db: AsyncSession = Depends(get_db)) -> WorkspaceRepository:
     """Get WorkspaceRepository instance.
 
@@ -77,6 +63,22 @@ def get_workspace_repo(db: AsyncSession = Depends(get_db)) -> WorkspaceRepositor
         WorkspaceRepository instance
     """
     return WorkspaceRepository(db)
+
+
+def get_auth_service(
+    user_repo: UserRepository = Depends(get_user_repo),
+    workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
+) -> AuthService:
+    """Get AuthService instance.
+
+    Args:
+        user_repo: UserRepository instance
+        workspace_repo: WorkspaceRepository instance
+
+    Returns:
+        AuthService instance
+    """
+    return AuthService(user_repo, workspace_repo)
 
 
 def get_session_repo(db: AsyncSession = Depends(get_db)) -> SessionRepository:

@@ -11,8 +11,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Login',
     component: () => import('@/views/LoginView.vue'),
     meta: {
-      title: 'Login - TokenDance',
-      requiresAuth: false
+      title: 'Login - TokenDance'
     }
   },
   {
@@ -20,8 +19,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Register',
     component: () => import('@/views/RegisterView.vue'),
     meta: {
-      title: 'Register - TokenDance',
-      requiresAuth: false
+      title: 'Register - TokenDance'
     }
   },
   {
@@ -29,8 +27,7 @@ const routes: RouteRecordRaw[] = [
     name: 'WeChatCallback',
     component: () => import('@/views/LoginView.vue'),
     meta: {
-      title: 'WeChat Login - TokenDance',
-      requiresAuth: false
+      title: 'WeChat Login - TokenDance'
     }
   },
   {
@@ -38,8 +35,7 @@ const routes: RouteRecordRaw[] = [
     name: 'GmailCallback',
     component: () => import('@/views/LoginView.vue'),
     meta: {
-      title: 'Gmail Login - TokenDance',
-      requiresAuth: false
+      title: 'Gmail Login - TokenDance'
     }
   },
   {
@@ -47,8 +43,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Home',
     component: () => import('@/views/HomeView.vue'),
     meta: {
-      title: 'TokenDance - AI Agent Platform',
-      requiresAuth: true
+      title: 'TokenDance - AI Agent Platform'
     }
   },
   {
@@ -56,8 +51,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Discover',
     component: () => import('@/views/SkillDiscovery.vue'),
     meta: {
-      title: 'Discover Skills - TokenDance',
-      requiresAuth: true
+      title: 'Discover Skills - TokenDance'
     }
   },
   {
@@ -65,7 +59,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Chat',
     component: () => import('@/views/ChatView.vue'),
     meta: {
-      requiresAuth: true
+      title: 'Chat - TokenDance'
     }
   },
   {
@@ -74,7 +68,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ChatView.vue'),
     props: true,
     meta: {
-      requiresAuth: true
+      title: 'Chat - TokenDance'
     }
   },
   {
@@ -91,8 +85,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ExecutionPage.vue'),
     props: true,
     meta: {
-      title: 'Task Execution',
-      requiresAuth: false
+      title: 'Task Execution'
     }
   },
   {
@@ -100,8 +93,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Files',
     component: () => import('@/views/FilesView.vue'),
     meta: {
-      title: 'Files - Coworker',
-      requiresAuth: true
+      title: 'Files - Coworker'
     }
   },
   {
@@ -109,8 +101,7 @@ const routes: RouteRecordRaw[] = [
     name: 'PPTCreate',
     component: () => import('@/views/PPTGenerateView.vue'),
     meta: {
-      title: 'Create PPT - TokenDance',
-      requiresAuth: true
+      title: 'Create PPT - TokenDance'
     }
   },
   {
@@ -119,8 +110,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PPTEditView.vue'),
     props: true,
     meta: {
-      title: 'Edit PPT - TokenDance',
-      requiresAuth: true
+      title: 'Edit PPT - TokenDance'
     }
   },
   {
@@ -129,8 +119,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PPTEditView.vue'),
     props: true,
     meta: {
-      title: 'Preview PPT - TokenDance',
-      requiresAuth: true
+      title: 'Preview PPT - TokenDance'
     }
   },
   {
@@ -171,13 +160,12 @@ const router = createRouter({
 })
 console.log('[Router] Router instance created')
 
-// Navigation guards
+// Navigation guards - simplified for guest mode
 console.log('[Router] Setting up beforeEach guard')
 router.beforeEach(async (to, _from, next) => {
   console.log('[Router] beforeEach start, to:', to.path)
   
-  // Initialize auth store
-  console.log('[Router] importing auth store')
+  // Initialize auth store (to restore session if token exists)
   const { useAuthStore } = await import('@/stores/auth')
   const authStore = useAuthStore()
   
@@ -191,18 +179,9 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
   
-  console.log('[Router] auth store loaded, isAuthenticated:', authStore.isAuthenticated)
-  
-  // Check if route requires authentication
-  const requiresAuth = to.meta.requiresAuth !== false
-  console.log('[Router] requiresAuth:', requiresAuth)
-  
-  if (requiresAuth && !authStore.isAuthenticated) {
-    // Redirect to login page
-    console.log('[Router] not authenticated, redirecting to login')
-    next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
-    // Redirect authenticated users away from login/register
+  // Guest mode: allow all routes without login
+  // Only redirect authenticated users away from login/register pages
+  if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
     console.log('[Router] authenticated user on login/register, redirecting to home')
     next({ name: 'Home' })
   } else {

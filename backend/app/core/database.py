@@ -79,3 +79,77 @@ async def check_db_health() -> bool:
     except Exception as e:
         logger.error("database_health_check_failed", error=str(e))
         return False
+
+
+async def check_tables_exist() -> tuple[bool, list[str]]:
+    """
+    Check if critical database tables exist.
+    
+    Returns:
+        Tuple of (all_exist: bool, missing_tables: list[str])
+    """
+    critical_tables = ['users', 'workspaces', 'sessions', 'messages']
+    missing_tables = []
+    
+    try:
+        async with engine.connect() as conn:
+            for table in critical_tables:
+                result = await conn.execute(
+                    text(
+                        "SELECT EXISTS ("
+                        "SELECT FROM information_schema.tables "
+                        "WHERE table_schema = 'public' "
+                        "AND table_name = :table_name"
+                        ")"
+                    ),
+                    {"table_name": table}
+                )
+                exists = result.scalar()
+                if not exists:
+                    missing_tables.append(table)
+        
+        return len(missing_tables) == 0, missing_tables
+    except Exception as e:
+        logger.error("table_check_failed", error=str(e))
+        return False, critical_tables
+
+
+async def run_migrations() -> bool:
+    """
+    Run database migrations using Alembic.
+    
+    Returns:
+        True if migrations succeeded, False otherwise
+    """
+    import subprocess
+    import os
+    
+    try:
+        # Get the backend directory path
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
+        logger.info("running_database_migrations", backend_dir=backend_dir)
+        
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            cwd=backend_dir,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode == 0:
+            logger.info("database_migrations_completed", output=result.stdout)
+            return True
+        else:
+            logger.error("database_migrations_failed", 
+                        stderr=result.stderr, 
+                        stdout=result.stdout,
+                        returncode=result.returncode)
+            return False
+    except subprocess.TimeoutExpired:
+        logger.error("database_migrations_timeout")
+        return False
+    except Exception as e:
+        logger.error("database_migrations_error", error=str(e))
+        return False

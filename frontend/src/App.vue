@@ -15,91 +15,69 @@
       </Transition>
     </RouterView>
 
-    <!-- Login Prompt Modal -->
+    <!-- Login Prompt Modal - triggered manually via useAuthGuard -->
     <LoginPromptModal
-      :visible="showLoginPrompt"
-      @close="handleCloseLoginPrompt"
+      :visible="showLoginModal"
+      :message="loginModalMessage"
+      @close="handleCloseLoginModal"
       @success="handleLoginSuccess"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-console.log('[App.vue] Script setup start')
-
-console.log('[App.vue] Importing vue...')
-import { ref, onMounted, computed } from 'vue'
-console.log('[App.vue] vue imported')
-
-console.log('[App.vue] Importing vue-router...')
-import { RouterView, useRoute } from 'vue-router'
-console.log('[App.vue] vue-router imported')
-
-console.log('[App.vue] Importing auth store...')
+import { ref, onMounted, provide } from 'vue'
+import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-console.log('[App.vue] auth store imported')
-
-console.log('[App.vue] Importing LoginPromptModal...')
 import LoginPromptModal from '@/components/common/LoginPromptModal.vue'
-console.log('[App.vue] LoginPromptModal imported')
 
-console.log('[App.vue] Calling useRoute()...')
-const route = useRoute()
-console.log('[App.vue] useRoute() done')
-
-console.log('[App.vue] Calling useAuthStore()...')
 const authStore = useAuthStore()
-console.log('[App.vue] useAuthStore() done')
 
-console.log('[App.vue] Setting up reactive state...')
-const loginPromptDismissed = ref(false)
-console.log('[App.vue] loginPromptDismissed ref created')
+// Login modal state - controlled by useAuthGuard composable
+const showLoginModal = ref(false)
+const loginModalMessage = ref('')
+let loginModalResolve: ((success: boolean) => void) | null = null
 
-// Pages that don't need login prompt
-const excludedPaths = ['/login', '/register']
+/**
+ * Show login modal with optional custom message
+ * Returns a promise that resolves to true if login succeeds, false if cancelled
+ */
+function showLogin(message?: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    loginModalMessage.value = message || ''
+    showLoginModal.value = true
+    loginModalResolve = resolve
+  })
+}
 
-// Show login prompt if:
-// 1. User is not authenticated
-// 2. User hasn't dismissed the prompt in this session
-// 3. Not on login/register page
-console.log('[App.vue] Setting up showLoginPrompt computed...')
-const showLoginPrompt = computed(() => {
-  console.log('[App.vue] showLoginPrompt computed evaluating...')
-  return !authStore.isAuthenticated &&
-         !loginPromptDismissed.value &&
-         !excludedPaths.includes(route.path)
-})
-console.log('[App.vue] showLoginPrompt computed created')
-
-function handleCloseLoginPrompt() {
-  console.log('[App.vue] handleCloseLoginPrompt called')
-  loginPromptDismissed.value = true
-  // Remember dismissal for this session
-  sessionStorage.setItem('login_prompt_dismissed', 'true')
+function handleCloseLoginModal() {
+  showLoginModal.value = false
+  loginModalMessage.value = ''
+  if (loginModalResolve) {
+    loginModalResolve(false)
+    loginModalResolve = null
+  }
 }
 
 function handleLoginSuccess() {
-  console.log('[App.vue] handleLoginSuccess called')
-  loginPromptDismissed.value = true
+  showLoginModal.value = false
+  loginModalMessage.value = ''
+  if (loginModalResolve) {
+    loginModalResolve(true)
+    loginModalResolve = null
+  }
 }
 
-console.log('[App.vue] Script setup complete')
+// Provide the showLogin function globally for useAuthGuard
+provide('showLoginModal', showLogin)
 
 onMounted(async () => {
-  console.log('[App] onMounted start')
+  console.log('[App] onMounted - initializing auth')
   try {
-    // Initialize auth state
-    console.log('[App] calling authStore.initialize()')
     await authStore.initialize()
-    console.log('[App] authStore.initialize() completed')
-    
-    // Check if prompt was already dismissed in this session
-    if (sessionStorage.getItem('login_prompt_dismissed') === 'true') {
-      loginPromptDismissed.value = true
-    }
-    console.log('[App] onMounted completed successfully')
+    console.log('[App] Auth initialized, isAuthenticated:', authStore.isAuthenticated)
   } catch (error) {
-    console.error('[App] onMounted error:', error)
+    console.error('[App] Auth initialization error:', error)
   }
 })
 </script>

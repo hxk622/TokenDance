@@ -315,6 +315,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
 import type { LoginRequest } from '@/api/auth'
+import { getApiErrorMessage } from '@/utils/errorMessages'
 
 const router = useRouter()
 const route = useRoute()
@@ -336,7 +337,8 @@ async function handleLogin() {
     await authStore.login(form.value)
     router.push('/')
   } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Login failed. Please try again.'
+    console.log('[LoginView] Login failed:', err)
+    error.value = getApiErrorMessage(err, '登录失败，请重试')
   } finally {
     isLoading.value = false
   }
@@ -350,7 +352,8 @@ async function handleWeChatLogin() {
     const { authorization_url } = await authApi.getWeChatAuthUrl()
     window.location.href = authorization_url
   } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Failed to get WeChat authorization URL.'
+    console.log('[LoginView] WeChat login failed:', err)
+    error.value = getApiErrorMessage(err, '获取微信授权链接失败')
     isLoading.value = false
   }
 }
@@ -363,7 +366,8 @@ async function handleGmailLogin() {
     const { authorization_url } = await authApi.getGmailAuthUrl()
     window.location.href = authorization_url
   } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Failed to get Gmail authorization URL.'
+    console.log('[LoginView] Gmail login failed:', err)
+    error.value = getApiErrorMessage(err, '获取 Google 授权链接失败')
     isLoading.value = false
   }
 }
@@ -384,7 +388,8 @@ onMounted(async () => {
       }
       router.push('/')
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'OAuth login failed. Please try again.'
+      console.log('[LoginView] OAuth callback failed:', err)
+      error.value = getApiErrorMessage(err, '第三方登录失败，请重试')
     } finally {
       isLoading.value = false
     }

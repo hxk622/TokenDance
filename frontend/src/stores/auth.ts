@@ -11,6 +11,8 @@ import {
   type WeChatAuthRequest,
   type GmailAuthRequest
 } from '@/api/auth'
+import { useSessionStore } from '@/stores/session'
+import { getApiErrorMessage } from '@/utils/errorMessages'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -45,9 +47,15 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('access_token', response.tokens.access_token)
       localStorage.setItem('refresh_token', response.tokens.refresh_token)
       
+      // Set default workspace if provided
+      if (response.default_workspace_id) {
+        const sessionStore = useSessionStore()
+        sessionStore.setCurrentWorkspace(response.default_workspace_id)
+      }
+      
       return response
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Login failed'
+      error.value = getApiErrorMessage(err, '登录失败')
       throw err
     } finally {
       isLoading.value = false
@@ -73,9 +81,15 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('access_token', response.tokens.access_token)
       localStorage.setItem('refresh_token', response.tokens.refresh_token)
       
+      // Set default workspace from registration
+      if (response.default_workspace_id) {
+        const sessionStore = useSessionStore()
+        sessionStore.setCurrentWorkspace(response.default_workspace_id)
+      }
+      
       return response
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Registration failed'
+      error.value = getApiErrorMessage(err, '注册失败')
       throw err
     } finally {
       isLoading.value = false
@@ -104,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       return response
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'WeChat login failed'
+      error.value = getApiErrorMessage(err, '微信登录失败')
       throw err
     } finally {
       isLoading.value = false
@@ -133,7 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       return response
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Gmail login failed'
+      error.value = getApiErrorMessage(err, 'Google 登录失败')
       throw err
     } finally {
       isLoading.value = false
@@ -188,7 +202,7 @@ export const useAuthStore = defineStore('auth', () => {
       return currentUser
     } catch (err: any) {
       console.error('[AuthStore] fetchCurrentUser error:', err)
-      error.value = err.response?.data?.detail || 'Failed to fetch user'
+      error.value = getApiErrorMessage(err, '获取用户信息失败')
       // If 401, clear auth state
       if (err.response?.status === 401) {
         console.log('[AuthStore] fetchCurrentUser: 401, logging out')

@@ -48,11 +48,13 @@ export interface TokenResponse {
 export interface LoginResponse {
   user: User
   tokens: TokenResponse
+  default_workspace_id?: string
 }
 
 export interface RegisterResponse {
   user: User
   tokens: TokenResponse
+  default_workspace_id: string
 }
 
 export interface RefreshTokenRequest {

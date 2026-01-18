@@ -59,9 +59,11 @@ class RegisterResponse(BaseModel):
     """Schema for registration response."""
     user: UserResponse
     tokens: TokenResponse
+    default_workspace_id: str
 
 
 class LoginResponse(BaseModel):
     """Schema for login response."""
     user: UserResponse
     tokens: TokenResponse
+    default_workspace_id: str | None = None

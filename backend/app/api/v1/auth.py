@@ -37,13 +37,13 @@ async def register(
         auth_service: Authentication service
 
     Returns:
-        User and token pair
+        User, token pair, and default workspace ID
 
     Raises:
         HTTPException: If email or username already exists or validation fails
     """
     try:
-        user, tokens = await auth_service.register(
+        user, tokens, workspace = await auth_service.register(
             email=user_data.email,
             username=user_data.username,
             password=user_data.password,
@@ -56,6 +56,7 @@ async def register(
                 refresh_token=tokens.refresh_token,
                 token_type=tokens.token_type,
             ),
+            default_workspace_id=workspace.id if workspace else "",
         )
     except ValueError as e:
         raise HTTPException(
@@ -76,13 +77,13 @@ async def login(
         auth_service: Authentication service
 
     Returns:
-        User and token pair
+        User, token pair, and default workspace ID
 
     Raises:
         HTTPException: If credentials are invalid
     """
     try:
-        user, tokens = await auth_service.login(
+        user, tokens, default_workspace_id = await auth_service.login(
             email=credentials.email,
             password=credentials.password,
         )
@@ -94,6 +95,7 @@ async def login(
                 refresh_token=tokens.refresh_token,
                 token_type=tokens.token_type,
             ),
+            default_workspace_id=default_workspace_id,
         )
     except ValueError as e:
         raise HTTPException(

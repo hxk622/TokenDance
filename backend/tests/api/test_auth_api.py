@@ -45,6 +45,15 @@ def create_mock_tokens():
     return tokens
 
 
+def create_mock_workspace():
+    """创建 mock workspace"""
+    workspace = MagicMock()
+    workspace.id = str(uuid4())
+    workspace.name = "默认工作区"
+    workspace.slug = "default"
+    return workspace
+
+
 # ==================== Register Tests ====================
 
 class TestRegister:
@@ -60,9 +69,10 @@ class TestRegister:
             username=test_user_register_data["username"]
         )
         mock_tokens = create_mock_tokens()
+        mock_workspace = create_mock_workspace()
 
         mock_service = AsyncMock()
-        mock_service.register = AsyncMock(return_value=(mock_user, mock_tokens))
+        mock_service.register = AsyncMock(return_value=(mock_user, mock_tokens, mock_workspace))
 
         async def mock_get_auth_service():
             return mock_service
@@ -79,6 +89,7 @@ class TestRegister:
             data = response.json()
             assert "user" in data
             assert "tokens" in data
+            assert "default_workspace_id" in data
             assert data["user"]["email"] == test_user_register_data["email"]
         finally:
             app.dependency_overrides.clear()
@@ -145,9 +156,10 @@ class TestLogin:
             username="testuser"
         )
         mock_tokens = create_mock_tokens()
+        mock_workspace_id = str(uuid4())
 
         mock_service = AsyncMock()
-        mock_service.login = AsyncMock(return_value=(mock_user, mock_tokens))
+        mock_service.login = AsyncMock(return_value=(mock_user, mock_tokens, mock_workspace_id))
 
         async def mock_get_auth_service():
             return mock_service

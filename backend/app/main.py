@@ -53,7 +53,10 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         import json
         import time
 
-        request_id = request.headers.get("X-Request-ID", "unknown")
+        from app.core.logging import get_request_id
+
+        # Get request_id from context (set by RequestIDMiddleware) or fallback
+        request_id = get_request_id() or request.headers.get("X-Request-ID", "unknown")
         start_time = time.time()
 
         # Read and log request body
@@ -172,9 +175,48 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     import app.models  # noqa: F401
 
     # Initialize database connection pool
-    from app.core.database import close_db, init_db
+    from app.core.database import close_db, init_db, check_tables_exist, run_migrations
     await init_db()
     logger.info("database_connection_pool_initialized")
+    
+    # Check if critical tables exist
+    tables_exist, missing_tables = await check_tables_exist()
+    
+    if not tables_exist:
+        logger.warning(
+            "missing_database_tables",
+            missing_tables=missing_tables,
+            environment=settings.ENVIRONMENT
+        )
+        
+        if settings.ENVIRONMENT == "development":
+            # Auto-run migrations in development
+            logger.info("auto_running_migrations_in_development")
+            migration_success = await run_migrations()
+            
+            if migration_success:
+                # Re-check tables after migration
+                tables_exist, missing_tables = await check_tables_exist()
+                if not tables_exist:
+                    logger.error(
+                        "tables_still_missing_after_migration",
+                        missing_tables=missing_tables
+                    )
+                    raise RuntimeError(
+                        f"数据库迁移后仍缺少关键表: {missing_tables}. "
+                        f"请检查 migration 文件是否完整。"
+                    )
+            else:
+                raise RuntimeError(
+                    f"数据库迁移失败. 缺少表: {missing_tables}. "
+                    f"请手动运行: cd backend && alembic upgrade head"
+                )
+        else:
+            # In production, fail fast with clear error
+            raise RuntimeError(
+                f"数据库缺少关键表: {missing_tables}. "
+                f"请在部署前执行数据库迁移: alembic upgrade head"
+            )
 
     # Initialize Redis connection pool
     from app.core.redis import close_redis, init_redis
