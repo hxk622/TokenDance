@@ -148,15 +148,24 @@ defineExpose({
         <h3>文件操作</h3>
       </div>
       <div class="header-stats">
-        <span v-if="summaryStats.created > 0" class="stat-badge created">
+        <span
+          v-if="summaryStats.created > 0"
+          class="stat-badge created"
+        >
           <PlusIcon class="stat-icon" />
           {{ summaryStats.created }}
         </span>
-        <span v-if="summaryStats.modified > 0" class="stat-badge modified">
+        <span
+          v-if="summaryStats.modified > 0"
+          class="stat-badge modified"
+        >
           <PencilIcon class="stat-icon" />
           {{ summaryStats.modified }}
         </span>
-        <span v-if="summaryStats.deleted > 0" class="stat-badge deleted">
+        <span
+          v-if="summaryStats.deleted > 0"
+          class="stat-badge deleted"
+        >
           <TrashIcon class="stat-icon" />
           {{ summaryStats.deleted }}
         </span>
@@ -177,13 +186,22 @@ defineExpose({
           @dblclick="handleDoubleClick(op)"
         >
           <div class="file-main">
-            <div class="file-icon-wrapper" :style="{ color: getActionColor(op.action) }">
-              <component :is="getActionIcon(op.action)" class="action-icon" />
+            <div
+              class="file-icon-wrapper"
+              :style="{ color: getActionColor(op.action) }"
+            >
+              <component
+                :is="getActionIcon(op.action)"
+                class="action-icon"
+              />
             </div>
             <div class="file-info">
               <span class="file-path">{{ op.path }}</span>
               <div class="file-meta">
-                <span class="action-label" :style="{ color: getActionColor(op.action) }">
+                <span
+                  class="action-label"
+                  :style="{ color: getActionColor(op.action) }"
+                >
                   {{ getActionLabel(op.action) }}
                 </span>
                 <span class="timestamp">{{ formatTime(op.timestamp) }}</span>
@@ -192,16 +210,28 @@ defineExpose({
           </div>
           
           <!-- Diff Stats -->
-          <div v-if="hasDiffStats(op)" class="diff-stats">
-            <span v-if="op.linesAdded" class="diff-added">+{{ op.linesAdded }}</span>
-            <span v-if="op.linesRemoved" class="diff-removed">-{{ op.linesRemoved }}</span>
+          <div
+            v-if="hasDiffStats(op)"
+            class="diff-stats"
+          >
+            <span
+              v-if="op.linesAdded"
+              class="diff-added"
+            >+{{ op.linesAdded }}</span>
+            <span
+              v-if="op.linesRemoved"
+              class="diff-removed"
+            >-{{ op.linesRemoved }}</span>
           </div>
         </div>
       </TransitionGroup>
     </div>
 
     <!-- Empty State -->
-    <div v-if="internalOperations.length === 0" class="empty-state">
+    <div
+      v-if="internalOperations.length === 0"
+      class="empty-state"
+    >
       <FolderIcon class="empty-icon" />
       <p>暂无文件操作</p>
     </div>

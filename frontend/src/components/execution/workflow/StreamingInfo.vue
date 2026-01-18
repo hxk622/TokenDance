@@ -162,26 +162,74 @@ defineExpose({
         @click="toggleScrollLock"
       >
         <!-- Lock icon (locked state) -->
-        <svg v-if="isScrollLocked" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        <svg
+          v-if="isScrollLocked"
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect
+            x="3"
+            y="11"
+            width="18"
+            height="11"
+            rx="2"
+            ry="2"
+          />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
         <!-- Unlock icon (unlocked state) -->
-        <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+        <svg
+          v-else
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect
+            x="3"
+            y="11"
+            width="18"
+            height="11"
+            rx="2"
+            ry="2"
+          />
+          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
         </svg>
       </button>
     </div>
 
     <!-- Focus Mode Indicator -->
-    <div v-if="focusNodeId" class="focus-indicator">
+    <div
+      v-if="focusNodeId"
+      class="focus-indicator"
+    >
       <span>🎯 聚焦模式：Node-{{ focusNodeId }}</span>
-      <button class="btn-exit-focus" @click="exitFocusMode">退出聚焦</button>
+      <button
+        class="btn-exit-focus"
+        @click="exitFocusMode"
+      >
+        退出聚焦
+      </button>
     </div>
 
     <!-- Log Stream -->
-    <div ref="logStreamRef" class="log-stream" @scroll="handleUserScroll">
+    <div
+      ref="logStreamRef"
+      class="log-stream"
+      @scroll="handleUserScroll"
+    >
       <div
         v-for="log in filteredLogs"
         :key="log.id"
@@ -190,8 +238,22 @@ defineExpose({
       >
         <div class="log-meta">
           <span class="log-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path v-for="(d, i) in getLogIconPath(log.type).split('|')" :key="i" :d="d" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                v-for="(d, i) in getLogIconPath(log.type).split('|')"
+                :key="i"
+                :d="d"
+              />
             </svg>
           </span>
           <span class="log-time">{{ formatTime(log.timestamp) }}</span>
@@ -204,7 +266,10 @@ defineExpose({
     </div>
 
     <!-- Empty State -->
-    <div v-if="filteredLogs.length === 0" class="empty-state">
+    <div
+      v-if="filteredLogs.length === 0"
+      class="empty-state"
+    >
       <span class="empty-icon">📋</span>
       <p>暂无执行日志</p>
     </div>

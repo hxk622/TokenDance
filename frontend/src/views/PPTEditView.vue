@@ -344,52 +344,87 @@ onMounted(() => {
     <!-- Header -->
     <header class="edit-header">
       <div class="header-left">
-        <button class="back-btn" @click="goBack">
+        <button
+          class="back-btn"
+          @click="goBack"
+        >
           <ChevronLeftIcon class="w-5 h-5" />
           返回
         </button>
         <div class="title-section">
-          <h1 class="ppt-title">{{ outline?.title || '加载中...' }}</h1>
+          <h1 class="ppt-title">
+            {{ outline?.title || '加载中...' }}
+          </h1>
           <span class="ppt-meta">{{ totalSlides }} 页幻灯片</span>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn-icon" title="预览模式">
+        <button
+          class="btn-icon"
+          title="预览模式"
+        >
           <EyeIcon class="w-5 h-5" />
         </button>
         <div class="export-dropdown">
-          <button class="btn-primary" @click="showExportMenu = !showExportMenu">
+          <button
+            class="btn-primary"
+            @click="showExportMenu = !showExportMenu"
+          >
             <ArrowDownTrayIcon class="w-5 h-5" />
             导出
           </button>
-          <div v-if="showExportMenu" class="dropdown-menu">
-            <button @click="exportPPT('pdf')">导出 PDF</button>
-            <button @click="exportPPT('html')">导出 HTML</button>
-            <button @click="exportPPT('pptx')">导出 PPTX</button>
+          <div
+            v-if="showExportMenu"
+            class="dropdown-menu"
+          >
+            <button @click="exportPPT('pdf')">
+              导出 PDF
+            </button>
+            <button @click="exportPPT('html')">
+              导出 HTML
+            </button>
+            <button @click="exportPPT('pptx')">
+              导出 PPTX
+            </button>
           </div>
         </div>
       </div>
     </header>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <div class="spinner" />
       <p>加载中...</p>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <p>{{ error }}</p>
-      <button @click="fetchOutline">重试</button>
+      <button @click="fetchOutline">
+        重试
+      </button>
     </div>
 
     <!-- Main Content -->
-    <main v-else-if="outline" class="edit-main">
+    <main
+      v-else-if="outline"
+      class="edit-main"
+    >
       <!-- Left Panel: Slide List -->
       <aside class="slide-list-panel">
         <div class="slide-list-header">
           <span>幻灯片</span>
-          <button class="add-slide-btn" @click="addSlide('content')" title="添加幻灯片">
+          <button
+            class="add-slide-btn"
+            title="添加幻灯片"
+            @click="addSlide('content')"
+          >
             <PlusIcon class="w-4 h-4" />
           </button>
         </div>
@@ -411,7 +446,10 @@ onMounted(() => {
 
       <!-- Center Panel: Editor -->
       <section class="slide-editor-panel">
-        <div v-if="currentSlide" class="editor-content">
+        <div
+          v-if="currentSlide"
+          class="editor-content"
+        >
           <!-- Slide Type Badge -->
           <div class="slide-type-badge">
             {{ slideTypeIcon(currentSlide.type) }} {{ slideTypeLabel(currentSlide.type) }}
@@ -423,39 +461,56 @@ onMounted(() => {
             <input
               type="text"
               :value="currentSlide.title"
-              @input="(e) => updateSlideContent('title', (e.target as HTMLInputElement).value)"
               class="field-input"
-            />
+              @input="(e) => updateSlideContent('title', (e.target as HTMLInputElement).value)"
+            >
           </div>
 
           <!-- Subtitle -->
-          <div v-if="['title', 'quote', 'thank_you', 'qa', 'section'].includes(currentSlide.type)" class="editor-field">
+          <div
+            v-if="['title', 'quote', 'thank_you', 'qa', 'section'].includes(currentSlide.type)"
+            class="editor-field"
+          >
             <label>副标题</label>
             <input
               type="text"
               :value="currentSlide.subtitle || ''"
-              @input="(e) => updateSlideContent('subtitle', (e.target as HTMLInputElement).value)"
               class="field-input"
-            />
+              @input="(e) => updateSlideContent('subtitle', (e.target as HTMLInputElement).value)"
+            >
           </div>
 
           <!-- Points (for content slides) -->
-          <div v-if="currentSlide.points" class="editor-field">
+          <div
+            v-if="currentSlide.points"
+            class="editor-field"
+          >
             <label>要点</label>
             <div class="points-list">
-              <div v-for="(point, index) in currentSlide.points" :key="index" class="point-item">
+              <div
+                v-for="(point, index) in currentSlide.points"
+                :key="index"
+                class="point-item"
+              >
                 <span class="point-number">{{ index + 1 }}</span>
                 <input
                   type="text"
                   :value="point"
-                  @input="(e) => updatePoints(index, (e.target as HTMLInputElement).value)"
                   class="point-input"
-                />
-                <button class="point-delete" @click="removePoint(index)" title="删除">
+                  @input="(e) => updatePoints(index, (e.target as HTMLInputElement).value)"
+                >
+                <button
+                  class="point-delete"
+                  title="删除"
+                  @click="removePoint(index)"
+                >
                   <XMarkIcon class="w-4 h-4" />
                 </button>
               </div>
-              <button class="add-point-btn" @click="addPoint">
+              <button
+                class="add-point-btn"
+                @click="addPoint"
+              >
                 <PlusIcon class="w-4 h-4" />
                 添加要点
               </button>
@@ -463,13 +518,16 @@ onMounted(() => {
           </div>
 
           <!-- Content (for quote slides) -->
-          <div v-if="currentSlide.type === 'quote'" class="editor-field">
+          <div
+            v-if="currentSlide.type === 'quote'"
+            class="editor-field"
+          >
             <label>引用内容</label>
             <textarea
               :value="currentSlide.content || ''"
-              @input="(e) => updateSlideContent('content', (e.target as HTMLTextAreaElement).value)"
               class="field-textarea"
               rows="3"
+              @input="(e) => updateSlideContent('content', (e.target as HTMLTextAreaElement).value)"
             />
           </div>
 
@@ -478,20 +536,27 @@ onMounted(() => {
             <label>演讲者备注</label>
             <textarea
               :value="currentSlide.notes || ''"
-              @input="(e) => updateSlideContent('notes', (e.target as HTMLTextAreaElement).value)"
               class="field-textarea"
               rows="2"
               placeholder="添加备注..."
+              @input="(e) => updateSlideContent('notes', (e.target as HTMLTextAreaElement).value)"
             />
           </div>
 
           <!-- Actions -->
           <div class="editor-actions">
-            <button class="action-btn" @click="duplicateSlide">
+            <button
+              class="action-btn"
+              @click="duplicateSlide"
+            >
               <DocumentDuplicateIcon class="w-4 h-4" />
               复制
             </button>
-            <button class="action-btn danger" @click="deleteSlide" :disabled="totalSlides <= 1">
+            <button
+              class="action-btn danger"
+              :disabled="totalSlides <= 1"
+              @click="deleteSlide"
+            >
               <TrashIcon class="w-4 h-4" />
               删除
             </button>
@@ -504,17 +569,26 @@ onMounted(() => {
         <div class="preview-header">
           <span>预览</span>
           <div class="preview-nav">
-            <button @click="prevSlide" :disabled="currentSlideIndex === 0">
+            <button
+              :disabled="currentSlideIndex === 0"
+              @click="prevSlide"
+            >
               <ChevronLeftIcon class="w-4 h-4" />
             </button>
             <span>{{ currentSlideIndex + 1 }} / {{ totalSlides }}</span>
-            <button @click="nextSlide" :disabled="currentSlideIndex === totalSlides - 1">
+            <button
+              :disabled="currentSlideIndex === totalSlides - 1"
+              @click="nextSlide"
+            >
               <ChevronRightIcon class="w-4 h-4" />
             </button>
           </div>
         </div>
         <div class="preview-container">
-          <div class="preview-slide" v-html="previewHtml" />
+          <div
+            class="preview-slide"
+            v-html="previewHtml"
+          />
         </div>
       </aside>
     </main>

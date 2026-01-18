@@ -63,10 +63,19 @@ const handleClick = (event: MouseEvent) => {
   >
     <!-- Default variant: icon + label -->
     <template v-if="variant === 'default'">
-      <span v-if="icon" class="any-card-icon">
-        <component :is="icon" :size="16" />
+      <span
+        v-if="icon"
+        class="any-card-icon"
+      >
+        <component
+          :is="icon"
+          :size="16"
+        />
       </span>
-      <span v-if="$slots.icon" class="any-card-icon">
+      <span
+        v-if="$slots.icon"
+        class="any-card-icon"
+      >
         <slot name="icon" />
       </span>
       <span class="any-card-label">
@@ -76,21 +85,45 @@ const handleClick = (event: MouseEvent) => {
     
     <!-- Preview variant: image + content -->
     <template v-else-if="variant === 'preview'">
-      <div v-if="image" class="any-card-preview-image-wrapper">
-        <img :src="image" :alt="title" class="any-card-preview-image" />
-        <span v-if="tag" class="any-card-preview-tag">{{ tag }}</span>
+      <div
+        v-if="image"
+        class="any-card-preview-image-wrapper"
+      >
+        <img
+          :src="image"
+          :alt="title"
+          class="any-card-preview-image"
+        >
+        <span
+          v-if="tag"
+          class="any-card-preview-tag"
+        >{{ tag }}</span>
       </div>
-      <div v-else class="any-card-preview-placeholder">
+      <div
+        v-else
+        class="any-card-preview-placeholder"
+      >
         <slot name="placeholder">
-          <component v-if="icon" :is="icon" :size="32" />
+          <component
+            :is="icon"
+            v-if="icon"
+            :size="32"
+          />
         </slot>
       </div>
       <div class="any-card-preview-content">
         <div class="any-card-preview-title">
-          <slot name="title">{{ title }}</slot>
+          <slot name="title">
+            {{ title }}
+          </slot>
         </div>
-        <div v-if="meta || $slots.meta" class="any-card-preview-meta">
-          <slot name="meta">{{ meta }}</slot>
+        <div
+          v-if="meta || $slots.meta"
+          class="any-card-preview-meta"
+        >
+          <slot name="meta">
+            {{ meta }}
+          </slot>
         </div>
       </div>
     </template>

@@ -47,20 +47,37 @@ const handleDrop = (e: DragEvent) => {
     @drop="handleDrop"
   >
     <div class="drop-content">
-      <div class="drop-icon" :class="{ 'drop-icon-active': isDragging }">
-        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      <div
+        class="drop-icon"
+        :class="{ 'drop-icon-active': isDragging }"
+      >
+        <svg
+          class="w-8 h-8"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5" 
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          />
         </svg>
       </div>
       <p class="drop-text">
-        <span v-if="isDragging" class="text-cyan-600 font-medium">松开鼠标上传</span>
+        <span
+          v-if="isDragging"
+          class="text-cyan-600 font-medium"
+        >松开鼠标上传</span>
         <span v-else>
           拖入文件或文件夹，启动 
           <span class="text-cyan-600 font-medium">Coworker</span>
         </span>
       </p>
-      <p class="drop-hint">支持代码、文档、图片等多种格式</p>
+      <p class="drop-hint">
+        支持代码、文档、图片等多种格式
+      </p>
     </div>
     
     <!-- Animated Border -->

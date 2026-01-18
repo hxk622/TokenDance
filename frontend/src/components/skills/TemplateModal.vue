@@ -96,10 +96,17 @@ onMounted(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="modal-overlay" @click.self="handleClose">
+    <div
+      v-if="visible"
+      class="modal-overlay"
+      @click.self="handleClose"
+    >
       <div class="modal-container">
         <!-- Loading -->
-        <div v-if="loading" class="modal-loading">
+        <div
+          v-if="loading"
+          class="modal-loading"
+        >
           <div class="loading-spinner" />
           <p>加载模板...</p>
         </div>
@@ -111,13 +118,29 @@ onMounted(() => {
             <div class="header-info">
               <span class="template-icon">{{ template.icon }}</span>
               <div>
-                <h2 class="modal-title">{{ template.name }}</h2>
-                <p class="modal-desc">{{ template.description }}</p>
+                <h2 class="modal-title">
+                  {{ template.name }}
+                </h2>
+                <p class="modal-desc">
+                  {{ template.description }}
+                </p>
               </div>
             </div>
-            <button class="close-btn" @click="handleClose">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <button
+              class="close-btn"
+              @click="handleClose"
+            >
+              <svg
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -125,18 +148,29 @@ onMounted(() => {
           <!-- Body -->
           <div class="modal-body">
             <!-- Variables Form -->
-            <div v-if="template.variables.length > 0" class="variables-section">
-              <h3 class="section-title">填写参数</h3>
+            <div
+              v-if="template.variables.length > 0"
+              class="variables-section"
+            >
+              <h3 class="section-title">
+                填写参数
+              </h3>
 
               <!-- Required -->
-              <div v-if="requiredVariables.length > 0" class="variables-group">
+              <div
+                v-if="requiredVariables.length > 0"
+                class="variables-group"
+              >
                 <span class="group-label">必填参数</span>
                 <div
                   v-for="variable in requiredVariables"
                   :key="variable.name"
                   class="variable-field"
                 >
-                  <label :for="variable.name" class="field-label">
+                  <label
+                    :for="variable.name"
+                    class="field-label"
+                  >
                     {{ variable.label }}
                     <span class="required-mark">*</span>
                   </label>
@@ -148,7 +182,7 @@ onMounted(() => {
                     type="text"
                     class="field-input"
                     :placeholder="variable.placeholder"
-                  />
+                  >
 
                   <textarea
                     v-else-if="getVariableType(variable) === 'textarea'"
@@ -165,7 +199,12 @@ onMounted(() => {
                     v-model="variableValues[variable.name]"
                     class="field-select"
                   >
-                    <option value="" disabled>请选择...</option>
+                    <option
+                      value=""
+                      disabled
+                    >
+                      请选择...
+                    </option>
                     <option
                       v-for="opt in variable.options"
                       :key="opt.value"
@@ -178,14 +217,20 @@ onMounted(() => {
               </div>
 
               <!-- Optional -->
-              <div v-if="optionalVariables.length > 0" class="variables-group">
+              <div
+                v-if="optionalVariables.length > 0"
+                class="variables-group"
+              >
                 <span class="group-label">选填参数</span>
                 <div
                   v-for="variable in optionalVariables"
                   :key="variable.name"
                   class="variable-field"
                 >
-                  <label :for="variable.name" class="field-label">
+                  <label
+                    :for="variable.name"
+                    class="field-label"
+                  >
                     {{ variable.label }}
                   </label>
 
@@ -196,7 +241,7 @@ onMounted(() => {
                     type="text"
                     class="field-input"
                     :placeholder="variable.placeholder"
-                  />
+                  >
 
                   <textarea
                     v-else-if="getVariableType(variable) === 'textarea'"
@@ -213,7 +258,9 @@ onMounted(() => {
                     v-model="variableValues[variable.name]"
                     class="field-select"
                   >
-                    <option value="">请选择...</option>
+                    <option value="">
+                      请选择...
+                    </option>
                     <option
                       v-for="opt in variable.options"
                       :key="opt.value"
@@ -228,20 +275,30 @@ onMounted(() => {
 
             <!-- Preview -->
             <div class="preview-section">
-              <h3 class="section-title">提示词预览</h3>
+              <h3 class="section-title">
+                提示词预览
+              </h3>
               <pre class="preview-content">{{ previewPrompt }}</pre>
             </div>
 
             <!-- Example -->
-            <div v-if="template.example_output" class="example-section">
-              <h3 class="section-title">示例输出</h3>
+            <div
+              v-if="template.example_output"
+              class="example-section"
+            >
+              <h3 class="section-title">
+                示例输出
+              </h3>
               <pre class="example-content">{{ template.example_output }}</pre>
             </div>
           </div>
 
           <!-- Footer -->
           <div class="modal-footer">
-            <button class="btn-secondary" @click="handleClose">
+            <button
+              class="btn-secondary"
+              @click="handleClose"
+            >
               取消
             </button>
             <button

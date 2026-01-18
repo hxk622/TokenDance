@@ -131,9 +131,15 @@ function resetDragState() {
       @dragend="handleDragEnd"
     >
       <span class="drag-handle">⋮⋮</span>
-      <component :is="tab.icon" class="icon w-4 h-4" />
+      <component
+        :is="tab.icon"
+        class="icon w-4 h-4"
+      />
       <span class="title">{{ tab.title }}</span>
-      <Pin v-if="tab.isPinned" class="pin w-3 h-3" />
+      <Pin
+        v-if="tab.isPinned"
+        class="pin w-3 h-3"
+      />
     </div>
   </div>
 </template>

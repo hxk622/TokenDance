@@ -2,8 +2,13 @@
   <div class="sentiment-dashboard">
     <!-- Header -->
     <div class="dashboard-header">
-      <h3 class="title">舆情情绪分析</h3>
-      <div v-if="sentiment" class="data-sources">
+      <h3 class="title">
+        舆情情绪分析
+      </h3>
+      <div
+        v-if="sentiment"
+        class="data-sources"
+      >
         <span 
           v-for="source in sentiment.sources_used" 
           :key="source" 
@@ -15,31 +20,48 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <div class="spinner" />
       <p>分析舆情数据中...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <AlertTriangle class="error-icon w-8 h-8 text-warning" />
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!sentiment" class="empty-state">
+    <div
+      v-else-if="!sentiment"
+      class="empty-state"
+    >
       <BarChart3 class="empty-icon w-8 h-8 text-gray-400" />
       <p>暂无舆情数据</p>
-      <p class="hint">选择股票后将自动加载</p>
+      <p class="hint">
+        选择股票后将自动加载
+      </p>
     </div>
 
     <!-- Dashboard Content -->
-    <div v-else class="dashboard-content">
+    <div
+      v-else
+      class="dashboard-content"
+    >
       <!-- Overall Score -->
       <div class="score-section">
         <div class="score-label">
           <span class="label-text">整体情绪</span>
-          <span class="score-value" :class="getSentimentClass(sentiment.analysis?.overall_label || 'neutral')">
+          <span
+            class="score-value"
+            :class="getSentimentClass(sentiment.analysis?.overall_label || 'neutral')"
+          >
             {{ getSentimentLabel(sentiment.analysis?.overall_label || 'neutral') }}
           </span>
         </div>
@@ -48,11 +70,11 @@
         <div class="score-bar-container">
           <div class="score-bar-track">
             <!-- Negative zone -->
-            <div class="zone negative-zone"></div>
+            <div class="zone negative-zone" />
             <!-- Neutral zone -->
-            <div class="zone neutral-zone"></div>
+            <div class="zone neutral-zone" />
             <!-- Positive zone -->
-            <div class="zone positive-zone"></div>
+            <div class="zone positive-zone" />
             
             <!-- Score indicator -->
             <div 
@@ -60,8 +82,10 @@
               :style="{ left: getScorePosition(sentiment.analysis?.overall_score || 0) }"
               :class="getSentimentClass(sentiment.analysis?.overall_label || 'neutral')"
             >
-              <div class="indicator-dot"></div>
-              <div class="indicator-label">{{ (sentiment.analysis?.overall_score || 0).toFixed(2) }}</div>
+              <div class="indicator-dot" />
+              <div class="indicator-label">
+                {{ (sentiment.analysis?.overall_score || 0).toFixed(2) }}
+              </div>
             </div>
           </div>
           
@@ -76,15 +100,25 @@
 
       <!-- Sentiment Distribution -->
       <div class="distribution-section">
-        <h4 class="section-title">情绪分布</h4>
+        <h4 class="section-title">
+          情绪分布
+        </h4>
         
         <div class="distribution-content">
           <!-- Pie Chart -->
           <div class="pie-chart">
-            <svg viewBox="0 0 200 200" class="pie-svg">
+            <svg
+              viewBox="0 0 200 200"
+              class="pie-svg"
+            >
               <g transform="translate(100, 100)">
                 <!-- Background circle -->
-                <circle r="80" fill="none" stroke="#f3f4f6" stroke-width="40" />
+                <circle
+                  r="80"
+                  fill="none"
+                  stroke="#f3f4f6"
+                  stroke-width="40"
+                />
                 
                 <!-- Sentiment segments -->
                 <circle
@@ -102,10 +136,20 @@
               </g>
               
               <!-- Center label -->
-              <text x="100" y="95" text-anchor="middle" class="pie-center-label">
+              <text
+                x="100"
+                y="95"
+                text-anchor="middle"
+                class="pie-center-label"
+              >
                 {{ sentiment.posts.length }}
               </text>
-              <text x="100" y="110" text-anchor="middle" class="pie-center-sublabel">
+              <text
+                x="100"
+                y="110"
+                text-anchor="middle"
+                class="pie-center-sublabel"
+              >
                 条帖子
               </text>
             </svg>
@@ -118,7 +162,10 @@
               :key="item.label"
               class="legend-item"
             >
-              <div class="legend-indicator" :style="{ backgroundColor: item.color }"></div>
+              <div
+                class="legend-indicator"
+                :style="{ backgroundColor: item.color }"
+              />
               <div class="legend-content">
                 <span class="legend-label">{{ item.label }}</span>
                 <span class="legend-value">

@@ -2,7 +2,9 @@
   <div class="post-stream">
     <!-- Header with filters -->
     <div class="stream-header">
-      <h3 class="title">讨论帖子</h3>
+      <h3 class="title">
+        讨论帖子
+      </h3>
       
       <div class="filter-controls">
         <button
@@ -13,7 +15,10 @@
           @click="activeFilter = filter.value"
         >
           {{ filter.label }}
-          <span v-if="getFilterCount(filter.value) > 0" class="filter-count">
+          <span
+            v-if="getFilterCount(filter.value) > 0"
+            class="filter-count"
+          >
             {{ getFilterCount(filter.value) }}
           </span>
         </button>
@@ -21,26 +26,44 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <div class="spinner" />
       <p>加载帖子中...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <div class="error-icon">
+        ⚠️
+      </div>
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!posts || posts.length === 0" class="empty-state">
-      <div class="empty-icon">💬</div>
+    <div
+      v-else-if="!posts || posts.length === 0"
+      class="empty-state"
+    >
+      <div class="empty-icon">
+        💬
+      </div>
       <p>暂无讨论帖子</p>
-      <p class="hint">选择股票后将显示相关讨论</p>
+      <p class="hint">
+        选择股票后将显示相关讨论
+      </p>
     </div>
 
     <!-- Post Cards -->
-    <div v-else class="post-grid">
+    <div
+      v-else
+      class="post-grid"
+    >
       <div
         v-for="post in filteredPosts"
         :key="post.post_id || post.id"
@@ -58,14 +81,20 @@
             </div>
           </div>
           
-          <div class="sentiment-badge" :class="`sentiment-${post.sentiment || post.sentiment_label || 'neutral'}`">
+          <div
+            class="sentiment-badge"
+            :class="`sentiment-${post.sentiment || post.sentiment_label || 'neutral'}`"
+          >
             {{ getSentimentLabel(post.sentiment || post.sentiment_label || 'neutral') }}
           </div>
         </div>
 
         <!-- Post content -->
         <div class="post-content">
-          <p class="post-text" :class="{ 'is-expanded': expandedPosts.has(post.post_id || post.id) }">
+          <p
+            class="post-text"
+            :class="{ 'is-expanded': expandedPosts.has(post.post_id || post.id) }"
+          >
             {{ post.content }}
           </p>
           <button
@@ -104,8 +133,14 @@
     </div>
 
     <!-- Load more indicator (for future pagination) -->
-    <div v-if="filteredPosts.length > 0 && filteredPosts.length < posts.length" class="load-more">
-      <button class="load-more-button" @click="loadMore">
+    <div
+      v-if="filteredPosts.length > 0 && filteredPosts.length < posts.length"
+      class="load-more"
+    >
+      <button
+        class="load-more-button"
+        @click="loadMore"
+      >
         加载更多
       </button>
     </div>

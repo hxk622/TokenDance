@@ -115,7 +115,7 @@ onUnmounted(() => {
             :src="image"
             :alt="imageAlt || title"
             class="any-modal-image"
-          />
+          >
           
           <!-- Close button -->
           <button
@@ -129,9 +129,14 @@ onUnmounted(() => {
           </button>
           
           <!-- Header -->
-          <div v-if="title || $slots.header" class="any-modal-header">
+          <div
+            v-if="title || $slots.header"
+            class="any-modal-header"
+          >
             <slot name="header">
-              <h2 class="any-modal-title">{{ title }}</h2>
+              <h2 class="any-modal-title">
+                {{ title }}
+              </h2>
             </slot>
           </div>
           
@@ -141,7 +146,10 @@ onUnmounted(() => {
           </div>
           
           <!-- Footer -->
-          <div v-if="$slots.footer" class="any-modal-footer">
+          <div
+            v-if="$slots.footer"
+            class="any-modal-footer"
+          >
             <slot name="footer" />
           </div>
         </div>

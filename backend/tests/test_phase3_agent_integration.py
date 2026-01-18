@@ -42,7 +42,7 @@ class MockFileSystem:
     async def write(self, path, content):
         self.files[path] = content
 
-    async def exists(self, path):
+    async def exists_async(self, path):
         return path in self.files
 
     def get_session_dir(self, session_id: str):

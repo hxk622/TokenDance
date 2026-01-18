@@ -2,13 +2,22 @@
   <div class="streaming-info glass-panel">
     <div class="toolbar">
       <div class="mode-tabs glass-tabs">
-        <button :class="['glass-tab', { active: mode === 'all' }]" @click="mode = 'all'">
+        <button
+          :class="['glass-tab', { active: mode === 'all' }]"
+          @click="mode = 'all'"
+        >
           全部
         </button>
-        <button :class="['glass-tab', { active: mode === 'coworker' }]" @click="mode = 'coworker'">
+        <button
+          :class="['glass-tab', { active: mode === 'coworker' }]"
+          @click="mode = 'coworker'"
+        >
           Coworker
         </button>
-        <button :class="['glass-tab', { active: mode === 'browser' }]" @click="mode = 'browser'">
+        <button
+          :class="['glass-tab', { active: mode === 'browser' }]"
+          @click="mode = 'browser'"
+        >
           浏览器
         </button>
       </div>
@@ -22,23 +31,60 @@
         </button>
         <button 
           :class="['btn-lock', { active: isUserReading }]"
-          @click="toggleScrollLock"
           :title="isUserReading ? '解锁滚动' : '锁定滚动'"
+          @click="toggleScrollLock"
         >
-          <svg v-if="isUserReading" class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <rect x="5" y="11" width="14" height="10" rx="2" stroke-width="2"/>
-            <path d="M8 11V7a4 4 0 118 0v4" stroke-width="2" stroke-linecap="round"/>
+          <svg
+            v-if="isUserReading"
+            class="lock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <rect
+              x="5"
+              y="11"
+              width="14"
+              height="10"
+              rx="2"
+              stroke-width="2"
+            />
+            <path
+              d="M8 11V7a4 4 0 118 0v4"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
           </svg>
-          <svg v-else class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <rect x="5" y="11" width="14" height="10" rx="2" stroke-width="2"/>
-            <path d="M8 11V7a4 4 0 017.83-1" stroke-width="2" stroke-linecap="round"/>
+          <svg
+            v-else
+            class="lock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <rect
+              x="5"
+              y="11"
+              width="14"
+              height="10"
+              rx="2"
+              stroke-width="2"
+            />
+            <path
+              d="M8 11V7a4 4 0 017.83-1"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
           </svg>
         </button>
       </div>
     </div>
 
     <!-- Browser Operation Log -->
-    <div v-if="mode === 'browser'" class="browser-log-container">
+    <div
+      v-if="mode === 'browser'"
+      class="browser-log-container"
+    >
       <BrowserOperationLog 
         :operations="browserOperations"
         :status="browserStatus"
@@ -48,21 +94,33 @@
     </div>
 
     <!-- Coworker Mode: FileTree + LiveDiff -->
-    <div v-else-if="mode === 'coworker'" class="coworker-container">
+    <div
+      v-else-if="mode === 'coworker'"
+      class="coworker-container"
+    >
       <div class="coworker-split">
-        <div class="coworker-left" :style="{ flex: coworkerSplitRatio }">
+        <div
+          class="coworker-left"
+          :style="{ flex: coworkerSplitRatio }"
+        >
           <CoworkerFileTree 
             :operations="executionStore.fileOperations"
             @file-select="handleFileSelect"
           />
         </div>
-        <div class="coworker-divider"></div>
-        <div class="coworker-right" :style="{ flex: 100 - coworkerSplitRatio }">
+        <div class="coworker-divider" />
+        <div
+          class="coworker-right"
+          :style="{ flex: 100 - coworkerSplitRatio }"
+        >
           <LiveDiff 
             v-if="selectedFileOperation"
             :file-path="selectedFileOperation.path"
           />
-          <div v-else class="no-selection">
+          <div
+            v-else
+            class="no-selection"
+          >
             <p>选择文件查看变更</p>
           </div>
         </div>
@@ -70,9 +128,13 @@
     </div>
 
     <!-- Regular Logs -->
-    <div v-else class="logs-container" ref="logsContainerRef">
+    <div
+      v-else
+      ref="logsContainerRef"
+      class="logs-container"
+    >
       <!-- Timeline track -->
-      <div class="timeline-track"></div>
+      <div class="timeline-track" />
       
       <div 
         v-for="log in displayLogs" 
@@ -86,7 +148,10 @@
         @click="toggleLogExpand(log.id)"
       >
         <!-- Timeline dot -->
-        <div class="timeline-dot" :style="{ background: getLogColor(log.type) }"></div>
+        <div
+          class="timeline-dot"
+          :style="{ background: getLogColor(log.type) }"
+        />
         
         <div class="log-card">
           <div class="log-header">
@@ -96,25 +161,40 @@
                 class="log-icon"
                 :style="{ color: getLogColor(log.type) }"
               />
-              <span class="log-type" :style="{ color: getLogColor(log.type) }">
+              <span
+                class="log-type"
+                :style="{ color: getLogColor(log.type) }"
+              >
                 {{ log.type }}
               </span>
             </div>
             <div class="log-meta">
               <span class="log-time">{{ formatTime(log.timestamp) }}</span>
-              <ChevronDownIcon v-if="isLogExpanded(log.id)" class="expand-icon" />
-              <ChevronRightIcon v-else class="expand-icon" />
+              <ChevronDownIcon
+                v-if="isLogExpanded(log.id)"
+                class="expand-icon"
+              />
+              <ChevronRightIcon
+                v-else
+                class="expand-icon"
+              />
             </div>
           </div>
           
           <!-- Collapsed preview -->
-          <div v-if="!isLogExpanded(log.id)" class="log-preview">
+          <div
+            v-if="!isLogExpanded(log.id)"
+            class="log-preview"
+          >
             {{ log.content.slice(0, 100) }}{{ log.content.length > 100 ? '...' : '' }}
           </div>
           
           <!-- Expanded content -->
           <Transition name="expand">
-            <div v-if="isLogExpanded(log.id)" class="log-content">
+            <div
+              v-if="isLogExpanded(log.id)"
+              class="log-content"
+            >
               {{ log.content }}
             </div>
           </Transition>
@@ -149,13 +229,26 @@
       @click.self="showScreenshotModal = false"
     >
       <div class="relative max-w-4xl max-h-[90vh]">
-        <img :src="screenshotPath" class="max-w-full max-h-full rounded-lg" />
-        <button 
-          @click="showScreenshotModal = false"
-          class="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"
+        <img
+          :src="screenshotPath"
+          class="max-w-full max-h-full rounded-lg"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <button 
+          class="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"
+          @click="showScreenshotModal = false"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>

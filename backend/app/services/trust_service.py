@@ -350,8 +350,8 @@ class TrustService:
             try:
                 RiskLevel(auto_approve_level)
                 config.auto_approve_level = auto_approve_level
-            except ValueError:
-                raise ValueError(f"Invalid risk level: {auto_approve_level}")
+            except ValueError as e:
+                raise ValueError(f"Invalid risk level: {auto_approve_level}") from e
 
         if pre_authorized_operations is not None:
             # 验证操作类别有效性

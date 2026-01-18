@@ -205,7 +205,10 @@ onUnmounted(() => {
           <h3 class="text-sm font-medium text-gray-900 dark:text-white">
             研究时光长廊
           </h3>
-          <p v-if="timeline" class="text-xs text-gray-500 mt-0.5">
+          <p
+            v-if="timeline"
+            class="text-xs text-gray-500 mt-0.5"
+          >
             {{ timeline.topic }} · {{ timeline.total_entries }} 条记录
           </p>
         </div>
@@ -216,13 +219,13 @@ onUnmounted(() => {
             <button
               v-for="(count, type) in eventTypeStats"
               :key="type"
-              @click="filterType = filterType === type ? null : (type as string)"
               :class="[
                 'px-2 py-1 rounded-full transition-colors',
                 filterType === type
                   ? getEventColor(type as string)
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
               ]"
+              @click="filterType = filterType === type ? null : (type as string)"
             >
               {{ count }}
             </button>
@@ -230,9 +233,9 @@ onUnmounted(() => {
           
           <!-- Export button -->
           <button
-            @click="exportMarkdown"
             class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
             title="导出 Markdown"
+            @click="exportMarkdown"
           >
             <ArrowDownTrayIcon class="w-4 h-4" />
           </button>
@@ -243,22 +246,34 @@ onUnmounted(() => {
     <!-- Timeline content -->
     <div class="flex-1 overflow-y-auto">
       <!-- Loading -->
-      <div v-if="loading && !timeline" class="flex items-center justify-center h-32">
+      <div
+        v-if="loading && !timeline"
+        class="flex items-center justify-center h-32"
+      >
         <div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
       </div>
       
       <!-- Error -->
-      <div v-else-if="error" class="p-4 text-center text-red-500 text-sm">
+      <div
+        v-else-if="error"
+        class="p-4 text-center text-red-500 text-sm"
+      >
         {{ error }}
       </div>
       
       <!-- Empty -->
-      <div v-else-if="!timeline || filteredEntries.length === 0" class="p-4 text-center text-gray-400 text-sm">
+      <div
+        v-else-if="!timeline || filteredEntries.length === 0"
+        class="p-4 text-center text-gray-400 text-sm"
+      >
         暂无研究记录
       </div>
       
       <!-- Timeline entries -->
-      <div v-else class="p-4">
+      <div
+        v-else
+        class="p-4"
+      >
         <div class="relative">
           <!-- Vertical line -->
           <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
@@ -277,7 +292,10 @@ onUnmounted(() => {
                   getEventColor(entry.event_type)
                 ]"
               >
-                <component :is="getEventIcon(entry.event_type)" class="w-4 h-4" />
+                <component
+                  :is="getEventIcon(entry.event_type)"
+                  class="w-4 h-4"
+                />
               </div>
               
               <!-- Entry card -->
@@ -297,14 +315,17 @@ onUnmounted(() => {
                   </div>
                   
                   <button
-                    @click.stop="toggleEntry(index)"
                     class="p-1 text-gray-400 hover:text-gray-600"
+                    @click.stop="toggleEntry(index)"
                   >
                     <ChevronDownIcon
                       v-if="!expandedEntries.has(index)"
                       class="w-4 h-4"
                     />
-                    <ChevronUpIcon v-else class="w-4 h-4" />
+                    <ChevronUpIcon
+                      v-else
+                      class="w-4 h-4"
+                    />
                   </button>
                 </div>
                 
@@ -339,7 +360,7 @@ onUnmounted(() => {
                       :alt="entry.title"
                       class="rounded border border-gray-200 dark:border-gray-600 max-h-48 cursor-zoom-in"
                       @click.stop="handleScreenshotClick(screenshotEntries.findIndex(s => s.entry === entry), entry)"
-                    />
+                    >
                   </div>
                   
                   <!-- Metadata -->
@@ -362,7 +383,9 @@ onUnmounted(() => {
       v-if="showScreenshots && screenshotEntries.length > 0"
       class="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 p-3"
     >
-      <p class="text-xs text-gray-500 mb-2">截图预览</p>
+      <p class="text-xs text-gray-500 mb-2">
+        截图预览
+      </p>
       <div class="flex gap-2 overflow-x-auto pb-1">
         <div
           v-for="({ entry }, i) in screenshotEntries"
@@ -374,7 +397,7 @@ onUnmounted(() => {
             :src="timelineApi.getScreenshotUrl(sessionId, i)"
             :alt="entry.title"
             class="w-full h-full object-cover"
-          />
+          >
         </div>
       </div>
     </div>

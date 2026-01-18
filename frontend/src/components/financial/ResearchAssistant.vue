@@ -1,12 +1,24 @@
 <template>
-  <div class="research-assistant" :class="{ 'is-expanded': isExpanded }">
+  <div
+    class="research-assistant"
+    :class="{ 'is-expanded': isExpanded }"
+  >
     <!-- Header -->
-    <div class="assistant-header" @click="toggleExpand">
+    <div
+      class="assistant-header"
+      @click="toggleExpand"
+    >
       <div class="header-left">
-        <div class="assistant-avatar">🧠</div>
+        <div class="assistant-avatar">
+          🧠
+        </div>
         <div class="header-text">
-          <h4 class="assistant-name">研究助手</h4>
-          <p class="assistant-status">{{ statusText }}</p>
+          <h4 class="assistant-name">
+            研究助手
+          </h4>
+          <p class="assistant-status">
+            {{ statusText }}
+          </p>
         </div>
       </div>
       <button class="toggle-button">
@@ -15,10 +27,18 @@
     </div>
 
     <!-- Content (collapsible) -->
-    <div v-show="isExpanded" class="assistant-content">
+    <div
+      v-show="isExpanded"
+      class="assistant-content"
+    >
       <!-- Quick Questions -->
-      <div v-if="!hasConversation" class="quick-questions">
-        <p class="questions-label">快速提问</p>
+      <div
+        v-if="!hasConversation"
+        class="quick-questions"
+      >
+        <p class="questions-label">
+          快速提问
+        </p>
         <div class="questions-list">
           <button
             v-for="(question, idx) in quickQuestions"
@@ -32,7 +52,11 @@
       </div>
 
       <!-- Conversation -->
-      <div v-else class="conversation" ref="conversationRef">
+      <div
+        v-else
+        ref="conversationRef"
+        class="conversation"
+      >
         <div
           v-for="(msg, idx) in messages"
           :key="idx"
@@ -43,27 +67,40 @@
             {{ msg.role === 'user' ? '👤' : '🧠' }}
           </div>
           <div class="message-content">
-            <p class="message-text" v-html="formatMessage(msg.content)"></p>
+            <p
+              class="message-text"
+              v-html="formatMessage(msg.content)"
+            />
             <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
           </div>
         </div>
 
         <!-- Loading indicator -->
-        <div v-if="isLoading" class="message assistant loading">
-          <div class="message-avatar">🧠</div>
+        <div
+          v-if="isLoading"
+          class="message assistant loading"
+        >
+          <div class="message-avatar">
+            🧠
+          </div>
           <div class="message-content">
             <div class="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+              <span />
+              <span />
+              <span />
             </div>
           </div>
         </div>
       </div>
 
       <!-- Follow-up Questions -->
-      <div v-if="hasConversation && suggestedQuestions.length > 0" class="follow-up-questions">
-        <p class="questions-label">继续追问</p>
+      <div
+        v-if="hasConversation && suggestedQuestions.length > 0"
+        class="follow-up-questions"
+      >
+        <p class="questions-label">
+          继续追问
+        </p>
         <div class="questions-list">
           <button
             v-for="(question, idx) in suggestedQuestions"
@@ -83,9 +120,9 @@
           type="text"
           class="input-field"
           placeholder="输入您的问题..."
-          @keyup.enter="sendMessage"
           :disabled="isLoading"
-        />
+          @keyup.enter="sendMessage"
+        >
         <button
           class="send-button"
           :disabled="!inputText.trim() || isLoading"
@@ -97,10 +134,16 @@
 
       <!-- Actions -->
       <div class="assistant-actions">
-        <button class="action-link" @click="clearConversation">
+        <button
+          class="action-link"
+          @click="clearConversation"
+        >
           清空对话
         </button>
-        <button class="action-link" @click="exportConversation">
+        <button
+          class="action-link"
+          @click="exportConversation"
+        >
           导出记录
         </button>
       </div>

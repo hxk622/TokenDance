@@ -8,10 +8,13 @@
     @mousedown="handleMouseDown"
     @dblclick="handleDoubleClick"
   >
-    <div class="divider-handle"></div>
+    <div class="divider-handle" />
     
     <!-- 实时比例提示 (拖拽时显示) -->
-    <div v-if="isDragging && showRatioHint" class="ratio-hint">
+    <div
+      v-if="isDragging && showRatioHint"
+      class="ratio-hint"
+    >
       {{ ratioHintText }}
     </div>
   </div>

@@ -160,7 +160,7 @@ watch(results, () => {
         :autofocus="autoFocus"
         @keydown="handleKeyDown"
         @focus="showResults = results.length > 0"
-      />
+      >
       
       <!-- Loading indicator -->
       <div
@@ -186,7 +186,10 @@ watch(results, () => {
       class="search-results absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
     >
       <!-- Error -->
-      <div v-if="error" class="p-4 text-red-500 text-sm text-center">
+      <div
+        v-if="error"
+        class="p-4 text-red-500 text-sm text-center"
+      >
         {{ error }}
       </div>
       

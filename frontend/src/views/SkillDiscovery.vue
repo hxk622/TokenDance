@@ -136,8 +136,12 @@ onMounted(() => {
     <!-- Header -->
     <header class="discovery-header">
       <div class="header-content">
-        <h1 class="header-title">发现技能</h1>
-        <p class="header-desc">选择一个模板快速开始，或浏览场景找到适合你的工作流</p>
+        <h1 class="header-title">
+          发现技能
+        </h1>
+        <p class="header-desc">
+          选择一个模板快速开始，或浏览场景找到适合你的工作流
+        </p>
       </div>
 
       <!-- Search -->
@@ -148,27 +152,51 @@ onMounted(() => {
           class="search-input"
           placeholder="搜索模板..."
           @input="handleSearch"
-        />
-        <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        >
+        <svg
+          class="search-icon"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       </div>
     </header>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <div class="loading-spinner" />
       <p>加载中...</p>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <p>{{ error }}</p>
-      <button class="retry-btn" @click="loadData">重试</button>
+      <button
+        class="retry-btn"
+        @click="loadData"
+      >
+        重试
+      </button>
     </div>
 
     <!-- Content -->
-    <main v-else class="discovery-content">
+    <main
+      v-else
+      class="discovery-content"
+    >
       <!-- Categories -->
       <section class="categories-section">
         <div class="categories-list">
@@ -186,7 +214,10 @@ onMounted(() => {
             :class="{ active: selectedCategory === cat.id }"
             @click="selectCategory(cat.id)"
           >
-            <component :is="getCategoryIconComponent(cat.id)" class="category-icon w-4 h-4" />
+            <component
+              :is="getCategoryIconComponent(cat.id)"
+              class="category-icon w-4 h-4"
+            />
             {{ cat.name }}
             <span class="category-count">{{ cat.template_count }}</span>
           </button>
@@ -194,8 +225,13 @@ onMounted(() => {
       </section>
 
       <!-- Scenes -->
-      <section v-if="filteredScenes.length > 0 && !searchQuery" class="scenes-section">
-        <h2 class="section-title">场景预设</h2>
+      <section
+        v-if="filteredScenes.length > 0 && !searchQuery"
+        class="scenes-section"
+      >
+        <h2 class="section-title">
+          场景预设
+        </h2>
         <div class="scenes-grid">
           <button
             v-for="scene in filteredScenes"
@@ -204,17 +240,33 @@ onMounted(() => {
             :style="{ '--scene-color': scene.color }"
             @click="useScene(scene)"
           >
-            <div class="scene-icon">{{ scene.icon }}</div>
+            <div class="scene-icon">
+              {{ scene.icon }}
+            </div>
             <div class="scene-content">
-              <h3 class="scene-name">{{ scene.name }}</h3>
-              <p class="scene-desc">{{ scene.description }}</p>
+              <h3 class="scene-name">
+                {{ scene.name }}
+              </h3>
+              <p class="scene-desc">
+                {{ scene.description }}
+              </p>
               <div class="scene-meta">
                 <span class="scene-templates">{{ scene.template_ids.length }} 个模板</span>
                 <span class="scene-skills">{{ scene.recommended_skills.length }} 个技能</span>
               </div>
             </div>
-            <svg class="scene-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            <svg
+              class="scene-arrow"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -224,14 +276,23 @@ onMounted(() => {
       <section class="templates-section">
         <h2 class="section-title">
           {{ searchQuery ? '搜索结果' : (selectedCategory ? '分类模板' : '热门模板') }}
-          <span v-if="isSearching" class="searching-indicator">搜索中...</span>
+          <span
+            v-if="isSearching"
+            class="searching-indicator"
+          >搜索中...</span>
         </h2>
 
-        <div v-if="filteredTemplates.length === 0" class="empty-state">
+        <div
+          v-if="filteredTemplates.length === 0"
+          class="empty-state"
+        >
           <p>{{ searchQuery ? '没有找到匹配的模板' : '暂无模板' }}</p>
         </div>
 
-        <div v-else class="templates-grid">
+        <div
+          v-else
+          class="templates-grid"
+        >
           <button
             v-for="template in filteredTemplates"
             :key="template.id"
@@ -247,19 +308,33 @@ onMounted(() => {
                 {{ categoryIcons[template.category as keyof typeof categoryIcons] }} {{ template.category }}
               </span>
             </div>
-            <h3 class="template-name">{{ template.name }}</h3>
-            <p class="template-desc">{{ template.description }}</p>
+            <h3 class="template-name">
+              {{ template.name }}
+            </h3>
+            <p class="template-desc">
+              {{ template.description }}
+            </p>
             <div class="template-footer">
               <div class="template-tags">
-                <span v-for="tag in template.tags.slice(0, 3)" :key="tag" class="template-tag">
+                <span
+                  v-for="tag in template.tags.slice(0, 3)"
+                  :key="tag"
+                  class="template-tag"
+                >
                   {{ tag }}
                 </span>
               </div>
-              <div class="template-vars" v-if="template.variables.length > 0">
+              <div
+                v-if="template.variables.length > 0"
+                class="template-vars"
+              >
                 <span class="vars-count">{{ template.variables.length }} 个参数</span>
               </div>
             </div>
-            <div class="template-example" v-if="template.example_input">
+            <div
+              v-if="template.example_input"
+              class="template-example"
+            >
               <span class="example-label">示例：</span>
               <span class="example-text">{{ template.example_input }}</span>
             </div>

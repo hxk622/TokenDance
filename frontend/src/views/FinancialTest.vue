@@ -3,7 +3,9 @@
     <div class="container">
       <header class="page-header">
         <h1>金融分析 - 基础设施测试</h1>
-        <p class="subtitle">Week 1 交付物验证</p>
+        <p class="subtitle">
+          Week 1 交付物验证
+        </p>
       </header>
 
       <!-- Stock Search Component -->
@@ -35,7 +37,10 @@
       </section>
 
       <!-- Stock Info Display -->
-      <section v-if="store.stockInfo" class="test-section">
+      <section
+        v-if="store.stockInfo"
+        class="test-section"
+      >
         <h2>3. 股票基本信息</h2>
         <div class="data-card">
           <div class="data-row">
@@ -54,7 +59,10 @@
       </section>
 
       <!-- Stock Quote Display -->
-      <section v-if="store.stockQuote" class="test-section">
+      <section
+        v-if="store.stockQuote"
+        class="test-section"
+      >
         <h2>4. 实时行情</h2>
         <div class="data-card">
           <div class="data-row">
@@ -63,7 +71,10 @@
           </div>
           <div class="data-row">
             <span class="label">涨跌幅:</span>
-            <span class="value" :class="getChangeClass(store.stockQuote.change_percent)">
+            <span
+              class="value"
+              :class="getChangeClass(store.stockQuote.change_percent)"
+            >
               {{ store.stockQuote.change_percent > 0 ? '+' : '' }}{{ store.stockQuote.change_percent }}%
             </span>
           </div>
@@ -85,7 +96,10 @@
       </section>
 
       <!-- Post Stream -->
-      <section v-if="store.sentimentResult" class="test-section">
+      <section
+        v-if="store.sentimentResult"
+        class="test-section"
+      >
         <h2>6. 帖子流 - PostStream</h2>
         <PostStream
           :posts="store.sentimentResult.posts"
@@ -104,7 +118,10 @@
       </section>
 
       <!-- Combined Chart -->
-      <section v-if="store.historicalData" class="test-section">
+      <section
+        v-if="store.historicalData"
+        class="test-section"
+      >
         <h2>8. K线图+舆情 - CombinedChart</h2>
         <CombinedChart
           :historical-data="store.historicalData.records"
@@ -129,12 +146,16 @@
         <h2>6. API 健康检查</h2>
         <button
           class="test-button"
-          @click="testAPIHealth"
           :disabled="testingAPI"
+          @click="testAPIHealth"
         >
           {{ testingAPI ? '检查中...' : '测试 API 连接' }}
         </button>
-        <p v-if="apiStatus" class="status-message" :class="{ 'is-success': apiStatus.success }">
+        <p
+          v-if="apiStatus"
+          class="status-message"
+          :class="{ 'is-success': apiStatus.success }"
+        >
           {{ apiStatus.message }}
         </p>
       </section>
@@ -142,7 +163,9 @@
       <section class="test-section">
         <h2>10. 交付清单</h2>
         <div class="checklist">
-          <h3 class="checklist-title">Week 1: 基础设施</h3>
+          <h3 class="checklist-title">
+            Week 1: 基础设施
+          </h3>
           <div class="checklist-item">
             <span class="check">✅</span>
             <span>后端 Financial API（ 7个端点）</span>
@@ -164,7 +187,12 @@
             <span>StockSearch 组件（508 lines）</span>
           </div>
 
-          <h3 class="checklist-title" style="margin-top: 1.5rem;">Week 2: 可视化组件</h3>
+          <h3
+            class="checklist-title"
+            style="margin-top: 1.5rem;"
+          >
+            Week 2: 可视化组件
+          </h3>
           <div class="checklist-item">
             <span class="check">✅</span>
             <span>SentimentDashboard（644 lines）</span>

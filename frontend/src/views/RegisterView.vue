@@ -14,55 +14,124 @@
       <!-- Left: Branding -->
       <div class="branding-section">
         <div class="brand-content">
-          <h1 class="brand-logo">TokenDance</h1>
-          <p class="brand-tagline">可指挥的智能工作台</p>
+          <h1 class="brand-logo">
+            TokenDance
+          </h1>
+          <p class="brand-tagline">
+            可指挥的智能工作台
+          </p>
           <div class="brand-features">
             <div class="feature-item">
-              <svg class="feature-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                class="feature-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
               <span>全自动任务链，从 0 到 1 交付</span>
             </div>
             <div class="feature-item">
-              <svg class="feature-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <svg
+                class="feature-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
               <span>安全可控的执行环境</span>
             </div>
             <div class="feature-item">
-              <svg class="feature-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              <svg
+                class="feature-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
               </svg>
               <span>团队协作与知识共享</span>
             </div>
           </div>
         </div>
-        <p class="brand-footer">For the rest of the world</p>
+        <p class="brand-footer">
+          For the rest of the world
+        </p>
       </div>
 
       <!-- Right: Register Form -->
       <div class="form-section">
         <div class="form-card">
           <div class="form-header">
-            <h2 class="form-title">创建账户</h2>
-            <p class="form-subtitle">开始使用 TokenDance</p>
+            <h2 class="form-title">
+              创建账户
+            </h2>
+            <p class="form-subtitle">
+              开始使用 TokenDance
+            </p>
           </div>
 
-          <form @submit.prevent="handleRegister" class="register-form">
+          <form
+            class="register-form"
+            @submit.prevent="handleRegister"
+          >
             <!-- Error Alert -->
-            <div v-if="error" class="error-alert">
-              <svg class="error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div
+              v-if="error"
+              class="error-alert"
+            >
+              <svg
+                class="error-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span>{{ error }}</span>
             </div>
 
             <!-- Username Field -->
             <div class="form-field">
-              <label for="username" class="field-label">用户名</label>
+              <label
+                for="username"
+                class="field-label"
+              >用户名</label>
               <div class="input-wrapper">
-                <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <svg
+                  class="input-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
                 </svg>
                 <input
                   id="username"
@@ -72,17 +141,32 @@
                   autocomplete="username"
                   class="form-input"
                   placeholder="你的用户名"
-                />
+                >
               </div>
-              <p class="field-hint">4-20 个字符，支持字母、数字和下划线</p>
+              <p class="field-hint">
+                4-20 个字符，支持字母、数字和下划线
+              </p>
             </div>
 
             <!-- Email Field -->
             <div class="form-field">
-              <label for="email" class="field-label">邮箱</label>
+              <label
+                for="email"
+                class="field-label"
+              >邮箱</label>
               <div class="input-wrapper">
-                <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <svg
+                  class="input-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
                 </svg>
                 <input
                   id="email"
@@ -92,16 +176,29 @@
                   autocomplete="email"
                   class="form-input"
                   placeholder="you@example.com"
-                />
+                >
               </div>
             </div>
 
             <!-- Password Field -->
             <div class="form-field">
-              <label for="password" class="field-label">密码</label>
+              <label
+                for="password"
+                class="field-label"
+              >密码</label>
               <div class="input-wrapper">
-                <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <svg
+                  class="input-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
                 </svg>
                 <input
                   id="password"
@@ -111,42 +208,142 @@
                   autocomplete="new-password"
                   class="form-input"
                   placeholder="设置密码"
-                />
+                >
               </div>
               <!-- Password Requirements -->
               <div class="password-requirements">
-                <div class="req-item" :class="{ 'req-met': passwordRequirements.length }">
-                  <svg class="req-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path v-if="passwordRequirements.length" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <div
+                  class="req-item"
+                  :class="{ 'req-met': passwordRequirements.length }"
+                >
+                  <svg
+                    class="req-icon"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      v-if="passwordRequirements.length"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                    <path
+                      v-else
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                   <span>至少 8 个字符</span>
                 </div>
-                <div class="req-item" :class="{ 'req-met': passwordRequirements.uppercase }">
-                  <svg class="req-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path v-if="passwordRequirements.uppercase" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <div
+                  class="req-item"
+                  :class="{ 'req-met': passwordRequirements.uppercase }"
+                >
+                  <svg
+                    class="req-icon"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      v-if="passwordRequirements.uppercase"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                    <path
+                      v-else
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                   <span>包含大写字母</span>
                 </div>
-                <div class="req-item" :class="{ 'req-met': passwordRequirements.lowercase }">
-                  <svg class="req-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path v-if="passwordRequirements.lowercase" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <div
+                  class="req-item"
+                  :class="{ 'req-met': passwordRequirements.lowercase }"
+                >
+                  <svg
+                    class="req-icon"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      v-if="passwordRequirements.lowercase"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                    <path
+                      v-else
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                   <span>包含小写字母</span>
                 </div>
-                <div class="req-item" :class="{ 'req-met': passwordRequirements.number }">
-                  <svg class="req-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path v-if="passwordRequirements.number" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <div
+                  class="req-item"
+                  :class="{ 'req-met': passwordRequirements.number }"
+                >
+                  <svg
+                    class="req-icon"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      v-if="passwordRequirements.number"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                    <path
+                      v-else
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                   <span>包含数字</span>
                 </div>
-                <div class="req-item" :class="{ 'req-met': passwordRequirements.special }">
-                  <svg class="req-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path v-if="passwordRequirements.special" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <div
+                  class="req-item"
+                  :class="{ 'req-met': passwordRequirements.special }"
+                >
+                  <svg
+                    class="req-icon"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      v-if="passwordRequirements.special"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                    <path
+                      v-else
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                   <span>包含特殊字符</span>
                 </div>
@@ -155,10 +352,23 @@
 
             <!-- Confirm Password Field -->
             <div class="form-field">
-              <label for="confirmPassword" class="field-label">确认密码</label>
+              <label
+                for="confirmPassword"
+                class="field-label"
+              >确认密码</label>
               <div class="input-wrapper">
-                <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <svg
+                  class="input-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
                 <input
                   id="confirmPassword"
@@ -169,9 +379,14 @@
                   class="form-input"
                   :class="{ 'input-error': passwordMismatch }"
                   placeholder="再次输入密码"
-                />
+                >
               </div>
-              <p v-if="passwordMismatch" class="field-error">两次密码不一致</p>
+              <p
+                v-if="passwordMismatch"
+                class="field-error"
+              >
+                两次密码不一致
+              </p>
             </div>
 
             <!-- Terms Checkbox -->
@@ -182,12 +397,18 @@
                   type="checkbox"
                   required
                   class="terms-checkbox"
-                />
+                >
                 <span class="terms-text">
                   我已阅读并同意
-                  <a href="#" class="terms-link">服务条款</a>
+                  <a
+                    href="#"
+                    class="terms-link"
+                  >服务条款</a>
                   和
-                  <a href="#" class="terms-link">隐私政策</a>
+                  <a
+                    href="#"
+                    class="terms-link"
+                  >隐私政策</a>
                 </span>
               </label>
             </div>
@@ -198,9 +419,25 @@
               :disabled="isLoading || passwordMismatch || !form.agreeToTerms || !isPasswordValid"
               class="submit-btn"
             >
-              <svg v-if="isLoading" class="btn-spinner" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <svg
+                v-if="isLoading"
+                class="btn-spinner"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  fill="none"
+                />
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               <span>{{ isLoading ? '创建中...' : '创建账户' }}</span>
             </button>
@@ -209,7 +446,12 @@
           <!-- Login Link -->
           <p class="login-link">
             已有账户？
-            <router-link to="/login" class="link-text">立即登录</router-link>
+            <router-link
+              to="/login"
+              class="link-text"
+            >
+              立即登录
+            </router-link>
           </p>
         </div>
       </div>

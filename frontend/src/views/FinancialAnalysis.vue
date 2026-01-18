@@ -4,16 +4,20 @@
     <header class="page-header">
       <div class="header-content">
         <div class="header-left">
-          <h1 class="page-title">投研工作台</h1>
-          <p class="page-subtitle">AI 辅助的金融投资研究分析</p>
+          <h1 class="page-title">
+            投研工作台
+          </h1>
+          <p class="page-subtitle">
+            AI 辅助的金融投资研究分析
+          </p>
         </div>
         
         <div class="header-right">
           <StockSearch
             placeholder="搜索股票代码或名称..."
             :show-hot-stocks="false"
-            @select="handleStockSelect"
             class="header-search"
+            @select="handleStockSelect"
           />
         </div>
       </div>
@@ -24,22 +28,40 @@
       <!-- Left Column: Stock Info + Chart -->
       <div class="column-left">
         <!-- Stock Header Card -->
-        <div v-if="store.stockInfo" class="stock-header-card">
+        <div
+          v-if="store.stockInfo"
+          class="stock-header-card"
+        >
           <div class="stock-basic">
             <div class="stock-name-row">
-              <h2 class="stock-name">{{ store.stockInfo.name }}</h2>
+              <h2 class="stock-name">
+                {{ store.stockInfo.name }}
+              </h2>
               <span class="stock-symbol">{{ store.stockInfo.symbol }}</span>
               <span class="stock-market">{{ store.stockInfo.market }}</span>
             </div>
             
-            <div v-if="store.stockQuote" class="stock-price-row">
-              <span class="current-price" :class="getPriceClass(store.stockQuote.change_percent)">
+            <div
+              v-if="store.stockQuote"
+              class="stock-price-row"
+            >
+              <span
+                class="current-price"
+                :class="getPriceClass(store.stockQuote.change_percent)"
+              >
                 ¥{{ store.stockQuote.current_price?.toFixed(2) }}
               </span>
-              <span class="price-change" :class="getPriceClass(store.stockQuote.change_percent)">
+              <span
+                class="price-change"
+                :class="getPriceClass(store.stockQuote.change_percent)"
+              >
                 {{ store.stockQuote.change_percent > 0 ? '+' : '' }}{{ store.stockQuote.change_percent?.toFixed(2) }}%
               </span>
-              <span v-if="store.stockQuote.change_amount !== undefined" class="price-amount" :class="getPriceClass(store.stockQuote.change_percent)">
+              <span
+                v-if="store.stockQuote.change_amount !== undefined"
+                class="price-amount"
+                :class="getPriceClass(store.stockQuote.change_percent)"
+              >
                 {{ store.stockQuote.change_amount > 0 ? '+' : '' }}{{ store.stockQuote.change_amount.toFixed(2) }}
               </span>
             </div>
@@ -57,13 +79,24 @@
         </div>
 
         <!-- Empty State -->
-        <div v-else class="empty-stock-card">
-          <div class="empty-icon">🔍</div>
-          <p class="empty-title">选择一只股票开始分析</p>
-          <p class="empty-hint">在上方搜索框输入股票代码或名称</p>
+        <div
+          v-else
+          class="empty-stock-card"
+        >
+          <div class="empty-icon">
+            🔍
+          </div>
+          <p class="empty-title">
+            选择一只股票开始分析
+          </p>
+          <p class="empty-hint">
+            在上方搜索框输入股票代码或名称
+          </p>
           
           <div class="quick-picks">
-            <p class="quick-picks-label">热门推荐</p>
+            <p class="quick-picks-label">
+              热门推荐
+            </p>
             <div class="quick-picks-grid">
               <button
                 v-for="stock in hotStocks"
@@ -95,9 +128,14 @@
         />
         
         <!-- 分析引擎区域 -->
-        <div v-if="store.stockInfo" class="analysis-engine-section">
+        <div
+          v-if="store.stockInfo"
+          class="analysis-engine-section"
+        >
           <div class="analysis-header">
-            <h3 class="analysis-title">🧠 AI 分析引擎</h3>
+            <h3 class="analysis-title">
+              🧠 AI 分析引擎
+            </h3>
             <button
               class="analyze-button"
               :disabled="isAnalyzing"
@@ -169,7 +207,9 @@
 
     <!-- Footer -->
     <footer class="page-footer">
-      <p class="footer-text">随时接管 · 实时干预 · 沉淀复用</p>
+      <p class="footer-text">
+        随时接管 · 实时干预 · 沉淀复用
+      </p>
       <p class="footer-disclaimer">
         数据仅供参考，不构成投资建议。投资有风险，入市需谨慎。
       </p>

@@ -91,7 +91,10 @@ const canExpand = computed(() => {
     >
       <div class="flex items-center gap-3 flex-1 min-w-0">
         <!-- 状态图标 -->
-        <div class="flex-shrink-0" :class="statusConfig.textClass">
+        <div
+          class="flex-shrink-0"
+          :class="statusConfig.textClass"
+        >
           <!-- Spinner -->
           <svg
             v-if="statusConfig.icon === 'spinner'"
@@ -122,7 +125,12 @@ const canExpand = computed(() => {
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
           </svg>
           
           <!-- Error -->
@@ -149,14 +157,25 @@ const canExpand = computed(() => {
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="2"
+            />
           </svg>
         </div>
         
         <!-- 工具名称和参数 -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-0.5">
-            <svg class="w-4 h-4 text-text-secondary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              class="w-4 h-4 text-text-secondary flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -185,7 +204,10 @@ const canExpand = computed(() => {
           >
             {{ statusConfig.label }}
           </span>
-          <span v-if="toolCall.duration" class="text-xs text-text-tertiary">
+          <span
+            v-if="toolCall.duration"
+            class="text-xs text-text-tertiary"
+          >
             {{ toolCall.duration }}ms
           </span>
         </div>
@@ -200,7 +222,12 @@ const canExpand = computed(() => {
         viewBox="0 0 24 24"
         stroke="currentColor"
       >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
       </svg>
     </div>
     
@@ -210,14 +237,24 @@ const canExpand = computed(() => {
       class="px-4 py-3 bg-bg-primary border-t border-border-default"
     >
       <!-- 错误信息 -->
-      <div v-if="toolCall.error" class="text-sm text-red-400">
-        <div class="font-medium mb-1">Error:</div>
+      <div
+        v-if="toolCall.error"
+        class="text-sm text-red-400"
+      >
+        <div class="font-medium mb-1">
+          Error:
+        </div>
         <pre class="text-xs overflow-x-auto whitespace-pre-wrap">{{ toolCall.error }}</pre>
       </div>
       
       <!-- 成功结果 -->
-      <div v-else-if="toolCall.result" class="text-sm text-text-secondary">
-        <div class="font-medium text-text-primary mb-1">Result:</div>
+      <div
+        v-else-if="toolCall.result"
+        class="text-sm text-text-secondary"
+      >
+        <div class="font-medium text-text-primary mb-1">
+          Result:
+        </div>
         <pre class="text-xs overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">{{ toolCall.result }}</pre>
       </div>
     </div>

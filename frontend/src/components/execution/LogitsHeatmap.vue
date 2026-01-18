@@ -113,7 +113,11 @@ watch(() => props.visible, (newVal) => {
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="visible" class="logits-backdrop" @click.self="emit('close')">
+      <div
+        v-if="visible"
+        class="logits-backdrop"
+        @click.self="emit('close')"
+      >
         <div 
           class="logits-modal glass-panel-heavy"
           :style="positionStyle"
@@ -123,31 +127,51 @@ watch(() => props.visible, (newVal) => {
             <div class="header-title">
               <span class="title-icon">🔥</span>
               <span>Logits 解码</span>
-              <span v-if="edgeId" class="edge-id">Edge: {{ edgeId }}</span>
+              <span
+                v-if="edgeId"
+                class="edge-id"
+              >Edge: {{ edgeId }}</span>
             </div>
             <div class="header-actions">
-              <button class="zoom-btn" @click="zoomOut" :disabled="zoomLevel <= minZoom">
+              <button
+                class="zoom-btn"
+                :disabled="zoomLevel <= minZoom"
+                @click="zoomOut"
+              >
                 <MagnifyingGlassMinusIcon class="btn-icon" />
               </button>
               <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-              <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= maxZoom">
+              <button
+                class="zoom-btn"
+                :disabled="zoomLevel >= maxZoom"
+                @click="zoomIn"
+              >
                 <MagnifyingGlassPlusIcon class="btn-icon" />
               </button>
-              <button class="close-btn" @click="emit('close')">
+              <button
+                class="close-btn"
+                @click="emit('close')"
+              >
                 <XMarkIcon class="btn-icon" />
               </button>
             </div>
           </div>
 
           <!-- Context -->
-          <div v-if="contextBefore || contextAfter" class="context-preview">
+          <div
+            v-if="contextBefore || contextAfter"
+            class="context-preview"
+          >
             <span class="context-before">{{ contextBefore || '...' }}</span>
             <span class="context-cursor">|</span>
             <span class="context-after">{{ contextAfter || '...' }}</span>
           </div>
 
           <!-- Heatmap Body -->
-          <div class="modal-body" :style="{ transform: `scale(${zoomLevel})` }">
+          <div
+            class="modal-body"
+            :style="{ transform: `scale(${zoomLevel})` }"
+          >
             <div class="token-list">
               <div 
                 v-for="(token, index) in sortedTokens" 
@@ -180,12 +204,15 @@ watch(() => props.visible, (newVal) => {
                       background: getProbabilityColor(token.probability)
                     }"
                   >
-                    <span class="prob-bar-glow"></span>
+                    <span class="prob-bar-glow" />
                   </div>
                 </div>
 
                 <!-- Probability value -->
-                <div class="prob-value" :style="{ color: getProbabilityColor(token.probability) }">
+                <div
+                  class="prob-value"
+                  :style="{ color: getProbabilityColor(token.probability) }"
+                >
                   {{ formatProb(token.probability) }}
                 </div>
 
@@ -198,9 +225,11 @@ watch(() => props.visible, (newVal) => {
 
             <!-- Legend -->
             <div class="heatmap-legend">
-              <div class="legend-title">置信度</div>
+              <div class="legend-title">
+                置信度
+              </div>
               <div class="legend-gradient">
-                <div class="gradient-bar"></div>
+                <div class="gradient-bar" />
                 <div class="gradient-labels">
                   <span>低</span>
                   <span>高</span>
@@ -211,10 +240,16 @@ watch(() => props.visible, (newVal) => {
 
           <!-- Selected token detail -->
           <Transition name="slide-up">
-            <div v-if="selectedToken" class="token-detail">
+            <div
+              v-if="selectedToken"
+              class="token-detail"
+            >
               <div class="detail-header">
                 <span class="detail-token">{{ selectedToken.token }}</span>
-                <span class="detail-badge" :style="{ background: getProbabilityColor(selectedToken.probability) }">
+                <span
+                  class="detail-badge"
+                  :style="{ background: getProbabilityColor(selectedToken.probability) }"
+                >
                   {{ formatProb(selectedToken.probability) }}
                 </span>
               </div>

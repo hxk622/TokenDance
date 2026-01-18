@@ -8,51 +8,77 @@
             ref="textareaRef"
             v-model="inputText"
             :disabled="disabled || isStreaming"
-            @keydown="handleKeyDown"
-            @input="handleInput"
             placeholder="Type your message..."
             rows="1"
             class="chat-textarea"
             :class="{ 'is-streaming': isStreaming }"
+            @keydown="handleKeyDown"
+            @input="handleInput"
           />
-          <div class="input-glow"></div>
+          <div class="input-glow" />
         </div>
 
         <!-- Send/Stop Button -->
         <button
           v-if="!isStreaming"
-          @click="handleSend"
           :disabled="!canSend"
           class="send-button"
+          @click="handleSend"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+            />
           </svg>
         </button>
 
         <button
           v-else
-          @click="handleStop"
           class="stop-button"
+          @click="handleStop"
         >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          <svg
+            class="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <rect
+              x="6"
+              y="6"
+              width="12"
+              height="12"
+              rx="2"
+            />
           </svg>
         </button>
       </div>
 
       <!-- Streaming indicator -->
-      <div v-if="isStreaming" class="mt-3 text-xs text-gray-400 flex items-center gap-2">
+      <div
+        v-if="isStreaming"
+        class="mt-3 text-xs text-gray-400 flex items-center gap-2"
+      >
         <span class="thinking-dots">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
+          <span class="dot" />
+          <span class="dot" />
+          <span class="dot" />
         </span>
         <span class="thinking-text">Agent is thinking...</span>
       </div>
 
       <!-- Hints -->
-      <div v-else class="mt-2 text-xs text-gray-500">
+      <div
+        v-else
+        class="mt-2 text-xs text-gray-500"
+      >
         Press <kbd class="kbd">Enter</kbd> to send, <kbd class="kbd">Shift + Enter</kbd> for new line
       </div>
     </div>

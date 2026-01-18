@@ -457,23 +457,31 @@ onUnmounted(() => {
       @new-click="handleNewClick"
     >
       <template #footer>
-        <button class="any-sidebar__footer-btn" title="设置">
+        <button
+          class="any-sidebar__footer-btn"
+          title="设置"
+        >
           <Settings class="w-5 h-5" />
         </button>
       </template>
     </AnySidebar>
 
     <!-- Main execution area -->
-    <div class="execution-main" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <div
+      class="execution-main"
+      :class="{ 'sidebar-collapsed': sidebarCollapsed }"
+    >
       <!-- Header with Plan Recitation -->
       <header class="execution-header">
         <div class="task-info">
-          <h1 class="task-title">Deep Research: AI Agent 市场分析</h1>
+          <h1 class="task-title">
+            Deep Research: AI Agent 市场分析
+          </h1>
           <div class="status-indicator">
             <span :class="['status-badge', sessionStatus]">
               {{ sessionStatus === 'running' ? '执行中' : 
-                 sessionStatus === 'completed' ? '已完成' : 
-                 sessionStatus === 'error' ? '错误' : '准备中' }}
+                sessionStatus === 'completed' ? '已完成' : 
+                sessionStatus === 'error' ? '错误' : '准备中' }}
             </span>
             <span class="time">已执行 {{ elapsedTime }}</span>
           </div>
@@ -485,15 +493,34 @@ onUnmounted(() => {
           <div class="progress-ring">
             <svg viewBox="0 0 36 36">
               <defs>
-                <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#00D9FF" />
-                  <stop offset="100%" stop-color="#00FF88" />
+                <linearGradient
+                  id="progress-gradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop
+                    offset="0%"
+                    stop-color="#00D9FF"
+                  />
+                  <stop
+                    offset="100%"
+                    stop-color="#00FF88"
+                  />
                 </linearGradient>
               </defs>
-              <circle class="bg" cx="18" cy="18" r="16" />
+              <circle
+                class="bg"
+                cx="18"
+                cy="18"
+                r="16"
+              />
               <circle 
                 class="fill" 
-                cx="18" cy="18" r="16"
+                cx="18"
+                cy="18"
+                r="16"
                 :stroke-dasharray="`${progressPercent} 100`"
               />
             </svg>
@@ -509,13 +536,16 @@ onUnmounted(() => {
         <div class="header-actions">
           <AnyButton 
             variant="secondary"
-            @click="requestIntervention" 
-            :disabled="!isRunning || isRequestingIntervention"
+            :disabled="!isRunning || isRequestingIntervention" 
+            @click="requestIntervention"
           >
             <PauseCircle class="w-4 h-4" />
             <span>暂停并介入</span>
           </AnyButton>
-          <AnyButton variant="ghost" @click="handleStop">
+          <AnyButton
+            variant="ghost"
+            @click="handleStop"
+          >
             <StopCircle class="w-4 h-4" />
             <span>停止</span>
           </AnyButton>
@@ -524,11 +554,17 @@ onUnmounted(() => {
 
       <!-- Focus Mode Banner with Breadcrumb -->
       <Transition name="slide-down">
-        <div v-if="isFocusMode" class="focus-mode-banner">
+        <div
+          v-if="isFocusMode"
+          class="focus-mode-banner"
+        >
           <div class="focus-left">
             <Search class="focus-icon" />
             <div class="focus-breadcrumb">
-              <button class="breadcrumb-item" @click="exitFocusMode">
+              <button
+                class="breadcrumb-item"
+                @click="exitFocusMode"
+              >
                 执行流程
               </button>
               <span class="breadcrumb-separator">/</span>
@@ -539,7 +575,11 @@ onUnmounted(() => {
           </div>
           <div class="focus-right">
             <span class="focus-hint">按 ESC 退出</span>
-            <AnyButton variant="ghost" size="sm" @click="exitFocusMode">
+            <AnyButton
+              variant="ghost"
+              size="sm"
+              @click="exitFocusMode"
+            >
               <X class="w-4 h-4" />
               <span>退出聚焦</span>
             </AnyButton>
@@ -549,17 +589,27 @@ onUnmounted(() => {
       
       <!-- 任务完成庆祝 -->
       <Transition name="celebration-fade">
-        <div v-if="showCompletionCelebration" class="completion-celebration">
+        <div
+          v-if="showCompletionCelebration"
+          class="completion-celebration"
+        >
           <div class="celebration-content">
             <Check class="celebration-icon" />
-            <h2 class="celebration-title">任务完成！</h2>
-            <p class="celebration-desc">报告已生成，可在右侧查看</p>
+            <h2 class="celebration-title">
+              任务完成！
+            </h2>
+            <p class="celebration-desc">
+              报告已生成，可在右侧查看
+            </p>
           </div>
         </div>
       </Transition>
 
       <!-- Panel Toggle (Compact Mode) -->
-      <div v-if="isCompactMode" class="panel-toggle">
+      <div
+        v-if="isCompactMode"
+        class="panel-toggle"
+      >
         <button 
           :class="['toggle-btn', { active: activePanel === 'left' }]" 
           @click="activePanel = 'left'"
@@ -588,10 +638,13 @@ onUnmounted(() => {
           <button 
             class="collapse-toggle"
             :class="{ collapsed: isCollapsed }"
-            @click="toggleCollapse"
             :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+            @click="toggleCollapse"
           >
-            <component :is="isCollapsed ? ChevronDown : ChevronUp" class="w-4 h-4" />
+            <component
+              :is="isCollapsed ? ChevronDown : ChevronUp"
+              class="w-4 h-4"
+            />
           </button>
 
           <!-- Top: Workflow Graph -->
@@ -643,9 +696,9 @@ onUnmounted(() => {
           :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
         >
           <ArtifactTabs 
-            :session-id="sessionId" 
+            v-model:current-tab="currentTab" 
+            :session-id="sessionId"
             :task-type="taskType"
-            v-model:current-tab="currentTab"
             @tab-change="handleTabChange"
           />
           <PreviewArea 

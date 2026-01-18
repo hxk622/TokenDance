@@ -2,38 +2,62 @@
   <div class="key-points-card">
     <!-- Header -->
     <div class="card-header">
-      <h3 class="title">核心观点</h3>
-      <span v-if="keyPoints" class="points-count">
+      <h3 class="title">
+        核心观点
+      </h3>
+      <span
+        v-if="keyPoints"
+        class="points-count"
+      >
         {{ keyPoints.bullish.length + keyPoints.bearish.length }} 条
       </span>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <div class="spinner" />
       <p>提取核心观点中...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <AlertTriangle class="error-icon w-8 h-8 text-warning" />
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!keyPoints || (keyPoints.bullish.length === 0 && keyPoints.bearish.length === 0)" class="empty-state">
+    <div
+      v-else-if="!keyPoints || (keyPoints.bullish.length === 0 && keyPoints.bearish.length === 0)"
+      class="empty-state"
+    >
       <Lightbulb class="empty-icon w-8 h-8 text-gray-400" />
       <p>暂无核心观点</p>
-      <p class="hint">AI 将自动提取帖子中的关键论据</p>
+      <p class="hint">
+        AI 将自动提取帖子中的关键论据
+      </p>
     </div>
 
     <!-- Key Points Content -->
-    <div v-else class="points-content">
+    <div
+      v-else
+      class="points-content"
+    >
       <!-- Bullish Points -->
-      <div v-if="keyPoints.bullish.length > 0" class="points-section">
+      <div
+        v-if="keyPoints.bullish.length > 0"
+        class="points-section"
+      >
         <div class="section-header bullish">
           <TrendingUp class="section-icon w-5 h-5 text-green-500" />
-          <h4 class="section-title">看多观点</h4>
+          <h4 class="section-title">
+            看多观点
+          </h4>
           <span class="section-count">{{ keyPoints.bullish.length }}</span>
         </div>
         
@@ -43,18 +67,38 @@
             :key="`bullish-${index}`"
             class="point-item"
           >
-            <div class="point-header" @click="toggleExpand(`bullish-${index}`)">
-              <div class="point-number bullish">{{ index + 1 }}</div>
-              <div class="point-summary">{{ point.summary || point.content }}</div>
-              <button class="expand-icon" :class="{ 'is-expanded': expandedPoints.has(`bullish-${index}`) }">
+            <div
+              class="point-header"
+              @click="toggleExpand(`bullish-${index}`)"
+            >
+              <div class="point-number bullish">
+                {{ index + 1 }}
+              </div>
+              <div class="point-summary">
+                {{ point.summary || point.content }}
+              </div>
+              <button
+                class="expand-icon"
+                :class="{ 'is-expanded': expandedPoints.has(`bullish-${index}`) }"
+              >
                 ▼
               </button>
             </div>
             
-            <div v-if="expandedPoints.has(`bullish-${index}`)" class="point-details">
-              <p class="point-detail">{{ point.content }}</p>
-              <div v-if="point.supportingPosts && point.supportingPosts.length > 0" class="supporting-posts">
-                <div class="supporting-header">支持帖子</div>
+            <div
+              v-if="expandedPoints.has(`bullish-${index}`)"
+              class="point-details"
+            >
+              <p class="point-detail">
+                {{ point.content }}
+              </p>
+              <div
+                v-if="point.supportingPosts && point.supportingPosts.length > 0"
+                class="supporting-posts"
+              >
+                <div class="supporting-header">
+                  支持帖子
+                </div>
                 <div
                   v-for="postId in point.supportingPosts.slice(0, 3)"
                   :key="postId"
@@ -70,10 +114,15 @@
       </div>
 
       <!-- Bearish Points -->
-      <div v-if="keyPoints.bearish.length > 0" class="points-section">
+      <div
+        v-if="keyPoints.bearish.length > 0"
+        class="points-section"
+      >
         <div class="section-header bearish">
           <TrendingDown class="section-icon w-5 h-5 text-red-500" />
-          <h4 class="section-title">看空观点</h4>
+          <h4 class="section-title">
+            看空观点
+          </h4>
           <span class="section-count">{{ keyPoints.bearish.length }}</span>
         </div>
         
@@ -83,18 +132,38 @@
             :key="`bearish-${index}`"
             class="point-item"
           >
-            <div class="point-header" @click="toggleExpand(`bearish-${index}`)">
-              <div class="point-number bearish">{{ index + 1 }}</div>
-              <div class="point-summary">{{ point.summary || point.content }}</div>
-              <button class="expand-icon" :class="{ 'is-expanded': expandedPoints.has(`bearish-${index}`) }">
+            <div
+              class="point-header"
+              @click="toggleExpand(`bearish-${index}`)"
+            >
+              <div class="point-number bearish">
+                {{ index + 1 }}
+              </div>
+              <div class="point-summary">
+                {{ point.summary || point.content }}
+              </div>
+              <button
+                class="expand-icon"
+                :class="{ 'is-expanded': expandedPoints.has(`bearish-${index}`) }"
+              >
                 ▼
               </button>
             </div>
             
-            <div v-if="expandedPoints.has(`bearish-${index}`)" class="point-details">
-              <p class="point-detail">{{ point.content }}</p>
-              <div v-if="point.supportingPosts && point.supportingPosts.length > 0" class="supporting-posts">
-                <div class="supporting-header">支持帖子</div>
+            <div
+              v-if="expandedPoints.has(`bearish-${index}`)"
+              class="point-details"
+            >
+              <p class="point-detail">
+                {{ point.content }}
+              </p>
+              <div
+                v-if="point.supportingPosts && point.supportingPosts.length > 0"
+                class="supporting-posts"
+              >
+                <div class="supporting-header">
+                  支持帖子
+                </div>
                 <div
                   v-for="postId in point.supportingPosts.slice(0, 3)"
                   :key="postId"

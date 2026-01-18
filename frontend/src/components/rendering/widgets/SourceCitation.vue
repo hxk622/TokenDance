@@ -33,7 +33,10 @@ function formatDate(dateStr?: string): string {
 </script>
 
 <template>
-  <div class="source-citation" :class="[`style-${citationStyle}`]">
+  <div
+    class="source-citation"
+    :class="[`style-${citationStyle}`]"
+  >
     <!-- Inline Style -->
     <template v-if="citationStyle === 'inline'">
       <div class="inline-sources">
@@ -52,7 +55,10 @@ function formatDate(dateStr?: string): string {
           >
             [{{ index + 1 }}] {{ source.title }}
           </a>
-          <span v-else class="source-text">[{{ index + 1 }}] {{ source.title }}</span>
+          <span
+            v-else
+            class="source-text"
+          >[{{ index + 1 }}] {{ source.title }}</span>
           <span 
             v-if="showReliability && source.reliability" 
             class="reliability-dot"
@@ -61,7 +67,10 @@ function formatDate(dateStr?: string): string {
           >
             {{ reliabilityConfig[source.reliability].icon }}
           </span>
-          <span v-if="index < sources.length - 1" class="separator">,</span>
+          <span
+            v-if="index < sources.length - 1"
+            class="separator"
+          >,</span>
         </span>
       </div>
     </template>
@@ -70,8 +79,14 @@ function formatDate(dateStr?: string): string {
     <template v-else-if="citationStyle === 'footnote'">
       <div class="footnote-sources">
         <div class="footnote-header">
-          <svg class="footnote-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          <svg
+            class="footnote-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
           <span class="footnote-title">参考来源</span>
         </div>
@@ -91,10 +106,19 @@ function formatDate(dateStr?: string): string {
               >
                 {{ source.title }}
               </a>
-              <span v-else class="source-text">{{ source.title }}</span>
+              <span
+                v-else
+                class="source-text"
+              >{{ source.title }}</span>
               
-              <span v-if="source.author" class="source-meta">— {{ source.author }}</span>
-              <span v-if="source.date" class="source-meta">({{ formatDate(source.date) }})</span>
+              <span
+                v-if="source.author"
+                class="source-meta"
+              >— {{ source.author }}</span>
+              <span
+                v-if="source.date"
+                class="source-meta"
+              >({{ formatDate(source.date) }})</span>
               
               <span 
                 v-if="showReliability && source.reliability" 
@@ -105,7 +129,12 @@ function formatDate(dateStr?: string): string {
               </span>
             </div>
             
-            <p v-if="source.snippet" class="source-snippet">{{ source.snippet }}</p>
+            <p
+              v-if="source.snippet"
+              class="source-snippet"
+            >
+              {{ source.snippet }}
+            </p>
           </li>
         </ol>
       </div>
@@ -141,16 +170,27 @@ function formatDate(dateStr?: string): string {
               >
                 {{ source.title }}
               </a>
-              <span v-else class="sidebar-text">{{ source.title }}</span>
+              <span
+                v-else
+                class="sidebar-text"
+              >{{ source.title }}</span>
             </div>
             
-            <div v-if="source.author || source.date" class="sidebar-meta">
+            <div
+              v-if="source.author || source.date"
+              class="sidebar-meta"
+            >
               <span v-if="source.author">{{ source.author }}</span>
               <span v-if="source.author && source.date"> · </span>
               <span v-if="source.date">{{ formatDate(source.date) }}</span>
             </div>
             
-            <p v-if="source.snippet" class="sidebar-snippet">{{ source.snippet }}</p>
+            <p
+              v-if="source.snippet"
+              class="sidebar-snippet"
+            >
+              {{ source.snippet }}
+            </p>
           </div>
         </div>
       </div>

@@ -131,7 +131,10 @@ watch(
         
         <!-- First level children -->
         <template v-if="isExpanded(tree.name) && tree.children">
-          <template v-for="child1 in tree.children" :key="child1.name">
+          <template
+            v-for="child1 in tree.children"
+            :key="child1.name"
+          >
             <div
               class="node-row flex items-center gap-1 py-1 rounded cursor-pointer transition-colors"
               :class="[
@@ -142,8 +145,8 @@ watch(
             >
               <span class="w-4 h-4 flex-shrink-0">
                 <component
-                  v-if="child1.type === 'directory'"
                   :is="isExpanded(`${tree.name}/${child1.name}`) ? ChevronDownIcon : ChevronRightIcon"
+                  v-if="child1.type === 'directory'"
                   class="w-4 h-4 text-gray-400"
                 />
               </span>
@@ -160,14 +163,20 @@ watch(
               >
                 {{ child1.name }}
               </span>
-              <span v-if="child1.type === 'file' && child1.size" class="text-xs text-gray-400 flex-shrink-0 pr-2">
+              <span
+                v-if="child1.type === 'file' && child1.size"
+                class="text-xs text-gray-400 flex-shrink-0 pr-2"
+              >
                 {{ formatSize(child1.size) }}
               </span>
             </div>
             
             <!-- Second level children -->
             <template v-if="child1.type === 'directory' && isExpanded(`${tree.name}/${child1.name}`) && child1.children">
-              <template v-for="child2 in child1.children" :key="child2.name">
+              <template
+                v-for="child2 in child1.children"
+                :key="child2.name"
+              >
                 <div
                   class="node-row flex items-center gap-1 py-1 rounded cursor-pointer transition-colors"
                   :class="[
@@ -178,8 +187,8 @@ watch(
                 >
                   <span class="w-4 h-4 flex-shrink-0">
                     <component
-                      v-if="child2.type === 'directory'"
                       :is="isExpanded(`${tree.name}/${child1.name}/${child2.name}`) ? ChevronDownIcon : ChevronRightIcon"
+                      v-if="child2.type === 'directory'"
                       class="w-4 h-4 text-gray-400"
                     />
                   </span>
@@ -196,15 +205,24 @@ watch(
                   >
                     {{ child2.name }}
                   </span>
-                  <span v-if="child2.type === 'file' && child2.size" class="text-xs text-gray-400 flex-shrink-0 pr-2">
+                  <span
+                    v-if="child2.type === 'file' && child2.size"
+                    class="text-xs text-gray-400 flex-shrink-0 pr-2"
+                  >
                     {{ formatSize(child2.size) }}
                   </span>
-                  <span v-if="child2.truncated" class="text-xs text-gray-400 pr-2">...</span>
+                  <span
+                    v-if="child2.truncated"
+                    class="text-xs text-gray-400 pr-2"
+                  >...</span>
                 </div>
                 
                 <!-- Third level children -->
                 <template v-if="child2.type === 'directory' && isExpanded(`${tree.name}/${child1.name}/${child2.name}`) && child2.children">
-                  <template v-for="child3 in child2.children" :key="child3.name">
+                  <template
+                    v-for="child3 in child2.children"
+                    :key="child3.name"
+                  >
                     <div
                       class="node-row flex items-center gap-1 py-1 rounded cursor-pointer transition-colors"
                       :class="[
@@ -215,8 +233,8 @@ watch(
                     >
                       <span class="w-4 h-4 flex-shrink-0">
                         <component
-                          v-if="child3.type === 'directory'"
                           :is="ChevronRightIcon"
+                          v-if="child3.type === 'directory'"
                           class="w-4 h-4 text-gray-400"
                         />
                       </span>
@@ -231,10 +249,16 @@ watch(
                       >
                         {{ child3.name }}
                       </span>
-                      <span v-if="child3.type === 'file' && child3.size" class="text-xs text-gray-400 flex-shrink-0 pr-2">
+                      <span
+                        v-if="child3.type === 'file' && child3.size"
+                        class="text-xs text-gray-400 flex-shrink-0 pr-2"
+                      >
                         {{ formatSize(child3.size) }}
                       </span>
-                      <span v-if="child3.truncated" class="text-xs text-gray-400 pr-2">...</span>
+                      <span
+                        v-if="child3.truncated"
+                        class="text-xs text-gray-400 pr-2"
+                      >...</span>
                     </div>
                   </template>
                 </template>
@@ -245,7 +269,10 @@ watch(
       </div>
     </template>
     
-    <div v-else class="text-gray-400 text-center py-8">
+    <div
+      v-else
+      class="text-gray-400 text-center py-8"
+    >
       暂无文件
     </div>
   </div>

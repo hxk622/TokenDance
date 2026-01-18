@@ -14,6 +14,8 @@ Built-in Slide Templates - 内置幻灯片模板
 - BlankSlideTemplate: 空白页
 """
 
+from pathlib import Path
+
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.presentation import Presentation

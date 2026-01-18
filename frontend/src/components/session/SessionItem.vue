@@ -51,9 +51,9 @@ function handleDelete(e: Event) {
 
 <template>
   <div
-    @click="emit('select')"
     class="group relative px-4 py-3 cursor-pointer hover:bg-bg-tertiary transition-colors"
     :class="{ 'bg-accent-primary/10': active }"
+    @click="emit('select')"
   >
     <div class="flex items-start gap-3">
       <!-- Status Icon -->
@@ -76,7 +76,10 @@ function handleDelete(e: Event) {
           <span>{{ formattedDate }}</span>
         </div>
 
-        <div v-if="session.skill_id" class="mt-1">
+        <div
+          v-if="session.skill_id"
+          class="mt-1"
+        >
           <span class="inline-block px-2 py-0.5 bg-accent-primary/20 text-accent-primary rounded text-xs">
             {{ session.skill_id }}
           </span>
@@ -85,13 +88,29 @@ function handleDelete(e: Event) {
 
       <!-- Menu Button -->
       <button
-        @click.stop="showMenu = !showMenu"
         class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-bg-elevated transition-opacity"
+        @click.stop="showMenu = !showMenu"
       >
-        <svg class="w-4 h-4 text-text-tertiary" fill="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="6" r="2"/>
-          <circle cx="12" cy="12" r="2"/>
-          <circle cx="12" cy="18" r="2"/>
+        <svg
+          class="w-4 h-4 text-text-tertiary"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            cx="12"
+            cy="6"
+            r="2"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="2"
+          />
+          <circle
+            cx="12"
+            cy="18"
+            r="2"
+          />
         </svg>
       </button>
 
@@ -102,8 +121,8 @@ function handleDelete(e: Event) {
         @click.stop
       >
         <button
-          @click="handleDelete"
           class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
+          @click="handleDelete"
         >
           Delete
         </button>

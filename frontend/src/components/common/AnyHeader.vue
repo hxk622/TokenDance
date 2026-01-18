@@ -43,7 +43,12 @@ const headerClasses = computed(() => {
     <!-- Center section -->
     <div class="any-header-center">
       <slot name="center">
-        <h1 v-if="title" class="any-header-title">{{ title }}</h1>
+        <h1
+          v-if="title"
+          class="any-header-title"
+        >
+          {{ title }}
+        </h1>
       </slot>
     </div>
     

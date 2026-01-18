@@ -1,8 +1,17 @@
 <template>
-  <div id="app" class="min-h-screen bg-bg-primary text-text-primary">
+  <div
+    id="app"
+    class="min-h-screen bg-bg-primary text-text-primary"
+  >
     <RouterView v-slot="{ Component, route }">
-      <Transition :name="(route.meta.transition as string) || 'page-fade'" mode="out-in">
-        <component :is="Component" :key="route.path" />
+      <Transition
+        :name="(route.meta.transition as string) || 'page-fade'"
+        mode="out-in"
+      >
+        <component
+          :is="Component"
+          :key="route.path"
+        />
       </Transition>
     </RouterView>
 

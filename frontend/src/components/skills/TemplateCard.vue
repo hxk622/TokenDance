@@ -91,13 +91,21 @@ initializeDefaults()
 </script>
 
 <template>
-  <div class="template-card" :class="{ expanded: isExpanded }">
+  <div
+    class="template-card"
+    :class="{ expanded: isExpanded }"
+  >
     <!-- Card Header -->
-    <div class="card-header" @click="toggleExpand">
+    <div
+      class="card-header"
+      @click="toggleExpand"
+    >
       <div class="header-left">
         <span class="template-icon">{{ template.icon }}</span>
         <div class="header-info">
-          <h3 class="template-name">{{ template.name }}</h3>
+          <h3 class="template-name">
+            {{ template.name }}
+          </h3>
           <span
             class="template-category"
             :style="{
@@ -105,13 +113,19 @@ initializeDefaults()
               color: categoryColor
             }"
           >
-            <component :is="categoryIconComponent" class="w-3 h-3 inline-block mr-1" />
+            <component
+              :is="categoryIconComponent"
+              class="w-3 h-3 inline-block mr-1"
+            />
             {{ template.category }}
           </span>
         </div>
       </div>
       <div class="header-right">
-        <span v-if="hasVariables" class="vars-badge">
+        <span
+          v-if="hasVariables"
+          class="vars-badge"
+        >
           {{ template.variables.length }} 参数
         </span>
         <svg
@@ -121,44 +135,72 @@ initializeDefaults()
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </div>
     </div>
 
     <!-- Card Body -->
     <div class="card-body">
-      <p class="template-desc">{{ template.description }}</p>
+      <p class="template-desc">
+        {{ template.description }}
+      </p>
 
       <!-- Tags -->
-      <div class="template-tags" v-if="template.tags.length > 0">
-        <span v-for="tag in template.tags.slice(0, 5)" :key="tag" class="tag">
+      <div
+        v-if="template.tags.length > 0"
+        class="template-tags"
+      >
+        <span
+          v-for="tag in template.tags.slice(0, 5)"
+          :key="tag"
+          class="tag"
+        >
           {{ tag }}
         </span>
       </div>
 
       <!-- Example -->
-      <div class="template-example" v-if="template.example_input">
+      <div
+        v-if="template.example_input"
+        class="template-example"
+      >
         <span class="example-label">示例输入：</span>
         <span class="example-text">{{ template.example_input }}</span>
       </div>
     </div>
 
     <!-- Expanded Content -->
-    <div v-if="isExpanded && hasVariables" class="card-expanded">
+    <div
+      v-if="isExpanded && hasVariables"
+      class="card-expanded"
+    >
       <!-- Variables Form -->
       <div class="variables-form">
-        <h4 class="form-title">填写参数</h4>
+        <h4 class="form-title">
+          填写参数
+        </h4>
 
         <!-- Required Variables -->
-        <div v-if="requiredVariables.length > 0" class="variables-group">
+        <div
+          v-if="requiredVariables.length > 0"
+          class="variables-group"
+        >
           <span class="group-label">必填</span>
           <div
             v-for="variable in requiredVariables"
             :key="variable.name"
             class="variable-field"
           >
-            <label :for="variable.name" class="field-label">
+            <label
+              :for="variable.name"
+              class="field-label"
+            >
               {{ variable.label }}
               <span class="required-mark">*</span>
             </label>
@@ -171,7 +213,7 @@ initializeDefaults()
               type="text"
               class="field-input"
               :placeholder="variable.placeholder"
-            />
+            >
 
             <!-- Textarea -->
             <textarea
@@ -190,7 +232,12 @@ initializeDefaults()
               v-model="variableValues[variable.name]"
               class="field-select"
             >
-              <option value="" disabled>请选择...</option>
+              <option
+                value=""
+                disabled
+              >
+                请选择...
+              </option>
               <option
                 v-for="opt in variable.options"
                 :key="opt.value"
@@ -203,14 +250,20 @@ initializeDefaults()
         </div>
 
         <!-- Optional Variables -->
-        <div v-if="optionalVariables.length > 0" class="variables-group">
+        <div
+          v-if="optionalVariables.length > 0"
+          class="variables-group"
+        >
           <span class="group-label">选填</span>
           <div
             v-for="variable in optionalVariables"
             :key="variable.name"
             class="variable-field"
           >
-            <label :for="variable.name" class="field-label">
+            <label
+              :for="variable.name"
+              class="field-label"
+            >
               {{ variable.label }}
             </label>
 
@@ -222,7 +275,7 @@ initializeDefaults()
               type="text"
               class="field-input"
               :placeholder="variable.placeholder"
-            />
+            >
 
             <!-- Textarea -->
             <textarea
@@ -241,7 +294,9 @@ initializeDefaults()
               v-model="variableValues[variable.name]"
               class="field-select"
             >
-              <option value="">请选择...</option>
+              <option value="">
+                请选择...
+              </option>
               <option
                 v-for="opt in variable.options"
                 :key="opt.value"
@@ -256,17 +311,37 @@ initializeDefaults()
 
       <!-- Preview -->
       <div class="prompt-preview">
-        <h4 class="preview-title">预览</h4>
+        <h4 class="preview-title">
+          预览
+        </h4>
         <pre class="preview-content">{{ previewPrompt }}</pre>
       </div>
     </div>
 
     <!-- Card Footer -->
     <div class="card-footer">
-      <button class="btn-secondary" @click="handlePreview">
-        <svg class="btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      <button
+        class="btn-secondary"
+        @click="handlePreview"
+      >
+        <svg
+          class="btn-icon"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+          />
         </svg>
         预览
       </button>
@@ -275,8 +350,18 @@ initializeDefaults()
         :disabled="hasVariables && !isValid && isExpanded"
         @click="handleUse"
       >
-        <svg class="btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <svg
+          class="btn-icon"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
         </svg>
         {{ hasVariables && !isExpanded ? '填写参数' : '使用模板' }}
       </button>

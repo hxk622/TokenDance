@@ -145,7 +145,7 @@ class FailureTracker:
         domain = None
         if url:
             parsed = urlparse(url)
-            domain = parsed.netloc.lower().lstrip('www.')
+            domain = parsed.netloc.lower().removeprefix('www.')
 
         record = FailureRecord(
             timestamp=time.time(),
@@ -184,7 +184,7 @@ class FailureTracker:
     def record_success(self, url: str) -> None:
         """记录成功"""
         parsed = urlparse(url)
-        domain = parsed.netloc.lower().lstrip('www.')
+        domain = parsed.netloc.lower().removeprefix('www.')
 
         if domain in self._domain_status:
             status = self._domain_status[domain]
@@ -226,7 +226,7 @@ class FailureTracker:
     def is_blacklisted(self, url: str) -> bool:
         """检查 URL 是否在黑名单中"""
         parsed = urlparse(url)
-        domain = parsed.netloc.lower().lstrip('www.')
+        domain = parsed.netloc.lower().removeprefix('www.')
 
         if domain not in self._domain_status:
             return False

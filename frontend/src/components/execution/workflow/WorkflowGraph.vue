@@ -264,37 +264,66 @@ watch(() => props.sessionId, (newId) => {
 </script>
 
 <template>
-  <div class="workflow-graph" :class="{ collapsed: isCollapsed }">
+  <div
+    class="workflow-graph"
+    :class="{ collapsed: isCollapsed }"
+  >
     <!-- Toolbar -->
     <div class="graph-toolbar">
-      <button class="btn-icon" :title="isCollapsed ? '展开' : '折叠'" @click="toggleCollapse">
+      <button
+        class="btn-icon"
+        :title="isCollapsed ? '展开' : '折叠'"
+        @click="toggleCollapse"
+      >
         <span>{{ isCollapsed ? '⬆' : '⬇' }}</span>
       </button>
-      <button class="btn-icon" title="缩小">
+      <button
+        class="btn-icon"
+        title="缩小"
+      >
         <span>🔍-</span>
       </button>
-      <button class="btn-icon" title="放大">
+      <button
+        class="btn-icon"
+        title="放大"
+      >
         <span>🔍+</span>
       </button>
-      <button class="btn-icon" title="适应屏幕">
+      <button
+        class="btn-icon"
+        title="适应屏幕"
+      >
         <span>⛶</span>
       </button>
-      <button class="btn-icon" title="重置视图">
+      <button
+        class="btn-icon"
+        title="重置视图"
+      >
         <span>↻</span>
       </button>
     </div>
 
     <!-- Loading Skeleton -->
-    <div v-if="isLoading" class="graph-skeleton">
-      <div class="skeleton-node" v-for="i in 4" :key="i">
-        <div class="skeleton-circle"></div>
-        <div class="skeleton-label"></div>
+    <div
+      v-if="isLoading"
+      class="graph-skeleton"
+    >
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="skeleton-node"
+      >
+        <div class="skeleton-circle" />
+        <div class="skeleton-label" />
       </div>
-      <div class="skeleton-shimmer"></div>
+      <div class="skeleton-shimmer" />
     </div>
 
     <!-- Mini Graph (Collapsed Mode or Mini Mode) -->
-    <div v-else-if="isCollapsed || miniMode" class="mini-graph">
+    <div
+      v-else-if="isCollapsed || miniMode"
+      class="mini-graph"
+    >
       <div 
         v-for="node in nodes" 
         :key="node.id" 
@@ -302,15 +331,28 @@ watch(() => props.sessionId, (newId) => {
         :style="{ background: getNodeColor(node.status) }"
         @click="handleNodeClick(node.id)"
       >
-        <span class="mini-node-pulse" v-if="node.status === 'active'"></span>
+        <span
+          v-if="node.status === 'active'"
+          class="mini-node-pulse"
+        />
       </div>
     </div>
 
     <!-- Canvas Area (Normal Mode) -->
-    <svg v-else class="graph-canvas" width="100%" height="100%" @click="handleCanvasClick">
+    <svg
+      v-else
+      class="graph-canvas"
+      width="100%"
+      height="100%"
+      @click="handleCanvasClick"
+    >
       <!-- Draw edges -->
       <g class="edges">
-        <g v-for="edge in edges" :key="edge.id" class="edge-group">
+        <g
+          v-for="edge in edges"
+          :key="edge.id"
+          class="edge-group"
+        >
           <!-- Invisible wider line for easier interaction -->
           <line
             :x1="nodes.find(n => n.id === edge.from)?.x"
@@ -391,26 +433,83 @@ watch(() => props.sessionId, (newId) => {
           class="context-menu"
           :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
         >
-          <div class="context-menu-item" @click="handleRerunNode">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          <div
+            class="context-menu-item"
+            @click="handleRerunNode"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
             <span>重新执行</span>
           </div>
-          <div class="context-menu-item" @click="handleViewLogs">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
+          <div
+            class="context-menu-item"
+            @click="handleViewLogs"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line
+                x1="16"
+                y1="13"
+                x2="8"
+                y2="13"
+              />
+              <line
+                x1="16"
+                y1="17"
+                x2="8"
+                y2="17"
+              />
             </svg>
             <span>查看日志</span>
           </div>
-          <div class="context-menu-item" @click="handleCopyOutput" :class="{ disabled: !contextMenuNode.metadata?.output }">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          <div
+            class="context-menu-item"
+            :class="{ disabled: !contextMenuNode.metadata?.output }"
+            @click="handleCopyOutput"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect
+                x="9"
+                y="9"
+                width="13"
+                height="13"
+                rx="2"
+                ry="2"
+              />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
             <span>复制输出</span>
           </div>
@@ -421,19 +520,19 @@ watch(() => props.sessionId, (newId) => {
     <!-- Legend -->
     <div class="graph-legend">
       <div class="legend-item">
-        <span class="legend-dot active"></span>
+        <span class="legend-dot active" />
         <span>执行中</span>
       </div>
       <div class="legend-item">
-        <span class="legend-dot success"></span>
+        <span class="legend-dot success" />
         <span>已完成</span>
       </div>
       <div class="legend-item">
-        <span class="legend-dot pending"></span>
+        <span class="legend-dot pending" />
         <span>等待确认</span>
       </div>
       <div class="legend-item">
-        <span class="legend-dot error"></span>
+        <span class="legend-dot error" />
         <span>执行失败</span>
       </div>
     </div>

@@ -505,8 +505,8 @@ class PlaywrightFallbackService(BrowserAutomationService):
                 self._playwright = await async_playwright().start()
                 self._browser = await self._playwright.chromium.launch(headless=self.headless)
                 self._page = await self._browser.new_page()
-            except ImportError:
-                raise BrowserError.service_unavailable("Playwright")
+            except ImportError as e:
+                raise BrowserError.service_unavailable("Playwright") from e
 
     async def open(self, url: str) -> SnapshotResult:
         await self._ensure_browser()
@@ -515,7 +515,7 @@ class PlaywrightFallbackService(BrowserAutomationService):
             self._is_open = True
             return await self.snapshot()
         except Exception as e:
-            raise BrowserError.network_error(url, str(e))
+            raise BrowserError.network_error(url, str(e)) from e
 
     async def snapshot(
         self,

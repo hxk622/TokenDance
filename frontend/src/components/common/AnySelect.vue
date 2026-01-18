@@ -75,8 +75,14 @@ const handleChange = (event: Event) => {
 <template>
   <div :class="wrapperClasses">
     <!-- Left icon -->
-    <span v-if="icon" class="any-select-icon-left">
-      <component :is="icon" :size="16" />
+    <span
+      v-if="icon"
+      class="any-select-icon-left"
+    >
+      <component
+        :is="icon"
+        :size="16"
+      />
     </span>
     
     <!-- Select -->
@@ -86,7 +92,11 @@ const handleChange = (event: Event) => {
       :disabled="disabled"
       @change="handleChange"
     >
-      <option v-if="placeholder" value="" disabled>
+      <option
+        v-if="placeholder"
+        value=""
+        disabled
+      >
         {{ placeholder }}
       </option>
       <option

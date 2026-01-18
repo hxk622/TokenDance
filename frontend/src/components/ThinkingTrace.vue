@@ -11,7 +11,10 @@ defineProps<Props>()
 
 <template>
   <transition name="fade">
-    <div v-if="visible" class="thinking-trace">
+    <div
+      v-if="visible"
+      class="thinking-trace"
+    >
       <div class="thinking-header">
         <div class="thinking-icon-wrapper">
           <svg
@@ -34,7 +37,9 @@ defineProps<Props>()
       </div>
       
       <div class="thinking-content">
-        <p class="reasoning-text">{{ reasoning }}</p>
+        <p class="reasoning-text">
+          {{ reasoning }}
+        </p>
       </div>
     </div>
   </transition>

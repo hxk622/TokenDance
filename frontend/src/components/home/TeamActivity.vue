@@ -71,12 +71,20 @@ const getTypeIcon = (type: string): Component => {
 
 <template>
   <div class="team-activity">
-    <h3 class="activity-label">团队最近的工作</h3>
+    <h3 class="activity-label">
+      团队最近的工作
+    </h3>
     
     <div class="activity-list">
-      <div v-for="item in activities" :key="item.id" class="activity-item">
+      <div
+        v-for="item in activities"
+        :key="item.id"
+        class="activity-item"
+      >
         <!-- 用户头像 -->
-        <div class="item-avatar">{{ item.user.avatar }}</div>
+        <div class="item-avatar">
+          {{ item.user.avatar }}
+        </div>
         
         <!-- 活动信息 -->
         <div class="item-content">
@@ -85,14 +93,19 @@ const getTypeIcon = (type: string): Component => {
             <span class="item-role">{{ item.user.role }}</span>
           </div>
           <div class="item-action">
-            <component :is="getTypeIcon(item.type)" class="action-icon w-4 h-4" />
+            <component
+              :is="getTypeIcon(item.type)"
+              class="action-icon w-4 h-4"
+            />
             <span class="action-text">刚完成</span>
             <span class="action-title">{{ item.title }}</span>
           </div>
         </div>
         
         <!-- 时间戳 -->
-        <div class="item-time">{{ formatTime(item.completedAt) }}</div>
+        <div class="item-time">
+          {{ formatTime(item.completedAt) }}
+        </div>
       </div>
     </div>
   </div>

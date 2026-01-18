@@ -2,34 +2,80 @@
   <div class="session-list-panel">
     <!-- Header -->
     <div class="session-list-header">
-      <h3 class="session-list-title">会话列表</h3>
-      <button class="new-session-btn" @click="handleNewSession">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      <h3 class="session-list-title">
+        会话列表
+      </h3>
+      <button
+        class="new-session-btn"
+        @click="handleNewSession"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
         </svg>
         新建会话
       </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="session-list-loading">
+    <div
+      v-if="isLoading"
+      class="session-list-loading"
+    >
       <div class="loading-spinner" />
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="sessions.length === 0" class="session-list-empty">
-      <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    <div
+      v-else-if="sessions.length === 0"
+      class="session-list-empty"
+    >
+      <svg
+        class="w-12 h-12 text-gray-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        />
       </svg>
-      <p class="empty-text">暂无会话</p>
-      <button class="empty-action" @click="handleNewSession">创建第一个会话</button>
+      <p class="empty-text">
+        暂无会话
+      </p>
+      <button
+        class="empty-action"
+        @click="handleNewSession"
+      >
+        创建第一个会话
+      </button>
     </div>
 
     <!-- Session List -->
-    <div v-else class="session-list-content">
+    <div
+      v-else
+      class="session-list-content"
+    >
       <!-- Active Sessions -->
-      <div v-if="activeSessions.length > 0" class="session-group">
-        <h4 class="session-group-title">进行中</h4>
+      <div
+        v-if="activeSessions.length > 0"
+        class="session-group"
+      >
+        <h4 class="session-group-title">
+          进行中
+        </h4>
         <button
           v-for="session in activeSessions"
           :key="session.id"
@@ -39,8 +85,18 @@
         >
           <div class="session-item-content">
             <div class="session-item-icon">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
               </svg>
             </div>
             <div class="session-item-info">
@@ -50,11 +106,21 @@
             <div class="session-item-actions">
               <button
                 class="session-item-action"
-                @click.stop="handleDeleteSession(session)"
                 title="删除"
+                @click.stop="handleDeleteSession(session)"
               >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -63,8 +129,13 @@
       </div>
 
       <!-- Completed Sessions -->
-      <div v-if="completedSessions.length > 0" class="session-group">
-        <h4 class="session-group-title">已完成</h4>
+      <div
+        v-if="completedSessions.length > 0"
+        class="session-group"
+      >
+        <h4 class="session-group-title">
+          已完成
+        </h4>
         <button
           v-for="session in completedSessions"
           :key="session.id"
@@ -74,8 +145,18 @@
         >
           <div class="session-item-content">
             <div class="session-item-icon">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <div class="session-item-info">
@@ -85,11 +166,21 @@
             <div class="session-item-actions">
               <button
                 class="session-item-action"
-                @click.stop="handleDeleteSession(session)"
                 title="删除"
+                @click.stop="handleDeleteSession(session)"
               >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>

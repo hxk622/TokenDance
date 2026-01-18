@@ -1,19 +1,43 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="visible" class="hitl-overlay" @click.self="handleCancel">
+      <div
+        v-if="visible"
+        class="hitl-overlay"
+        @click.self="handleCancel"
+      >
         <div class="hitl-dialog">
           <!-- Header -->
-          <div class="dialog-header" :class="headerClass">
-            <div class="header-icon" :class="iconClass">
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <div
+            class="dialog-header"
+            :class="headerClass"
+          >
+            <div
+              class="header-icon"
+              :class="iconClass"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
             <div class="header-content">
-              <h3 class="dialog-title">操作确认</h3>
-              <div class="risk-badge" :class="riskBadgeClass">
+              <h3 class="dialog-title">
+                操作确认
+              </h3>
+              <div
+                class="risk-badge"
+                :class="riskBadgeClass"
+              >
                 {{ riskLevelLabel }}
               </div>
             </div>
@@ -26,7 +50,10 @@
                 <span class="badge-label">工具</span>
                 <span class="badge-value">{{ request?.operation || request?.context?.tool }}</span>
               </div>
-              <div v-if="operationCategories.length > 0" class="category-tags">
+              <div
+                v-if="operationCategories.length > 0"
+                class="category-tags"
+              >
                 <span
                   v-for="category in operationCategories"
                   :key="category"
@@ -37,52 +64,98 @@
               </div>
             </div>
 
-            <p class="description">{{ request?.description }}</p>
+            <p class="description">
+              {{ request?.description }}
+            </p>
 
             <!-- Risk Explanation -->
-            <div v-if="riskLevel" class="risk-explanation">
-              <div class="risk-icon" :class="riskIconClass">
-                <svg v-if="riskLevel === 'critical'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <div
+              v-if="riskLevel"
+              class="risk-explanation"
+            >
+              <div
+                class="risk-icon"
+                :class="riskIconClass"
+              >
+                <svg
+                  v-if="riskLevel === 'critical'"
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
                 </svg>
-                <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  v-else
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <span class="risk-text">{{ riskExplanation }}</span>
             </div>
 
             <!-- Context Details -->
-            <div v-if="hasContext" class="context-section">
+            <div
+              v-if="hasContext"
+              class="context-section"
+            >
               <button
-                @click="showContext = !showContext"
                 class="context-toggle"
+                @click="showContext = !showContext"
               >
                 <span>详细信息</span>
                 <svg
                   class="w-4 h-4 transition-transform"
                   :class="{ 'rotate-180': showContext }"
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
 
               <Transition name="slide">
-                <div v-if="showContext" class="context-content">
+                <div
+                  v-if="showContext"
+                  class="context-content"
+                >
                   <pre>{{ JSON.stringify(request?.context, null, 2) }}</pre>
                 </div>
               </Transition>
             </div>
 
             <!-- Remember Choice -->
-            <div v-if="canRemember" class="remember-section">
+            <div
+              v-if="canRemember"
+              class="remember-section"
+            >
               <label class="remember-checkbox">
                 <input
-                  type="checkbox"
                   v-model="rememberChoice"
+                  type="checkbox"
                   class="checkbox-input"
-                />
+                >
                 <span class="checkbox-label">
                   记住此选择（本次会话内有效）
                 </span>
@@ -107,29 +180,52 @@
           <!-- Actions -->
           <div class="dialog-actions">
             <button
-              @click="handleReject"
               :disabled="loading"
               class="btn btn-reject"
+              @click="handleReject"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                class="w-4 h-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
               拒绝
             </button>
             <button
-              @click="handleApprove"
               :disabled="loading"
               class="btn btn-approve"
+              @click="handleApprove"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              <svg
+                class="w-4 h-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               {{ loading ? '处理中...' : '确认执行' }}
             </button>
           </div>
 
           <!-- Timeout Warning -->
-          <div v-if="timeoutSeconds > 0" class="timeout-warning">
+          <div
+            v-if="timeoutSeconds > 0"
+            class="timeout-warning"
+          >
             <span class="timeout-text">
               请在 {{ timeoutSeconds }} 秒内响应，否则将自动取消
             </span>

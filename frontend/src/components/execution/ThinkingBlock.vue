@@ -30,8 +30,8 @@ const displayText = computed(() => {
   <div class="mb-3 rounded-lg bg-bg-tertiary/50 overflow-hidden border border-border-default">
     <!-- 折叠头部 -->
     <button
-      @click="toggleExpanded"
       class="w-full px-4 py-2.5 flex items-center justify-between text-sm hover:bg-bg-tertiary transition-colors"
+      @click="toggleExpanded"
     >
       <span class="flex items-center gap-2">
         <!-- 思考图标 -->
@@ -55,7 +55,13 @@ const displayText = computed(() => {
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        <svg v-else class="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg
+          v-else
+          class="w-4 h-4 text-text-secondary"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -74,7 +80,12 @@ const displayText = computed(() => {
         viewBox="0 0 24 24"
         stroke="currentColor"
       >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
       </svg>
     </button>
     
@@ -85,7 +96,10 @@ const displayText = computed(() => {
     >
       <div class="whitespace-pre-wrap leading-relaxed">
         {{ content }}
-        <span v-if="isStreaming && content" class="inline-block w-1 h-4 bg-accent-primary ml-1 animate-pulse" />
+        <span
+          v-if="isStreaming && content"
+          class="inline-block w-1 h-4 bg-accent-primary ml-1 animate-pulse"
+        />
       </div>
     </div>
   </div>

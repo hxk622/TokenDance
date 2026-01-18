@@ -125,8 +125,8 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             try:
                 from openai import AsyncOpenAI
                 self._client = AsyncOpenAI(api_key=self.api_key)
-            except ImportError:
-                raise ImportError("openai package required. Install with: pip install openai")
+            except ImportError as e:
+                raise ImportError("openai package required. Install with: pip install openai") from e
         return self._client
 
     async def embed_text(self, text: str) -> list[float]:
@@ -166,11 +166,11 @@ class LocalEmbeddingProvider(EmbeddingProvider):
                 from sentence_transformers import SentenceTransformer
                 self._model = SentenceTransformer(self.model_name)
                 self._dimension = self._model.get_sentence_embedding_dimension()
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
                     "sentence-transformers required. "
                     "Install with: pip install sentence-transformers"
-                )
+                ) from e
         return self._model
 
     async def embed_text(self, text: str) -> list[float]:
@@ -375,8 +375,8 @@ class PgVectorStore(VectorStore):
             try:
                 import asyncpg
                 self._pool = await asyncpg.create_pool(self.connection_string)
-            except ImportError:
-                raise ImportError("asyncpg required. Install with: pip install asyncpg")
+            except ImportError as e:
+                raise ImportError("asyncpg required. Install with: pip install asyncpg") from e
         return self._pool
 
     async def init_table(self, dimension: int) -> None:

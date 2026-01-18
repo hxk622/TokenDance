@@ -1,18 +1,23 @@
 <template>
   <div class="working-memory-panel">
     <div class="panel-header">
-      <h3 class="panel-title">Working Memory</h3>
+      <h3 class="panel-title">
+        Working Memory
+      </h3>
       <button 
-        @click="refreshMemory" 
-        :disabled="loading"
+        :disabled="loading" 
         class="refresh-btn"
+        @click="refreshMemory"
       >
         <span v-if="loading">Refreshing...</span>
         <span v-else>Refresh</span>
       </button>
     </div>
 
-    <div v-if="error" class="error-message">
+    <div
+      v-if="error"
+      class="error-message"
+    >
       {{ error }}
     </div>
 
@@ -20,48 +25,75 @@
       <button
         v-for="file in files"
         :key="file.key"
-        @click="activeTab = file.key"
         :class="['tab', { active: activeTab === file.key }]"
+        @click="activeTab = file.key"
       >
         {{ file.label }}
       </button>
     </div>
 
     <div class="tab-content">
-      <div v-if="loading && !memory" class="loading-state">
+      <div
+        v-if="loading && !memory"
+        class="loading-state"
+      >
         Loading working memory...
       </div>
       
-      <div v-else-if="memory" class="file-content">
+      <div
+        v-else-if="memory"
+        class="file-content"
+      >
         <!-- Task Plan -->
-        <div v-if="activeTab === 'task_plan'" class="memory-file">
+        <div
+          v-if="activeTab === 'task_plan'"
+          class="memory-file"
+        >
           <div class="file-header">
             <h4>{{ files[0].label }}</h4>
             <span class="file-description">{{ files[0].description }}</span>
           </div>
-          <div class="markdown-content" v-html="renderMarkdown(memory.task_plan.content)"></div>
+          <div
+            class="markdown-content"
+            v-html="renderMarkdown(memory.task_plan.content)"
+          />
         </div>
 
         <!-- Findings -->
-        <div v-if="activeTab === 'findings'" class="memory-file">
+        <div
+          v-if="activeTab === 'findings'"
+          class="memory-file"
+        >
           <div class="file-header">
             <h4>{{ files[1].label }}</h4>
             <span class="file-description">{{ files[1].description }}</span>
           </div>
-          <div class="markdown-content" v-html="renderMarkdown(memory.findings.content)"></div>
+          <div
+            class="markdown-content"
+            v-html="renderMarkdown(memory.findings.content)"
+          />
         </div>
 
         <!-- Progress -->
-        <div v-if="activeTab === 'progress'" class="memory-file">
+        <div
+          v-if="activeTab === 'progress'"
+          class="memory-file"
+        >
           <div class="file-header">
             <h4>{{ files[2].label }}</h4>
             <span class="file-description">{{ files[2].description }}</span>
           </div>
-          <div class="markdown-content" v-html="renderMarkdown(memory.progress.content)"></div>
+          <div
+            class="markdown-content"
+            v-html="renderMarkdown(memory.progress.content)"
+          />
         </div>
       </div>
 
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         No working memory available yet.
       </div>
     </div>

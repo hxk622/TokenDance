@@ -1,28 +1,48 @@
 <template>
   <div class="financial-analysis-card">
     <div class="card-header">
-      <h3 class="card-title">财务分析</h3>
-      <span v-if="result" class="health-badge" :class="healthClass">
+      <h3 class="card-title">
+        财务分析
+      </h3>
+      <span
+        v-if="result"
+        class="health-badge"
+        :class="healthClass"
+      >
         {{ healthLabel }}
       </span>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
       <div class="loading-spinner" />
       <p>正在分析财务数据...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p class="error-text">{{ error }}</p>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <p class="error-text">
+        {{ error }}
+      </p>
     </div>
 
     <!-- Result -->
-    <div v-else-if="result" class="card-content">
+    <div
+      v-else-if="result"
+      class="card-content"
+    >
       <!-- Overall Score -->
       <div class="score-section">
-        <div class="score-circle" :style="{ '--score': result.overall_score }">
+        <div
+          class="score-circle"
+          :style="{ '--score': result.overall_score }"
+        >
           <span class="score-value">{{ result.overall_score.toFixed(0) }}</span>
           <span class="score-label">综合评分</span>
         </div>
@@ -30,15 +50,25 @@
 
       <!-- Dimension Scores -->
       <div class="dimensions-section">
-        <h4 class="section-title">五维分析</h4>
+        <h4 class="section-title">
+          五维分析
+        </h4>
         <div class="dimension-bars">
-          <div v-for="(score, key) in result.dimension_scores" :key="key" class="dimension-bar">
+          <div
+            v-for="(score, key) in result.dimension_scores"
+            :key="key"
+            class="dimension-bar"
+          >
             <div class="bar-label">
               <span>{{ dimensionLabels[key] }}</span>
               <span class="bar-value">{{ score.toFixed(0) }}</span>
             </div>
             <div class="bar-track">
-              <div class="bar-fill" :style="{ width: `${score}%` }" :class="getScoreClass(score)" />
+              <div
+                class="bar-fill"
+                :style="{ width: `${score}%` }"
+                :class="getScoreClass(score)"
+              />
             </div>
           </div>
         </div>
@@ -46,7 +76,9 @@
 
       <!-- Key Metrics -->
       <div class="metrics-section">
-        <h4 class="section-title">关键指标</h4>
+        <h4 class="section-title">
+          关键指标
+        </h4>
         <div class="metrics-grid">
           <div class="metric-item">
             <span class="metric-label">ROE</span>
@@ -66,13 +98,19 @@
           </div>
           <div class="metric-item">
             <span class="metric-label">营收增速</span>
-            <span class="metric-value" :class="getGrowthClass(result.growth.revenue_growth)">
+            <span
+              class="metric-value"
+              :class="getGrowthClass(result.growth.revenue_growth)"
+            >
               {{ formatPercent(result.growth.revenue_growth) }}
             </span>
           </div>
           <div class="metric-item">
             <span class="metric-label">利润增速</span>
-            <span class="metric-value" :class="getGrowthClass(result.growth.net_income_growth)">
+            <span
+              class="metric-value"
+              :class="getGrowthClass(result.growth.net_income_growth)"
+            >
               {{ formatPercent(result.growth.net_income_growth) }}
             </span>
           </div>
@@ -89,29 +127,57 @@
 
       <!-- Strengths & Risks -->
       <div class="insights-section">
-        <div v-if="result.strengths.length > 0" class="insight-group">
-          <h4 class="section-title">✅ 优势</h4>
+        <div
+          v-if="result.strengths.length > 0"
+          class="insight-group"
+        >
+          <h4 class="section-title">
+            ✅ 优势
+          </h4>
           <ul class="insight-list">
-            <li v-for="(item, idx) in result.strengths.slice(0, 3)" :key="idx">{{ item }}</li>
+            <li
+              v-for="(item, idx) in result.strengths.slice(0, 3)"
+              :key="idx"
+            >
+              {{ item }}
+            </li>
           </ul>
         </div>
 
-        <div v-if="result.key_risks.length > 0" class="insight-group">
-          <h4 class="section-title">⚠️ 风险</h4>
+        <div
+          v-if="result.key_risks.length > 0"
+          class="insight-group"
+        >
+          <h4 class="section-title">
+            ⚠️ 风险
+          </h4>
           <ul class="insight-list risk">
-            <li v-for="(item, idx) in result.key_risks.slice(0, 3)" :key="idx">{{ item }}</li>
+            <li
+              v-for="(item, idx) in result.key_risks.slice(0, 3)"
+              :key="idx"
+            >
+              {{ item }}
+            </li>
           </ul>
         </div>
       </div>
 
       <!-- Summary -->
-      <div v-if="result.summary" class="summary-section">
-        <p class="summary-text">{{ result.summary }}</p>
+      <div
+        v-if="result.summary"
+        class="summary-section"
+      >
+        <p class="summary-text">
+          {{ result.summary }}
+        </p>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <p>点击"一键分析"查看财务分析结果</p>
     </div>
   </div>

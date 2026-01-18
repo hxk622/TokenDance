@@ -13,15 +13,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.core.logging import get_logger
-
-logger = get_logger(__name__)
 from app.agent.engine import AgentEngine
 from app.agent.llm.anthropic import ClaudeLLM
 from app.core.config import settings
+from app.core.database import get_db
+from app.core.logging import get_logger
 from app.filesystem import AgentFileSystem
 from app.services.session_service import SessionService
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 

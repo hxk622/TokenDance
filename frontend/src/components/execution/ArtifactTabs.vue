@@ -6,7 +6,10 @@
       :class="['tab', { active: currentTab === tab.type }]"
       @click="selectTab(tab.type)"
     >
-      <component :is="tab.icon" class="icon-svg" />
+      <component
+        :is="tab.icon"
+        class="icon-svg"
+      />
       <span class="title">{{ tab.title }}</span>
     </div>
   </div>

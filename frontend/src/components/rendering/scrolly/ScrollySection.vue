@@ -147,15 +147,26 @@ defineExpose({
     :style="animationStyles"
   >
     <!-- Section Title -->
-    <h2 v-if="title" class="section-title">{{ title }}</h2>
+    <h2
+      v-if="title"
+      class="section-title"
+    >
+      {{ title }}
+    </h2>
     
     <!-- Section Content -->
     <div class="section-content">
-      <slot :is-visible="isVisible" :ratio="visibilityRatio" />
+      <slot
+        :is-visible="isVisible"
+        :ratio="visibilityRatio"
+      />
     </div>
     
     <!-- Debug Info -->
-    <div v-if="debug" class="debug-info">
+    <div
+      v-if="debug"
+      class="debug-info"
+    >
       <span>ID: {{ id }}</span>
       <span>Visible: {{ isVisible }}</span>
       <span>Ratio: {{ visibilityRatio.toFixed(2) }}</span>

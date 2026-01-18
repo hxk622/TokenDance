@@ -118,27 +118,47 @@ function handleClickOutside(event: MouseEvent) {
 
 <template>
   <Teleport to="body">
-    <div v-if="visible && node" class="menu-backdrop" @click="handleClickOutside">
-      <div class="node-context-menu" :style="menuStyle" @click.stop>
+    <div
+      v-if="visible && node"
+      class="menu-backdrop"
+      @click="handleClickOutside"
+    >
+      <div
+        class="node-context-menu"
+        :style="menuStyle"
+        @click.stop
+      >
         <!-- Menu Header -->
         <div class="menu-header">
           <span class="menu-node-label">{{ node.label }}</span>
-          <span class="menu-node-type" :class="`type-${node.type}`">
+          <span
+            class="menu-node-type"
+            :class="`type-${node.type}`"
+          >
             {{ node.type === 'manus' ? 'Manus' : 'Coworker' }}
           </span>
         </div>
         
         <!-- Menu Items -->
         <div class="menu-items">
-          <template v-for="item in menuItems" :key="item.id">
-            <div v-if="item.id === 'divider'" class="menu-divider" />
+          <template
+            v-for="item in menuItems"
+            :key="item.id"
+          >
+            <div
+              v-if="item.id === 'divider'"
+              class="menu-divider"
+            />
             <button
               v-else
               class="menu-item"
               :class="`variant-${item.variant}`"
               @click="item.handler?.(); emit('close')"
             >
-              <component :is="item.icon" class="w-4 h-4" />
+              <component
+                :is="item.icon"
+                class="w-4 h-4"
+              />
               <span>{{ item.label }}</span>
             </button>
           </template>

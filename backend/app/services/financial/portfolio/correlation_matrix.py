@@ -63,7 +63,7 @@ class CorrelationResult:
             "names": self.names,
             "correlation_matrix": self.correlation_matrix,
             "high_correlations": [h.to_dict() for h in self.high_correlations],
-            "low_correlations": [l.to_dict() for l in self.low_correlations],
+            "low_correlations": [lc.to_dict() for lc in self.low_correlations],
             "avg_correlation": self.avg_correlation,
             "max_correlation": self.max_correlation,
             "min_correlation": self.min_correlation,

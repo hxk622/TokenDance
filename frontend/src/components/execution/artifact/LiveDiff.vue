@@ -203,37 +203,110 @@ defineExpose({
         </span>
       </div>
       <div class="diff-controls">
-        <button class="control-btn" title="上一处修改" @click="goToPrevChange">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15"/>
+        <button
+          class="control-btn"
+          title="上一处修改"
+          @click="goToPrevChange"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="18 15 12 9 6 15" />
           </svg>
         </button>
-        <button class="control-btn" title="下一处修改" @click="goToNextChange">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
+        <button
+          class="control-btn"
+          title="下一处修改"
+          @click="goToNextChange"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
-        <button class="control-btn accept" title="接受修改">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
+        <button
+          class="control-btn accept"
+          title="接受修改"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
           </svg>
         </button>
-        <button class="control-btn reject" title="拒绝修改">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
+        <button
+          class="control-btn reject"
+          title="拒绝修改"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line
+              x1="18"
+              y1="6"
+              x2="6"
+              y2="18"
+            />
+            <line
+              x1="6"
+              y1="6"
+              x2="18"
+              y2="18"
+            />
           </svg>
         </button>
       </div>
     </div>
 
     <!-- Monaco Editor Diff View -->
-    <div v-if="useMonaco" ref="editorContainer" class="monaco-container"></div>
+    <div
+      v-if="useMonaco"
+      ref="editorContainer"
+      class="monaco-container"
+    />
     
     <!-- Fallback Diff Display (when Monaco fails or disabled) -->
-    <div v-else class="diff-container">
+    <div
+      v-else
+      class="diff-container"
+    >
       <div class="diff-side original">
-        <div class="side-header">原始文件</div>
+        <div class="side-header">
+          原始文件
+        </div>
         <div class="code-view">
           <div
             v-for="line in diffLines"
@@ -246,10 +319,12 @@ defineExpose({
         </div>
       </div>
 
-      <div class="diff-divider"></div>
+      <div class="diff-divider" />
 
       <div class="diff-side modified">
-        <div class="side-header">修改后</div>
+        <div class="side-header">
+          修改后
+        </div>
         <div class="code-view">
           <div
             v-for="line in diffLines"

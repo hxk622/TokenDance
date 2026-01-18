@@ -110,8 +110,14 @@ defineExpose({ focus, inputRef })
   <div class="any-input-container">
     <div :class="wrapperClasses">
       <!-- Left icon -->
-      <span v-if="icon" class="any-input-icon any-input-icon-left">
-        <component :is="icon" :size="16" />
+      <span
+        v-if="icon"
+        class="any-input-icon any-input-icon-left"
+      >
+        <component
+          :is="icon"
+          :size="16"
+        />
       </span>
       
       <!-- Input -->
@@ -129,16 +135,25 @@ defineExpose({ focus, inputRef })
         @focus="handleFocus"
         @blur="handleBlur"
         @keydown="handleKeydown"
-      />
+      >
       
       <!-- Right icon -->
-      <span v-if="iconRight" class="any-input-icon any-input-icon-right">
-        <component :is="iconRight" :size="16" />
+      <span
+        v-if="iconRight"
+        class="any-input-icon any-input-icon-right"
+      >
+        <component
+          :is="iconRight"
+          :size="16"
+        />
       </span>
     </div>
     
     <!-- Error message -->
-    <div v-if="error && errorMessage" class="any-input-error">
+    <div
+      v-if="error && errorMessage"
+      class="any-input-error"
+    >
       {{ errorMessage }}
     </div>
   </div>

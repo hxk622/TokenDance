@@ -32,11 +32,11 @@ def _get_akshare():
         try:
             import akshare as ak
             _ak = ak
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "AkShare is not installed. Install with: "
                 "uv pip install -e '.[finance]'"
-            )
+            ) from e
     return _ak
 
 

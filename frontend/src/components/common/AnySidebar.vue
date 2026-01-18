@@ -75,7 +75,10 @@ const handleNavClick = (item: NavItem) => {
 </script>
 
 <template>
-  <aside class="any-sidebar" :class="{ collapsed: isCollapsed }">
+  <aside
+    class="any-sidebar"
+    :class="{ collapsed: isCollapsed }"
+  >
     <!-- Header -->
     <div class="any-sidebar-header">
       <!-- Toggle button -->
@@ -85,13 +88,28 @@ const handleNavClick = (item: NavItem) => {
         :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         @click="toggleCollapse"
       >
-        <PanelLeftClose v-if="!isCollapsed" :size="20" />
-        <PanelLeft v-else :size="20" />
+        <PanelLeftClose
+          v-if="!isCollapsed"
+          :size="20"
+        />
+        <PanelLeft
+          v-else
+          :size="20"
+        />
       </button>
       
       <!-- Logo -->
-      <a v-if="!isCollapsed" href="/" class="any-sidebar-logo">
-        <img v-if="logoSrc" :src="logoSrc" alt="Logo" class="any-sidebar-logo-image" />
+      <a
+        v-if="!isCollapsed"
+        href="/"
+        class="any-sidebar-logo"
+      >
+        <img
+          v-if="logoSrc"
+          :src="logoSrc"
+          alt="Logo"
+          class="any-sidebar-logo-image"
+        >
         <span class="any-sidebar-logo-text">{{ logoText }}</span>
       </a>
     </div>
@@ -119,11 +137,17 @@ const handleNavClick = (item: NavItem) => {
           :key="section.id"
           class="any-sidebar-section"
         >
-          <div v-if="section.title && !isCollapsed" class="any-sidebar-section-title">
+          <div
+            v-if="section.title && !isCollapsed"
+            class="any-sidebar-section-title"
+          >
             {{ section.title }}
           </div>
           
-          <template v-for="item in section.items" :key="item.id">
+          <template
+            v-for="item in section.items"
+            :key="item.id"
+          >
             <component
               :is="item.href ? 'a' : 'button'"
               :href="item.href"
@@ -132,12 +156,22 @@ const handleNavClick = (item: NavItem) => {
               @click="handleNavClick(item)"
             >
               <span class="any-nav-item-icon">
-                <component v-if="item.icon" :is="item.icon" :size="20" />
+                <component
+                  :is="item.icon"
+                  v-if="item.icon"
+                  :size="20"
+                />
               </span>
-              <span v-if="!isCollapsed" class="any-nav-item-label">
+              <span
+                v-if="!isCollapsed"
+                class="any-nav-item-label"
+              >
                 {{ item.label }}
               </span>
-              <span v-if="!isCollapsed && item.badge" class="any-nav-item-badge">
+              <span
+                v-if="!isCollapsed && item.badge"
+                class="any-nav-item-badge"
+              >
                 {{ item.badge }}
               </span>
             </component>
@@ -153,7 +187,10 @@ const handleNavClick = (item: NavItem) => {
     </nav>
     
     <!-- Footer -->
-    <div v-if="$slots.footer" class="any-sidebar-footer">
+    <div
+      v-if="$slots.footer"
+      class="any-sidebar-footer"
+    >
       <slot name="footer" />
     </div>
   </aside>

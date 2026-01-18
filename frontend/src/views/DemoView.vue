@@ -126,7 +126,9 @@ Elapsed: 3s`
     <!-- Header -->
     <header class="border-b border-border-default bg-bg-secondary">
       <div class="max-w-7xl mx-auto px-6 py-4">
-        <h1 class="text-2xl font-bold text-text-primary">TokenDance UI Components Demo</h1>
+        <h1 class="text-2xl font-bold text-text-primary">
+          TokenDance UI Components Demo
+        </h1>
         <p class="text-sm text-text-secondary mt-1">
           Chain-of-Thought Visualization & Working Memory Pattern
         </p>
@@ -138,20 +140,28 @@ Elapsed: 3s`
       <!-- Section 1: ThinkingBlock -->
       <section class="mb-12">
         <div class="mb-4">
-          <h2 class="text-xl font-semibold text-text-primary mb-1">1. ThinkingBlock</h2>
+          <h2 class="text-xl font-semibold text-text-primary mb-1">
+            1. ThinkingBlock
+          </h2>
           <p class="text-sm text-text-secondary">
             可折叠的思考过程块，支持流式输出和打字机效果
           </p>
         </div>
         <div class="bg-bg-secondary rounded-lg p-6">
-          <ThinkingBlock :content="thinkingContent" :isStreaming="false" :defaultExpanded="true" />
+          <ThinkingBlock
+            :content="thinkingContent"
+            :is-streaming="false"
+            :default-expanded="true"
+          />
         </div>
       </section>
 
       <!-- Section 2: ToolCallBlock -->
       <section class="mb-12">
         <div class="mb-4">
-          <h2 class="text-xl font-semibold text-text-primary mb-1">2. ToolCallBlock</h2>
+          <h2 class="text-xl font-semibold text-text-primary mb-1">
+            2. ToolCallBlock
+          </h2>
           <p class="text-sm text-text-secondary">
             工具调用可视化，展示不同状态（pending/running/success/error）
           </p>
@@ -160,8 +170,8 @@ Elapsed: 3s`
           <ToolCallBlock
             v-for="toolCall in toolCalls"
             :key="toolCall.id"
-            :toolCall="toolCall"
-            :defaultExpanded="toolCall.status === 'success'"
+            :tool-call="toolCall"
+            :default-expanded="toolCall.status === 'success'"
           />
         </div>
       </section>
@@ -169,34 +179,49 @@ Elapsed: 3s`
       <!-- Section 3: ProgressIndicator -->
       <section class="mb-12">
         <div class="mb-4">
-          <h2 class="text-xl font-semibold text-text-primary mb-1">3. ProgressIndicator</h2>
+          <h2 class="text-xl font-semibold text-text-primary mb-1">
+            3. ProgressIndicator
+          </h2>
           <p class="text-sm text-text-secondary">
             长任务进度指示器，适用于Deep Research和PPT生成
           </p>
         </div>
         <div class="bg-bg-secondary rounded-lg p-6">
-          <ProgressIndicator title="深度研究：AI Agent市场" :steps="progressSteps" />
+          <ProgressIndicator
+            title="深度研究：AI Agent市场"
+            :steps="progressSteps"
+          />
         </div>
       </section>
 
       <!-- Section 4: WorkingMemory -->
       <section class="mb-12">
         <div class="mb-4">
-          <h2 class="text-xl font-semibold text-text-primary mb-1">4. WorkingMemory</h2>
+          <h2 class="text-xl font-semibold text-text-primary mb-1">
+            4. WorkingMemory
+          </h2>
           <p class="text-sm text-text-secondary">
             三文件工作法可视化（Manus核心架构）- Task Plan / Findings / Progress
           </p>
         </div>
         <div class="bg-bg-secondary rounded-lg p-6">
-          <WorkingMemory :taskPlan="taskPlan" :findings="findings" :progress="progress" />
+          <WorkingMemory
+            :task-plan="taskPlan"
+            :findings="findings"
+            :progress="progress"
+          />
         </div>
       </section>
 
       <!-- Section 5: Complete Chat Example -->
       <section class="mb-12">
         <div class="mb-4">
-          <h2 class="text-xl font-semibold text-text-primary mb-1">5. Complete Agent Response</h2>
-          <p class="text-sm text-text-secondary">完整的Agent消息示例（含思考过程 + 工具调用）</p>
+          <h2 class="text-xl font-semibold text-text-primary mb-1">
+            5. Complete Agent Response
+          </h2>
+          <p class="text-sm text-text-secondary">
+            完整的Agent消息示例（含思考过程 + 工具调用）
+          </p>
         </div>
         <div class="bg-bg-secondary rounded-lg p-6">
           <!-- Agent Avatar & Name -->
@@ -204,7 +229,12 @@ Elapsed: 3s`
             <div
               class="w-10 h-10 rounded-full bg-accent-gradient flex items-center justify-center flex-shrink-0"
             >
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                class="w-6 h-6 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -214,20 +244,27 @@ Elapsed: 3s`
               </svg>
             </div>
             <div>
-              <div class="font-semibold text-text-primary">TokenDance Agent</div>
-              <div class="text-xs text-text-tertiary">Deep Research Mode</div>
+              <div class="font-semibold text-text-primary">
+                TokenDance Agent
+              </div>
+              <div class="text-xs text-text-tertiary">
+                Deep Research Mode
+              </div>
             </div>
           </div>
 
           <!-- Thinking Block -->
-          <ThinkingBlock :content="thinkingContent" :isStreaming="false" />
+          <ThinkingBlock
+            :content="thinkingContent"
+            :is-streaming="false"
+          />
 
           <!-- Tool Calls -->
           <div class="space-y-3 mt-3">
             <ToolCallBlock
               v-for="toolCall in toolCalls.slice(0, 2)"
               :key="toolCall.id"
-              :toolCall="toolCall"
+              :tool-call="toolCall"
             />
           </div>
 
@@ -237,11 +274,15 @@ Elapsed: 3s`
               <p class="text-text-primary leading-relaxed">
                 基于多源搜索和信息聚合，我已完成AI Agent市场的初步调研。主要发现如下：
               </p>
-              <h3 class="text-text-primary">市场规模</h3>
+              <h3 class="text-text-primary">
+                市场规模
+              </h3>
               <p class="text-text-secondary">
                 2024年全球AI Agent市场规模预计达到XXX亿美元，较去年增长XX%。
               </p>
-              <h3 class="text-text-primary">主要玩家</h3>
+              <h3 class="text-text-primary">
+                主要玩家
+              </h3>
               <ul class="text-text-secondary">
                 <li>Anthropic - Claude系列，强调Constitutional AI</li>
                 <li>OpenAI - ChatGPT，市场领导者</li>
@@ -255,13 +296,19 @@ Elapsed: 3s`
       <!-- Color Palette Reference -->
       <section class="mb-12">
         <div class="mb-4">
-          <h2 class="text-xl font-semibold text-text-primary mb-1">Color Palette</h2>
-          <p class="text-sm text-text-secondary">深色主题色彩系统（蓝紫渐变）</p>
+          <h2 class="text-xl font-semibold text-text-primary mb-1">
+            Color Palette
+          </h2>
+          <p class="text-sm text-text-secondary">
+            深色主题色彩系统（蓝紫渐变）
+          </p>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <!-- Backgrounds -->
           <div class="space-y-2">
-            <div class="text-xs font-medium text-text-secondary mb-2">Backgrounds</div>
+            <div class="text-xs font-medium text-text-secondary mb-2">
+              Backgrounds
+            </div>
             <div class="h-16 rounded-lg bg-bg-primary border border-border-default flex items-center justify-center">
               <span class="text-xs text-text-tertiary">Primary</span>
             </div>
@@ -275,7 +322,9 @@ Elapsed: 3s`
 
           <!-- Accent Colors -->
           <div class="space-y-2">
-            <div class="text-xs font-medium text-text-secondary mb-2">Accent</div>
+            <div class="text-xs font-medium text-text-secondary mb-2">
+              Accent
+            </div>
             <div
               class="h-16 rounded-lg bg-accent-primary flex items-center justify-center text-white font-medium"
             >
@@ -295,7 +344,9 @@ Elapsed: 3s`
 
           <!-- Text Colors -->
           <div class="space-y-2">
-            <div class="text-xs font-medium text-text-secondary mb-2">Text</div>
+            <div class="text-xs font-medium text-text-secondary mb-2">
+              Text
+            </div>
             <div
               class="h-16 rounded-lg bg-bg-secondary border border-border-default flex items-center justify-center"
             >
@@ -315,7 +366,9 @@ Elapsed: 3s`
 
           <!-- Status Colors -->
           <div class="space-y-2">
-            <div class="text-xs font-medium text-text-secondary mb-2">Status</div>
+            <div class="text-xs font-medium text-text-secondary mb-2">
+              Status
+            </div>
             <div class="h-16 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-center">
               <span class="text-sm text-green-400 font-medium">Success</span>
             </div>

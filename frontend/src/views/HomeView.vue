@@ -324,7 +324,11 @@ onUnmounted(() => {
       @new-click="handleNewClick"
     >
       <template #footer>
-        <button class="any-sidebar__footer-btn" @click="handleLogout" title="退出登录">
+        <button
+          class="any-sidebar__footer-btn"
+          title="退出登录"
+          @click="handleLogout"
+        >
           <Settings class="w-5 h-5" />
         </button>
       </template>
@@ -334,7 +338,10 @@ onUnmounted(() => {
     <AnyHeader :sidebar-collapsed="sidebarCollapsed">
       <template #right>
         <!-- 通知铃铛 -->
-        <button class="header-icon-btn" title="通知">
+        <button
+          class="header-icon-btn"
+          title="通知"
+        >
           <Bell class="w-5 h-5" />
           <span class="notification-badge">4</span>
         </button>
@@ -351,10 +358,15 @@ onUnmounted(() => {
     </AnyHeader>
     
     <!-- Main Content -->
-    <main class="home-main" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <main
+      class="home-main"
+      :class="{ 'sidebar-collapsed': sidebarCollapsed }"
+    >
       <!-- Hero: 大标题 -->
       <section class="hero-section">
-        <h1 class="hero-title">How can I help you today?</h1>
+        <h1 class="hero-title">
+          How can I help you today?
+        </h1>
       </section>
 
       <!-- 核心输入框 - AnyGen 风格 -->
@@ -378,16 +390,35 @@ onUnmounted(() => {
           <!-- 工具栏 -->
           <div class="input-toolbar">
             <div class="toolbar-left">
-              <AnyButton variant="ghost" size="sm" @click="handleAttachClick" title="添加文件">
+              <AnyButton
+                variant="ghost"
+                size="sm"
+                title="添加文件"
+                @click="handleAttachClick"
+              >
                 <Plus class="w-5 h-5" />
               </AnyButton>
-              <input type="file" ref="fileInputRef" class="hidden" multiple @change="handleFileSelect" />
-              <AnyButton variant="ghost" size="sm" title="添加协作者">
+              <input
+                ref="fileInputRef"
+                type="file"
+                class="hidden"
+                multiple
+                @change="handleFileSelect"
+              >
+              <AnyButton
+                variant="ghost"
+                size="sm"
+                title="添加协作者"
+              >
                 <Users class="w-5 h-5" />
               </AnyButton>
             </div>
             <div class="toolbar-right">
-              <AnyButton variant="ghost" size="sm" title="语音输入">
+              <AnyButton
+                variant="ghost"
+                size="sm"
+                title="语音输入"
+              >
                 <Mic class="w-5 h-5" />
               </AnyButton>
               <button 
@@ -413,7 +444,10 @@ onUnmounted(() => {
             :disabled="isLoading"
             @click="handleChipClick(chip)"
           >
-            <component :is="chip.icon" class="w-4 h-4" />
+            <component
+              :is="chip.icon"
+              class="w-4 h-4"
+            />
             <span>{{ chip.label }}</span>
           </button>
         </div>
@@ -425,7 +459,10 @@ onUnmounted(() => {
             :disabled="isLoading"
             @click="handleChipClick(chip)"
           >
-            <component :is="chip.icon" class="w-4 h-4" />
+            <component
+              :is="chip.icon"
+              class="w-4 h-4"
+            />
             <span>{{ chip.label }}</span>
           </button>
           <button class="chip chip-more">
@@ -445,9 +482,16 @@ onUnmounted(() => {
             :class="{ active: activeCategory === cat.id }"
             @click="activeCategory = cat.id"
           >
-            <component v-if="cat.icon" :is="cat.icon" class="w-4 h-4" />
+            <component
+              :is="cat.icon"
+              v-if="cat.icon"
+              class="w-4 h-4"
+            />
             <span>{{ cat.label }}</span>
-            <span v-if="cat.badge" class="category-badge">{{ cat.badge }}</span>
+            <span
+              v-if="cat.badge"
+              class="category-badge"
+            >{{ cat.badge }}</span>
           </button>
         </div>
       </section>
@@ -463,19 +507,40 @@ onUnmounted(() => {
             @click="handleTemplateClick(tpl)"
           >
             <!-- 预览图区域 -->
-            <div class="template-preview" :class="{ 'has-preview': tpl.preview }">
+            <div
+              class="template-preview"
+              :class="{ 'has-preview': tpl.preview }"
+            >
               <!-- 图标类型（无预览图） -->
-              <div v-if="tpl.icon" class="template-icon-wrapper" :style="{ background: tpl.bgColor }">
-                <component :is="tpl.icon" class="w-10 h-10" :style="{ color: tpl.iconColor }" />
+              <div
+                v-if="tpl.icon"
+                class="template-icon-wrapper"
+                :style="{ background: tpl.bgColor }"
+              >
+                <component
+                  :is="tpl.icon"
+                  class="w-10 h-10"
+                  :style="{ color: tpl.iconColor }"
+                />
               </div>
               <!-- 预览图类型 -->
-              <div v-else class="template-thumbnail" :class="`thumbnail--${tpl.preview}`"></div>
+              <div
+                v-else
+                class="template-thumbnail"
+                :class="`thumbnail--${tpl.preview}`"
+              />
             </div>
             <!-- 文字信息 -->
             <div class="template-info">
               <span class="template-title">{{ tpl.title }}</span>
-              <div v-if="tpl.tag" class="template-meta">
-                <span class="template-tag" :class="`tag--${tpl.tag.toLowerCase()}`">{{ tpl.tag }}</span>
+              <div
+                v-if="tpl.tag"
+                class="template-meta"
+              >
+                <span
+                  class="template-tag"
+                  :class="`tag--${tpl.tag.toLowerCase()}`"
+                >{{ tpl.tag }}</span>
                 <span class="template-uses">{{ tpl.uses }}</span>
               </div>
             </div>

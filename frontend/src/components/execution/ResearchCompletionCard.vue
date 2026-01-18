@@ -137,32 +137,52 @@ onMounted(() => {
         <CheckCircleIcon class="w-6 h-6 text-green-500" />
       </div>
       <div class="header-content">
-        <h3 class="header-title">研究完成</h3>
-        <p class="header-subtitle">{{ topic }}</p>
+        <h3 class="header-title">
+          研究完成
+        </h3>
+        <p class="header-subtitle">
+          {{ topic }}
+        </p>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <div class="spinner" />
       <p>正在提取研究发现...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <p>{{ error }}</p>
-      <button @click="fetchFindings" class="retry-btn">重试</button>
+      <button
+        class="retry-btn"
+        @click="fetchFindings"
+      >
+        重试
+      </button>
     </div>
 
     <!-- Content -->
-    <div v-else-if="findings" class="card-content">
+    <div
+      v-else-if="findings"
+      class="card-content"
+    >
       <!-- Summary -->
       <div class="section summary-section">
         <h4 class="section-title">
           <DocumentTextIcon class="w-4 h-4" />
           研究摘要
         </h4>
-        <p class="summary-text">{{ findings.summary || '暂无摘要' }}</p>
+        <p class="summary-text">
+          {{ findings.summary || '暂无摘要' }}
+        </p>
       </div>
 
       <!-- Stats -->
@@ -199,7 +219,10 @@ onMounted(() => {
             <span class="finding-importance">{{ importanceIcon(finding.importance) }}</span>
             <span class="finding-title">{{ finding.title }}</span>
           </div>
-          <div v-if="findings.key_findings.length > 5" class="more-findings">
+          <div
+            v-if="findings.key_findings.length > 5"
+            class="more-findings"
+          >
             +{{ findings.key_findings.length - 5 }} 更多发现
           </div>
         </div>
@@ -226,7 +249,10 @@ onMounted(() => {
 
       <!-- Actions -->
       <div class="actions">
-        <button class="btn-secondary" @click="exportReport">
+        <button
+          class="btn-secondary"
+          @click="exportReport"
+        >
           <ArrowDownTrayIcon class="w-5 h-5" />
           导出报告
         </button>

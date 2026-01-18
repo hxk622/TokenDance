@@ -205,12 +205,14 @@ onMounted(async () => {
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center gap-4">
             <button
-              @click="router.push('/')"
               class="text-gray-500 hover:text-gray-700 transition-colors"
+              @click="router.push('/')"
             >
               ← 返回
             </button>
-            <h1 class="text-xl font-semibold text-gray-900">撰写演示文稿</h1>
+            <h1 class="text-xl font-semibold text-gray-900">
+              撰写演示文稿
+            </h1>
           </div>
           
           <div class="flex items-center gap-4">
@@ -218,14 +220,20 @@ onMounted(async () => {
               v-model="filename"
               placeholder="文件名"
               class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-48"
-            />
+            >
             <button
-              @click="generatePPT"
               :disabled="generating || !slides.length"
               class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              @click="generatePPT"
             >
-              <ArrowDownTrayIcon v-if="!generating" class="w-5 h-5" />
-              <ArrowPathIcon v-else class="w-5 h-5 animate-spin" />
+              <ArrowDownTrayIcon
+                v-if="!generating"
+                class="w-5 h-5"
+              />
+              <ArrowPathIcon
+                v-else
+                class="w-5 h-5 animate-spin"
+              />
               {{ generating ? '导出中...' : '导出 PPTX' }}
             </button>
           </div>
@@ -234,10 +242,18 @@ onMounted(async () => {
     </header>
 
     <!-- Error Alert -->
-    <div v-if="error" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+    <div
+      v-if="error"
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4"
+    >
       <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
         <span>{{ error }}</span>
-        <button @click="error = null" class="text-red-500 hover:text-red-700">×</button>
+        <button
+          class="text-red-500 hover:text-red-700"
+          @click="error = null"
+        >
+          ×
+        </button>
       </div>
     </div>
 
@@ -248,7 +264,9 @@ onMounted(async () => {
         <div class="col-span-3">
           <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="font-medium text-gray-900">幻灯片</h2>
+              <h2 class="font-medium text-gray-900">
+                幻灯片
+              </h2>
               <span class="text-sm text-gray-500">{{ slides.length }} 张</span>
             </div>
             
@@ -257,13 +275,13 @@ onMounted(async () => {
               <div
                 v-for="(slide, index) in slides"
                 :key="index"
-                @click="selectSlide(index)"
                 :class="[
                   'relative p-3 rounded-lg cursor-pointer transition-all group',
                   selectedSlideIndex === index
                     ? 'bg-indigo-50 border-2 border-indigo-500'
                     : 'bg-gray-50 border-2 border-transparent hover:border-gray-300'
                 ]"
+                @click="selectSlide(index)"
               >
                 <div class="flex items-center gap-2">
                   <span class="text-lg">{{ getStyleIcon(slide.style) }}</span>
@@ -271,7 +289,9 @@ onMounted(async () => {
                     <p class="text-sm font-medium text-gray-900 truncate">
                       {{ slide.title || '未命名' }}
                     </p>
-                    <p class="text-xs text-gray-500">{{ getStyleLabel(slide.style) }}</p>
+                    <p class="text-xs text-gray-500">
+                      {{ getStyleLabel(slide.style) }}
+                    </p>
                   </div>
                   <span class="text-xs text-gray-400">{{ index + 1 }}</span>
                 </div>
@@ -279,8 +299,8 @@ onMounted(async () => {
                 <!-- Delete button -->
                 <button
                   v-if="slides.length > 1"
-                  @click.stop="removeSlide(index)"
                   class="absolute top-1 right-1 p-1 rounded-full bg-red-100 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  @click.stop="removeSlide(index)"
                 >
                   <TrashIcon class="w-3 h-3" />
                 </button>
@@ -291,8 +311,8 @@ onMounted(async () => {
             <div class="mt-4 pt-4 border-t border-gray-200">
               <div class="relative">
                 <button
-                  @click="addSlide()"
                   class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
+                  @click="addSlide()"
                 >
                   <PlusIcon class="w-4 h-4" />
                   添加幻灯片
@@ -301,19 +321,22 @@ onMounted(async () => {
             </div>
 
             <!-- Move Buttons -->
-            <div class="mt-2 flex gap-2" v-if="slides.length > 1">
+            <div
+              v-if="slides.length > 1"
+              class="mt-2 flex gap-2"
+            >
               <button
-                @click="moveSlide('up')"
                 :disabled="!canMoveUp"
                 class="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                @click="moveSlide('up')"
               >
                 <ChevronUpIcon class="w-4 h-4" />
                 上移
               </button>
               <button
-                @click="moveSlide('down')"
                 :disabled="!canMoveDown"
                 class="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                @click="moveSlide('down')"
               >
                 <ChevronDownIcon class="w-4 h-4" />
                 下移
@@ -324,7 +347,10 @@ onMounted(async () => {
 
         <!-- Middle: Editor -->
         <div class="col-span-5">
-          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" v-if="currentSlide">
+          <div
+            v-if="currentSlide"
+            class="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          >
             <h2 class="font-medium text-gray-900 mb-4 flex items-center gap-2">
               <DocumentTextIcon class="w-5 h-5 text-gray-400" />
               编辑幻灯片
@@ -337,16 +363,20 @@ onMounted(async () => {
                 <button
                   v-for="style in styles"
                   :key="style.id"
-                  @click="currentSlide.style = style.id; updatePreview()"
                   :class="[
                     'p-3 rounded-lg border-2 text-left transition-all',
                     currentSlide.style === style.id
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
                   ]"
+                  @click="currentSlide.style = style.id; updatePreview()"
                 >
-                  <p class="text-sm font-medium text-gray-900">{{ style.name }}</p>
-                  <p class="text-xs text-gray-500 mt-1">{{ style.description.slice(0, 30) }}...</p>
+                  <p class="text-sm font-medium text-gray-900">
+                    {{ style.name }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    {{ style.description.slice(0, 30) }}...
+                  </p>
                 </button>
               </div>
             </div>
@@ -356,10 +386,10 @@ onMounted(async () => {
               <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
               <input
                 v-model="currentSlide.title"
-                @input="updatePreview"
                 placeholder="输入标题..."
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
+                @input="updatePreview"
+              >
             </div>
 
             <!-- Subtitle -->
@@ -367,10 +397,10 @@ onMounted(async () => {
               <label class="block text-sm font-medium text-gray-700 mb-1">副标题</label>
               <input
                 v-model="currentSlide.subtitle"
-                @input="updatePreview"
                 placeholder="输入副标题..."
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
+                @input="updatePreview"
+              >
             </div>
 
             <!-- Body -->
@@ -378,11 +408,11 @@ onMounted(async () => {
               <label class="block text-sm font-medium text-gray-700 mb-1">正文内容</label>
               <textarea
                 v-model="currentSlide.body"
-                @input="updatePreview"
                 placeholder="输入正文内容（支持 • 开头的列表）..."
                 rows="4"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
-              ></textarea>
+                @input="updatePreview"
+              />
             </div>
 
             <!-- Color Presets -->
@@ -395,13 +425,13 @@ onMounted(async () => {
                 <button
                   v-for="preset in colorPresets"
                   :key="preset.name"
-                  @click="applyColorPreset(preset)"
                   class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                  @click="applyColorPreset(preset)"
                 >
                   <div
                     class="w-6 h-6 rounded-full border border-gray-300"
                     :style="{ background: `linear-gradient(135deg, ${preset.accent} 0%, ${preset.base} 100%)` }"
-                  ></div>
+                  />
                   <span class="text-xs text-gray-600">{{ preset.name }}</span>
                 </button>
               </div>
@@ -418,32 +448,32 @@ onMounted(async () => {
                     <label class="block text-xs text-gray-500 mb-1">强调色</label>
                     <div class="flex items-center gap-2">
                       <input
-                        type="color"
                         v-model="currentSlide.accent_color"
-                        @input="updatePreview"
+                        type="color"
                         class="w-8 h-8 rounded cursor-pointer"
-                      />
+                        @input="updatePreview"
+                      >
                       <input
                         v-model="currentSlide.accent_color"
-                        @input="updatePreview"
                         class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                      />
+                        @input="updatePreview"
+                      >
                     </div>
                   </div>
                   <div>
                     <label class="block text-xs text-gray-500 mb-1">基础色</label>
                     <div class="flex items-center gap-2">
                       <input
-                        type="color"
                         v-model="currentSlide.base_color"
-                        @input="updatePreview"
+                        type="color"
                         class="w-8 h-8 rounded cursor-pointer"
-                      />
+                        @input="updatePreview"
+                      >
                       <input
                         v-model="currentSlide.base_color"
-                        @input="updatePreview"
                         class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                      />
+                        @input="updatePreview"
+                      >
                     </div>
                   </div>
                 </div>
@@ -461,9 +491,9 @@ onMounted(async () => {
                 实时预览
               </h2>
               <button
-                @click="updatePreview"
                 :disabled="previewLoading"
                 class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                @click="updatePreview"
               >
                 <ArrowPathIcon :class="['w-4 h-4', previewLoading && 'animate-spin']" />
               </button>
@@ -476,7 +506,7 @@ onMounted(async () => {
                 :src="previewUrl"
                 alt="Slide Preview"
                 class="w-full h-full object-cover"
-              />
+              >
               <div
                 v-else
                 class="absolute inset-0 flex items-center justify-center text-gray-400"
@@ -507,14 +537,14 @@ onMounted(async () => {
             <!-- Quick Actions -->
             <div class="mt-4 flex gap-2">
               <button
-                @click="addSlide('section_header')"
                 class="flex-1 text-xs px-3 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                @click="addSlide('section_header')"
               >
                 + 章节页
               </button>
               <button
-                @click="addSlide('tech_modern')"
                 class="flex-1 text-xs px-3 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                @click="addSlide('tech_modern')"
               >
                 + 内容页
               </button>

@@ -47,28 +47,48 @@ const renderDagNodes = (task: ExecutingTask) => {
 
 <template>
   <div class="global-execution">
-    <h3 class="execution-label">🌍 现在全球正在进行</h3>
+    <h3 class="execution-label">
+      🌍 现在全球正在进行
+    </h3>
     
     <!-- 实时统计 -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-number pulse-number">{{ totalTasksRunning }}</div>
-        <div class="stat-label">个任务运行中</div>
+        <div class="stat-number pulse-number">
+          {{ totalTasksRunning }}
+        </div>
+        <div class="stat-label">
+          个任务运行中
+        </div>
       </div>
       <div class="stat-card">
-        <div class="stat-number pulse-number">{{ formatMessages(totalMessagesProcessing) }}</div>
-        <div class="stat-label">条消息处理中</div>
+        <div class="stat-number pulse-number">
+          {{ formatMessages(totalMessagesProcessing) }}
+        </div>
+        <div class="stat-label">
+          条消息处理中
+        </div>
       </div>
     </div>
     
     <!-- 执行任务展示 -->
     <div class="execution-showcase">
-      <div v-for="task in executingTasks" :key="task.id" class="execution-card">
+      <div
+        v-for="task in executingTasks"
+        :key="task.id"
+        class="execution-card"
+      >
         <!-- 迷你 DAG 图 -->
         <div class="dag-mini">
-          <svg class="dag-svg" viewBox="0 0 120 30">
+          <svg
+            class="dag-svg"
+            viewBox="0 0 120 30"
+          >
             <!-- 节点 -->
-            <template v-for="(node, i) in renderDagNodes(task)" :key="`node-${i}`">
+            <template
+              v-for="(node, i) in renderDagNodes(task)"
+              :key="`node-${i}`"
+            >
               <!-- 连线 -->
               <line
                 v-if="i < renderDagNodes(task).length - 1"

@@ -54,10 +54,16 @@ const formattedParams = computed(() => {
 </script>
 
 <template>
-  <div class="tool-call-card" :class="statusClasses">
+  <div
+    class="tool-call-card"
+    :class="statusClasses"
+  >
     <div class="tool-header">
       <!-- Status Icon -->
-      <div class="status-icon-wrapper" :class="statusIconColor">
+      <div
+        class="status-icon-wrapper"
+        :class="statusIconColor"
+      >
         <!-- Running -->
         <svg
           v-if="status === 'running'"
@@ -118,14 +124,24 @@ const formattedParams = computed(() => {
     </div>
 
     <!-- Parameters -->
-    <div v-if="parameters && Object.keys(parameters).length > 0" class="tool-section">
-      <div class="section-title">参数:</div>
+    <div
+      v-if="parameters && Object.keys(parameters).length > 0"
+      class="tool-section"
+    >
+      <div class="section-title">
+        参数:
+      </div>
       <pre class="code-block">{{ formattedParams }}</pre>
     </div>
 
     <!-- Result -->
-    <div v-if="result" class="tool-section">
-      <div class="section-title">结果:</div>
+    <div
+      v-if="result"
+      class="tool-section"
+    >
+      <div class="section-title">
+        结果:
+      </div>
       <pre class="code-block result-text">{{ result }}</pre>
     </div>
   </div>

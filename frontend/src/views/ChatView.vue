@@ -281,26 +281,47 @@ onUnmounted(() => {
     <!-- Header -->
     <header class="chat-header">
       <div class="header-left">
-        <h1 class="chat-title">TokenDance</h1>
-        <span v-if="sessionStore.currentSession" class="session-title">
+        <h1 class="chat-title">
+          TokenDance
+        </h1>
+        <span
+          v-if="sessionStore.currentSession"
+          class="session-title"
+        >
           {{ sessionStore.currentSession.title }}
         </span>
       </div>
       <div class="header-actions">
         <div class="status-indicator">
-          <div v-if="isConnected" class="status-dot status-connected" />
-          <div v-else class="status-dot status-disconnected" />
+          <div
+            v-if="isConnected"
+            class="status-dot status-connected"
+          />
+          <div
+            v-else
+            class="status-dot status-disconnected"
+          />
           <span class="status-text">
             {{ isConnected ? '已连接' : '未连接' }}
           </span>
         </div>
         <button
-          @click="toggleMemoryPanel"
           class="memory-button"
           :class="{ 'memory-button-active': showMemoryPanel }"
+          @click="toggleMemoryPanel"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
           <span class="ml-2">Memory</span>
         </button>
@@ -310,7 +331,10 @@ onUnmounted(() => {
     <!-- Main Content Area -->
     <div class="main-content">
       <!-- Messages Area -->
-      <div class="messages-area" :class="{ 'with-sidebar': showMemoryPanel }">
+      <div
+        class="messages-area"
+        :class="{ 'with-sidebar': showMemoryPanel }"
+      >
         <MessageList :messages="messages" />
         
         <!-- Thinking Trace -->
@@ -339,24 +363,44 @@ onUnmounted(() => {
 
       <!-- Working Memory Sidebar -->
       <Transition name="slide-left">
-        <div v-if="showMemoryPanel" class="memory-sidebar">
+        <div
+          v-if="showMemoryPanel"
+          class="memory-sidebar"
+        >
           <div class="memory-header">
-            <h2 class="memory-title">Working Memory</h2>
+            <h2 class="memory-title">
+              Working Memory
+            </h2>
             <button
-              @click="refreshMemory"
               class="refresh-button"
               :class="{ 'refresh-button-loading': isLoadingMemory }"
               :disabled="isLoadingMemory"
+              @click="refreshMemory"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
             </button>
           </div>
           
-          <div v-if="isLoadingMemory" class="loading-spinner">
-            <div class="spinner"></div>
-            <p class="text-sm text-gray-500 mt-2">加载中...</p>
+          <div
+            v-if="isLoadingMemory"
+            class="loading-spinner"
+          >
+            <div class="spinner" />
+            <p class="text-sm text-gray-500 mt-2">
+              加载中...
+            </p>
           </div>
           
           <WorkingMemory
@@ -366,8 +410,13 @@ onUnmounted(() => {
             :progress="memoryData.progress.content"
           />
           
-          <div v-else class="empty-state">
-            <p class="text-sm text-gray-500">暂无Working Memory数据</p>
+          <div
+            v-else
+            class="empty-state"
+          >
+            <p class="text-sm text-gray-500">
+              暂无Working Memory数据
+            </p>
           </div>
         </div>
       </Transition>
@@ -385,12 +434,21 @@ onUnmounted(() => {
     <Transition name="bounce">
       <button
         v-if="pendingHITLRequests.length > 0 && !showHITLDialog"
-        @click="showHITLDialog = true; currentHITLRequest = pendingHITLRequests[0]"
         class="hitl-badge"
+        @click="showHITLDialog = true; currentHITLRequest = pendingHITLRequests[0]"
       >
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2" 
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
         </svg>
         <span>{{ pendingHITLRequests.length }} 待确认</span>
       </button>

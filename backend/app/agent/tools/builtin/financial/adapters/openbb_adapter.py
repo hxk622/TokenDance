@@ -32,11 +32,11 @@ def _get_obb():
         try:
             from openbb import obb
             _obb = obb
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "OpenBB is not installed. Install with: "
                 "uv pip install -e '.[finance]'"
-            )
+            ) from e
     return _obb
 
 

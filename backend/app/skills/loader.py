@@ -201,8 +201,8 @@ class SkillLoader:
             logger.debug(f"Script output: {output[:200]}...")
             return output
 
-        except subprocess.TimeoutExpired:
-            raise RuntimeError(f"Script execution timed out after {timeout}s")
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(f"Script execution timed out after {timeout}s") from e
         except Exception as e:
             raise RuntimeError(f"Script execution error: {e}") from e
 

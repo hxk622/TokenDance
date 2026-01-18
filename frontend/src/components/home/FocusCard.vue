@@ -40,16 +40,23 @@ const progressPercentage = computed(() =>
 
 <template>
   <div class="focus-card">
-    <h3 class="focus-label">你今天的焦点</h3>
+    <h3 class="focus-label">
+      你今天的焦点
+    </h3>
     
     <div class="focus-content">
       <!-- 呼吸指示器 -->
-      <div class="pulse-indicator" :class="`status-${currentProject.status}`" />
+      <div
+        class="pulse-indicator"
+        :class="`status-${currentProject.status}`"
+      />
       
       <!-- 项目标题和进度 -->
       <div class="project-header">
         <div class="title-section">
-          <h4 class="project-title">{{ currentProject.title }}</h4>
+          <h4 class="project-title">
+            {{ currentProject.title }}
+          </h4>
           <span class="progress-text">进行中 ({{ currentProject.currentStep }}/{{ currentProject.totalSteps }} 步)</span>
         </div>
         <span class="progress-percent">{{ progressPercentage }}%</span>
@@ -67,18 +74,34 @@ const progressPercentage = computed(() =>
       
       <!-- 建议操作 -->
       <div class="suggestion-box">
-        <svg class="suggestion-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <svg
+          class="suggestion-icon"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
         </svg>
         <span class="suggestion-text">{{ currentProject.suggestion }}</span>
       </div>
       
       <!-- 操作按钮 -->
       <div class="actions">
-        <button class="action-btn action-btn-primary" @click="emit('continue')">
+        <button
+          class="action-btn action-btn-primary"
+          @click="emit('continue')"
+        >
           继续这个任务
         </button>
-        <button class="action-btn action-btn-secondary" @click="emit('pause')">
+        <button
+          class="action-btn action-btn-secondary"
+          @click="emit('pause')"
+        >
           暂停
         </button>
       </div>

@@ -1,28 +1,48 @@
 <template>
   <div class="technical-analysis-card">
     <div class="card-header">
-      <h3 class="card-title">技术分析</h3>
-      <span v-if="result" class="signal-badge" :class="signalClass">
+      <h3 class="card-title">
+        技术分析
+      </h3>
+      <span
+        v-if="result"
+        class="signal-badge"
+        :class="signalClass"
+      >
         {{ signalLabel }}
       </span>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
       <div class="loading-spinner" />
       <p>正在进行技术分析...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p class="error-text">{{ error }}</p>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <p class="error-text">
+        {{ error }}
+      </p>
     </div>
 
     <!-- Result -->
-    <div v-else-if="result" class="card-content">
+    <div
+      v-else-if="result"
+      class="card-content"
+    >
       <!-- Score -->
       <div class="score-section">
-        <div class="score-circle" :class="getScoreClass(result.score)">
+        <div
+          class="score-circle"
+          :class="getScoreClass(result.score)"
+        >
           <span class="score-value">{{ result.score.toFixed(0) }}</span>
         </div>
         <span class="score-label">技术评分</span>
@@ -30,19 +50,37 @@
 
       <!-- Signals -->
       <div class="signals-section">
-        <div v-if="result.buy_signals.length > 0" class="signal-group buy">
-          <h4 class="signal-title">🟢 买入信号</h4>
+        <div
+          v-if="result.buy_signals.length > 0"
+          class="signal-group buy"
+        >
+          <h4 class="signal-title">
+            🟢 买入信号
+          </h4>
           <div class="signal-tags">
-            <span v-for="(signal, idx) in result.buy_signals.slice(0, 4)" :key="idx" class="signal-tag">
+            <span
+              v-for="(signal, idx) in result.buy_signals.slice(0, 4)"
+              :key="idx"
+              class="signal-tag"
+            >
               {{ signal }}
             </span>
           </div>
         </div>
 
-        <div v-if="result.sell_signals.length > 0" class="signal-group sell">
-          <h4 class="signal-title">🔴 卖出信号</h4>
+        <div
+          v-if="result.sell_signals.length > 0"
+          class="signal-group sell"
+        >
+          <h4 class="signal-title">
+            🔴 卖出信号
+          </h4>
           <div class="signal-tags">
-            <span v-for="(signal, idx) in result.sell_signals.slice(0, 4)" :key="idx" class="signal-tag">
+            <span
+              v-for="(signal, idx) in result.sell_signals.slice(0, 4)"
+              :key="idx"
+              class="signal-tag"
+            >
               {{ signal }}
             </span>
           </div>
@@ -51,23 +89,34 @@
 
       <!-- Key Indicators -->
       <div class="indicators-section">
-        <h4 class="section-title">关键指标</h4>
+        <h4 class="section-title">
+          关键指标
+        </h4>
         <div class="indicator-grid">
           <div class="indicator-item">
             <span class="indicator-label">RSI</span>
-            <span class="indicator-value" :class="getRsiClass(result.momentum.rsi.value)">
+            <span
+              class="indicator-value"
+              :class="getRsiClass(result.momentum.rsi.value)"
+            >
               {{ formatNumber(result.momentum.rsi.value) }}
             </span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">MACD</span>
-            <span class="indicator-value" :class="getMacdClass(result.trend.macd.signal_type)">
+            <span
+              class="indicator-value"
+              :class="getMacdClass(result.trend.macd.signal_type)"
+            >
               {{ result.trend.macd.signal_type === 'bullish' ? '多' : result.trend.macd.signal_type === 'bearish' ? '空' : '中' }}
             </span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">KDJ</span>
-            <span class="indicator-value" :class="getKdjClass(result.momentum.kdj.signal)">
+            <span
+              class="indicator-value"
+              :class="getKdjClass(result.momentum.kdj.signal)"
+            >
               {{ result.momentum.kdj.signal === 'bullish' ? '金叉' : result.momentum.kdj.signal === 'bearish' ? '死叉' : '中性' }}
             </span>
           </div>
@@ -81,16 +130,27 @@
       </div>
 
       <!-- Support & Resistance -->
-      <div v-if="result.support_levels.length > 0 || result.resistance_levels.length > 0" class="levels-section">
-        <h4 class="section-title">支撑/阻力位</h4>
+      <div
+        v-if="result.support_levels.length > 0 || result.resistance_levels.length > 0"
+        class="levels-section"
+      >
+        <h4 class="section-title">
+          支撑/阻力位
+        </h4>
         <div class="levels-grid">
-          <div v-if="result.support_levels.length > 0" class="level-group">
+          <div
+            v-if="result.support_levels.length > 0"
+            class="level-group"
+          >
             <span class="level-label">支撑</span>
             <span class="level-value support">
               ¥{{ result.support_levels[0]?.toFixed(2) }}
             </span>
           </div>
-          <div v-if="result.resistance_levels.length > 0" class="level-group">
+          <div
+            v-if="result.resistance_levels.length > 0"
+            class="level-group"
+          >
             <span class="level-label">阻力</span>
             <span class="level-value resistance">
               ¥{{ result.resistance_levels[0]?.toFixed(2) }}
@@ -100,13 +160,21 @@
       </div>
 
       <!-- Summary -->
-      <div v-if="result.summary" class="summary-section">
-        <p class="summary-text">{{ result.summary }}</p>
+      <div
+        v-if="result.summary"
+        class="summary-section"
+      >
+        <p class="summary-text">
+          {{ result.summary }}
+        </p>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <p>点击"一键分析"查看技术分析结果</p>
     </div>
   </div>

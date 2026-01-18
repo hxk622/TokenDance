@@ -73,7 +73,10 @@ function handleKeydown(e: KeyboardEvent) {
               <PencilSquareIcon class="w-5 h-5" />
               <span>修改执行指令</span>
             </div>
-            <button class="close-btn" @click="handleClose">
+            <button
+              class="close-btn"
+              @click="handleClose"
+            >
               <XMarkIcon class="w-5 h-5" />
             </button>
           </div>
@@ -95,7 +98,10 @@ function handleKeydown(e: KeyboardEvent) {
             />
             <div class="editor-hint">
               <span>修改后将从当前节点重新执行</span>
-              <button class="reset-btn" @click="handleReset">
+              <button
+                class="reset-btn"
+                @click="handleReset"
+              >
                 <ArrowPathIcon class="w-4 h-4" />
                 <span>重置</span>
               </button>
@@ -104,7 +110,10 @@ function handleKeydown(e: KeyboardEvent) {
           
           <!-- Actions -->
           <div class="dialog-actions">
-            <button class="btn-cancel" @click="handleClose">
+            <button
+              class="btn-cancel"
+              @click="handleClose"
+            >
               取消
             </button>
             <button 
@@ -112,9 +121,28 @@ function handleKeydown(e: KeyboardEvent) {
               :disabled="!editedPrompt.trim() || isSubmitting"
               @click="handleConfirm"
             >
-              <svg v-if="isSubmitting" class="w-4 h-4 animate-spin\" fill=\"none\" viewBox=\"0 0 24 24\">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <svg
+                v-if="isSubmitting"
+                class="w-4 h-4 animate-spin\"
+                fill="\&quot;none\&quot;"
+                viewBox="\&quot;0"
+                0
+                24
+                24\"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               {{ isSubmitting ? '执行中...' : '确认并继续' }}
               <kbd v-if="!isSubmitting">⌘↵</kbd>

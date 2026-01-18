@@ -72,19 +72,28 @@ const outputPreview = computed(() => {
       <!-- Header -->
       <div class="tooltip-header">
         <span class="node-type-icon">
-          <CpuChipIcon v-if="nodeType === 'manus'" class="w-5 h-5" />
-          <PencilSquareIcon v-else class="w-5 h-5" />
+          <CpuChipIcon
+            v-if="nodeType === 'manus'"
+            class="w-5 h-5"
+          />
+          <PencilSquareIcon
+            v-else
+            class="w-5 h-5"
+          />
         </span>
         <span class="node-label">{{ label }}</span>
       </div>
 
       <!-- Status Badge -->
       <div class="status-row">
-        <span class="status-badge" :style="{ 
-          background: `${statusColor}30`, 
-          color: statusColor,
-          borderColor: statusColor
-        }">
+        <span
+          class="status-badge"
+          :style="{ 
+            background: `${statusColor}30`, 
+            color: statusColor,
+            borderColor: statusColor
+          }"
+        >
           {{ statusText }}
         </span>
         <span class="node-id-badge">Node-{{ nodeId }}</span>
@@ -103,9 +112,16 @@ const outputPreview = computed(() => {
       </div>
 
       <!-- Output Preview -->
-      <div v-if="metadata?.output" class="output-section">
-        <div class="output-label">输出摘要</div>
-        <div class="output-content">{{ outputPreview }}</div>
+      <div
+        v-if="metadata?.output"
+        class="output-section"
+      >
+        <div class="output-label">
+          输出摘要
+        </div>
+        <div class="output-content">
+          {{ outputPreview }}
+        </div>
       </div>
     </div>
   </Teleport>

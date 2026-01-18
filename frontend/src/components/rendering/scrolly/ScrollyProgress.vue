@@ -63,7 +63,10 @@ const sectionDots = computed(() => {
         :style="{ top: dot.top }"
         :title="dot.id"
       >
-        <span v-if="showLabels" class="dot-label">{{ dot.id }}</span>
+        <span
+          v-if="showLabels"
+          class="dot-label"
+        >{{ dot.id }}</span>
       </div>
     </div>
     

@@ -340,11 +340,11 @@ function initChart() {
 
   // Add default indicators
   if (props.showVolume) {
-    ;(chartInstance as any).createIndicator('VOL', false, { id: 'candle_pane' })
+    (chartInstance as any).createIndicator('VOL', false, { id: 'candle_pane' })
   }
   
   // Add MA indicator by default
-  ;(chartInstance as any).createIndicator('MA', false, { id: 'candle_pane' })
+  (chartInstance as any).createIndicator('MA', false, { id: 'candle_pane' })
 
   // Register event handlers
   ;(chartInstance as any).subscribeAction('onCrosshairChange', (data: any) => {
@@ -367,7 +367,7 @@ function toggleIndicator(name: string) {
 
   if (activeIndicators.value.has(name)) {
     // Remove indicator
-    ;(chartInstance as any).removeIndicator('candle_pane', name)
+    (chartInstance as any).removeIndicator('candle_pane', name)
     activeIndicators.value.delete(name)
   } else {
     // Add indicator
@@ -420,11 +420,17 @@ defineExpose({
 </script>
 
 <template>
-  <div class="kline-chart-wrapper" :class="[`theme-${theme}`]">
+  <div
+    class="kline-chart-wrapper"
+    :class="[`theme-${theme}`]"
+  >
     <!-- Header -->
     <div class="chart-header">
       <div class="chart-info">
-        <span v-if="symbol" class="symbol">{{ symbol }}</span>
+        <span
+          v-if="symbol"
+          class="symbol"
+        >{{ symbol }}</span>
         <span class="period">{{ periodLabels[period] }}</span>
       </div>
       
@@ -450,15 +456,32 @@ defineExpose({
     />
 
     <!-- Loading Overlay -->
-    <div v-if="!data.length" class="empty-state">
+    <div
+      v-if="!data.length"
+      class="empty-state"
+    >
       <div class="empty-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 3v18h18"/>
-          <path d="m19 9-5 5-4-4-3 3"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="48"
+          height="48"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 3v18h18" />
+          <path d="m19 9-5 5-4-4-3 3" />
         </svg>
       </div>
-      <p class="empty-text">暂无K线数据</p>
-      <p class="empty-hint">选择股票后将显示K线走势</p>
+      <p class="empty-text">
+        暂无K线数据
+      </p>
+      <p class="empty-hint">
+        选择股票后将显示K线走势
+      </p>
     </div>
   </div>
 </template>

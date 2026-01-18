@@ -241,7 +241,7 @@ Input content can be:
 
         if not sections:
             # 如果没有检测到章节，创建单个默认章节
-            lines = [l.strip() for l in content.split('\n') if l.strip()]
+            lines = [line.strip() for line in content.split('\n') if line.strip()]
             sections = [{"title": "Overview", "points": lines[:10]}]
 
         return sections

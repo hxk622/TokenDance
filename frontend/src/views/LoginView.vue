@@ -14,14 +14,33 @@
       <!-- Left: Branding -->
       <div class="branding-section">
         <div class="brand-content">
-          <h1 class="brand-logo">TokenDance</h1>
-          <p class="brand-tagline">可指挥的智能工作台</p>
+          <h1 class="brand-logo">
+            TokenDance
+          </h1>
+          <p class="brand-tagline">
+            可指挥的智能工作台
+          </p>
           <div class="brand-features">
             <div class="feature-item">
               <div class="feature-icon-wrapper feature-icon--transparency">
-                <svg class="feature-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                <svg
+                  class="feature-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
                 </svg>
               </div>
               <div class="feature-text">
@@ -31,9 +50,24 @@
             </div>
             <div class="feature-item">
               <div class="feature-icon-wrapper feature-icon--controllability">
-                <svg class="feature-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg
+                  class="feature-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                 </svg>
               </div>
               <div class="feature-text">
@@ -43,8 +77,18 @@
             </div>
             <div class="feature-item">
               <div class="feature-icon-wrapper feature-icon--persistence">
-                <svg class="feature-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <svg
+                  class="feature-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
                 </svg>
               </div>
               <div class="feature-text">
@@ -54,32 +98,67 @@
             </div>
           </div>
         </div>
-        <p class="brand-footer">和 Agent 一起完成任务，而不是让 Agent 帮你</p>
+        <p class="brand-footer">
+          和 Agent 一起完成任务，而不是让 Agent 帮你
+        </p>
       </div>
 
       <!-- Right: Login Form -->
       <div class="form-section">
         <div class="form-card">
           <div class="form-header">
-            <h2 class="form-title">登录账户</h2>
-            <p class="form-subtitle">继续使用 TokenDance</p>
+            <h2 class="form-title">
+              登录账户
+            </h2>
+            <p class="form-subtitle">
+              继续使用 TokenDance
+            </p>
           </div>
 
-          <form @submit.prevent="handleLogin" class="login-form">
+          <form
+            class="login-form"
+            @submit.prevent="handleLogin"
+          >
             <!-- Error Alert -->
-            <div v-if="error" class="error-alert">
-              <svg class="error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div
+              v-if="error"
+              class="error-alert"
+            >
+              <svg
+                class="error-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span>{{ error }}</span>
             </div>
 
             <!-- Email Field -->
             <div class="form-field">
-              <label for="email" class="field-label">邮箱</label>
+              <label
+                for="email"
+                class="field-label"
+              >邮箱</label>
               <div class="input-wrapper">
-                <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <svg
+                  class="input-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
                 </svg>
                 <input
                   id="email"
@@ -89,16 +168,29 @@
                   autocomplete="email"
                   class="form-input"
                   placeholder="you@example.com"
-                />
+                >
               </div>
             </div>
 
             <!-- Password Field -->
             <div class="form-field">
-              <label for="password" class="field-label">密码</label>
+              <label
+                for="password"
+                class="field-label"
+              >密码</label>
               <div class="input-wrapper">
-                <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <svg
+                  class="input-icon"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
                 </svg>
                 <input
                   id="password"
@@ -108,15 +200,35 @@
                   autocomplete="current-password"
                   class="form-input"
                   placeholder="输入密码"
-                />
+                >
               </div>
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" :disabled="isLoading" class="submit-btn">
-              <svg v-if="isLoading" class="btn-spinner" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <button
+              type="submit"
+              :disabled="isLoading"
+              class="submit-btn"
+            >
+              <svg
+                v-if="isLoading"
+                class="btn-spinner"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  fill="none"
+                />
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
               <span>{{ isLoading ? '登录中...' : '登录' }}</span>
             </button>
@@ -128,19 +240,48 @@
 
             <!-- OAuth Buttons -->
             <div class="oauth-buttons">
-              <button type="button" @click="handleWeChatLogin" :disabled="isLoading" class="oauth-btn oauth-btn--wechat">
-                <svg class="oauth-icon" viewBox="0 0 24 24" fill="currentColor">
+              <button
+                type="button"
+                :disabled="isLoading"
+                class="oauth-btn oauth-btn--wechat"
+                @click="handleWeChatLogin"
+              >
+                <svg
+                  class="oauth-icon"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
                   <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05a5.79 5.79 0 01-.271-1.74c0-3.562 3.4-6.446 7.562-6.446.197 0 .391.012.585.025-.798-3.328-4.282-5.771-8.685-5.771zm-2.11 4.96a.925.925 0 11.002-1.85.925.925 0 01-.001 1.85zm4.877 0a.925.925 0 110-1.85.925.925 0 010 1.85z" />
                   <path d="M23.636 14.576c0-3.263-3.268-5.913-7.295-5.913-4.025 0-7.293 2.65-7.293 5.913s3.268 5.912 7.293 5.912c.858 0 1.68-.11 2.454-.308a.725.725 0 01.6.082l1.6.937a.27.27 0 00.14.045.243.243 0 00.242-.244c0-.06-.024-.12-.04-.178l-.327-1.244a.496.496 0 01.179-.558c1.537-1.137 2.447-2.814 2.447-4.444zm-9.782-1.061a.777.777 0 110-1.554.777.777 0 010 1.554zm4.974 0a.777.777 0 110-1.554.777.777 0 010 1.554z" />
                 </svg>
                 <span>微信</span>
               </button>
-              <button type="button" @click="handleGmailLogin" :disabled="isLoading" class="oauth-btn oauth-btn--google">
-                <svg class="oauth-icon" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              <button
+                type="button"
+                :disabled="isLoading"
+                class="oauth-btn oauth-btn--google"
+                @click="handleGmailLogin"
+              >
+                <svg
+                  class="oauth-icon"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
                 </svg>
                 <span>Google</span>
               </button>
@@ -150,7 +291,12 @@
           <!-- Register Link -->
           <p class="register-link">
             还没有账户？
-            <router-link to="/register" class="link-text">立即注册</router-link>
+            <router-link
+              to="/register"
+              class="link-text"
+            >
+              立即注册
+            </router-link>
           </p>
         </div>
       </div>

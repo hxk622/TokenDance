@@ -3,12 +3,17 @@
     <!-- Header -->
     <div class="settings-header">
       <div class="header-content">
-        <h2 class="settings-title">信任配置</h2>
+        <h2 class="settings-title">
+          信任配置
+        </h2>
         <p class="settings-description">
           配置 Agent 操作的自动授权策略，减少确认打断，提升工作效率
         </p>
       </div>
-      <div class="header-stats" v-if="config">
+      <div
+        v-if="config"
+        class="header-stats"
+      >
         <div class="stat-item">
           <span class="stat-value">{{ config.total_auto_approved }}</span>
           <span class="stat-label">自动授权</span>
@@ -25,33 +30,59 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
+      <div class="loading-spinner" />
       <span>加载中...</span>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
       </svg>
       <span>{{ error }}</span>
-      <button @click="loadConfig" class="retry-btn">重试</button>
+      <button
+        class="retry-btn"
+        @click="loadConfig"
+      >
+        重试
+      </button>
     </div>
 
     <!-- Settings Content -->
-    <div v-else-if="config" class="settings-content">
+    <div
+      v-else-if="config"
+      class="settings-content"
+    >
       <!-- Enable/Disable Toggle -->
       <div class="setting-section">
         <div class="section-header">
-          <h3 class="section-title">启用信任机制</h3>
+          <h3 class="section-title">
+            启用信任机制
+          </h3>
           <label class="toggle-switch">
             <input
-              type="checkbox"
               v-model="config.enabled"
+              type="checkbox"
               @change="handleToggleEnabled"
-            />
-            <span class="toggle-slider"></span>
+            >
+            <span class="toggle-slider" />
           </label>
         </div>
         <p class="section-description">
@@ -60,8 +91,13 @@
       </div>
 
       <!-- Auto Approve Level -->
-      <div class="setting-section" :class="{ disabled: !config.enabled }">
-        <h3 class="section-title">自动授权等级</h3>
+      <div
+        class="setting-section"
+        :class="{ disabled: !config.enabled }"
+      >
+        <h3 class="section-title">
+          自动授权等级
+        </h3>
         <p class="section-description">
           设置自动执行的最高风险等级，超过此等级的操作需要手动确认
         </p>
@@ -84,8 +120,13 @@
       </div>
 
       <!-- Pre-authorized Operations -->
-      <div class="setting-section" :class="{ disabled: !config.enabled }">
-        <h3 class="section-title">预授权操作</h3>
+      <div
+        class="setting-section"
+        :class="{ disabled: !config.enabled }"
+      >
+        <h3 class="section-title">
+          预授权操作
+        </h3>
         <p class="section-description">
           选择始终自动执行的操作类别（即使超出自动授权等级）
         </p>
@@ -101,10 +142,13 @@
               :checked="isPreAuthorized(op.category)"
               :disabled="!config.enabled"
               @change="togglePreAuthorized(op.category)"
-            />
+            >
             <div class="checkbox-content">
               <span class="op-name">{{ op.description }}</span>
-              <span class="op-risk" :class="`risk-${op.default_risk_level}`">
+              <span
+                class="op-risk"
+                :class="`risk-${op.default_risk_level}`"
+              >
                 {{ getLevelLabel(op.default_risk_level) }}
               </span>
             </div>
@@ -113,8 +157,13 @@
       </div>
 
       <!-- Blacklisted Operations -->
-      <div class="setting-section" :class="{ disabled: !config.enabled }">
-        <h3 class="section-title">黑名单操作</h3>
+      <div
+        class="setting-section"
+        :class="{ disabled: !config.enabled }"
+      >
+        <h3 class="section-title">
+          黑名单操作
+        </h3>
         <p class="section-description">
           选择始终需要确认的操作类别（即使在自动授权等级内）
         </p>
@@ -130,10 +179,13 @@
               :checked="isBlacklisted(op.category)"
               :disabled="!config.enabled"
               @change="toggleBlacklisted(op.category)"
-            />
+            >
             <div class="checkbox-content">
               <span class="op-name">{{ op.description }}</span>
-              <span class="op-risk" :class="`risk-${op.default_risk_level}`">
+              <span
+                class="op-risk"
+                :class="`risk-${op.default_risk_level}`"
+              >
                 {{ getLevelLabel(op.default_risk_level) }}
               </span>
             </div>
@@ -144,15 +196,35 @@
       <!-- Audit Logs -->
       <div class="setting-section">
         <div class="section-header">
-          <h3 class="section-title">授权历史</h3>
-          <button @click="() => loadAuditLogs()" class="refresh-btn" :disabled="logsLoading">
-            <svg class="w-4 h-4" :class="{ spinning: logsLoading }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <h3 class="section-title">
+            授权历史
+          </h3>
+          <button
+            class="refresh-btn"
+            :disabled="logsLoading"
+            @click="() => loadAuditLogs()"
+          >
+            <svg
+              class="w-4 h-4"
+              :class="{ spinning: logsLoading }"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           </button>
         </div>
         <div class="audit-logs">
-          <div v-if="auditLogs.length === 0" class="empty-logs">
+          <div
+            v-if="auditLogs.length === 0"
+            class="empty-logs"
+          >
             暂无授权记录
           </div>
           <div
@@ -162,14 +234,47 @@
             :class="`decision-${log.decision}`"
           >
             <div class="log-icon">
-              <svg v-if="log.decision === 'auto_approved'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                v-if="log.decision === 'auto_approved'"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
-              <svg v-else-if="log.decision === 'manual_approved'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              <svg
+                v-else-if="log.decision === 'manual_approved'"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
-              <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                v-else
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </div>
             <div class="log-content">
@@ -184,19 +289,22 @@
             </div>
           </div>
         </div>
-        <div v-if="auditLogs.length > 0" class="logs-pagination">
+        <div
+          v-if="auditLogs.length > 0"
+          class="logs-pagination"
+        >
           <button
-            @click="loadAuditLogs(currentPage - 1)"
             :disabled="currentPage <= 1"
             class="page-btn"
+            @click="loadAuditLogs(currentPage - 1)"
           >
             上一页
           </button>
           <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
           <button
-            @click="loadAuditLogs(currentPage + 1)"
             :disabled="currentPage >= totalPages"
             class="page-btn"
+            @click="loadAuditLogs(currentPage + 1)"
           >
             下一页
           </button>
@@ -206,8 +314,11 @@
 
     <!-- Save Indicator -->
     <Transition name="fade">
-      <div v-if="saving" class="save-indicator">
-        <div class="save-spinner"></div>
+      <div
+        v-if="saving"
+        class="save-indicator"
+      >
+        <div class="save-spinner" />
         <span>保存中...</span>
       </div>
     </Transition>

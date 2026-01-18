@@ -321,8 +321,14 @@ watch(() => props.content, () => {
 </script>
 
 <template>
-  <div class="dynamic-renderer" :class="{ 'theme-dark': context?.theme === 'dark' }">
-    <template v-for="(block, index) in parsedBlocks" :key="index">
+  <div
+    class="dynamic-renderer"
+    :class="{ 'theme-dark': context?.theme === 'dark' }"
+  >
+    <template
+      v-for="(block, index) in parsedBlocks"
+      :key="index"
+    >
       <!-- Markdown Block -->
       <div 
         v-if="block.type === 'markdown'"

@@ -102,8 +102,8 @@ class SentimentAnalyzer:
             try:
                 from anthropic import Anthropic
                 self._client = Anthropic(api_key=self.api_key)
-            except ImportError:
-                raise ImportError("anthropic package not installed")
+            except ImportError as e:
+                raise ImportError("anthropic package not installed") from e
         return self._client
 
     async def analyze_posts(

@@ -6,8 +6,14 @@
     @click="handleClick"
     @mousedown="createRipple"
   >
-    <span v-if="loading" class="spinner"></span>
-    <span v-else class="button-content">
+    <span
+      v-if="loading"
+      class="spinner"
+    />
+    <span
+      v-else
+      class="button-content"
+    >
       <slot />
     </span>
     <span class="ripple-container">

@@ -2,78 +2,121 @@
   <div class="comparison-card">
     <!-- Header -->
     <div class="card-header">
-      <h3 class="title">技术面 vs 舆情面</h3>
-      <span v-if="stockInfo && sentimentResult" class="sync-indicator">
-        <span class="sync-dot"></span>
+      <h3 class="title">
+        技术面 vs 舆情面
+      </h3>
+      <span
+        v-if="stockInfo && sentimentResult"
+        class="sync-indicator"
+      >
+        <span class="sync-dot" />
         实时同步
       </span>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <div class="spinner" />
       <p>加载对比数据中...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <div class="error-icon">
+        ⚠️
+      </div>
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!stockInfo && !sentimentResult" class="empty-state">
-      <div class="empty-icon">⚖️</div>
+    <div
+      v-else-if="!stockInfo && !sentimentResult"
+      class="empty-state"
+    >
+      <div class="empty-icon">
+        ⚖️
+      </div>
       <p>暂无对比数据</p>
-      <p class="hint">选择股票后显示技术面与舆情面对比</p>
+      <p class="hint">
+        选择股票后显示技术面与舆情面对比
+      </p>
     </div>
 
     <!-- Comparison Content -->
-    <div v-else class="comparison-content">
+    <div
+      v-else
+      class="comparison-content"
+    >
       <!-- Technical Side -->
       <div class="comparison-side technical">
         <div class="side-header">
-          <h4 class="side-title">技术面</h4>
+          <h4 class="side-title">
+            技术面
+          </h4>
         </div>
 
         <div class="metrics-grid">
           <div class="metric-item">
-            <div class="metric-label">当前价</div>
-            <div class="metric-value" :class="getPriceChangeClass(stockQuote?.change_percent || 0)">
+            <div class="metric-label">
+              当前价
+            </div>
+            <div
+              class="metric-value"
+              :class="getPriceChangeClass(stockQuote?.change_percent || 0)"
+            >
               ¥{{ stockQuote?.current_price?.toFixed(2) || '--' }}
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">涨跌幅</div>
-            <div class="metric-value" :class="getPriceChangeClass(stockQuote?.change_percent || 0)">
+            <div class="metric-label">
+              涨跌幅
+            </div>
+            <div
+              class="metric-value"
+              :class="getPriceChangeClass(stockQuote?.change_percent || 0)"
+            >
               {{ stockQuote?.change_percent ? (stockQuote.change_percent > 0 ? '+' : '') + stockQuote.change_percent.toFixed(2) : '--' }}%
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">市值</div>
+            <div class="metric-label">
+              市值
+            </div>
             <div class="metric-value">
               {{ formatMarketCap(stockInfo?.market_cap) }}
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">换手率</div>
+            <div class="metric-label">
+              换手率
+            </div>
             <div class="metric-value">
               {{ stockQuote?.turnover_rate?.toFixed(2) || '--' }}%
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">成交量</div>
+            <div class="metric-label">
+              成交量
+            </div>
             <div class="metric-value">
               {{ formatVolume(stockQuote?.volume) }}
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">市盈率</div>
+            <div class="metric-label">
+              市盈率
+            </div>
             <div class="metric-value">
               {{ stockInfo?.pe_ratio?.toFixed(2) || '--' }}
             </div>
@@ -83,21 +126,29 @@
 
       <!-- Divider -->
       <div class="comparison-divider">
-        <div class="divider-line"></div>
-        <div class="divider-icon">⚡</div>
-        <div class="divider-line"></div>
+        <div class="divider-line" />
+        <div class="divider-icon">
+          ⚡
+        </div>
+        <div class="divider-line" />
       </div>
 
       <!-- Sentiment Side -->
       <div class="comparison-side sentiment">
         <div class="side-header">
-          <div class="side-icon">💬</div>
-          <h4 class="side-title">舆情面</h4>
+          <div class="side-icon">
+            💬
+          </div>
+          <h4 class="side-title">
+            舆情面
+          </h4>
         </div>
 
         <div class="metrics-grid">
           <div class="metric-item">
-            <div class="metric-label">整体情绪</div>
+            <div class="metric-label">
+              整体情绪
+            </div>
             <div class="metric-value">
               <span 
                 class="sentiment-badge" 
@@ -109,35 +160,48 @@
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">情绪评分</div>
-            <div class="metric-value" :class="getSentimentScoreClass(sentimentResult?.analysis?.overall_score || 0)">
+            <div class="metric-label">
+              情绪评分
+            </div>
+            <div
+              class="metric-value"
+              :class="getSentimentScoreClass(sentimentResult?.analysis?.overall_score || 0)"
+            >
               {{ sentimentResult?.analysis?.overall_score?.toFixed(2) || '--' }}
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">讨论数</div>
+            <div class="metric-label">
+              讨论数
+            </div>
             <div class="metric-value">
               {{ sentimentResult?.posts.length || 0 }} 条
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">看多占比</div>
+            <div class="metric-label">
+              看多占比
+            </div>
             <div class="metric-value positive">
               {{ getBullishPercentage() }}%
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">看空占比</div>
+            <div class="metric-label">
+              看空占比
+            </div>
             <div class="metric-value negative">
               {{ getBearishPercentage() }}%
             </div>
           </div>
 
           <div class="metric-item">
-            <div class="metric-label">数据源</div>
+            <div class="metric-label">
+              数据源
+            </div>
             <div class="metric-value">
               <div class="source-tags">
                 <span 
@@ -155,12 +219,22 @@
     </div>
 
     <!-- Alignment Indicator -->
-    <div v-if="stockInfo && sentimentResult" class="alignment-indicator">
-      <div class="alignment-label">技术面与舆情面一致性</div>
-      <div class="alignment-bar">
-        <div class="alignment-fill" :style="{ width: `${getAlignment()}%` }"></div>
+    <div
+      v-if="stockInfo && sentimentResult"
+      class="alignment-indicator"
+    >
+      <div class="alignment-label">
+        技术面与舆情面一致性
       </div>
-      <div class="alignment-text">{{ getAlignmentLabel() }}</div>
+      <div class="alignment-bar">
+        <div
+          class="alignment-fill"
+          :style="{ width: `${getAlignment()}%` }"
+        />
+      </div>
+      <div class="alignment-text">
+        {{ getAlignmentLabel() }}
+      </div>
     </div>
   </div>
 </template>

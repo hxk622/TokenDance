@@ -239,13 +239,19 @@ watch(() => props.initialPath, (path) => {
       </div>
       
       <!-- Current path -->
-      <div v-if="currentPath" class="mt-2 text-xs text-gray-500 truncate">
+      <div
+        v-if="currentPath"
+        class="mt-2 text-xs text-gray-500 truncate"
+      >
         {{ currentPath }}
       </div>
     </div>
     
     <!-- Stats bar -->
-    <div v-if="stats" class="flex-shrink-0 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+    <div
+      v-if="stats"
+      class="flex-shrink-0 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800"
+    >
       <div class="flex items-center gap-4 text-xs">
         <div class="flex items-center gap-1">
           <DocumentMagnifyingGlassIcon class="w-4 h-4 text-gray-400" />
@@ -297,14 +303,22 @@ watch(() => props.initialPath, (path) => {
     <!-- Content -->
     <div class="flex-1 overflow-hidden">
       <!-- Loading -->
-      <div v-if="loading" class="flex items-center justify-center h-full">
+      <div
+        v-if="loading"
+        class="flex items-center justify-center h-full"
+      >
         <div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
       </div>
       
       <!-- Error -->
-      <div v-else-if="error" class="flex flex-col items-center justify-center h-full gap-2 p-4">
+      <div
+        v-else-if="error"
+        class="flex flex-col items-center justify-center h-full gap-2 p-4"
+      >
         <ExclamationCircleIcon class="w-8 h-8 text-red-400" />
-        <p class="text-sm text-red-500 text-center">{{ error }}</p>
+        <p class="text-sm text-red-500 text-center">
+          {{ error }}
+        </p>
         <button
           class="text-sm text-blue-500 hover:underline"
           @click="error = null"
@@ -344,7 +358,10 @@ watch(() => props.initialPath, (path) => {
       </div>
       
       <!-- Tree view -->
-      <div v-else-if="activeTab === 'tree'" class="h-full overflow-y-auto p-2">
+      <div
+        v-else-if="activeTab === 'tree'"
+        class="h-full overflow-y-auto p-2"
+      >
         <FileTree
           :tree="tree"
           :selected-path="selectedFilePath"
@@ -353,7 +370,10 @@ watch(() => props.initialPath, (path) => {
       </div>
       
       <!-- Search view -->
-      <div v-else class="h-full p-4">
+      <div
+        v-else
+        class="h-full p-4"
+      >
         <SemanticSearch
           placeholder="搜索代码..."
           auto-focus

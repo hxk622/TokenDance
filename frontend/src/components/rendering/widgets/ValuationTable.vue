@@ -60,18 +60,39 @@ function isBetterValue(row: ValuationRow): boolean {
 <template>
   <div class="valuation-table-wrapper">
     <!-- Title -->
-    <h3 v-if="title" class="table-title">{{ title }}</h3>
+    <h3
+      v-if="title"
+      class="table-title"
+    >
+      {{ title }}
+    </h3>
     
     <!-- Table -->
     <div class="table-container">
       <table class="valuation-table">
         <thead>
           <tr>
-            <th class="metric-col">指标</th>
-            <th class="value-col">当前值</th>
-            <th v-if="showComparison" class="value-col">行业平均</th>
-            <th v-if="showComparison" class="value-col">历史均值</th>
-            <th class="rating-col">评级</th>
+            <th class="metric-col">
+              指标
+            </th>
+            <th class="value-col">
+              当前值
+            </th>
+            <th
+              v-if="showComparison"
+              class="value-col"
+            >
+              行业平均
+            </th>
+            <th
+              v-if="showComparison"
+              class="value-col"
+            >
+              历史均值
+            </th>
+            <th class="rating-col">
+              评级
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -82,7 +103,10 @@ function isBetterValue(row: ValuationRow): boolean {
           >
             <td class="metric-col">
               <span class="metric-name">{{ row.metric }}</span>
-              <span v-if="row.description" class="metric-desc">{{ row.description }}</span>
+              <span
+                v-if="row.description"
+                class="metric-desc"
+              >{{ row.description }}</span>
             </td>
             <td class="value-col">
               <span 
@@ -92,10 +116,16 @@ function isBetterValue(row: ValuationRow): boolean {
                 {{ formatValue(row.current) }}
               </span>
             </td>
-            <td v-if="showComparison" class="value-col">
+            <td
+              v-if="showComparison"
+              class="value-col"
+            >
               <span class="value secondary">{{ formatValue(row.industry) }}</span>
             </td>
-            <td v-if="showComparison" class="value-col">
+            <td
+              v-if="showComparison"
+              class="value-col"
+            >
               <span class="value secondary">{{ formatValue(row.historical) }}</span>
             </td>
             <td class="rating-col">
@@ -106,7 +136,10 @@ function isBetterValue(row: ValuationRow): boolean {
               >
                 {{ ratingColors[row.rating].label }}
               </span>
-              <span v-else class="rating-badge bg-gray-50 text-gray-400">-</span>
+              <span
+                v-else
+                class="rating-badge bg-gray-50 text-gray-400"
+              >-</span>
             </td>
           </tr>
         </tbody>

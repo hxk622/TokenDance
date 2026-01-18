@@ -1,6 +1,12 @@
 <template>
-  <div class="workflow-graph" ref="containerRef">
-    <svg ref="svgRef" class="graph-svg"></svg>
+  <div
+    ref="containerRef"
+    class="workflow-graph"
+  >
+    <svg
+      ref="svgRef"
+      class="graph-svg"
+    />
     
     <!-- Node Tooltip -->
     <NodeTooltip

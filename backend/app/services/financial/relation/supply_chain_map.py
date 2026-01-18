@@ -106,7 +106,7 @@ class SupplyChainMapResult:
             "industry": self.industry,
             "analysis_date": self.analysis_date.isoformat(),
             "nodes": [n.to_dict() for n in self.nodes],
-            "links": [l.to_dict() for l in self.links],
+            "links": [lk.to_dict() for lk in self.links],
             "value_analysis": [v.to_dict() for v in self.value_analysis],
             "key_players": self.key_players,
             "bottlenecks": self.bottlenecks,

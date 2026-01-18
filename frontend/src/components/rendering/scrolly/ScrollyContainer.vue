@@ -172,7 +172,10 @@ defineExpose({
     />
     
     <!-- Sticky Content Area -->
-    <div v-if="stickyContent" class="sticky-area">
+    <div
+      v-if="stickyContent"
+      class="sticky-area"
+    >
       <div class="sticky-content">
         <slot 
           name="sticky" 
@@ -195,7 +198,10 @@ defineExpose({
     </div>
     
     <!-- Debug Panel -->
-    <div v-if="debug" class="debug-panel">
+    <div
+      v-if="debug"
+      class="debug-panel"
+    >
       <div class="debug-item">
         <span class="debug-label">Active:</span>
         <span class="debug-value">{{ activeSection || 'none' }}</span>

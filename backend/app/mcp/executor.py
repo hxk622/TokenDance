@@ -244,10 +244,10 @@ class MCPCodeExecutor:
 
             return result
 
-        except TimeoutError:
+        except TimeoutError as e:
             raise CodeExecutionTimeout(
                 f"Python code execution timed out after {request.timeout}s"
-            )
+            ) from e
         finally:
             # 清理临时文件
             try:
@@ -298,10 +298,10 @@ class MCPCodeExecutor:
 
             return result
 
-        except TimeoutError:
+        except TimeoutError as e:
             raise CodeExecutionTimeout(
                 f"JavaScript code execution timed out after {request.timeout}s"
-            )
+            ) from e
         finally:
             # 清理临时文件
             try:
@@ -364,10 +364,10 @@ class MCPCodeExecutor:
                 execution_time=execution_time,
             )
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             raise CodeExecutionTimeout(
                 f"Command execution timed out after {timeout}s"
-            )
+            ) from e
         except Exception as e:
             execution_time = time.time() - start_time
             return ExecutionResult(

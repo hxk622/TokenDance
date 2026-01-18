@@ -2,7 +2,9 @@
   <div class="combined-chart">
     <!-- Header -->
     <div class="chart-header">
-      <h3 class="title">价格走势 + 舆情叠加</h3>
+      <h3 class="title">
+        价格走势 + 舆情叠加
+      </h3>
       
       <div class="chart-controls">
         <div class="time-range-selector">
@@ -20,39 +22,67 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <div class="spinner" />
       <p>加载图表数据中...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <div class="error-icon">⚠️</div>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <div class="error-icon">
+        ⚠️
+      </div>
       <p>{{ error }}</p>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!historicalData || historicalData.length === 0" class="empty-state">
+    <div
+      v-else-if="!historicalData || historicalData.length === 0"
+      class="empty-state"
+    >
       <p>暂无图表数据</p>
-      <p class="hint">选择股票后将显示价格走势</p>
+      <p class="hint">
+        选择股票后将显示价格走势
+      </p>
     </div>
 
     <!-- Chart Container -->
-    <div v-else class="chart-container">
-      <div ref="chartRef" class="chart-canvas"></div>
+    <div
+      v-else
+      class="chart-container"
+    >
+      <div
+        ref="chartRef"
+        class="chart-canvas"
+      />
       
       <!-- Legend -->
       <div class="chart-legend">
         <div class="legend-item">
-          <div class="legend-indicator" style="background: #10b981"></div>
+          <div
+            class="legend-indicator"
+            style="background: #10b981"
+          />
           <span class="legend-label">看多情绪</span>
         </div>
         <div class="legend-item">
-          <div class="legend-indicator" style="background: #ef4444"></div>
+          <div
+            class="legend-indicator"
+            style="background: #ef4444"
+          />
           <span class="legend-label">看空情绪</span>
         </div>
         <div class="legend-item">
-          <div class="legend-indicator" style="background: #6b7280"></div>
+          <div
+            class="legend-indicator"
+            style="background: #6b7280"
+          />
           <span class="legend-label">中性情绪</span>
         </div>
       </div>

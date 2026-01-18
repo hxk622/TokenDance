@@ -150,17 +150,29 @@ const previewContent = ref(`# AI Agent 市场分析报告
 <template>
   <div class="preview-area">
     <!-- Report Tab -->
-    <div v-if="currentTab === 'report'" class="preview-content">
+    <div
+      v-if="currentTab === 'report'"
+      class="preview-content"
+    >
       <pre class="markdown-preview">{{ previewContent }}</pre>
       <div class="preview-actions">
-        <button class="btn-action">📥 下载</button>
-        <button class="btn-action">📋 复制</button>
-        <button class="btn-action">🔄 刷新</button>
+        <button class="btn-action">
+          📥 下载
+        </button>
+        <button class="btn-action">
+          📋 复制
+        </button>
+        <button class="btn-action">
+          🔄 刷新
+        </button>
       </div>
     </div>
 
     <!-- PPT Tab -->
-    <div v-else-if="currentTab === 'ppt'" class="ppt-preview">
+    <div
+      v-else-if="currentTab === 'ppt'"
+      class="ppt-preview"
+    >
       <!-- Slide Thumbnails Sidebar -->
       <div class="ppt-sidebar">
         <div class="sidebar-header">
@@ -174,8 +186,12 @@ const previewContent = ref(`# AI Agent 市场分析报告
             @click="goToSlide(index)"
           >
             <div class="thumbnail-content">
-              <div class="thumbnail-number">{{ index + 1 }}</div>
-              <div class="thumbnail-title">{{ slide.title }}</div>
+              <div class="thumbnail-number">
+                {{ index + 1 }}
+              </div>
+              <div class="thumbnail-title">
+                {{ slide.title }}
+              </div>
             </div>
           </div>
         </div>
@@ -185,24 +201,59 @@ const previewContent = ref(`# AI Agent 市场分析报告
       <div class="ppt-main">
         <div class="slide-container">
           <div :class="['slide', `layout-${currentSlide.layout}`]">
-            <h1 class="slide-title">{{ currentSlide.title }}</h1>
+            <h1 class="slide-title">
+              {{ currentSlide.title }}
+            </h1>
             <div class="slide-content">
-              <p v-for="(line, i) in currentSlide.content.split('\\n')" :key="i">{{ line }}</p>
+              <p
+                v-for="(line, i) in currentSlide.content.split('\\n')"
+                :key="i"
+              >
+                {{ line }}
+              </p>
             </div>
           </div>
         </div>
         
         <!-- Slide Navigation -->
         <div class="slide-nav">
-          <button class="nav-btn" :disabled="currentSlideIndex === 0" @click="goToPrevSlide">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
+          <button
+            class="nav-btn"
+            :disabled="currentSlideIndex === 0"
+            @click="goToPrevSlide"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
           <span class="nav-indicator">{{ currentSlideIndex + 1 }} / {{ totalSlides }}</span>
-          <button class="nav-btn" :disabled="currentSlideIndex === totalSlides - 1" @click="goToNextSlide">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
+          <button
+            class="nav-btn"
+            :disabled="currentSlideIndex === totalSlides - 1"
+            @click="goToNextSlide"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
         </div>
@@ -210,18 +261,60 @@ const previewContent = ref(`# AI Agent 市场分析报告
         <!-- PPT Actions -->
         <div class="ppt-actions">
           <button class="btn-action">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line
+                x1="12"
+                y1="15"
+                x2="12"
+                y2="3"
+              />
             </svg>
             下载 PPTX
           </button>
           <button class="btn-action">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect
+                x="2"
+                y="3"
+                width="20"
+                height="14"
+                rx="2"
+                ry="2"
+              />
+              <line
+                x1="8"
+                y1="21"
+                x2="16"
+                y2="21"
+              />
+              <line
+                x1="12"
+                y1="17"
+                x2="12"
+                y2="21"
+              />
             </svg>
             全屏演示
           </button>
@@ -230,7 +323,10 @@ const previewContent = ref(`# AI Agent 市场分析报告
     </div>
 
     <!-- File Diff Tab -->
-    <div v-else-if="currentTab === 'file-diff'" class="file-diff-view">
+    <div
+      v-else-if="currentTab === 'file-diff'"
+      class="file-diff-view"
+    >
       <div class="file-diff-layout">
         <div class="file-tree-panel">
           <CoworkerFileTree />
@@ -242,9 +338,15 @@ const previewContent = ref(`# AI Agent 市场分析报告
     </div>
 
     <!-- Image Preview Tab -->
-    <div v-else-if="currentTab === 'image'" class="image-preview">
+    <div
+      v-else-if="currentTab === 'image'"
+      class="image-preview"
+    >
       <!-- Image Thumbnails Sidebar -->
-      <div class="image-sidebar" v-if="generatedImages.length > 1">
+      <div
+        v-if="generatedImages.length > 1"
+        class="image-sidebar"
+      >
         <div class="sidebar-header">
           <span class="image-count">{{ generatedImages.length }} 张图像</span>
         </div>
@@ -255,7 +357,10 @@ const previewContent = ref(`# AI Agent 市场分析报告
             :class="['image-thumbnail', { active: index === selectedImageIndex }]"
             @click="selectImage(index)"
           >
-            <img :src="image.path" :alt="`Image ${index + 1}`" />
+            <img
+              :src="image.path"
+              :alt="`Image ${index + 1}`"
+            >
             <div class="thumbnail-overlay">
               <span>{{ index + 1 }}</span>
             </div>
@@ -274,19 +379,46 @@ const previewContent = ref(`# AI Agent 市场分析报告
             :src="selectedImage.path" 
             :alt="selectedImage.prompt"
             class="preview-image"
-          />
-          <div v-else class="no-image">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
+          >
+          <div
+            v-else
+            class="no-image"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect
+                x="3"
+                y="3"
+                width="18"
+                height="18"
+                rx="2"
+                ry="2"
+              />
+              <circle
+                cx="8.5"
+                cy="8.5"
+                r="1.5"
+              />
+              <polyline points="21 15 16 10 5 21" />
             </svg>
             <p>暂无生成图像</p>
           </div>
         </div>
 
         <!-- Image Info -->
-        <div v-if="selectedImage" class="image-info">
+        <div
+          v-if="selectedImage"
+          class="image-info"
+        >
           <div class="info-row">
             <span class="info-label">Prompt:</span>
             <span class="info-value prompt-text">{{ selectedImage.prompt }}</span>
@@ -307,28 +439,93 @@ const previewContent = ref(`# AI Agent 市场分析报告
 
         <!-- Image Actions -->
         <div class="image-actions">
-          <button class="btn-action" @click="downloadImage(selectedImage!)" :disabled="!selectedImage">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
+          <button
+            class="btn-action"
+            :disabled="!selectedImage"
+            @click="downloadImage(selectedImage!)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line
+                x1="12"
+                y1="15"
+                x2="12"
+                y2="3"
+              />
             </svg>
             下载图像
           </button>
-          <button class="btn-action" @click="regenerateImage" :disabled="!selectedImage">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          <button
+            class="btn-action"
+            :disabled="!selectedImage"
+            @click="regenerateImage"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
             </svg>
             重新生成
           </button>
-          <button class="btn-action" @click="toggleZoom">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              <line x1="11" y1="8" x2="11" y2="14"/>
-              <line x1="8" y1="11" x2="14" y2="11"/>
+          <button
+            class="btn-action"
+            @click="toggleZoom"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+              <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+              />
+              <line
+                x1="11"
+                y1="8"
+                x2="11"
+                y2="14"
+              />
+              <line
+                x1="8"
+                y1="11"
+                x2="14"
+                y2="11"
+              />
             </svg>
             {{ isImageZoomed ? '缩小' : '放大' }}
           </button>

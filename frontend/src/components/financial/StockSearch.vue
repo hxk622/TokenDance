@@ -20,37 +20,71 @@
           @keydown.enter="handleEnter"
           @keydown.down.prevent="handleArrowDown"
           @keydown.up.prevent="handleArrowUp"
-        />
+        >
         
         <!-- Clear Button -->
         <button
           v-if="searchQuery"
           class="clear-button"
-          @click="clearSearch"
           aria-label="Clear search"
+          @click="clearSearch"
         >
-          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            class="icon"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
         
         <!-- Loading Indicator -->
-        <div v-if="isSearching" class="loading-indicator">
-          <svg class="spinner" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        <div
+          v-if="isSearching"
+          class="loading-indicator"
+        >
+          <svg
+            class="spinner"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+              fill="none"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
           </svg>
         </div>
       </div>
       
       <!-- Error Message -->
-      <p v-if="searchError" class="error-message">
+      <p
+        v-if="searchError"
+        class="error-message"
+      >
         {{ searchError }}
       </p>
     </div>
     
     <!-- Suggestions Dropdown -->
-    <div v-if="showSuggestions" class="suggestions-dropdown">
+    <div
+      v-if="showSuggestions"
+      class="suggestions-dropdown"
+    >
       <div
         v-for="(stock, index) in filteredSuggestions"
         :key="stock.symbol"
@@ -63,16 +97,25 @@
           <span class="stock-symbol">{{ stock.symbol }}</span>
           <span class="stock-name">{{ stock.name }}</span>
         </div>
-        <span v-if="stock.market" class="stock-market">{{ stock.market }}</span>
+        <span
+          v-if="stock.market"
+          class="stock-market"
+        >{{ stock.market }}</span>
       </div>
       
-      <div v-if="filteredSuggestions.length === 0" class="no-results">
+      <div
+        v-if="filteredSuggestions.length === 0"
+        class="no-results"
+      >
         未找到匹配的股票
       </div>
     </div>
     
     <!-- Quick Select (Hot Stocks) -->
-    <div v-if="!searchQuery && !isFocused && showHotStocks" class="hot-stocks">
+    <div
+      v-if="!searchQuery && !isFocused && showHotStocks"
+      class="hot-stocks"
+    >
       <div class="hot-stocks-header">
         <span class="hot-stocks-title">热门股票</span>
       </div>

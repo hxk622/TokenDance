@@ -78,11 +78,20 @@ const sparklineColor = computed(() => {
 </script>
 
 <template>
-  <div class="metric-card" :class="sizeClasses">
+  <div
+    class="metric-card"
+    :class="sizeClasses"
+  >
     <!-- Header -->
     <div class="card-header">
-      <div v-if="icon" class="card-icon">
-        <component :is="icon" v-if="typeof icon === 'object'" />
+      <div
+        v-if="icon"
+        class="card-icon"
+      >
+        <component
+          :is="icon"
+          v-if="typeof icon === 'object'"
+        />
         <span v-else>{{ icon }}</span>
       </div>
       <span class="card-title">{{ title }}</span>
@@ -92,7 +101,10 @@ const sparklineColor = computed(() => {
     <div class="card-value-row">
       <span class="card-value">
         {{ formattedValue }}
-        <span v-if="unit" class="card-unit">{{ unit }}</span>
+        <span
+          v-if="unit"
+          class="card-unit"
+        >{{ unit }}</span>
       </span>
       
       <!-- Change Badge -->
@@ -107,7 +119,11 @@ const sparklineColor = computed(() => {
           viewBox="0 0 20 20" 
           fill="currentColor"
         >
-          <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clip-rule="evenodd"/>
+          <path
+            fill-rule="evenodd"
+            d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z"
+            clip-rule="evenodd"
+          />
         </svg>
         <svg 
           v-else-if="changeType === 'negative'" 
@@ -115,14 +131,22 @@ const sparklineColor = computed(() => {
           viewBox="0 0 20 20" 
           fill="currentColor"
         >
-          <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clip-rule="evenodd"/>
+          <path
+            fill-rule="evenodd"
+            d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z"
+            clip-rule="evenodd"
+          />
         </svg>
         {{ formattedChange }}
       </span>
     </div>
     
     <!-- Sparkline -->
-    <svg v-if="sparklinePath" class="sparkline" viewBox="0 0 60 24">
+    <svg
+      v-if="sparklinePath"
+      class="sparkline"
+      viewBox="0 0 60 24"
+    >
       <path 
         :d="sparklinePath" 
         fill="none" 
@@ -134,7 +158,12 @@ const sparklineColor = computed(() => {
     </svg>
     
     <!-- Description -->
-    <p v-if="description" class="card-description">{{ description }}</p>
+    <p
+      v-if="description"
+      class="card-description"
+    >
+      {{ description }}
+    </p>
   </div>
 </template>
 

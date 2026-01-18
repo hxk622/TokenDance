@@ -155,7 +155,7 @@ class CredibilityScorer:
         """
         # 解析 URL
         parsed = urlparse(url)
-        domain = parsed.netloc.lower().lstrip('www.')
+        domain = parsed.netloc.lower().removeprefix('www.')
 
         # 1. 域名权威性评分
         domain_score = self._score_domain(domain, url)

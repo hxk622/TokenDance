@@ -49,7 +49,10 @@ const formattedTime = computed(() => {
   >
     <div class="message-content-wrapper">
       <!-- User message: plain text -->
-      <div v-if="isUser" class="message-text">
+      <div
+        v-if="isUser"
+        class="message-text"
+      >
         {{ content }}
       </div>
       
@@ -61,7 +64,10 @@ const formattedTime = computed(() => {
       />
       
       <!-- Timestamp -->
-      <div v-if="formattedTime" class="message-timestamp">
+      <div
+        v-if="formattedTime"
+        class="message-timestamp"
+      >
         {{ formattedTime }}
       </div>
     </div>

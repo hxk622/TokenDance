@@ -309,7 +309,7 @@ class ResearchToPPTConverter:
             units = [d.unit for d in number_data[:6]]
 
             # 使用表格展示
-            points = [f"{l}: {v}{u or ''}" for l, v, u in zip(labels, values, units, strict=False)]
+            points = [f"{lbl}: {val}{unt or ''}" for lbl, val, unt in zip(labels, values, units, strict=False)]
 
             slides.append(SlideContent(
                 type=SlideType.CONTENT,

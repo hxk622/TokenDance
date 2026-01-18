@@ -59,13 +59,13 @@ function getActiveFile() {
       <button
         v-for="file in files"
         :key="file.name"
-        @click="setActiveTab(file.name)"
         class="flex-1 px-4 py-3 text-sm font-medium transition-colors relative"
         :class="
           activeTab === file.name
             ? 'text-accent-primary bg-bg-secondary'
             : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/50'
         "
+        @click="setActiveTab(file.name)"
       >
         <div class="flex items-center justify-center gap-2">
           <!-- Plan Icon -->

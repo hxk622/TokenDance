@@ -108,7 +108,12 @@ function getStepTextClass(status: string) {
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
           </svg>
           
           <!-- Error -->
@@ -135,7 +140,13 @@ function getStepTextClass(status: string) {
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+              stroke="currentColor"
+              stroke-width="2"
+            />
           </svg>
         </div>
         

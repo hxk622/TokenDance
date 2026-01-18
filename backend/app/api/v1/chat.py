@@ -18,7 +18,6 @@ try:
     from app.agent import (
         AgentContext,
         BasicAgent,
-        WorkingMemory,
         create_working_memory,
     )
     from app.agent.llm import create_claude_llm

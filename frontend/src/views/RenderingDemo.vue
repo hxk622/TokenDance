@@ -134,8 +134,12 @@ function handleSectionChange(data: { current: string; previous: string | null })
   <div class="rendering-demo">
     <!-- Header -->
     <div class="demo-header">
-      <h1 class="demo-title">下一代渲染引擎演示</h1>
-      <p class="demo-subtitle">Next-Gen Rendering Engine Demo</p>
+      <h1 class="demo-title">
+        下一代渲染引擎演示
+      </h1>
+      <p class="demo-subtitle">
+        Next-Gen Rendering Engine Demo
+      </p>
       
       <!-- Tab Switcher -->
       <div class="tab-switcher">
@@ -157,9 +161,14 @@ function handleSectionChange(data: { current: string; previous: string | null })
     </div>
 
     <!-- Financial Research Demo -->
-    <div v-if="activeTab === 'financial'" class="demo-content">
+    <div
+      v-if="activeTab === 'financial'"
+      class="demo-content"
+    >
       <div class="section">
-        <h2 class="section-title">苹果公司 (AAPL) 投资分析报告</h2>
+        <h2 class="section-title">
+          苹果公司 (AAPL) 投资分析报告
+        </h2>
         
         <!-- Metrics Row -->
         <div class="metrics-grid">
@@ -168,7 +177,7 @@ function handleSectionChange(data: { current: string; previous: string | null })
             :value="189.95" 
             unit="USD" 
             :change="2.35"
-            changeType="positive"
+            change-type="positive"
             :trend="[175, 178, 182, 180, 185, 188, 190]"
           />
           <MetricCard 
@@ -176,26 +185,28 @@ function handleSectionChange(data: { current: string; previous: string | null })
             :value="2950000000000" 
             unit="USD"
             :change="1.2"
-            changeType="positive"
+            change-type="positive"
           />
           <MetricCard 
             title="PE (TTM)" 
             :value="28.5" 
             :change="-3.2"
-            changeType="negative"
+            change-type="negative"
           />
           <MetricCard 
             title="股息率" 
             :value="0.52" 
             unit="%"
-            changeType="neutral"
+            change-type="neutral"
           />
         </div>
       </div>
 
       <!-- K-Line Chart -->
       <div class="section">
-        <h3 class="section-subtitle">价格走势 (专业K线图表)</h3>
+        <h3 class="section-subtitle">
+          价格走势 (专业K线图表)
+        </h3>
         <KLineChart 
           :data="klineData"
           symbol="AAPL"
@@ -227,7 +238,10 @@ function handleSectionChange(data: { current: string; previous: string | null })
     </div>
 
     <!-- Deep Research Demo -->
-    <div v-if="activeTab === 'deep-research'" class="demo-content">
+    <div
+      v-if="activeTab === 'deep-research'"
+      class="demo-content"
+    >
       <ScrollyContainer 
         :sticky-content="true"
         :progress-bar="true"
@@ -240,10 +254,17 @@ function handleSectionChange(data: { current: string; previous: string | null })
         <template #sticky="{ activeSection }">
           <div class="sticky-visual">
             <div class="visual-card">
-              <h3 class="visual-title">当前章节: {{ activeSection || '开始阅读' }}</h3>
+              <h3 class="visual-title">
+                当前章节: {{ activeSection || '开始阅读' }}
+              </h3>
               <div class="visual-placeholder">
                 <div class="placeholder-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
                     <path d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
                   </svg>
                 </div>
@@ -275,7 +296,7 @@ function handleSectionChange(data: { current: string; previous: string | null })
             @enter="onSectionEnter"
             @leave="onSectionLeave"
           >
-          <SourceCitation 
+            <SourceCitation 
               :sources="deepResearchSources"
               citation-style="sidebar"
               :show-reliability="true"

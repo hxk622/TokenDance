@@ -294,11 +294,11 @@ class LayerCompositor:
         layer_pixels = layer.load()
         result_pixels = result.load()
 
-        def overlay_channel(b: int, l: int) -> int:
-            if b < 128:
-                return int(2 * b * l / 255)
+        def overlay_channel(base_val: int, layer_val: int) -> int:
+            if base_val < 128:
+                return int(2 * base_val * layer_val / 255)
             else:
-                return int(255 - 2 * (255 - b) * (255 - l) / 255)
+                return int(255 - 2 * (255 - base_val) * (255 - layer_val) / 255)
 
         for y in range(self.height):
             for x in range(self.width):

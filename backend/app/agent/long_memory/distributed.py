@@ -34,8 +34,8 @@ class DistributedMemory:
 
     def store_lessons(self, lessons: list[Lesson]) -> None:
         body = ""
-        for l in lessons:
-            body += l.to_markdown() + "\n"
+        for lesson in lessons:
+            body += lesson.to_markdown() + "\n"
         if self.fs.exists(self.PATH):
             prev = self.fs.read(self.PATH)
             content = prev + "\n" + body

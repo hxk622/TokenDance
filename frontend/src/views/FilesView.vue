@@ -76,7 +76,10 @@ const goBack = () => {
         
         <!-- Preview Panel -->
         <div class="flex-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <div v-if="showPreview" class="h-full flex flex-col">
+          <div
+            v-if="showPreview"
+            class="h-full flex flex-col"
+          >
             <!-- Preview header -->
             <div class="flex-shrink-0 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
               <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
@@ -91,7 +94,10 @@ const goBack = () => {
           </div>
           
           <!-- Empty state -->
-          <div v-else class="h-full flex items-center justify-center">
+          <div
+            v-else
+            class="h-full flex items-center justify-center"
+          >
             <div class="text-center">
               <p class="text-gray-400 text-sm">
                 选择文件或搜索结果查看内容

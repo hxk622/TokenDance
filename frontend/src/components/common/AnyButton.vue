@@ -63,7 +63,10 @@ const handleClick = (event: MouseEvent) => {
     @click="handleClick"
   >
     <!-- Loading spinner -->
-    <span v-if="loading" class="any-btn-spinner">
+    <span
+      v-if="loading"
+      class="any-btn-spinner"
+    >
       <svg
         class="animate-spin"
         width="16"
@@ -73,21 +76,32 @@ const handleClick = (event: MouseEvent) => {
         stroke="currentColor"
         stroke-width="2"
       >
-        <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
-        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round" />
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke-opacity="0.25"
+        />
+        <path
+          d="M12 2a10 10 0 0 1 10 10"
+          stroke-linecap="round"
+        />
       </svg>
     </span>
     
     <!-- Left icon -->
     <component
-      v-else-if="icon"
       :is="icon"
+      v-else-if="icon"
       class="any-btn-icon-left"
       :size="size === 'sm' ? 14 : size === 'lg' ? 18 : 16"
     />
     
     <!-- Slot content -->
-    <span v-if="$slots.default && variant !== 'icon'" class="any-btn-label">
+    <span
+      v-if="$slots.default && variant !== 'icon'"
+      class="any-btn-label"
+    >
       <slot />
     </span>
     
@@ -96,8 +110,8 @@ const handleClick = (event: MouseEvent) => {
     
     <!-- Right icon -->
     <component
-      v-if="iconRight && !loading"
       :is="iconRight"
+      v-if="iconRight && !loading"
       class="any-btn-icon-right"
       :size="size === 'sm' ? 14 : size === 'lg' ? 18 : 16"
     />

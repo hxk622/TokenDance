@@ -1,7 +1,10 @@
 <template>
   <div class="preview-area">
     <!-- Timeline View (for Deep Research) -->
-    <div v-if="currentTab === 'timeline'" class="timeline-container">
+    <div
+      v-if="currentTab === 'timeline'"
+      class="timeline-container"
+    >
       <ResearchTimeline
         :session-id="sessionId"
         :auto-refresh="isExecuting"
@@ -12,7 +15,10 @@
     </div>
 
     <!-- 实时进展 Tab - 中间产出 -->
-    <div v-else-if="currentTab === 'live-progress'" class="live-progress-container">
+    <div
+      v-else-if="currentTab === 'live-progress'"
+      class="live-progress-container"
+    >
       <div class="live-progress-header">
         <SparklesIcon class="w-5 h-5" />
         <h3>实时进展</h3>
@@ -25,17 +31,35 @@
           :class="`progress-item--${item.type}`"
         >
           <div class="progress-item-icon">
-            <MagnifyingGlassIcon v-if="item.type === 'search'" class="w-4 h-4" />
-            <GlobeAltIcon v-else-if="item.type === 'page'" class="w-4 h-4" />
-            <DocumentTextIcon v-else class="w-4 h-4" />
+            <MagnifyingGlassIcon
+              v-if="item.type === 'search'"
+              class="w-4 h-4"
+            />
+            <GlobeAltIcon
+              v-else-if="item.type === 'page'"
+              class="w-4 h-4"
+            />
+            <DocumentTextIcon
+              v-else
+              class="w-4 h-4"
+            />
           </div>
           <div class="progress-item-content">
             <span class="progress-item-title">{{ item.title }}</span>
-            <span v-if="item.url" class="progress-item-url">{{ item.url }}</span>
-            <span v-else-if="item.subtitle" class="progress-item-subtitle">{{ item.subtitle }}</span>
+            <span
+              v-if="item.url"
+              class="progress-item-url"
+            >{{ item.url }}</span>
+            <span
+              v-else-if="item.subtitle"
+              class="progress-item-subtitle"
+            >{{ item.subtitle }}</span>
           </div>
         </div>
-        <div v-if="liveProgressItems.length === 0" class="empty-state">
+        <div
+          v-if="liveProgressItems.length === 0"
+          class="empty-state"
+        >
           <SparklesIcon class="w-12 h-12" />
           <p>执行进展将实时显示在这里</p>
         </div>
@@ -43,8 +67,14 @@
     </div>
 
     <!-- Working Memory Tab -->
-    <div v-else-if="currentTab === 'working-memory'" class="working-memory-container">
-      <div v-if="isLoadingMemory" class="loading-state">
+    <div
+      v-else-if="currentTab === 'working-memory'"
+      class="working-memory-container"
+    >
+      <div
+        v-if="isLoadingMemory"
+        class="loading-state"
+      >
         <div class="spinner" />
         <p>加载 Working Memory...</p>
       </div>
@@ -54,46 +84,85 @@
         :findings="workingMemoryData.findings.content"
         :progress="workingMemoryData.progress.content"
       />
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <CircleStackIcon class="w-12 h-12" />
         <p>暂无 Working Memory 数据</p>
-        <button class="refresh-btn" @click="loadWorkingMemory">刷新</button>
+        <button
+          class="refresh-btn"
+          @click="loadWorkingMemory"
+        >
+          刷新
+        </button>
       </div>
     </div>
 
     <!-- Other tabs -->
-    <div v-else class="preview-content">
-      <div v-if="currentTab === 'report'" class="preview-placeholder">
+    <div
+      v-else
+      class="preview-content"
+    >
+      <div
+        v-if="currentTab === 'report'"
+        class="preview-placeholder"
+      >
         <DocumentTextIcon class="icon-svg" />
         <h3>研究报告预览</h3>
         <p>AI Deep Research 生成的研究报告将在这里显示</p>
       </div>
 
-      <div v-else-if="currentTab === 'ppt'" class="preview-placeholder">
+      <div
+        v-else-if="currentTab === 'ppt'"
+        class="preview-placeholder"
+      >
         <PresentationChartBarIcon class="icon-svg" />
         <h3>PPT 预览</h3>
         <p>AI PPT Generation 生成的演示文稿将在这里显示</p>
       </div>
 
-      <div v-else-if="currentTab === 'file-diff'" class="preview-placeholder">
+      <div
+        v-else-if="currentTab === 'file-diff'"
+        class="preview-placeholder"
+      >
         <DocumentDuplicateIcon class="icon-svg" />
         <h3>文件变更预览</h3>
         <p>Coworker 修改的文件 Diff 将在这里显示</p>
         <div class="mock-diff">
-          <div class="diff-line removed">- const oldValue = 'old'</div>
-          <div class="diff-line added">+ const newValue = 'new'</div>
+          <div class="diff-line removed">
+            - const oldValue = 'old'
+          </div>
+          <div class="diff-line added">
+            + const newValue = 'new'
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Screenshot Lightbox -->
     <Teleport to="body">
-      <div v-if="showScreenshotLightbox" class="screenshot-lightbox" @click="closeLightbox">
-        <div class="lightbox-content" @click.stop>
-          <img :src="lightboxImageUrl" :alt="lightboxTitle" />
+      <div
+        v-if="showScreenshotLightbox"
+        class="screenshot-lightbox"
+        @click="closeLightbox"
+      >
+        <div
+          class="lightbox-content"
+          @click.stop
+        >
+          <img
+            :src="lightboxImageUrl"
+            :alt="lightboxTitle"
+          >
           <div class="lightbox-caption">
-            <p class="lightbox-title">{{ lightboxTitle }}</p>
-            <button class="lightbox-close" @click="closeLightbox">
+            <p class="lightbox-title">
+              {{ lightboxTitle }}
+            </p>
+            <button
+              class="lightbox-close"
+              @click="closeLightbox"
+            >
               <XMarkIcon class="w-5 h-5" />
             </button>
           </div>

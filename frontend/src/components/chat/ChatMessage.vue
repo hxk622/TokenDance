@@ -39,8 +39,18 @@ const formattedToolCalls = computed(() => {
       v-if="!isUser"
       class="w-8 h-8 rounded-full bg-accent-gradient flex items-center justify-center flex-shrink-0"
     >
-      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      <svg
+        class="w-4 h-4 text-white"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 10V3L4 14h7v7l9-11h-7z"
+        />
       </svg>
     </div>
 
@@ -51,23 +61,28 @@ const formattedToolCalls = computed(() => {
         v-if="isUser"
         class="rounded-2xl rounded-br-md px-4 py-3 bg-accent-primary text-white"
       >
-        <div class="whitespace-pre-wrap">{{ message.content }}</div>
+        <div class="whitespace-pre-wrap">
+          {{ message.content }}
+        </div>
       </div>
 
       <!-- Assistant Message -->
-      <div v-else class="space-y-3">
+      <div
+        v-else
+        class="space-y-3"
+      >
         <!-- Thinking Block -->
         <ThinkingBlock
           v-if="hasThinking"
           :content="message.thinking || ''"
-          :isStreaming="isStreaming"
+          :is-streaming="isStreaming"
         />
 
         <!-- Tool Calls -->
         <ToolCallBlock
           v-for="toolCall in formattedToolCalls"
           :key="toolCall.id"
-          :toolCall="toolCall"
+          :tool-call="toolCall"
         />
 
         <!-- Message Content -->
@@ -97,7 +112,9 @@ const formattedToolCalls = computed(() => {
           v-if="hasCitations" 
           class="px-4 py-3 rounded-lg bg-bg-tertiary/30 border border-border-default"
         >
-          <div class="text-xs text-text-tertiary mb-2">Sources:</div>
+          <div class="text-xs text-text-tertiary mb-2">
+            Sources:
+          </div>
           <div class="flex flex-wrap gap-2">
             <a 
               v-for="citation in message.citations" 
@@ -122,8 +139,18 @@ const formattedToolCalls = computed(() => {
       v-if="isUser"
       class="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center flex-shrink-0"
     >
-      <svg class="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      <svg
+        class="w-4 h-4 text-text-secondary"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+        />
       </svg>
     </div>
   </div>

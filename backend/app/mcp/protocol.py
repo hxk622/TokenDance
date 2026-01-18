@@ -216,9 +216,9 @@ class MCPStdioTransport:
             result = await asyncio.wait_for(future, timeout=timeout)
             return result
 
-        except TimeoutError:
+        except TimeoutError as e:
             self._pending_requests.pop(request_id, None)
-            raise MCPError({"code": -32000, "message": f"Request timeout: {method}"})
+            raise MCPError({"code": -32000, "message": f"Request timeout: {method}"}) from e
 
     async def send_notification(self, method: str, params: dict[str, Any] | None = None):
         """Send a notification (no response expected)"""
@@ -398,6 +398,7 @@ class MCPHttpTransport:
         """Initialize HTTP session"""
         try:
             import aiohttp
+            self._aiohttp = aiohttp
             self._session = aiohttp.ClientSession(
                 headers=self.headers,
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
@@ -439,7 +440,7 @@ class MCPHttpTransport:
             async with self._session.post(
                 f"{self.url}/rpc",
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=timeout or self.timeout),
+                timeout=self._aiohttp.ClientTimeout(total=timeout or self.timeout),
             ) as response:
                 if response.status != 200:
                     raise MCPError({
@@ -454,12 +455,12 @@ class MCPHttpTransport:
 
                 return result.get("result")
 
-        except TimeoutError:
-            raise MCPError({"code": -32000, "message": f"Request timeout: {method}"})
+        except TimeoutError as e:
+            raise MCPError({"code": -32000, "message": f"Request timeout: {method}"}) from e
         except Exception as e:
             if isinstance(e, MCPError):
                 raise
-            raise MCPError({"code": -1, "message": str(e)})
+            raise MCPError({"code": -1, "message": str(e)}) from e
 
     async def send_notification(self, method: str, params: dict[str, Any] | None = None):
         """Send a notification (fire-and-forget)"""

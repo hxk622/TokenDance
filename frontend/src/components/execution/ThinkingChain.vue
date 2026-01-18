@@ -163,8 +163,11 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
       </div>
       <div class="header-meta">
         <span class="step-count">{{ displaySteps.length }} 步</span>
-        <span v-if="isStreaming" class="streaming-badge">
-          <span class="streaming-dot"></span>
+        <span
+          v-if="isStreaming"
+          class="streaming-badge"
+        >
+          <span class="streaming-dot" />
           思考中...
         </span>
       </div>
@@ -185,50 +188,83 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
       >
         <!-- Timeline connector -->
         <div class="timeline-connector">
-          <div class="connector-line" :class="{ last: index === displaySteps.length - 1 }"></div>
+          <div
+            class="connector-line"
+            :class="{ last: index === displaySteps.length - 1 }"
+          />
           <div 
             class="connector-dot"
             :style="{ background: getStepColor(step.type) }"
           >
-            <component :is="getStepIcon(step.type)" class="dot-icon" />
+            <component
+              :is="getStepIcon(step.type)"
+              class="dot-icon"
+            />
           </div>
         </div>
 
         <!-- Step content -->
-        <div class="step-content" @click="toggleStep(step.id)">
+        <div
+          class="step-content"
+          @click="toggleStep(step.id)"
+        >
           <div class="step-header">
             <div class="step-meta">
-              <span class="step-type" :style="{ color: getStepColor(step.type) }">
+              <span
+                class="step-type"
+                :style="{ color: getStepColor(step.type) }"
+              >
                 {{ getStepLabel(step.type) }}
               </span>
-              <span v-if="step.duration" class="step-duration">
+              <span
+                v-if="step.duration"
+                class="step-duration"
+              >
                 {{ formatDuration(step.duration) }}
               </span>
-              <span v-if="step.confidence" class="step-confidence">
+              <span
+                v-if="step.confidence"
+                class="step-confidence"
+              >
                 {{ Math.round(step.confidence * 100) }}%
               </span>
             </div>
             <button class="expand-btn">
-              <ChevronDownIcon v-if="isExpanded(step.id)" class="expand-icon" />
-              <ChevronRightIcon v-else class="expand-icon" />
+              <ChevronDownIcon
+                v-if="isExpanded(step.id)"
+                class="expand-icon"
+              />
+              <ChevronRightIcon
+                v-else
+                class="expand-icon"
+              />
             </button>
           </div>
 
           <!-- Collapsed preview -->
-          <div v-if="!isExpanded(step.id)" class="step-preview">
+          <div
+            v-if="!isExpanded(step.id)"
+            class="step-preview"
+          >
             {{ step.content.slice(0, 80) }}{{ step.content.length > 80 ? '...' : '' }}
           </div>
 
           <!-- Expanded content -->
           <Transition name="expand">
-            <div v-if="isExpanded(step.id)" class="step-expanded">
+            <div
+              v-if="isExpanded(step.id)"
+              class="step-expanded"
+            >
               <div 
                 class="step-text"
                 v-html="highlightContent(step.content, step.keywords)"
-              ></div>
+              />
               
               <!-- Keywords -->
-              <div v-if="step.keywords?.length" class="step-keywords">
+              <div
+                v-if="step.keywords?.length"
+                class="step-keywords"
+              >
                 <span 
                   v-for="keyword in step.keywords" 
                   :key="keyword"
@@ -245,11 +281,14 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
     </div>
 
     <!-- Streaming indicator -->
-    <div v-if="isStreaming" class="streaming-indicator">
+    <div
+      v-if="isStreaming"
+      class="streaming-indicator"
+    >
       <div class="streaming-dots">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span />
+        <span />
+        <span />
       </div>
     </div>
   </div>
