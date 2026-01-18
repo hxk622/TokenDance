@@ -292,12 +292,26 @@ class AuthService:
             logger.info("login_failed_wrong_password", user_id=str(user.id))
             raise ValueError("Invalid credentials")
 
-        # Get user's default workspace
+        # Get user's default workspace, create if not exists
         default_workspace_id = None
         if self.workspace_repo:
             workspaces, _ = await self.workspace_repo.get_by_owner(str(user.id), limit=1)
             if workspaces:
                 default_workspace_id = workspaces[0].id
+            else:
+                # Auto-create default workspace for existing user
+                workspace = await self.workspace_repo.create(
+                    owner_id=str(user.id),
+                    name="默认工作区",
+                    slug="default",
+                    description="Your personal workspace",
+                )
+                default_workspace_id = workspace.id
+                logger.info(
+                    "default_workspace_created_on_login",
+                    user_id=str(user.id),
+                    workspace_id=workspace.id,
+                )
 
         # Generate tokens
         access_token = self.create_access_token(str(user.id), user.email)

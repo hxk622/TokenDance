@@ -9,7 +9,7 @@ import {
   Search, FileText, Presentation, BarChart3, 
   Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
   Languages, MoreHorizontal, Bell, FolderOpen,
-  History, Settings, LayoutGrid, User
+  History, Settings, LayoutGrid, User, LogOut
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 
@@ -24,6 +24,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
 const activeCategory = ref('all')
 const errorMessage = ref('')
+const showUserMenu = ref(false)
 
 // 显示错误提示
 const showError = (msg: string) => {
@@ -31,6 +32,22 @@ const showError = (msg: string) => {
   setTimeout(() => {
     errorMessage.value = ''
   }, 4000)
+}
+
+// 登出
+const handleLogout = () => {
+  showUserMenu.value = false
+  authStore.logout()
+  sessionStore.setCurrentWorkspace(null)
+  router.push('/login')
+}
+
+// 点击外部关闭菜单
+const closeUserMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.user-menu-container')) {
+    showUserMenu.value = false
+  }
 }
 
 // 快捷操作芯片 - AnyGen 风格
@@ -280,11 +297,6 @@ const handleFileSelect = async (e: Event) => {
   }
 }
 
-// 处理登出
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
 
 // New button handler
 const handleNewClick = () => {
@@ -301,10 +313,12 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
+  window.addEventListener('click', closeUserMenu)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
+  window.removeEventListener('click', closeUserMenu)
 })
 </script>
 
@@ -318,25 +332,45 @@ onUnmounted(() => {
           <span class="logo-text">T</span>
         </div>
         <!-- New -->
-        <button class="sidebar-icon-btn" data-tooltip="新建任务" @click="handleNewClick">
+        <button
+          class="sidebar-icon-btn"
+          data-tooltip="新建任务"
+          @click="handleNewClick"
+        >
           <Plus class="w-5 h-5" />
         </button>
         <!-- Nav items -->
-        <button class="sidebar-icon-btn" data-tooltip="搜索" @click="inputRef?.focus()">
+        <button
+          class="sidebar-icon-btn"
+          data-tooltip="搜索"
+          @click="inputRef?.focus()"
+        >
           <Search class="w-5 h-5" />
         </button>
-        <button class="sidebar-icon-btn" data-tooltip="模板">
+        <button
+          class="sidebar-icon-btn"
+          data-tooltip="模板"
+        >
           <LayoutGrid class="w-5 h-5" />
         </button>
-        <button class="sidebar-icon-btn" data-tooltip="文件">
+        <button
+          class="sidebar-icon-btn"
+          data-tooltip="文件"
+        >
           <FolderOpen class="w-5 h-5" />
         </button>
-        <button class="sidebar-icon-btn" data-tooltip="历史">
+        <button
+          class="sidebar-icon-btn"
+          data-tooltip="历史"
+        >
           <History class="w-5 h-5" />
         </button>
       </div>
       <div class="sidebar-bottom">
-        <button class="sidebar-icon-btn" data-tooltip="设置">
+        <button
+          class="sidebar-icon-btn"
+          data-tooltip="设置"
+        >
           <Settings class="w-5 h-5" />
         </button>
       </div>
@@ -358,7 +392,10 @@ onUnmounted(() => {
       <!-- 已登录：显示通知、积分、头像 -->
       <template v-else>
         <!-- 通知铃铛 -->
-        <button class="header-icon-btn" data-tooltip="通知">
+        <button
+          class="header-icon-btn"
+          data-tooltip="通知"
+        >
           <Bell class="w-4 h-4" />
           <span class="notification-badge">4</span>
         </button>
@@ -367,16 +404,44 @@ onUnmounted(() => {
           <Sparkles class="w-3 h-3" />
           <span>1,200</span>
         </div>
-        <!-- 用户头像 -->
-        <button class="avatar-btn">
-          <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
-        </button>
+        <!-- 用户头像和下拉菜单 -->
+        <div class="user-menu-container">
+          <button 
+            class="avatar-btn"
+            @click="showUserMenu = !showUserMenu"
+          >
+            <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
+          </button>
+          <!-- 下拉菜单 -->
+          <Transition name="dropdown">
+            <div
+              v-if="showUserMenu"
+              class="user-dropdown"
+            >
+              <div class="dropdown-header">
+                <span class="user-name">{{ authStore.user?.display_name || authStore.user?.username }}</span>
+                <span class="user-email">{{ authStore.user?.email }}</span>
+              </div>
+              <div class="dropdown-divider" />
+              <button
+                class="dropdown-item"
+                @click="handleLogout"
+              >
+                <LogOut class="w-4 h-4" />
+                <span>退出登录</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
       </template>
     </header>
     
     <!-- 错误提示 Toast -->
     <Transition name="toast">
-      <div v-if="errorMessage" class="error-toast">
+      <div
+        v-if="errorMessage"
+        class="error-toast"
+      >
         {{ errorMessage }}
       </div>
     </Transition>
@@ -385,7 +450,9 @@ onUnmounted(() => {
     <main class="home-main">
       <!-- Hero: 大标题 -->
       <section class="hero-section">
-        <h1 class="hero-title">How can I help you today?</h1>
+        <h1 class="hero-title">
+          How can I help you today?
+        </h1>
       </section>
 
       <!-- 核心输入框 - AnyGen 风格 -->
@@ -750,6 +817,79 @@ onUnmounted(() => {
   @apply bg-purple-600;
 }
 
+/* User menu dropdown */
+.user-menu-container {
+  position: relative;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 200px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-lg, 12px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--any-text-primary);
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--any-text-tertiary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--any-border);
+}
+
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--any-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.dropdown-item:hover {
+  color: var(--any-text-primary);
+  background: var(--any-bg-tertiary);
+}
+
+/* Dropdown transition */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.15s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 /* Sign in button for guest mode */
 .sign-in-btn {
   @apply flex items-center gap-1.5 px-4 py-2
@@ -824,7 +964,7 @@ onUnmounted(() => {
 }
 
 .main-textarea::placeholder {
-  color: var(--any-text-muted);
+  color: var(--any-text-muted);  /* 规范: placeholder 使用 muted 色，避免视觉疲劳 */
 }
 
 .main-textarea:focus {
@@ -843,17 +983,20 @@ onUnmounted(() => {
 .submit-btn {
   @apply p-2.5 rounded-full cursor-pointer;
   background: var(--any-bg-tertiary);
-  color: var(--any-text-muted);
+  color: var(--any-text-tertiary);  /* 默认状态使用 tertiary 色，保证可见性 */
+  border: 1px solid var(--any-border);
   transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
 .submit-btn.active {
   background: var(--any-text-primary);
   color: white;
+  border-color: var(--any-text-primary);
 }
 
 .submit-btn:disabled {
-  @apply cursor-not-allowed opacity-50;
+  @apply cursor-not-allowed;
+  opacity: 0.7;  /* 提高 disabled 状态可见度 */
 }
 
 /* ============================================
@@ -889,7 +1032,7 @@ onUnmounted(() => {
 }
 
 .chip-more {
-  color: var(--any-text-muted);
+  color: var(--any-text-secondary);  /* 使用 secondary 色保证可见性 */
 }
 
 /* ============================================
@@ -917,13 +1060,13 @@ onUnmounted(() => {
          text-sm whitespace-nowrap
          border-b-2 border-transparent
          cursor-pointer;
-  color: var(--any-text-muted);
+  color: var(--any-text-tertiary);  /* 未激活状态使用 tertiary 色，保证可见性 */
   margin-bottom: -1px;
   transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
 .category-tab:hover {
-  color: var(--any-text-secondary);
+  color: var(--any-text-primary);
 }
 
 .category-tab.active {
