@@ -186,17 +186,18 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* BrowserPip - 使用全局主题变量 */
 .browser-pip {
   position: fixed;
   z-index: 9000;
-  background: rgba(28, 28, 30, 0.98);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--any-border-hover);
+  border-radius: var(--any-radius-xl);
+  box-shadow: var(--any-shadow-xl);
   overflow: hidden;
-  transition: width 200ms ease, height 200ms ease;
+  transition: width var(--any-duration-normal) var(--any-ease-out), height var(--any-duration-normal) var(--any-ease-out);
 }
 
 .browser-pip.is-dragging {
@@ -210,7 +211,7 @@ onUnmounted(() => {
   justify-content: space-between;
   height: 40px;
   padding: 0 12px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--any-bg-tertiary);
   cursor: grab;
 }
 
@@ -231,14 +232,14 @@ onUnmounted(() => {
 }
 
 .browser-dot.green {
-  background: #00FF88;
-  box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+  background: var(--td-state-executing);
+  box-shadow: 0 0 6px var(--td-state-executing-bg);
 }
 
 .pip-label {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--any-text-primary);
 }
 
 .pip-actions {
@@ -253,22 +254,22 @@ onUnmounted(() => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--any-radius-md);
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--any-text-secondary);
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .pip-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
 }
 
 .pip-btn-close:hover {
-  background: rgba(255, 59, 48, 0.3);
-  color: #FF3B30;
+  background: var(--td-state-error-bg);
+  color: var(--td-state-error);
 }
 
 .pip-content {
@@ -282,13 +283,13 @@ onUnmounted(() => {
   align-items: center;
   height: 28px;
   padding: 0 10px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
+  border-bottom: 1px solid var(--any-border-light);
 }
 
 .url-text {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
   font-family: 'SF Mono', Monaco, monospace;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -301,7 +302,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--any-bg-tertiary);
 }
 
 .preview-image {
@@ -318,12 +319,12 @@ onUnmounted(() => {
 }
 
 .placeholder-icon {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--any-text-muted);
 }
 
 .placeholder-text {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
 }
 
 /* Transition */

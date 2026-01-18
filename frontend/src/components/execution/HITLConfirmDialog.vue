@@ -457,14 +457,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* HITLConfirmDialog - 使用全局主题变量 */
 .hitl-overlay {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: var(--any-bg-glass);
+  backdrop-filter: blur(8px);
   z-index: 1000;
 }
 
@@ -472,9 +473,10 @@ onUnmounted(() => {
   width: 100%;
   max-width: 480px;
   margin: 16px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-xl);
+  box-shadow: var(--any-shadow-xl);
   overflow: hidden;
 }
 
@@ -518,7 +520,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 /* Risk badge */
@@ -555,19 +557,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: #f3f4f6;
-  border-radius: 6px;
+  background: var(--any-bg-tertiary);
+  border-radius: var(--any-radius-md);
 }
 
 .badge-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--any-text-tertiary);
 }
 
 .badge-value {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .category-tags {
@@ -580,16 +582,16 @@ onUnmounted(() => {
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 500;
-  color: #6366f1;
-  background: #eef2ff;
-  border-radius: 4px;
+  color: var(--td-state-thinking);
+  background: var(--td-state-thinking-bg);
+  border-radius: var(--any-radius-sm);
 }
 
 .description {
   margin: 0 0 16px;
   font-size: 15px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--any-text-secondary);
 }
 
 /* Risk explanation */
