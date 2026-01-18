@@ -281,16 +281,11 @@ def create_openrouter_llm(
 ) -> OpenRouterLLM:
     """创建 OpenRouterLLM 实例
 
-    支持从环境变量读取配置：
-    - OPENROUTER_API_KEY: API Key
-    - OPENROUTER_MODEL: 模型名称
-    - OPENROUTER_BASE_URL: API Base URL
-    - OPENROUTER_SITE_URL: 站点 URL
-    - OPENROUTER_APP_NAME: 应用名称
+    优先从 settings 读取配置，其次从环境变量读取
 
     Args:
-        api_key: OpenRouter API Key（如果为 None，从环境变量读取）
-        model: 模型名称（如果为 None，从环境变量读取）
+        api_key: OpenRouter API Key
+        model: 模型名称
         max_tokens: 最大输出 token 数
         temperature: 温度参数
         base_url: API Base URL
@@ -302,15 +297,23 @@ def create_openrouter_llm(
     """
     import os
 
-    # 读取 API Key
+    # 优先从 settings 读取，其次从环境变量
+    if api_key is None:
+        try:
+            from app.core.config import settings
+            api_key = settings.OPENROUTER_API_KEY
+        except Exception:
+            pass
+
     if api_key is None:
         api_key = os.getenv("OPENROUTER_API_KEY")
-        if not api_key:
-            raise ValueError("API Key not found. Set OPENROUTER_API_KEY environment variable")
+
+    if not api_key:
+        raise ValueError("API Key not found. Set OPENROUTER_API_KEY in .env or environment")
 
     # 读取模型名称
     if model is None:
-        model = os.getenv("OPENROUTER_MODEL", "anthropic/claude-3-5-sonnet")
+        model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 
     # 读取其他配置
     if base_url is None:
