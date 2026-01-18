@@ -292,25 +292,25 @@ onUnmounted(() => {
           <span class="logo-text">T</span>
         </div>
         <!-- New -->
-        <button class="sidebar-icon-btn" title="新建任务" @click="handleNewClick">
+        <button class="sidebar-icon-btn" data-tooltip="新建任务" @click="handleNewClick">
           <Plus class="w-5 h-5" />
         </button>
         <!-- Nav items -->
-        <button class="sidebar-icon-btn" title="搜索" @click="inputRef?.focus()">
+        <button class="sidebar-icon-btn" data-tooltip="搜索" @click="inputRef?.focus()">
           <Search class="w-5 h-5" />
         </button>
-        <button class="sidebar-icon-btn" title="模板">
+        <button class="sidebar-icon-btn" data-tooltip="模板">
           <LayoutGrid class="w-5 h-5" />
         </button>
-        <button class="sidebar-icon-btn" title="文件">
+        <button class="sidebar-icon-btn" data-tooltip="文件">
           <FolderOpen class="w-5 h-5" />
         </button>
-        <button class="sidebar-icon-btn" title="历史" @click="router.push('/chat')">
+        <button class="sidebar-icon-btn" data-tooltip="历史">
           <History class="w-5 h-5" />
         </button>
       </div>
       <div class="sidebar-bottom">
-        <button class="sidebar-icon-btn" title="设置">
+        <button class="sidebar-icon-btn" data-tooltip="设置">
           <Settings class="w-5 h-5" />
         </button>
       </div>
@@ -319,13 +319,13 @@ onUnmounted(() => {
     <!-- 右上角个人信息栏 - 固定定位 -->
     <header class="top-header">
       <!-- 通知铃铛 -->
-      <button class="header-icon-btn" title="通知">
-        <Bell class="w-5 h-5" />
+      <button class="header-icon-btn" data-tooltip="通知">
+        <Bell class="w-4 h-4" />
         <span class="notification-badge">4</span>
       </button>
       <!-- 积分/Token -->
       <div class="credits-badge">
-        <Sparkles class="w-4 h-4" />
+        <Sparkles class="w-3 h-3" />
         <span>1,200</span>
       </div>
       <!-- 用户头像 -->
@@ -592,20 +592,50 @@ onUnmounted(() => {
   background: var(--any-bg-tertiary);
 }
 
+/* Custom Tooltip */
+.sidebar-icon-btn[data-tooltip] {
+  position: relative;
+}
+
+.sidebar-icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  padding: 6px 10px;
+  background: var(--any-text-primary);
+  color: var(--any-bg-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: var(--any-radius-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.sidebar-icon-btn[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* 右上角固定 Header */
 .top-header {
   position: fixed;
-  top: 16px;
-  right: 24px;
+  top: 12px;
+  right: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   z-index: 100;
 }
 
 /* Header icon buttons */
 .header-icon-btn {
-  @apply relative p-2 rounded-full cursor-pointer;
+  @apply relative p-1.5 rounded-full cursor-pointer;
   color: var(--any-text-secondary);
   transition: all var(--any-duration-fast) var(--any-ease-default);
 }
@@ -615,25 +645,55 @@ onUnmounted(() => {
   background: var(--any-bg-tertiary);
 }
 
+/* Header tooltip */
+.header-icon-btn[data-tooltip] {
+  position: relative;
+}
+
+.header-icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: var(--any-text-primary);
+  color: var(--any-bg-primary);
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: var(--any-radius-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.header-icon-btn[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 .notification-badge {
   @apply absolute -top-0.5 -right-0.5
-         min-w-[18px] h-[18px] px-1
+         min-w-[14px] h-[14px] px-0.5
          flex items-center justify-center
-         text-xs font-medium text-white
+         text-[10px] font-medium text-white
          bg-red-500 rounded-full;
 }
 
 .credits-badge {
-  @apply flex items-center gap-1.5 px-3 py-1.5
-         text-sm rounded-full;
+  @apply flex items-center gap-1 px-2 py-1
+         text-xs rounded-full;
   color: var(--any-text-secondary);
   background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
 }
 
 .avatar-btn {
-  @apply w-9 h-9 flex items-center justify-center
-         text-sm font-medium text-white
+  @apply w-7 h-7 flex items-center justify-center
+         text-xs font-medium text-white
          bg-purple-500 rounded-full
          cursor-pointer;
   transition: all var(--any-duration-fast) var(--any-ease-default);
