@@ -549,7 +549,7 @@ watch(() => props.sessionId, (newId) => {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--any-border);
 }
 
 /* Toolbar */
@@ -565,12 +565,12 @@ watch(() => props.sessionId, (newId) => {
 .btn-icon {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--divider-color);
+  border: 1px solid var(--any-border);
   border-radius: 6px;
-  background: rgba(28, 28, 30, 0.7);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -579,8 +579,8 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .btn-icon:hover {
-  background: rgba(0, 217, 255, 0.2);
-  border-color: var(--color-node-active);
+  background: var(--td-state-thinking-bg);
+  border-color: var(--td-state-thinking);
 }
 
 /* Canvas */
@@ -636,12 +636,12 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .edge-hitbox:hover + .edge {
-  stroke: rgba(0, 217, 255, 0.6);
+  stroke: color-mix(in srgb, var(--td-state-thinking) 60%, transparent);
   stroke-width: 3;
 }
 
 .edge.dragging {
-  stroke: rgba(255, 184, 0, 0.8);
+  stroke: color-mix(in srgb, var(--td-state-waiting) 80%, transparent);
   stroke-width: 3;
   stroke-dasharray: 8 4;
 }
@@ -662,7 +662,7 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .node.selected circle {
-  stroke: #ffffff;
+  stroke: var(--any-text-primary);
   stroke-width: 3;
 }
 
@@ -729,7 +729,7 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .node-label {
-  fill: var(--text-primary);
+  fill: var(--any-text-primary);
   font-size: 12px;
   font-weight: 500;
   pointer-events: none;
@@ -743,12 +743,12 @@ watch(() => props.sessionId, (newId) => {
   display: flex;
   gap: 16px;
   padding: 12px 16px;
-  background: rgba(28, 28, 30, 0.75);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--any-border);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--any-bg-primary) 30%, transparent);
 }
 
 .legend-item {
@@ -756,7 +756,7 @@ watch(() => props.sessionId, (newId) => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .legend-dot {
@@ -925,13 +925,13 @@ watch(() => props.sessionId, (newId) => {
   position: fixed;
   z-index: 1000;
   min-width: 160px;
-  background: rgba(28, 28, 30, 0.95);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--divider-color);
+  border: 1px solid var(--any-border);
   border-radius: 8px;
   padding: 6px 0;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--any-bg-primary) 40%, transparent);
 }
 
 .context-menu-item {
@@ -940,13 +940,13 @@ watch(() => props.sessionId, (newId) => {
   gap: 10px;
   padding: 10px 14px;
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   cursor: pointer;
   transition: all 120ms ease-out;
 }
 
 .context-menu-item:hover {
-  background: rgba(0, 217, 255, 0.15);
+  background: var(--td-state-thinking-bg);
 }
 
 .context-menu-item.disabled {
@@ -960,11 +960,11 @@ watch(() => props.sessionId, (newId) => {
 
 .context-menu-item svg {
   flex-shrink: 0;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .context-menu-item:hover svg {
-  color: var(--color-node-active);
+  color: var(--td-state-thinking);
 }
 
 /* Fade transition */
@@ -976,14 +976,5 @@ watch(() => props.sessionId, (newId) => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-/* CSS Variables */
-:root {
-  --bg-primary: rgba(18, 18, 18, 0.95);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --divider-color: rgba(255, 255, 255, 0.1);
-  --color-node-active: #00D9FF;
 }
 </style>

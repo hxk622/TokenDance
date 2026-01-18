@@ -253,7 +253,7 @@ defineExpose({
   justify-content: space-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .header-left {
@@ -265,14 +265,14 @@ defineExpose({
 .header-icon {
   width: 18px;
   height: 18px;
-  color: var(--vibe-color-active);
+  color: var(--td-state-thinking);
 }
 
 .tree-header h3 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--any-text-primary);
 }
 
 .header-stats {
@@ -291,18 +291,18 @@ defineExpose({
 }
 
 .stat-badge.created {
-  background: rgba(0, 255, 136, 0.15);
-  color: var(--vibe-color-success);
+  background: var(--td-state-executing-bg);
+  color: var(--td-state-executing);
 }
 
 .stat-badge.modified {
-  background: rgba(0, 217, 255, 0.15);
-  color: var(--vibe-color-active);
+  background: var(--td-state-thinking-bg);
+  color: var(--td-state-thinking);
 }
 
 .stat-badge.deleted {
-  background: rgba(255, 59, 48, 0.15);
-  color: var(--vibe-color-error);
+  background: var(--td-state-error-bg);
+  color: var(--td-state-error);
 }
 
 .stat-icon {
@@ -323,12 +323,12 @@ defineExpose({
 }
 
 .file-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--any-bg-tertiary);
   border-radius: 3px;
 }
 
 .file-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 3px;
 }
 
@@ -339,20 +339,20 @@ defineExpose({
   justify-content: space-between;
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(28, 28, 30, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border);
   cursor: pointer;
   transition: all 150ms ease-out;
 }
 
 .file-item:hover {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
 }
 
 .file-item.selected {
-  background: rgba(0, 217, 255, 0.1);
-  border-color: rgba(0, 217, 255, 0.3);
+  background: var(--td-state-thinking-bg);
+  border-color: color-mix(in srgb, var(--td-state-thinking) 30%, transparent);
 }
 
 /* Action-specific styles with animation */
@@ -394,7 +394,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
   border-radius: 6px;
   flex-shrink: 0;
 }
@@ -413,7 +413,7 @@ defineExpose({
 }
 
 .file-path {
-  color: #ffffff;
+  color: var(--any-text-primary);
   font-size: 13px;
   font-family: 'SF Mono', 'Monaco', monospace;
   overflow: hidden;
@@ -435,7 +435,7 @@ defineExpose({
 
 .timestamp {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
 }
 
 /* Diff stats */
@@ -448,14 +448,14 @@ defineExpose({
 .diff-added {
   font-size: 12px;
   font-weight: 600;
-  color: var(--vibe-color-success);
+  color: var(--td-state-executing);
   font-family: 'SF Mono', monospace;
 }
 
 .diff-removed {
   font-size: 12px;
   font-weight: 600;
-  color: var(--vibe-color-error);
+  color: var(--td-state-error);
   font-family: 'SF Mono', monospace;
 }
 
@@ -466,7 +466,7 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
   gap: 12px;
 }
 
