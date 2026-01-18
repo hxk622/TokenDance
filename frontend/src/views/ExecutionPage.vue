@@ -741,16 +741,17 @@ onUnmounted(() => {
   color: var(--exec-text-primary);
 }
 
-/* Execution-specific CSS Variables (dark theme) */
+/* Execution-specific CSS Variables - 使用全局主题变量 */
 .execution-page {
-  --exec-bg-primary: #121212;
-  --exec-bg-secondary: #1c1c1e;
-  --exec-bg-tertiary: #2c2c2e;
-  --exec-text-primary: #ffffff;
-  --exec-text-secondary: rgba(255, 255, 255, 0.6);
-  --exec-text-muted: rgba(255, 255, 255, 0.4);
-  --exec-border: rgba(255, 255, 255, 0.1);
-  --exec-border-hover: rgba(255, 255, 255, 0.2);
+  --exec-bg-primary: var(--any-bg-primary);
+  --exec-bg-secondary: var(--any-bg-secondary);
+  --exec-bg-tertiary: var(--any-bg-tertiary);
+  --exec-text-primary: var(--any-text-primary);
+  --exec-text-secondary: var(--any-text-secondary);
+  --exec-text-muted: var(--any-text-muted);
+  --exec-border: var(--any-border);
+  --exec-border-hover: var(--any-border-hover);
+  /* 状态色保持品牌特色 */
   --exec-accent: #00D9FF;
   --exec-success: #00FF88;
   --exec-warning: #FFB800;
