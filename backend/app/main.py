@@ -4,6 +4,7 @@ TokenDance Backend - FastAPI Application Entry Point
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import UTC
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,32 +50,25 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 class APILoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to log full request and response details for debugging."""
 
-    # Status code emoji mapping
-    STATUS_ICONS = {
-        range(200, 300): "✓",  # Success
-        range(300, 400): "↪",  # Redirect
-        range(400, 500): "✗",  # Client error
-        range(500, 600): "⚠",  # Server error
-    }
-
-    def _get_status_icon(self, status_code: int) -> str:
-        for code_range, icon in self.STATUS_ICONS.items():
-            if status_code in code_range:
-                return icon
-        return "?"
-
-    def _format_body(self, body: dict | str | None, max_len: int = 200) -> str:
-        """Format body for logging - truncate if too long."""
-        if body is None:
-            return ""
+    def _log_json(self, data: dict, level: str = "info") -> None:
+        """Print formatted JSON log to stdout."""
         import json
-        if isinstance(body, dict):
-            text = json.dumps(body, ensure_ascii=False)
-        else:
-            text = str(body)
-        if len(text) > max_len:
-            return text[:max_len] + "..."
-        return text
+        import sys
+        from datetime import datetime
+
+        # Add timestamp and level
+        log_entry = {
+            "request_id": data.pop("request_id", None),
+            "timestamp": datetime.now(UTC).isoformat(),
+            "level": level,
+            **data,
+        }
+        # Ensure body is always last by removing and re-adding
+        body = log_entry.pop("body", None)
+        if body is not None:
+            log_entry["body"] = body
+
+        print(json.dumps(log_entry, ensure_ascii=False, indent=2), file=sys.stdout, flush=True)
 
     async def dispatch(self, request: Request, call_next):
         import json
@@ -84,7 +78,6 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
         # Get request_id from context (set by RequestIDMiddleware) or fallback
         request_id = get_request_id() or request.headers.get("X-Request-ID", "unknown")
-        short_id = request_id[:8] if request_id else "unknown"
         start_time = time.time()
 
         # Read request body
@@ -100,15 +93,16 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 request_body = f"<error: {e}>"
 
-        # Log request in readable format
-        client = request.client.host if request.client else "unknown"
-        body_preview = self._format_body(request_body)
-        logger.info(
-            f"→ [{short_id}] {request.method} {request.url.path}"
-            + (f"?{request.query_params}" if request.query_params else "")
-            + f" | client={client}"
-            + (f" | body={body_preview}" if body_preview else "")
-        )
+        # Log request
+        self._log_json({
+            "request_id": request_id,
+            "event": "api_request",
+            "method": request.method,
+            "path": request.url.path,
+            "query_params": dict(request.query_params) or None,
+            "client": request.client.host if request.client else None,
+            "body": request_body,
+        })
 
         # Process request
         response = await call_next(request)
@@ -132,9 +126,9 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                         except json.JSONDecodeError:
                             response_body = response_body_bytes.decode("utf-8", errors="replace")
                     elif "text/" in content_type:
-                        response_body = response_body_bytes.decode("utf-8", errors="replace")[:500]
+                        response_body = response_body_bytes.decode("utf-8", errors="replace")[:1000]
                     else:
-                        response_body = f"<binary {len(response_body_bytes)}B>"
+                        response_body = f"<binary {len(response_body_bytes)} bytes>"
 
                 # Create new response with the same body
                 from starlette.responses import Response as StarletteResponse
@@ -147,23 +141,23 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 logger.warning(f"response_body_read_error: {e}")
 
-        # Log response in readable format
-        status_icon = self._get_status_icon(response.status_code)
-        body_preview = self._format_body(response_body)
-
         # Choose log level based on status code
-        log_msg = (
-            f"← [{short_id}] {status_icon} {response.status_code} "
-            f"{request.method} {request.url.path} | {duration_ms:.1f}ms"
-            + (f" | {body_preview}" if body_preview else "")
-        )
-
+        level = "info"
         if response.status_code >= 500:
-            logger.error(log_msg)
+            level = "error"
         elif response.status_code >= 400:
-            logger.warning(log_msg)
-        else:
-            logger.info(log_msg)
+            level = "warning"
+
+        # Log response
+        self._log_json({
+            "request_id": request_id,
+            "event": "api_response",
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": round(duration_ms, 2),
+            "body": response_body,
+        }, level=level)
 
         return response
 
