@@ -17,10 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user_from_token, get_user_repo
 from app.core.logging import get_logger
-from app.models.user import User
-from app.services.agent_service import AgentService
+from app.repositories.user_repository import UserRepository
 from app.services.session_service import SessionService
 
 # Agent Engine imports
@@ -255,8 +254,8 @@ async def stream_session_events(
     session_id: str,
     request: Request,
     task: str | None = Query(None, description="Task to execute"),
-    token: str | None = Query(None, description="Auth token"),
-    current_user: User = Depends(get_current_user),
+    token: str = Query(..., description="Auth token (required for SSE)"),
+    user_repo: UserRepository = Depends(get_user_repo),
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -280,6 +279,9 @@ async def stream_session_events(
         const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?task=...&token=${token}`);
         eventSource.addEventListener('agent_thinking', (e) => console.log(JSON.parse(e.data)));
     """
+    # Authenticate user from query token (SSE can't use headers)
+    await get_current_user_from_token(token, user_repo)
+
     # Verify session exists
     session_service = SessionService(db)
     session = await session_service.get_session(session_id)

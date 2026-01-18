@@ -191,8 +191,43 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
-    token = credentials.credentials
+    return await _verify_and_get_user(credentials.credentials, user_repo)
 
+
+async def get_current_user_from_token(
+    token: str,
+    user_repo: UserRepository,
+) -> User:
+    """Get current authenticated user from JWT token string.
+
+    Use this for SSE endpoints where token is passed via query parameter.
+
+    Args:
+        token: JWT token string
+        user_repo: UserRepository instance
+
+    Returns:
+        Current User instance
+
+    Raises:
+        HTTPException: If token is invalid or user not found
+    """
+    return await _verify_and_get_user(token, user_repo)
+
+
+async def _verify_and_get_user(token: str, user_repo: UserRepository) -> User:
+    """Verify token and get user from database.
+
+    Args:
+        token: JWT token string
+        user_repo: UserRepository instance
+
+    Returns:
+        Current User instance
+
+    Raises:
+        HTTPException: If token is invalid or user not found
+    """
     # Verify token
     token_data = AuthService.verify_token(token, token_type="access")
     if not token_data:
