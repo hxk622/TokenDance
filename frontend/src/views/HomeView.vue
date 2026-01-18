@@ -7,11 +7,9 @@ import { chatApi } from '@/api/chat'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
-  Languages, MoreHorizontal, Bell, PlusCircle, FolderOpen,
+  Languages, MoreHorizontal, Bell, FolderOpen,
   History, Settings, LayoutGrid
 } from 'lucide-vue-next'
-import AnySidebar from '@/components/common/AnySidebar.vue'
-import AnyHeader from '@/components/common/AnyHeader.vue'
 import AnyButton from '@/components/common/AnyButton.vue'
 
 const router = useRouter()
@@ -23,20 +21,6 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
 const activeCategory = ref('all')
-const sidebarCollapsed = ref(false)
-
-// Sidebar navigation sections
-const sidebarSections = [
-  {
-    id: 'main',
-    items: [
-      { id: 'search', label: '搜索', icon: Search },
-      { id: 'templates', label: '模板', icon: LayoutGrid },
-      { id: 'files', label: '文件', icon: FolderOpen },
-      { id: 'history', label: '历史', icon: History },
-    ]
-  }
-]
 
 // 快捷操作芯片 - AnyGen 风格
 const quickChips = [
@@ -276,22 +260,7 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-// Sidebar navigation handler
-const handleNavClick = (item: { id: string }) => {
-  switch (item.id) {
-    case 'search':
-      inputRef.value?.focus()
-      break
-    case 'history':
-      router.push('/chat')
-      break
-    case 'settings':
-      // TODO: Open settings
-      break
-  }
-}
-
-// Sidebar new button handler
+// New button handler
 const handleNewClick = () => {
   inputRef.value?.focus()
 }
@@ -315,58 +284,61 @@ onUnmounted(() => {
 
 <template>
   <div class="home-view">
-    <!-- 左侧边栏 - AnyGen 风格 -->
-    <AnySidebar
-      v-model:collapsed="sidebarCollapsed"
-      :sections="sidebarSections"
-      :show-footer="true"
-      @nav-click="handleNavClick"
-      @new-click="handleNewClick"
-    >
-      <template #footer>
-        <button
-          class="any-sidebar__footer-btn"
-          title="退出登录"
-          @click="handleLogout"
-        >
+    <!-- 左侧边栏 - 固定宽度图标栏 -->
+    <aside class="icon-sidebar">
+      <div class="sidebar-top">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+          <span class="logo-text">T</span>
+        </div>
+        <!-- New -->
+        <button class="sidebar-icon-btn" title="新建任务" @click="handleNewClick">
+          <Plus class="w-5 h-5" />
+        </button>
+        <!-- Nav items -->
+        <button class="sidebar-icon-btn" title="搜索" @click="inputRef?.focus()">
+          <Search class="w-5 h-5" />
+        </button>
+        <button class="sidebar-icon-btn" title="模板">
+          <LayoutGrid class="w-5 h-5" />
+        </button>
+        <button class="sidebar-icon-btn" title="文件">
+          <FolderOpen class="w-5 h-5" />
+        </button>
+        <button class="sidebar-icon-btn" title="历史" @click="router.push('/chat')">
+          <History class="w-5 h-5" />
+        </button>
+      </div>
+      <div class="sidebar-bottom">
+        <button class="sidebar-icon-btn" title="设置">
           <Settings class="w-5 h-5" />
         </button>
-      </template>
-    </AnySidebar>
+      </div>
+    </aside>
     
-    <!-- Header - AnyGen 风格右上角 -->
-    <AnyHeader :sidebar-collapsed="sidebarCollapsed">
-      <template #right>
-        <!-- 通知铃铛 -->
-        <button
-          class="header-icon-btn"
-          title="通知"
-        >
-          <Bell class="w-5 h-5" />
-          <span class="notification-badge">4</span>
-        </button>
-        <!-- 积分/Token -->
-        <div class="credits-badge">
-          <Sparkles class="w-4 h-4" />
-          <span>1,200</span>
-        </div>
-        <!-- 用户头像 -->
-        <button class="avatar-btn">
-          <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
-        </button>
-      </template>
-    </AnyHeader>
+    <!-- 右上角个人信息栏 - 固定定位 -->
+    <header class="top-header">
+      <!-- 通知铃铛 -->
+      <button class="header-icon-btn" title="通知">
+        <Bell class="w-5 h-5" />
+        <span class="notification-badge">4</span>
+      </button>
+      <!-- 积分/Token -->
+      <div class="credits-badge">
+        <Sparkles class="w-4 h-4" />
+        <span>1,200</span>
+      </div>
+      <!-- 用户头像 -->
+      <button class="avatar-btn">
+        <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
+      </button>
+    </header>
     
     <!-- Main Content -->
-    <main
-      class="home-main"
-      :class="{ 'sidebar-collapsed': sidebarCollapsed }"
-    >
+    <main class="home-main">
       <!-- Hero: 大标题 -->
       <section class="hero-section">
-        <h1 class="hero-title">
-          How can I help you today?
-        </h1>
+        <h1 class="hero-title">How can I help you today?</h1>
       </section>
 
       <!-- 核心输入框 - AnyGen 风格 -->
@@ -559,7 +531,76 @@ onUnmounted(() => {
 .home-view {
   @apply relative min-h-screen;
   background: var(--any-bg-secondary);
+}
+
+/* 固定左侧图标栏 */
+.icon-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 56px;
   display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 8px;
+  background: var(--any-bg-secondary);
+  border-right: 1px solid var(--any-border);
+  z-index: 100;
+}
+
+.sidebar-top,
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sidebar-logo {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--any-text-primary);
+  font-family: serif;
+}
+
+.sidebar-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--any-radius-md);
+  color: var(--any-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.sidebar-icon-btn:hover {
+  color: var(--any-text-primary);
+  background: var(--any-bg-tertiary);
+}
+
+/* 右上角固定 Header */
+.top-header {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
 }
 
 /* Header icon buttons */
@@ -602,17 +643,16 @@ onUnmounted(() => {
   @apply bg-purple-600;
 }
 
-/* Main Content - 整个右侧主区域 */
+/* Main Content */
 .home-main {
-  flex: 1;
+  margin-left: 56px;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 0 24px;
   padding-top: max(15vh, 120px);
   padding-bottom: 4rem;
-  overflow-y: auto;
-  min-height: 100vh;
 }
 
 /* Hero Section */
@@ -623,7 +663,7 @@ onUnmounted(() => {
 }
 
 .hero-title {
-  @apply text-3xl md:text-4xl font-semibold;
+  @apply text-3xl md:text-4xl font-normal;
   color: var(--any-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.02em;

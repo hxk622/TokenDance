@@ -25,6 +25,7 @@
     "d3": "^7.9.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
+    "dompurify": "^3.3.1",
     "echarts": "^6.0.0",
     "highlight.js": "^11.11.1",
     "klinecharts": "10.0.0-beta1",
@@ -38,6 +39,7 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.2.0",
     "@types/node": "^20.11.5",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
