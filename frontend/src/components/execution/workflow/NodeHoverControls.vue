@@ -85,8 +85,8 @@ const showSkip = computed(() => ['inactive', 'pending'].includes(props.status))
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(28, 28, 30, 0.95);
+  border: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(8px);
   cursor: pointer;
   transition: all 150ms ease;
@@ -97,31 +97,31 @@ const showSkip = computed(() => ['inactive', 'pending'].includes(props.status))
 }
 
 .control-pause {
-  color: #FFB800;
+  color: var(--td-state-waiting);
 }
 
 .control-pause:hover {
-  background: rgba(255, 184, 0, 0.2);
-  border-color: #FFB800;
+  background: var(--td-state-waiting-bg);
+  border-color: var(--td-state-waiting);
 }
 
 .control-resume {
-  color: #00FF88;
+  color: var(--td-state-executing);
 }
 
 .control-resume:hover {
-  background: rgba(0, 255, 136, 0.2);
-  border-color: #00FF88;
+  background: var(--td-state-executing-bg);
+  border-color: var(--td-state-executing);
 }
 
 .control-skip {
-  color: #8E8E93;
+  color: var(--any-text-tertiary);
 }
 
 .control-skip:hover {
-  background: rgba(142, 142, 147, 0.2);
-  border-color: #8E8E93;
-  color: #ffffff;
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+  color: var(--any-text-primary);
 }
 
 /* Transition */

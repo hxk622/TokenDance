@@ -282,7 +282,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary, rgba(18, 18, 18, 0.95));
+  background: var(--any-bg-primary);
   padding: 16px;
   overflow: hidden;
 }
@@ -293,34 +293,34 @@ defineExpose({
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--divider-color);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .tab {
   padding: 6px 12px;
-  border: 1px solid var(--divider-color);
+  border: 1px solid var(--any-border);
   border-radius: 6px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   font-size: 13px;
   cursor: pointer;
   transition: all 120ms ease-out;
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
 }
 
 .tab.active {
-  background: rgba(0, 217, 255, 0.2);
-  border-color: var(--color-node-active);
-  color: var(--color-node-active);
+  background: var(--td-state-thinking-bg);
+  border-color: var(--td-state-thinking);
+  color: var(--td-state-thinking);
 }
 
 .btn-lock {
   margin-left: auto;
   padding: 6px 12px;
-  border: 1px solid var(--divider-color);
+  border: 1px solid var(--any-border);
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
@@ -328,12 +328,12 @@ defineExpose({
 }
 
 .btn-lock:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
 }
 
 .btn-lock.locked {
-  background: rgba(255, 184, 0, 0.2);
-  border-color: #FFB800;
+  background: var(--td-state-waiting-bg);
+  border-color: var(--td-state-waiting);
 }
 
 /* Focus Mode Indicator */
@@ -343,26 +343,26 @@ defineExpose({
   justify-content: space-between;
   padding: 8px 12px;
   margin-bottom: 12px;
-  background: rgba(0, 217, 255, 0.15);
-  border: 1px solid rgba(0, 217, 255, 0.3);
+  background: var(--td-state-thinking-bg);
+  border: 1px solid color-mix(in srgb, var(--td-state-thinking) 30%, transparent);
   border-radius: 6px;
-  color: #00D9FF;
+  color: var(--td-state-thinking);
   font-size: 12px;
 }
 
 .btn-exit-focus {
   padding: 4px 10px;
-  border: 1px solid rgba(0, 217, 255, 0.5);
+  border: 1px solid color-mix(in srgb, var(--td-state-thinking) 50%, transparent);
   border-radius: 4px;
   background: transparent;
-  color: #00D9FF;
+  color: var(--td-state-thinking);
   cursor: pointer;
   font-size: 11px;
   transition: all 120ms ease-out;
 }
 
 .btn-exit-focus:hover {
-  background: rgba(0, 217, 255, 0.2);
+  background: var(--td-state-thinking-bg);
 }
 
 /* Log Stream */
@@ -379,46 +379,46 @@ defineExpose({
 }
 
 .log-stream::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
   border-radius: 3px;
 }
 
 .log-stream::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 3px;
 }
 
 .log-stream::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--any-text-muted);
 }
 
 /* Log Entry */
 .log-entry {
   padding: 12px;
   border-radius: 8px;
-  background: rgba(28, 28, 30, 0.6);
+  background: var(--any-bg-secondary);
   border-left: 3px solid transparent;
   transition: all 120ms ease-out;
 }
 
 .log-entry:hover {
-  background: rgba(28, 28, 30, 0.9);
+  background: var(--any-bg-hover);
 }
 
 .log-entry.thinking {
-  border-left-color: #8E8E93;
+  border-left-color: var(--any-text-tertiary);
 }
 
 .log-entry.tool-call {
-  border-left-color: #00D9FF;
+  border-left-color: var(--td-state-thinking);
 }
 
 .log-entry.result {
-  border-left-color: #00FF88;
+  border-left-color: var(--td-state-executing);
 }
 
 .log-entry.error {
-  border-left-color: #FF3B30;
+  border-left-color: var(--td-state-error);
 }
 
 .log-meta {
@@ -441,19 +441,19 @@ defineExpose({
 }
 
 .log-time {
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .log-node {
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-secondary);
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-secondary);
   font-size: 11px;
 }
 
 .log-content {
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   font-size: 13px;
   line-height: 1.6;
   font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
@@ -466,7 +466,7 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .empty-icon {
@@ -480,12 +480,4 @@ defineExpose({
   font-size: 14px;
 }
 
-/* CSS Variables */
-:root {
-  --bg-primary: rgba(18, 18, 18, 0.95);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --divider-color: rgba(255, 255, 255, 0.1);
-  --color-node-active: #00D9FF;
-}
 </style>
