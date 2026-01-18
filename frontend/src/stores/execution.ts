@@ -170,6 +170,9 @@ export const useExecutionStore = defineStore('execution', () => {
   // SSE connection
   let sseConnection: SSEConnection | null = null
 
+  // Current task
+  const currentTask = ref<string | null>(null)
+
   // Computed
   const isRunning = computed(() => session.value?.status === 'running')
   const isCompleted = computed(() => session.value?.status === 'completed')
@@ -261,23 +264,31 @@ export const useExecutionStore = defineStore('execution', () => {
 
   /**
    * Connect to SSE stream
+   * @param task - Task to execute (triggers agent execution if provided)
    */
-  function connectSSE() {
+  function connectSSE(task: string | null = null) {
     if (!sessionId.value) return
 
-    sseConnection = createSSEConnection(sessionId.value, {
-      onEvent: handleSSEEvent,
-      onError: (err) => {
-        console.error('[ExecutionStore] SSE error:', err)
-        error.value = 'Connection lost'
+    currentTask.value = task
+
+    sseConnection = createSSEConnection(
+      sessionId.value,
+      {
+        onEvent: handleSSEEvent,
+        onError: (err) => {
+          console.error('[ExecutionStore] SSE error:', err)
+          error.value = 'Connection lost'
+        },
+        onOpen: () => {
+          console.log('[ExecutionStore] SSE connected')
+        },
+        onClose: () => {
+          console.log('[ExecutionStore] SSE disconnected')
+        },
       },
-      onOpen: () => {
-        console.log('[ExecutionStore] SSE connected')
-      },
-      onClose: () => {
-        console.log('[ExecutionStore] SSE disconnected')
-      },
-    })
+      false, // useDemo
+      task   // task parameter
+    )
   }
 
   /**
@@ -605,6 +616,7 @@ export const useExecutionStore = defineStore('execution', () => {
     disconnect()
     sessionId.value = null
     session.value = null
+    currentTask.value = null
     nodes.value = []
     edges.value = []
     logs.value = []
@@ -625,6 +637,7 @@ export const useExecutionStore = defineStore('execution', () => {
     // State
     sessionId,
     session,
+    currentTask,
     isLoading,
     error,
     nodes,

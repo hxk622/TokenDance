@@ -21,6 +21,7 @@ import {
 const route = useRoute()
 const router = useRouter()
 const sessionId = ref(route.params.id as string)
+const initialTask = ref(route.query.task as string | null)
 
 // Sidebar state
 const sidebarCollapsed = ref(true) // Default collapsed for execution page
@@ -250,9 +251,9 @@ async function initializeExecution() {
     await executionStore.loadSession(sessionId.value)
   }
   
-  // Connect SSE stream
+  // Connect SSE stream with task (triggers agent execution if task provided)
   executionStore.sessionId = sessionId.value
-  executionStore.connectSSE()
+  executionStore.connectSSE(initialTask.value)
   
   // Start elapsed timer
   startElapsedTimer()

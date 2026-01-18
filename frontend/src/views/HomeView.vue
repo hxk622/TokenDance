@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { useThemeStore, type ThemeMode } from '@/stores/theme'
-import { chatApi } from '@/api/chat'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
@@ -386,8 +385,14 @@ onUnmounted(() => {
           data-tooltip="主题"
           @click="showThemeMenu = !showThemeMenu"
         >
-          <Sun v-if="themeStore.resolvedTheme === 'light'" class="w-4 h-4" />
-          <Moon v-else class="w-4 h-4" />
+          <Sun
+            v-if="themeStore.resolvedTheme === 'light'"
+            class="w-4 h-4"
+          />
+          <Moon
+            v-else
+            class="w-4 h-4"
+          />
         </button>
         <!-- 主题下拉菜单 -->
         <Transition name="dropdown">
@@ -402,9 +407,15 @@ onUnmounted(() => {
               :class="{ active: themeStore.mode === opt.mode }"
               @click="selectTheme(opt.mode)"
             >
-              <component :is="opt.icon" class="w-4 h-4" />
+              <component
+                :is="opt.icon"
+                class="w-4 h-4"
+              />
               <span>{{ opt.label }}</span>
-              <span v-if="themeStore.mode === opt.mode" class="check-mark">✓</span>
+              <span
+                v-if="themeStore.mode === opt.mode"
+                class="check-mark"
+              >✓</span>
             </button>
           </div>
         </Transition>
