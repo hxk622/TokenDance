@@ -49,6 +49,33 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 class APILoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to log full request and response details for debugging."""
 
+    # Status code emoji mapping
+    STATUS_ICONS = {
+        range(200, 300): "✓",  # Success
+        range(300, 400): "↪",  # Redirect
+        range(400, 500): "✗",  # Client error
+        range(500, 600): "⚠",  # Server error
+    }
+
+    def _get_status_icon(self, status_code: int) -> str:
+        for code_range, icon in self.STATUS_ICONS.items():
+            if status_code in code_range:
+                return icon
+        return "?"
+
+    def _format_body(self, body: dict | str | None, max_len: int = 200) -> str:
+        """Format body for logging - truncate if too long."""
+        if body is None:
+            return ""
+        import json
+        if isinstance(body, dict):
+            text = json.dumps(body, ensure_ascii=False)
+        else:
+            text = str(body)
+        if len(text) > max_len:
+            return text[:max_len] + "..."
+        return text
+
     async def dispatch(self, request: Request, call_next):
         import json
         import time
@@ -57,9 +84,10 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
         # Get request_id from context (set by RequestIDMiddleware) or fallback
         request_id = get_request_id() or request.headers.get("X-Request-ID", "unknown")
+        short_id = request_id[:8] if request_id else "unknown"
         start_time = time.time()
 
-        # Read and log request body
+        # Read request body
         request_body = None
         if request.method in ["POST", "PUT", "PATCH"]:
             try:
@@ -70,19 +98,16 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                     except json.JSONDecodeError:
                         request_body = body_bytes.decode("utf-8", errors="replace")
             except Exception as e:
-                request_body = f"<error reading body: {e}>"
+                request_body = f"<error: {e}>"
 
-        # Log request
+        # Log request in readable format
+        client = request.client.host if request.client else "unknown"
+        body_preview = self._format_body(request_body)
         logger.info(
-            "api_request",
-            request_id=request_id,
-            method=request.method,
-            url=str(request.url),
-            path=request.url.path,
-            query_params=dict(request.query_params),
-            headers={k: v for k, v in request.headers.items() if k.lower() not in ["authorization", "cookie"]},
-            body=request_body,
-            client_host=request.client.host if request.client else None,
+            f"→ [{short_id}] {request.method} {request.url.path}"
+            + (f"?{request.query_params}" if request.query_params else "")
+            + f" | client={client}"
+            + (f" | body={body_preview}" if body_preview else "")
         )
 
         # Process request
@@ -107,9 +132,9 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                         except json.JSONDecodeError:
                             response_body = response_body_bytes.decode("utf-8", errors="replace")
                     elif "text/" in content_type:
-                        response_body = response_body_bytes.decode("utf-8", errors="replace")[:1000]  # Truncate text
+                        response_body = response_body_bytes.decode("utf-8", errors="replace")[:500]
                     else:
-                        response_body = f"<binary data, {len(response_body_bytes)} bytes>"
+                        response_body = f"<binary {len(response_body_bytes)}B>"
 
                 # Create new response with the same body
                 from starlette.responses import Response as StarletteResponse
@@ -120,19 +145,25 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                     media_type=response.media_type,
                 )
             except Exception as e:
-                logger.warning("response_body_read_error", error=str(e))
+                logger.warning(f"response_body_read_error: {e}")
 
-        # Log response
-        logger.info(
-            "api_response",
-            request_id=request_id,
-            method=request.method,
-            path=request.url.path,
-            status_code=response.status_code,
-            duration_ms=round(duration_ms, 2),
-            response_headers=dict(response.headers.items()),
-            body=response_body,
+        # Log response in readable format
+        status_icon = self._get_status_icon(response.status_code)
+        body_preview = self._format_body(response_body)
+
+        # Choose log level based on status code
+        log_msg = (
+            f"← [{short_id}] {status_icon} {response.status_code} "
+            f"{request.method} {request.url.path} | {duration_ms:.1f}ms"
+            + (f" | {body_preview}" if body_preview else "")
         )
+
+        if response.status_code >= 500:
+            logger.error(log_msg)
+        elif response.status_code >= 400:
+            logger.warning(log_msg)
+        else:
+            logger.info(log_msg)
 
         return response
 
@@ -175,25 +206,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     import app.models  # noqa: F401
 
     # Initialize database connection pool
-    from app.core.database import close_db, init_db, check_tables_exist, run_migrations
+    from app.core.database import check_tables_exist, close_db, init_db, run_migrations
     await init_db()
     logger.info("database_connection_pool_initialized")
-    
+
     # Check if critical tables exist
     tables_exist, missing_tables = await check_tables_exist()
-    
+
     if not tables_exist:
         logger.warning(
             "missing_database_tables",
             missing_tables=missing_tables,
             environment=settings.ENVIRONMENT
         )
-        
+
         if settings.ENVIRONMENT == "development":
             # Auto-run migrations in development
             logger.info("auto_running_migrations_in_development")
             migration_success = await run_migrations()
-            
+
             if migration_success:
                 # Re-check tables after migration
                 tables_exist, missing_tables = await check_tables_exist()
