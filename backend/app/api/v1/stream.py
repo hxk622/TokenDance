@@ -280,7 +280,7 @@ async def stream_session_events(
         eventSource.addEventListener('agent_thinking', (e) => console.log(JSON.parse(e.data)));
     """
     # Authenticate user from query token (SSE can't use headers)
-    await get_current_user_from_token(token, user_repo)
+    current_user = await get_current_user_from_token(token, user_repo)
 
     # Verify session exists
     session_service = SessionService(db)
@@ -300,7 +300,9 @@ async def stream_session_events(
         try:
             # If task is provided and Agent Engine is available, run real agent
             if task and AGENT_ENGINE_AVAILABLE:
-                async for event in run_agent_stream(session_id, task, session, db):
+                async for event in run_agent_stream(
+                    session_id, task, session.workspace_id, str(current_user.id), db
+                ):
                     if await request.is_disconnected():
                         logger.info("sse_client_disconnected", session_id=session_id)
                         break
@@ -331,7 +333,9 @@ async def stream_session_events(
     )
 
 
-async def run_agent_stream(session_id: str, task: str, session, db: AsyncSession) -> AsyncGenerator[str, None]:
+async def run_agent_stream(
+    session_id: str, task: str, workspace_id: str, user_id: str, db: AsyncSession
+) -> AsyncGenerator[str, None]:
     """
     Run Agent and stream events.
     """
@@ -355,8 +359,8 @@ async def run_agent_stream(session_id: str, task: str, session, db: AsyncSession
             # Create Agent Context
             context = AgentContext(
                 session_id=session_id,
-                user_id=str(session.user_id),
-                workspace_id=str(session.workspace_id)
+                user_id=user_id,
+                workspace_id=workspace_id
             )
 
             # Create Tool Registry (empty for now)
