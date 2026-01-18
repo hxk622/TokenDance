@@ -66,12 +66,12 @@
                 TokenDance
               </h1>
             </div>
-          <h2 class="modal-title">
-            登录
-          </h2>
-          <p class="modal-subtitle">
-            {{ props.message || '登录后可使用完整的 AI 智能工作台功能' }}
-          </p>
+            <h2 class="modal-title">
+              登录
+            </h2>
+            <p class="modal-subtitle">
+              {{ props.message || '登录后可使用完整的 AI 智能工作台功能' }}
+            </p>
           </div>
 
           <!-- OAuth Buttons -->

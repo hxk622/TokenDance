@@ -190,14 +190,20 @@ export class SSEConnection {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private isClosed = false
 
-  constructor(sessionId: string, options: SSEOptions = {}, useDemo = false) {
+  private task: string | null = null
+
+  constructor(sessionId: string, options: SSEOptions = {}, useDemo = false, task: string | null = null) {
     const token = localStorage.getItem('access_token')
+    this.task = task
     
     // Use demo endpoint for testing, or real session endpoint
     if (useDemo || sessionId === 'demo' || sessionId.startsWith('demo-')) {
       this.url = `${API_BASE_URL}/api/v1/demo/stream`
     } else {
-      this.url = `${API_BASE_URL}/api/v1/sessions/${sessionId}/stream?token=${token || ''}`
+      const params = new URLSearchParams()
+      if (token) params.set('token', token)
+      if (task) params.set('task', task)
+      this.url = `${API_BASE_URL}/api/v1/sessions/${sessionId}/stream?${params.toString()}`
     }
     
     this.options = {
@@ -311,13 +317,18 @@ export class SSEConnection {
 
 /**
  * Create SSE connection for a session
+ * @param sessionId - Session ID
+ * @param options - SSE options
+ * @param useDemo - Whether to use demo endpoint
+ * @param task - Task to execute (triggers agent execution if provided)
  */
 export function createSSEConnection(
   sessionId: string,
   options: SSEOptions = {},
-  useDemo = false
+  useDemo = false,
+  task: string | null = null
 ): SSEConnection {
-  const connection = new SSEConnection(sessionId, options, useDemo)
+  const connection = new SSEConnection(sessionId, options, useDemo, task)
   connection.connect()
   return connection
 }

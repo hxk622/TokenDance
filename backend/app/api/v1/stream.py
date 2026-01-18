@@ -5,6 +5,8 @@ Provides real-time streaming of Agent execution events.
 """
 import asyncio
 import json
+import logging
+import tempfile
 import time
 from collections.abc import AsyncGenerator
 from enum import Enum
@@ -20,6 +22,20 @@ from app.core.logging import get_logger
 from app.models.user import User
 from app.services.agent_service import AgentService
 from app.services.session_service import SessionService
+
+# Agent Engine imports
+try:
+    from app.agent import (
+        AgentContext,
+        BasicAgent,
+        create_working_memory,
+    )
+    from app.agent.llm import create_claude_llm
+    from app.agent.tools import ToolRegistry
+    AGENT_ENGINE_AVAILABLE = True
+except ImportError as e:
+    AGENT_ENGINE_AVAILABLE = False
+    logging.warning(f"Agent Engine not available: {e}")
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -238,6 +254,7 @@ async def keepalive_generator(
 async def stream_session_events(
     session_id: str,
     request: Request,
+    task: str | None = Query(None, description="Task to execute"),
     token: str | None = Query(None, description="Auth token"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -245,6 +262,9 @@ async def stream_session_events(
 ):
     """
     Stream SSE events for a session.
+
+    If task is provided, starts Agent execution.
+    Otherwise, returns mock stream for demo purposes.
 
     Events include:
     - agent_thinking: Agent's reasoning process
@@ -257,7 +277,7 @@ async def stream_session_events(
     - ping: Keepalive
 
     Usage:
-        const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?token=${token}`);
+        const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?task=...&token=${token}`);
         eventSource.addEventListener('agent_thinking', (e) => console.log(JSON.parse(e.data)));
     """
     # Verify session exists
@@ -267,37 +287,36 @@ async def stream_session_events(
     if not session:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
 
-    # Initialize AgentService
-    agent_service = AgentService(db, settings, None)
-
-    # Initialize tools
-    await agent_service.initialize_tools()
-
     logger.info(
         "sse_stream_started",
         session_id=session_id,
+        task=task,
         client_ip=request.client.host if request.client else "unknown",
     )
 
     async def event_generator():
         try:
-            # Use mock stream for now
-            # In production, this would subscribe to Redis pub/sub
-            stream = mock_agent_execution_stream(session_id)
-
-            async for event in keepalive_generator(stream):
-                # Check if client disconnected
-                if await request.is_disconnected():
-                    logger.info("sse_client_disconnected", session_id=session_id)
-                    break
-
-                yield event
+            # If task is provided and Agent Engine is available, run real agent
+            if task and AGENT_ENGINE_AVAILABLE:
+                async for event in run_agent_stream(session_id, task, session, db):
+                    if await request.is_disconnected():
+                        logger.info("sse_client_disconnected", session_id=session_id)
+                        break
+                    yield event
+            else:
+                # Use mock stream for demo
+                stream = mock_agent_execution_stream(session_id)
+                async for event in keepalive_generator(stream):
+                    if await request.is_disconnected():
+                        logger.info("sse_client_disconnected", session_id=session_id)
+                        break
+                    yield event
 
         except asyncio.CancelledError:
             logger.info("sse_stream_cancelled", session_id=session_id)
         except Exception as e:
             logger.error("sse_stream_error", session_id=session_id, error=str(e))
-            yield format_sse("error", {"message": str(e)})
+            yield format_sse(SSEEventType.ERROR, {"message": str(e)})
 
     return StreamingResponse(
         event_generator(),
@@ -308,6 +327,71 @@ async def stream_session_events(
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         },
     )
+
+
+async def run_agent_stream(session_id: str, task: str, session, db: AsyncSession) -> AsyncGenerator[str, None]:
+    """
+    Run Agent and stream events.
+    """
+    # Send session started
+    yield format_sse(SSEEventType.SESSION_STARTED, {
+        "session_id": session_id,
+        "task": task,
+        "timestamp": time.time(),
+    })
+
+    try:
+        # Create temporary workspace for this session
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Initialize Working Memory
+            memory = await create_working_memory(
+                workspace_path=tmpdir,
+                session_id=session_id,
+                initial_task=task
+            )
+
+            # Create Agent Context
+            context = AgentContext(
+                session_id=session_id,
+                user_id=str(session.user_id),
+                workspace_id=str(session.workspace_id)
+            )
+
+            # Create Tool Registry (empty for now)
+            tools = ToolRegistry()
+
+            # Create real Claude LLM (reads from env vars)
+            llm = create_claude_llm()
+
+            # Create Agent (using BasicAgent for now)
+            agent = BasicAgent(
+                context=context,
+                llm=llm,
+                tools=tools,
+                memory=memory,
+                db=db,
+                max_iterations=50
+            )
+
+            # Run Agent and stream events
+            async for event in agent.run(task):
+                # Convert agent event to SSE format
+                yield format_sse(event.type.value, event.data)
+
+        # Session completed
+        yield format_sse(SSEEventType.SESSION_COMPLETED, {
+            "session_id": session_id,
+            "status": "completed",
+            "timestamp": time.time(),
+        })
+
+    except Exception as e:
+        logger.error(f"Agent execution error: {e}", exc_info=True)
+        yield format_sse(SSEEventType.SESSION_FAILED, {
+            "session_id": session_id,
+            "error": str(e),
+            "timestamp": time.time(),
+        })
 
 
 @router.post("/{session_id}/events")

@@ -14,6 +14,7 @@
   --any-text-secondary: #5D5D5D;
   --any-text-tertiary: #888888;
   --any-text-quaternary: #ADADAD;
+  --any-text-muted: #C4C4C4;        /* 用于 placeholder / 极弱文字，要求比 quaternary 更轻 */
   --any-text-inverse: #ffffff;
   
   /* Background Colors */
@@ -121,6 +122,7 @@
   --any-text-secondary: rgba(255, 255, 255, 0.7);
   --any-text-tertiary: rgba(255, 255, 255, 0.5);
   --any-text-quaternary: rgba(255, 255, 255, 0.3);
+  --any-text-muted: rgba(255, 255, 255, 0.2);  /* placeholder / 极弱文字 */
   --any-text-inverse: #1a1a1a;
   
   --any-bg-primary: #121212;
@@ -347,7 +349,7 @@
 }
 
 .any-input::placeholder {
-  color: var(--any-text-quaternary);
+  color: var(--any-text-muted);  /* placeholder 使用最轻的 muted 色，减少视觉疲劳 */
 }
 
 .any-input:hover:not(:disabled):not(:focus) {

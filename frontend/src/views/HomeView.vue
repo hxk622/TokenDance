@@ -4,18 +4,21 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
 import { useAuthGuard } from '@/composables/useAuthGuard'
+import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { chatApi } from '@/api/chat'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
   Languages, MoreHorizontal, Bell, FolderOpen,
-  History, Settings, LayoutGrid, User, LogOut
+  History, Settings, LayoutGrid, User, LogOut,
+  Sun, Moon, Monitor
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
+const themeStore = useThemeStore()
 const { requireAuth, showLogin } = useAuthGuard()
 
 const inputValue = ref('')
@@ -25,6 +28,14 @@ const isLoading = ref(false)
 const activeCategory = ref('all')
 const errorMessage = ref('')
 const showUserMenu = ref(false)
+const showThemeMenu = ref(false)
+
+// 主题选项
+const themeOptions: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
+  { mode: 'light', label: '浅色', icon: Sun },
+  { mode: 'dark', label: '深色', icon: Moon },
+  { mode: 'system', label: '跟随系统', icon: Monitor },
+]
 
 // 显示错误提示
 const showError = (msg: string) => {
@@ -43,11 +54,20 @@ const handleLogout = () => {
 }
 
 // 点击外部关闭菜单
-const closeUserMenu = (e: MouseEvent) => {
+const closeMenus = (e: MouseEvent) => {
   const target = e.target as HTMLElement
   if (!target.closest('.user-menu-container')) {
     showUserMenu.value = false
   }
+  if (!target.closest('.theme-menu-container')) {
+    showThemeMenu.value = false
+  }
+}
+
+// 选择主题
+const selectTheme = (mode: ThemeMode) => {
+  themeStore.setMode(mode)
+  showThemeMenu.value = false
 }
 
 // 快捷操作芯片 - AnyGen 风格
@@ -161,16 +181,11 @@ const handleSubmit = async () => {
       title: inputValue.value.slice(0, 50) // 使用输入内容前50字符作为标题
     })
     
-    // 发送初始消息（异步，不等待完成）
-    chatApi.sendMessageStream(
-      session.id,
-      { content: inputValue.value },
-      () => {}, // SSE 事件由执行页面处理
-      (err) => console.error('Initial message error:', err)
-    )
-    
-    // 跳转到执行页面
-    router.push(`/execution/${session.id}`)
+    // 跳转到执行页面，带上初始 query
+    router.push({
+      path: `/execution/${session.id}`,
+      query: { task: inputValue.value }
+    })
   } catch (error) {
     console.error('Failed to create session:', error)
     showError('哎呀，遇到了一点小问题，请稍后再试试看 😅')
@@ -203,15 +218,10 @@ const handleChipClick = async (chip: typeof quickChips[0]) => {
       title: chip.label
     })
     
-    // 发送初始消息，带上模式指令
-    chatApi.sendMessageStream(
-      session.id,
-      { content: `我想要${chip.label}` },
-      () => {},
-      (err) => console.error('Initial message error:', err)
-    )
-    
-    router.push(`/execution/${session.id}`)
+    router.push({
+      path: `/execution/${session.id}`,
+      query: { task: `我想要${chip.label}` }
+    })
   } catch (error) {
     console.error('Failed to create session:', error)
     showError('系统开小差了，请稍等片刻再试 ☕')
@@ -236,15 +246,10 @@ const handleTemplateClick = async (template: typeof templates[0]) => {
       title: template.title
     })
     
-    // 发送初始消息，带上模板指令
-      chatApi.sendMessageStream(
-        session.id,
-        { content: `请帮我${template.title}` },
-      () => {},
-      (err) => console.error('Initial message error:', err)
-    )
-    
-    router.push(`/execution/${session.id}`)
+    router.push({
+      path: `/execution/${session.id}`,
+      query: { task: `请帮我${template.title}` }
+    })
   } catch (error) {
     console.error('Failed to create session:', error)
     showError('有点小状况，请稍后再试试 🙏')
@@ -279,15 +284,11 @@ const handleFileSelect = async (e: Event) => {
         title: `处理文件: ${fileNames.slice(0, 30)}`
       })
       
-      // TODO: 实际项目中应先上传文件，然后发送带 attachments 的消息
-      chatApi.sendMessageStream(
-        session.id,
-        { content: `请帮我处理这些文件: ${fileNames}` },
-        () => {},
-        (err) => console.error('Initial message error:', err)
-      )
-      
-      router.push(`/execution/${session.id}`)
+      // TODO: 实际项目中应先上传文件
+      router.push({
+        path: `/execution/${session.id}`,
+        query: { task: `请帮我处理这些文件: ${fileNames}` }
+      })
     } catch (error) {
       console.error('Failed to create session:', error)
       showError('文件处理遇到了麻烦，请稍后重试 📁')
@@ -313,12 +314,12 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
-  window.addEventListener('click', closeUserMenu)
+  window.addEventListener('click', closeMenus)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
-  window.removeEventListener('click', closeUserMenu)
+  window.removeEventListener('click', closeMenus)
 })
 </script>
 
@@ -378,6 +379,37 @@ onUnmounted(() => {
     
     <!-- 右上角个人信息栏 - 固定定位 -->
     <header class="top-header">
+      <!-- 主题切换 -->
+      <div class="theme-menu-container">
+        <button
+          class="header-icon-btn"
+          data-tooltip="主题"
+          @click="showThemeMenu = !showThemeMenu"
+        >
+          <Sun v-if="themeStore.resolvedTheme === 'light'" class="w-4 h-4" />
+          <Moon v-else class="w-4 h-4" />
+        </button>
+        <!-- 主题下拉菜单 -->
+        <Transition name="dropdown">
+          <div
+            v-if="showThemeMenu"
+            class="theme-dropdown"
+          >
+            <button
+              v-for="opt in themeOptions"
+              :key="opt.mode"
+              class="dropdown-item"
+              :class="{ active: themeStore.mode === opt.mode }"
+              @click="selectTheme(opt.mode)"
+            >
+              <component :is="opt.icon" class="w-4 h-4" />
+              <span>{{ opt.label }}</span>
+              <span v-if="themeStore.mode === opt.mode" class="check-mark">✓</span>
+            </button>
+          </div>
+        </Transition>
+      </div>
+      
       <!-- 游客模式：显示登录按钮 -->
       <template v-if="!authStore.isAuthenticated">
         <button 
@@ -817,6 +849,42 @@ onUnmounted(() => {
   @apply bg-purple-600;
 }
 
+/* Theme menu dropdown */
+.theme-menu-container {
+  position: relative;
+}
+
+.theme-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 140px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-lg, 12px);
+  box-shadow: var(--any-shadow-lg);
+  overflow: hidden;
+  z-index: 1000;
+  padding: 4px;
+}
+
+.theme-dropdown .dropdown-item {
+  border-radius: var(--any-radius-md);
+  padding: 8px 12px;
+}
+
+.theme-dropdown .dropdown-item.active {
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-primary);
+}
+
+.check-mark {
+  margin-left: auto;
+  color: var(--any-success);
+  font-weight: 600;
+}
+
 /* User menu dropdown */
 .user-menu-container {
   position: relative;
@@ -831,7 +899,7 @@ onUnmounted(() => {
   background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
   border-radius: var(--any-radius-lg, 12px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--any-shadow-lg);
   overflow: hidden;
   z-index: 1000;
 }
@@ -1077,8 +1145,8 @@ onUnmounted(() => {
 
 .category-badge {
   @apply text-xs px-1.5 py-0.5 rounded;
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--any-error);
 }
 
 /* ============================================
@@ -1177,11 +1245,23 @@ onUnmounted(() => {
 }
 
 .tag--slides {
-  @apply bg-blue-100 text-blue-600;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3B82F6;
+}
+
+[data-theme="dark"] .tag--slides {
+  background: rgba(59, 130, 246, 0.25);
+  color: #60A5FA;
 }
 
 .tag--doc {
-  @apply bg-purple-100 text-purple-600;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+}
+
+[data-theme="dark"] .tag--doc {
+  background: rgba(139, 92, 246, 0.25);
+  color: #A78BFA;
 }
 
 .template-uses {
@@ -1201,13 +1281,18 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 24px;
-  background: #FEF2F2;
-  border: 1px solid #FECACA;
-  color: #991B1B;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--any-error);
   font-size: 14px;
   border-radius: var(--any-radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--any-shadow-md);
   z-index: 1000;
+}
+
+[data-theme="dark"] .error-toast {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .toast-enter-active,

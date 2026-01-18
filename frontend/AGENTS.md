@@ -87,6 +87,8 @@ frontend/
 - ✅ Gray palette: #fafafa, #f1f5f9, #111827
 - ✅ Transitions: 200-300ms ease
 - ✅ Responsive design (mobile-first)
+- ✅ Placeholder 颜色使用 `--any-text-muted` (#C4C4C4)，避免视觉疲劳
+- ✅ 未激活按钮/标签使用 `--any-text-tertiary` (#888888)，保证可见性
 
 **设计规范 (必须遵循):**
 

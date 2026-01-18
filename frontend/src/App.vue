@@ -29,9 +29,11 @@
 import { ref, onMounted, provide } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import LoginPromptModal from '@/components/common/LoginPromptModal.vue'
 
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 // Login modal state - controlled by useAuthGuard composable
 const showLoginModal = ref(false)
@@ -72,6 +74,9 @@ function handleLoginSuccess() {
 provide('showLoginModal', showLogin)
 
 onMounted(async () => {
+  // 初始化主题（优先于其他初始化，避免闪屏）
+  themeStore.initialize()
+  
   console.log('[App] onMounted - initializing auth')
   try {
     await authStore.initialize()
