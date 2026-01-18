@@ -59,7 +59,7 @@ class AgentConfigService:
             max_tokens=config.llm_max_tokens
         )
 
-    async def get_config_for_session
+    async def get_config_for_session(self, session_id: str) -> AgentConfig | None:
         """Get agent configuration for a session"""
         from sqlalchemy import select
 
