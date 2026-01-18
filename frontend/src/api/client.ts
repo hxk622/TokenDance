@@ -85,22 +85,59 @@ apiClient.interceptors.response.use(
       errorCode: error.code,
     })
     
-    // Handle 401 Unauthorized - refresh token or redirect to login
+    // Handle 401 Unauthorized - try refresh token first
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || ''
       const isAuthRequest = requestUrl.includes('/auth/login') ||
                            requestUrl.includes('/auth/register') ||
                            requestUrl.includes('/auth/wechat') ||
-                           requestUrl.includes('/auth/gmail')
+                           requestUrl.includes('/auth/gmail') ||
+                           requestUrl.includes('/auth/refresh')
       
       // Don't redirect for auth requests - let the component handle the error
-      if (!isAuthRequest) {
-        // Clear tokens and redirect for other 401 errors
+      if (isAuthRequest) {
+        return Promise.reject(error)
+      }
+      
+      // Try to refresh token
+      const refreshToken = localStorage.getItem('refresh_token')
+      if (refreshToken && error.config) {
+        try {
+          console.log('[Token Refresh] Attempting to refresh access token...')
+          
+          // Call refresh endpoint
+          const refreshResponse = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
+            refresh_token: refreshToken
+          })
+          
+          const { access_token, refresh_token: newRefreshToken } = refreshResponse.data
+          
+          // Save new tokens
+          localStorage.setItem('access_token', access_token)
+          if (newRefreshToken) {
+            localStorage.setItem('refresh_token', newRefreshToken)
+          }
+          
+          console.log('[Token Refresh] Successfully refreshed token')
+          
+          // Retry original request with new token
+          error.config.headers.Authorization = `Bearer ${access_token}`
+          return apiClient(error.config)
+          
+        } catch (refreshError) {
+          console.error('[Token Refresh] Failed to refresh token:', refreshError)
+          // Refresh failed - clear tokens and redirect
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          window.location.href = '/login'
+          return Promise.reject(refreshError)
+        }
+      } else {
+        // No refresh token - clear and redirect
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         window.location.href = '/login'
       }
-      // For auth requests, just pass the error through to be handled by the component
     }
     
     return Promise.reject(error)
