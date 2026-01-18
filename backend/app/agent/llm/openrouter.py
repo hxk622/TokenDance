@@ -91,6 +91,9 @@ class OpenRouterLLM(BaseLLM):
         if stop_sequences:
             api_params["stop"] = stop_sequences
 
+        # 打印请求日志
+        logger.info(f"[OpenRouter] Calling model: {self.model} | max_tokens: {params['max_tokens']}")
+
         # 调用 API (disable SSL verification for macOS compatibility)
         async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
             response = await client.post(
@@ -100,6 +103,13 @@ class OpenRouterLLM(BaseLLM):
             )
             response.raise_for_status()
             data = response.json()  # httpx response.json() is synchronous
+
+        # 打印响应日志
+        usage_info = data.get("usage", {})
+        logger.info(
+            f"[OpenRouter] Response from {self.model} | "
+            f"tokens: {usage_info.get('prompt_tokens', '?')}/{usage_info.get('completion_tokens', '?')}"
+        )
 
         # 解析响应
         choice = data["choices"][0]
@@ -173,6 +183,9 @@ class OpenRouterLLM(BaseLLM):
 
         if stop_sequences:
             api_params["stop"] = stop_sequences
+
+        # 打印请求日志
+        logger.info(f"[OpenRouter] Streaming model: {self.model} | max_tokens: {params['max_tokens']}")
 
         # 流式调用 (disable SSL verification for macOS compatibility)
         async with httpx.AsyncClient(timeout=120.0, verify=False) as client:

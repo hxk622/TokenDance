@@ -519,4 +519,17 @@ def get_free_llm_for_task(
         prefer_speed=prefer_speed,
         prefer_chinese=prefer_chinese
     )
+
+    # 打印模型选择日志
+    logger.info(
+        f"\n"
+        f"========== LLM Router ==========\n"
+        f"  Task Type: {task_type}\n"
+        f"  Selected Model: {model}\n"
+        f"  Context Length: {context_length}\n"
+        f"  Prefer Speed: {prefer_speed}\n"
+        f"  Prefer Chinese: {prefer_chinese}\n"
+        f"================================"
+    )
+
     return create_openrouter_llm(model=model, **llm_kwargs)
