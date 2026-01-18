@@ -44,24 +44,16 @@ class ClaudeLLM(BaseLLM):
             client_params["base_url"] = base_url
 
         # Configure SSL for macOS compatibility
-        # Try certifi first, fall back to disabling verification in development
-        try:
-            import httpx
+        # In development, disable SSL verification to avoid certificate issues
+        import os
+        if os.getenv("ENVIRONMENT", "development") == "development":
             try:
-                import certifi
-                http_client = httpx.AsyncClient(verify=certifi.where())
-            except (ImportError, Exception):
-                # Development fallback: disable SSL verification
-                import os
-                if os.getenv("ENVIRONMENT", "development") == "development":
-                    logger.warning("SSL verification disabled in development mode")
-                    http_client = httpx.AsyncClient(verify=False)
-                else:
-                    http_client = None
-            if http_client:
+                import httpx
+                logger.warning("SSL verification disabled in development mode")
+                http_client = httpx.AsyncClient(verify=False)
                 client_params["http_client"] = http_client
-        except ImportError:
-            pass  # Use default SSL if httpx not available
+            except ImportError:
+                pass
 
         self.client = anthropic.AsyncAnthropic(**client_params)
         logger.info(f"ClaudeLLM initialized with model: {model}, base_url: {base_url or 'default'}")
