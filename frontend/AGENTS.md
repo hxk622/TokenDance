@@ -105,6 +105,63 @@ frontend/
 - 动画: 150ms/200ms/300ms + cubic-bezier 缓动函数
 - 毛玻璃效果: backdrop-filter: blur(20px) saturate(180%)
 
+## Theme System (必须遵循)
+
+**所有前端页面必须使用全局主题系统，确保 light/dark 模式统一切换。**
+
+### 核心规则
+
+1. **禁止硬编码颜色值**
+   - ❌ `color: #121212` / `background: rgba(255,255,255,0.1)`
+   - ✅ `color: var(--any-text-primary)` / `background: var(--any-bg-tertiary)`
+
+2. **使用 `--any-*` CSS 变量** (定义在 `src/styles/anygen.css`)
+   ```css
+   /* 文字色 */
+   --any-text-primary      /* 主文字 */
+   --any-text-secondary    /* 次要文字 */
+   --any-text-tertiary     /* 弱化文字 */
+   --any-text-muted        /* placeholder / 极弱文字 */
+   --any-text-inverse      /* 反色文字 (用于深色背景上的浅色文字) */
+   
+   /* 背景色 */
+   --any-bg-primary        /* 主背景 */
+   --any-bg-secondary      /* 次要背景 */
+   --any-bg-tertiary       /* 三级背景 */
+   --any-bg-hover          /* 悬停状态 */
+   
+   /* 边框色 */
+   --any-border            /* 默认边框 */
+   --any-border-hover      /* 悬停边框 */
+   ```
+
+3. **状态色可保持固定** (品牌特色)
+   ```css
+   --exec-accent: #00D9FF;   /* cyan - 执行中 */
+   --exec-success: #00FF88;  /* green - 成功 */
+   --exec-warning: #FFB800;  /* amber - 警告 */
+   --exec-error: #FF3B30;    /* red - 错误 */
+   ```
+
+4. **页面级变量映射** (如 ExecutionPage)
+   ```css
+   .my-page {
+     --page-bg: var(--any-bg-primary);
+     --page-text: var(--any-text-primary);
+   }
+   ```
+
+5. **主题切换**
+   - 使用 `useThemeStore()` 获取/设置主题
+   - 默认主题: `dark`
+   - 支持: `light` / `dark` / `system`
+
+### 检查清单 (新页面开发时)
+- [ ] 所有颜色使用 CSS 变量
+- [ ] 在 light 和 dark 模式下测试
+- [ ] 交互状态 (hover/active/disabled) 使用主题变量
+- [ ] 图标颜色使用 `currentColor` 或主题变量
+
 ## State Management
 
 - **Pinia** for global state
