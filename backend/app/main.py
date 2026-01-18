@@ -96,7 +96,7 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         # Log request
         self._log_json({
             "request_id": request_id,
-            "event": "api_request",
+            "type": "REQUEST",
             "method": request.method,
             "path": request.url.path,
             "query_params": dict(request.query_params) or None,
@@ -151,7 +151,7 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         # Log response
         self._log_json({
             "request_id": request_id,
-            "event": "api_response",
+            "type": "RESPONSE",
             "method": request.method,
             "path": request.url.path,
             "status_code": response.status_code,
