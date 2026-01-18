@@ -46,7 +46,19 @@ class SessionService:
             workspace_id=session.workspace_id,
         )
 
-        return SessionResponse.model_validate(session)
+        # Manually construct response to avoid lazy loading issue
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=0,  # New session has no messages
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
 
     async def get_session(
         self,
@@ -63,14 +75,39 @@ class SessionService:
         if not session:
             return None
 
+        # Get message count separately to avoid lazy loading
+        message_count = await self.session_repo.get_message_count(session_id)
+
         if include_details:
-            # Get message count separately for performance
-            message_count = await self.session_repo.get_message_count(session_id)
-            session_data = SessionDetail.model_validate(session)
-            session_data.message_count = message_count
+            session_data = SessionDetail(
+                id=session.id,
+                workspace_id=session.workspace_id,
+                title=session.title,
+                status=session.status,
+                skill_id=session.skill_id,
+                total_tokens_used=session.total_tokens_used,
+                message_count=message_count,
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                completed_at=session.completed_at,
+                context_summary=session.context_summary,
+                todo_list=session.todo_list,
+                extra_data=session.extra_data or {},
+            )
             return session_data
 
-        return SessionResponse.model_validate(session)
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=message_count,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
 
     async def list_sessions(
         self,
@@ -91,8 +128,18 @@ class SessionService:
         session_responses = []
         for session in sessions:
             message_count = await self.session_repo.get_message_count(session.id)
-            session_data = SessionResponse.model_validate(session)
-            session_data.message_count = message_count
+            session_data = SessionResponse(
+                id=session.id,
+                workspace_id=session.workspace_id,
+                title=session.title,
+                status=session.status,
+                skill_id=session.skill_id,
+                total_tokens_used=session.total_tokens_used,
+                message_count=message_count,
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                completed_at=session.completed_at,
+            )
             session_responses.append(session_data)
 
         return SessionList(
@@ -112,19 +159,32 @@ class SessionService:
 
         if not updates:
             # No updates provided, just return current
-            session = await self.session_repo.get_by_id(session_id)
-            return SessionResponse.model_validate(session) if session else None
+            return await self.get_session(session_id)
 
         session = await self.session_repo.update(session_id, **updates)
 
-        if session:
-            logger.info(
-                "session_updated",
-                session_id=session_id,
-                updates=list(updates.keys()),
-            )
+        if not session:
+            return None
 
-        return SessionResponse.model_validate(session) if session else None
+        logger.info(
+            "session_updated",
+            session_id=session_id,
+            updates=list(updates.keys()),
+        )
+
+        message_count = await self.session_repo.get_message_count(session_id)
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=message_count,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
 
     async def complete_session(
         self,
@@ -139,10 +199,24 @@ class SessionService:
             completed_at=datetime.utcnow(),
         )
 
-        if session:
-            logger.info("session_completed", session_id=session_id)
+        if not session:
+            return None
 
-        return SessionResponse.model_validate(session) if session else None
+        logger.info("session_completed", session_id=session_id)
+
+        message_count = await self.session_repo.get_message_count(session_id)
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=message_count,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
 
     async def delete_session(
         self,
