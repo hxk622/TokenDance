@@ -127,7 +127,7 @@ async def send_message(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initialize Agent: {str(e)}"
-        )
+        ) from e
 
     # 流式模式
     if request.stream:
@@ -165,7 +165,7 @@ async def send_message(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Agent execution failed: {str(e)}"
-        )
+        ) from e
 
 
 async def stream_agent_response(
@@ -416,4 +416,4 @@ async def get_working_memory(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to read working memory: {str(e)}"
-        )
+        ) from e

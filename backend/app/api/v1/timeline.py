@@ -106,7 +106,7 @@ async def get_research_timeline(
             total_entries=len(timeline.entries),
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/sessions/{session_id}/timeline/screenshots")
@@ -142,7 +142,7 @@ async def list_screenshots(session_id: str) -> list[ScreenshotInfo]:
             for s in screenshots
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/sessions/{session_id}/timeline/screenshots/{index}")
@@ -183,7 +183,7 @@ async def get_screenshot(session_id: str, index: int) -> FileResponse:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/sessions/{session_id}/timeline/markdown")
@@ -211,4 +211,4 @@ async def export_timeline_markdown(session_id: str) -> dict:
 
         return {"markdown": markdown}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

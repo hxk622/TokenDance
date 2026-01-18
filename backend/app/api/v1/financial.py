@@ -116,7 +116,7 @@ async def get_stock_info(request: StockInfoRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/stock/quote")
@@ -149,7 +149,7 @@ async def get_stock_quote(request: StockQuoteRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/stock/historical")
@@ -188,7 +188,7 @@ async def get_historical_data(request: HistoricalDataRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/sentiment/analyze")
@@ -226,7 +226,7 @@ async def analyze_sentiment(request: SentimentAnalyzeRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/sentiment/search")
@@ -254,7 +254,7 @@ async def search_sentiment(request: SentimentSearchRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/combined")
@@ -312,7 +312,7 @@ async def combined_analysis(request: CombinedAnalysisRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/health")
@@ -362,7 +362,7 @@ async def run_financial_analysis(request: AnalysisRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/analysis/valuation")
@@ -399,7 +399,7 @@ async def run_valuation_analysis(request: AnalysisRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/analysis/technical")
@@ -437,7 +437,7 @@ async def run_technical_analysis(request: AnalysisRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/analysis/comprehensive")
@@ -475,7 +475,7 @@ async def run_comprehensive_analysis(request: ComprehensiveAnalysisRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 def _detect_market(symbol: str) -> str:

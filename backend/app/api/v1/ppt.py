@@ -161,7 +161,7 @@ async def generate_outline(request: GenerateOutlineRequest):
 
     except Exception as e:
         logger.error(f"Outline generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/render", response_model=RenderResponse)
@@ -204,7 +204,7 @@ async def render_preview(request: RenderRequest):
 
     except Exception as e:
         logger.error(f"Render failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/export", response_model=ExportResponse)
@@ -249,7 +249,7 @@ async def export_presentation(request: ExportRequest):
 
     except Exception as e:
         logger.error(f"Export failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/outline/{outline_id}")
@@ -524,7 +524,7 @@ async def generate_layered_presentation(request: LayeredPresentationRequest):
 
     except Exception as e:
         logger.error(f"Layered PPT generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/layered/preview")
@@ -560,7 +560,7 @@ async def preview_layered_slide(request: LayeredSlideRequest):
 
     except Exception as e:
         logger.error(f"Preview generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/layered/backgrounds")

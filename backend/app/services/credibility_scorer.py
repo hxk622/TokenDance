@@ -328,7 +328,7 @@ class CredibilityScorer:
                                 int(match.group(2)),
                                 int(match.group(3))
                             )
-                except:
+                except (ValueError, TypeError):
                     pass
 
         return None

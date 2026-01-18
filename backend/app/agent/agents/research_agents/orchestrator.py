@@ -277,7 +277,8 @@ class ResearchOrchestrator:
                 data = json.loads(response.choices[0].message.content)
                 plan.sub_questions = data.get("sub_questions", [])
                 plan.search_queries = data.get("search_queries", [question])
-            except:
+            except Exception as e:
+                logger.warning(f"Plan creation LLM call failed: {e}")
                 plan.search_queries = [question]
         else:
             plan.search_queries = [question]
@@ -545,5 +546,5 @@ class ResearchOrchestrator:
                     "iteration": self.state.iteration,
                     "message": message,
                 })
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Progress callback failed: {e}")

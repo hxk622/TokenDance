@@ -96,7 +96,7 @@ async def confirm_hitl_request(
             responded_at=response.responded_at.isoformat(),
         )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/hitl/{request_id}")

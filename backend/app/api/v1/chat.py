@@ -287,4 +287,4 @@ async def get_working_memory(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to read working memory: {str(e)}"
-        )
+        ) from e

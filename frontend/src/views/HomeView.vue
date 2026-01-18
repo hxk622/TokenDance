@@ -494,6 +494,7 @@ onUnmounted(() => {
 .home-view {
   @apply relative min-h-screen;
   background: var(--any-bg-secondary);
+  display: flex;
 }
 
 /* Header icon buttons */
@@ -536,22 +537,24 @@ onUnmounted(() => {
   @apply bg-purple-600;
 }
 
-/* Main Content */
+/* Main Content - 整个右侧主区域 */
 .home-main {
-  @apply max-w-4xl w-full mx-auto px-6;
-  margin-left: 56px;
-  padding-top: max(12vh, 80px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+  padding-top: max(15vh, 120px);
   padding-bottom: 4rem;
-  transition: margin-left var(--any-duration-normal) var(--any-ease-default);
-}
-
-.home-main.sidebar-collapsed {
-  margin-left: 56px;
+  overflow-y: auto;
+  min-height: 100vh;
 }
 
 /* Hero Section */
 .hero-section {
-  @apply text-center mb-8;
+  @apply text-center mb-10;
+  width: 100%;
+  max-width: 720px;
 }
 
 .hero-title {
@@ -565,7 +568,9 @@ onUnmounted(() => {
    Input Box - AnyGen Style
    ============================================ */
 .input-section {
-  @apply mb-6 flex justify-center;
+  @apply mb-6;
+  width: 100%;
+  max-width: 720px;
 }
 
 .input-box {
@@ -573,7 +578,6 @@ onUnmounted(() => {
   background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
   width: 100%;
-  max-width: 720px;
   padding: 16px 20px;
   transition: all var(--any-duration-normal) var(--any-ease-default);
 }
@@ -628,7 +632,9 @@ onUnmounted(() => {
    Quick Chips - AnyGen Style
    ============================================ */
 .chips-section {
-  @apply mb-16;
+  @apply mb-12;
+  width: 100%;
+  max-width: 720px;
 }
 
 .chips-row {
@@ -663,8 +669,9 @@ onUnmounted(() => {
    ============================================ */
 .categories-section {
   @apply mb-6;
+  width: 100%;
+  max-width: 960px;
   border-bottom: 1px solid var(--any-border);
-  padding-left: 40px;
 }
 
 .categories-scroll {
@@ -708,8 +715,8 @@ onUnmounted(() => {
    ============================================ */
 .templates-section {
   @apply py-6;
-  padding-left: 40px;
-  padding-right: 40px;
+  width: 100%;
+  max-width: 960px;
 }
 
 .templates-grid {

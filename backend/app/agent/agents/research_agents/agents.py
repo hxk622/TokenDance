@@ -530,7 +530,11 @@ class VerifierAgent(BaseResearchAgent):
         try:
             response = await self._call_llm(prompt, json_mode=True, temperature=0.2)
             return json.loads(response)
-        except:
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.debug(f"Evidence assessment JSON parse failed: {e}")
+            return {"status": "assessment_failed", "supporting": [], "contradicting": []}
+        except Exception as e:
+            logger.warning(f"Evidence assessment failed: {e}")
             return {"status": "assessment_failed", "supporting": [], "contradicting": []}
 
     async def _verify_with_knowledge_graph(self, claim: str) -> dict[str, Any] | None:
@@ -653,7 +657,8 @@ class SynthesizerAgent(BaseResearchAgent):
                 "format": "markdown",
                 "sources_count": len(findings),
             }
-        except:
+        except Exception as e:
+            logger.warning(f"Report generation failed: {e}")
             return {"report": "Report generation failed"}
 
     async def _generate_summary(self, findings: list[dict], question: str | None) -> dict[str, Any]:
@@ -678,7 +683,8 @@ class SynthesizerAgent(BaseResearchAgent):
         try:
             response = await self._call_llm(prompt, temperature=0.5, max_tokens=500)
             return {"summary": response}
-        except:
+        except Exception as e:
+            logger.warning(f"Summary generation failed: {e}")
             return {"summary": "Summary generation failed"}
 
     async def _generate_outline(self, findings: list[dict], question: str | None) -> dict[str, Any]:
@@ -703,5 +709,9 @@ class SynthesizerAgent(BaseResearchAgent):
         try:
             response = await self._call_llm(prompt, json_mode=True, temperature=0.5)
             return json.loads(response)
-        except:
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.debug(f"Outline generation JSON parse failed: {e}")
+            return {"outline": []}
+        except Exception as e:
+            logger.warning(f"Outline generation failed: {e}")
             return {"outline": []}

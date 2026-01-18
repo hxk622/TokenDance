@@ -190,8 +190,8 @@ async def list_templates(
         try:
             cat = TemplateCategory(category)
             templates = template_registry.get_templates_by_category(cat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid category: {category}") from e
     else:
         templates = template_registry.get_all_templates()
 
@@ -265,8 +265,8 @@ async def list_scenes(
         try:
             cat = TemplateCategory(category)
             scenes = template_registry.get_scenes_by_category(cat)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid category: {category}") from e
     else:
         scenes = template_registry.get_all_scenes()
 

@@ -263,13 +263,13 @@ class GubaCrawler(BaseSentimentCrawler):
             if read_elem:
                 try:
                     read_count = int(re.sub(r'\D', '', read_elem.get_text()) or 0)
-                except:
+                except (ValueError, TypeError):
                     pass
 
             if reply_elem:
                 try:
                     reply_count = int(re.sub(r'\D', '', reply_elem.get_text()) or 0)
-                except:
+                except (ValueError, TypeError):
                     pass
 
             return SentimentPost(
