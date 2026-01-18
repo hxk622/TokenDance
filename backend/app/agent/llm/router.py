@@ -48,6 +48,7 @@ class ModelConfig:
 
 # 模型配置表
 MODEL_REGISTRY = {
+    # ============ 付费模型 ============
     "anthropic/claude-3-opus": ModelConfig(
         name="anthropic/claude-3-opus",
         provider="openrouter",
@@ -92,6 +93,125 @@ MODEL_REGISTRY = {
         context_window=30720,
         avg_latency_ms=2500,
         capabilities=["multimodal", "vision"]
+    ),
+
+    # ============ 免费模型 (OpenRouter Free Tier) ============
+    # 通用推理 - 强力推荐
+    "deepseek/deepseek-r1:free": ModelConfig(
+        name="deepseek/deepseek-r1:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=3000,
+        capabilities=["reasoning", "analysis", "free", "thinking"]
+    ),
+    "deepseek/deepseek-chat-v3-0324:free": ModelConfig(
+        name="deepseek/deepseek-chat-v3-0324:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=2000,
+        capabilities=["reasoning", "coding", "balanced", "free"]
+    ),
+    # 代码生成 - 专业编码
+    "mistralai/devstral-2:free": ModelConfig(
+        name="mistralai/devstral-2:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=2500,
+        capabilities=["coding", "agentic", "free"]
+    ),
+    # 超长上下文 - 1M tokens
+    "google/gemini-2.0-flash-exp:free": ModelConfig(
+        name="google/gemini-2.0-flash-exp:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=1000000,
+        avg_latency_ms=1500,
+        capabilities=["fast", "long_context", "balanced", "free"]
+    ),
+    # 通用对话 - Llama 系列
+    "meta-llama/llama-3.3-70b-instruct:free": ModelConfig(
+        name="meta-llama/llama-3.3-70b-instruct:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=2000,
+        capabilities=["reasoning", "coding", "balanced", "free"]
+    ),
+    "meta-llama/llama-4-maverick:free": ModelConfig(
+        name="meta-llama/llama-4-maverick:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=256000,
+        avg_latency_ms=2000,
+        capabilities=["reasoning", "coding", "balanced", "free"]
+    ),
+    # 快速响应
+    "mistralai/mistral-small-3.1-24b-instruct:free": ModelConfig(
+        name="mistralai/mistral-small-3.1-24b-instruct:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=1000,
+        capabilities=["fast", "simple_qa", "free"]
+    ),
+    # 中文优化
+    "zhipu/glm-4.5-air:free": ModelConfig(
+        name="zhipu/glm-4.5-air:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=1500,
+        capabilities=["reasoning", "chinese", "agentic", "free"]
+    ),
+    # 小米 MiMo - 309B MoE
+    "xiaomi/mimo-v2-flash:free": ModelConfig(
+        name="xiaomi/mimo-v2-flash:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=256000,
+        avg_latency_ms=2000,
+        capabilities=["reasoning", "coding", "agentic", "free", "thinking"]
+    ),
+    # OpenRouter 官方模型
+    "openrouter/optimus-alpha": ModelConfig(
+        name="openrouter/optimus-alpha",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=1500,
+        capabilities=["balanced", "fast", "free"]
+    ),
+    "openrouter/quasar-alpha": ModelConfig(
+        name="openrouter/quasar-alpha",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=2000,
+        capabilities=["reasoning", "analysis", "free"]
+    ),
+    # 轻量级模型
+    "nvidia/llama-3.1-nemotron-nano-8b-v1:free": ModelConfig(
+        name="nvidia/llama-3.1-nemotron-nano-8b-v1:free",
+        provider="openrouter",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        context_window=128000,
+        avg_latency_ms=500,
+        capabilities=["fast", "simple_qa", "free"]
     ),
 }
 
@@ -232,6 +352,111 @@ class SimpleRouter:
         return round(cost, 6)
 
 
+class FreeModelRouter(SimpleRouter):
+    """免费模型优先路由器
+
+    优先使用 OpenRouter 免费模型，节省成本
+    支持 fallback 策略和智能调度
+    """
+
+    # 免费模型任务映射 - 按任务类型推荐最佳免费模型
+    FREE_TASK_MODEL_MAP = {
+        TaskType.DEEP_RESEARCH: "deepseek/deepseek-r1:free",           # 深度推理
+        TaskType.FINANCIAL_ANALYSIS: "deepseek/deepseek-chat-v3-0324:free",  # 分析任务
+        TaskType.PPT_GENERATION: "meta-llama/llama-4-maverick:free",   # 创意生成
+        TaskType.CODE_GENERATION: "mistralai/devstral-2:free",         # 专业编码
+        TaskType.QUICK_QA: "nvidia/llama-3.1-nemotron-nano-8b-v1:free", # 快速响应
+        TaskType.MULTIMODAL: "google/gemini-2.0-flash-exp:free",       # 多模态
+        TaskType.GENERAL: "meta-llama/llama-3.3-70b-instruct:free",    # 通用
+    }
+
+    # Fallback 链 - 当主模型不可用时的备选
+    FREE_FALLBACK_CHAIN = [
+        "deepseek/deepseek-chat-v3-0324:free",  # 通用能力强
+        "meta-llama/llama-3.3-70b-instruct:free",  # GPT-4 级别
+        "google/gemini-2.0-flash-exp:free",     # 快速可靠
+        "openrouter/optimus-alpha",              # OpenRouter 官方
+        "zhipu/glm-4.5-air:free",               # 中文友好
+    ]
+
+    def __init__(self, use_free_only: bool = True, fallback_to_paid: bool = False):
+        """
+        Args:
+            use_free_only: 是否仅使用免费模型
+            fallback_to_paid: 当免费模型都不可用时是否回退到付费模型
+        """
+        super().__init__(use_openrouter=True)
+        self.use_free_only = use_free_only
+        self.fallback_to_paid = fallback_to_paid
+        logger.info(f"FreeModelRouter initialized (use_free_only={use_free_only})")
+
+    def select_model(
+        self,
+        task_type: TaskType | str,
+        context_length: int = 0,
+        prefer_speed: bool = False,
+        prefer_chinese: bool = False,
+        **kwargs
+    ) -> str:
+        """智能选择免费模型
+
+        Args:
+            task_type: 任务类型
+            context_length: 上下文长度（用于选择支持长上下文的模型）
+            prefer_speed: 是否优先选择快速模型
+            prefer_chinese: 是否优先选择中文优化模型
+
+        Returns:
+            str: 模型名称
+        """
+        if isinstance(task_type, str):
+            try:
+                task_type = TaskType(task_type)
+            except ValueError:
+                task_type = TaskType.GENERAL
+
+        # 特殊场景处理
+        if context_length > 200000:
+            # 超长上下文 -> Gemini 1M
+            logger.info(f"Long context ({context_length} tokens), using Gemini 2.0 Flash")
+            return "google/gemini-2.0-flash-exp:free"
+
+        if prefer_speed:
+            logger.info("Speed preferred, using Nemotron Nano")
+            return "nvidia/llama-3.1-nemotron-nano-8b-v1:free"
+
+        if prefer_chinese:
+            logger.info("Chinese preferred, using GLM-4.5-Air")
+            return "zhipu/glm-4.5-air:free"
+
+        # 按任务类型选择
+        model = self.FREE_TASK_MODEL_MAP.get(
+            task_type,
+            self.FREE_TASK_MODEL_MAP[TaskType.GENERAL]
+        )
+        logger.info(f"Selected free model '{model}' for task type '{task_type.value}'")
+        return model
+
+    def get_fallback_models(self, primary_model: str) -> list[str]:
+        """获取备选模型列表"""
+        fallbacks = [m for m in self.FREE_FALLBACK_CHAIN if m != primary_model]
+        if self.fallback_to_paid:
+            # 添加付费模型作为最后备选
+            fallbacks.extend([
+                "anthropic/claude-3-haiku",
+                "anthropic/claude-3-5-sonnet",
+            ])
+        return fallbacks
+
+    @staticmethod
+    def list_free_models() -> list[str]:
+        """列出所有可用的免费模型"""
+        return [
+            name for name, config in MODEL_REGISTRY.items()
+            if "free" in config.capabilities or config.cost_per_1k_input == 0.0
+        ]
+
+
 # 便捷函数
 def get_llm_for_task(
     task_type: TaskType | str,
@@ -254,3 +479,45 @@ def get_llm_for_task(
     """
     router = SimpleRouter(use_openrouter=use_openrouter)
     return router.create_llm(task_type, **llm_kwargs)
+
+
+def get_free_llm_for_task(
+    task_type: TaskType | str,
+    context_length: int = 0,
+    prefer_speed: bool = False,
+    prefer_chinese: bool = False,
+    **llm_kwargs
+) -> BaseLLM:
+    """快捷方式：获取免费 LLM
+
+    Args:
+        task_type: 任务类型
+        context_length: 上下文长度
+        prefer_speed: 是否优先速度
+        prefer_chinese: 是否优先中文模型
+        **llm_kwargs: LLM 参数
+
+    Returns:
+        BaseLLM: 免费 LLM 客户端实例
+
+    Example:
+        >>> # 深度研究任务
+        >>> llm = get_free_llm_for_task("deep_research")
+
+        >>> # 快速问答
+        >>> llm = get_free_llm_for_task("quick_qa", prefer_speed=True)
+
+        >>> # 中文场景
+        >>> llm = get_free_llm_for_task("general", prefer_chinese=True)
+
+        >>> # 超长文档
+        >>> llm = get_free_llm_for_task("general", context_length=500000)
+    """
+    router = FreeModelRouter()
+    model = router.select_model(
+        task_type,
+        context_length=context_length,
+        prefer_speed=prefer_speed,
+        prefer_chinese=prefer_chinese
+    )
+    return create_openrouter_llm(model=model, **llm_kwargs)
