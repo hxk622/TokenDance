@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.engine import AgentEngine
-from app.agent.llm.anthropic import ClaudeLLM
+from app.agent.llm.router import TaskType, get_free_llm_for_task
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
@@ -52,28 +52,28 @@ def get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:
     return SessionService(db)
 
 
-def get_agent_engine(session_id: str, workspace_id: str) -> AgentEngine:
+def get_agent_engine(session_id: str, workspace_id: str, task_type: TaskType = TaskType.GENERAL) -> AgentEngine:
     """
     创建 Agent Engine 实例
+
+    使用智能路由系统自动选择最优模型：
+    - 优先使用免费模型 (DeepSeek, Gemini, Llama 等)
+    - 根据任务类型选择合适的模型
+    - 自动 fallback 到可用模型
 
     Args:
         session_id: Session ID
         workspace_id: Workspace ID
+        task_type: 任务类型 (用于智能路由)
 
     Returns:
         AgentEngine: Agent 引擎实例
     """
-    # 初始化 LLM
-    api_key = settings.ANTHROPIC_API_KEY
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ANTHROPIC_API_KEY not configured"
-        )
-
-    llm = ClaudeLLM(
-        api_key=api_key,
-        model="claude-3-5-sonnet-20241022",
+    # 使用智能路由获取免费 LLM
+    # 路由器会根据任务类型自动选择最优的免费模型
+    # 包括 DeepSeek, Gemini, Llama, Mistral 等
+    llm = get_free_llm_for_task(
+        task_type=task_type,
         max_tokens=4096
     )
 
