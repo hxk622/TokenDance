@@ -1069,7 +1069,7 @@ onUnmounted(() => {
 
 .submit-btn.active {
   background: var(--any-text-primary);
-  color: white;
+  color: var(--any-text-inverse);  /* 使用 inverse 色确保在深色/浅色模式下箭头都可见 */
   border-color: var(--any-text-primary);
 }
 
