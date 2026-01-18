@@ -175,7 +175,7 @@ export function useScrollSync(
     
     // 执行滚动
     target.scrollIntoView({
-      behavior: options?.behavior || (opts.mode === 'instant' ? 'auto' : 'smooth'),
+      behavior: (options?.behavior ?? (opts.mode === 'instant' ? 'auto' : 'smooth')) as 'auto' | 'smooth',
       block: options?.block || 'start'
     })
   }

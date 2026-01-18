@@ -14,7 +14,8 @@ export type FrameType =
 
 export interface BrowserOperation {
   id: string
-  type: 'open' | 'click' | 'fill' | 'snapshot' | 'screenshot' | 'close'
+  type: 'open' | 'navigate' | 'click' | 'fill' | 'snapshot' | 'screenshot' | 'close'
+  url?: string           // 导航 URL
   target?: string        // URL 或 ref
   value?: string         // 填充的值
   status: 'pending' | 'running' | 'success' | 'error'
@@ -72,6 +73,11 @@ export const OPERATION_CONFIG: Record<string, {
     icon: 'globe',
     label: '打开页面',
     color: 'text-blue-400',
+  },
+  navigate: {
+    icon: 'arrow-right',
+    label: '导航',
+    color: 'text-cyan-400',
   },
   click: {
     icon: 'cursor-click',

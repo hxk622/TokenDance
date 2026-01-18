@@ -68,7 +68,7 @@ export interface FileOperation {
  */
 export interface BrowserOperation {
   id: string
-  type: 'open' | 'navigate' | 'click' | 'fill' | 'screenshot' | 'close'
+  type: 'open' | 'navigate' | 'click' | 'fill' | 'snapshot' | 'screenshot' | 'close'
   url?: string
   target?: string
   value?: string
@@ -173,8 +173,11 @@ export const useExecutionStore = defineStore('execution', () => {
   // Current task
   const currentTask = ref<string | null>(null)
 
+  // Pause state
+  const isPaused = ref(false)
+
   // Computed
-  const isRunning = computed(() => session.value?.status === 'running')
+  const isRunning = computed(() => session.value?.status === 'running' && !isPaused.value)
   const isCompleted = computed(() => session.value?.status === 'completed')
   const activeNodeId = computed(() => nodes.value.find(n => n.status === 'active')?.id)
   const progressPercentage = computed(() => progress.value?.percentage || 0)
@@ -602,6 +605,22 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   /**
+   * Pause execution
+   */
+  function pause() {
+    isPaused.value = true
+    // TODO: Call API to pause backend execution
+  }
+
+  /**
+   * Resume execution
+   */
+  function resume() {
+    isPaused.value = false
+    // TODO: Call API to resume backend execution
+  }
+
+  /**
    * Disconnect SSE and cleanup
    */
   function disconnect() {
@@ -658,11 +677,14 @@ export const useExecutionStore = defineStore('execution', () => {
     // Computed
     isRunning,
     isCompleted,
+    isPaused,
     activeNodeId,
     progressPercentage,
 
     // Actions
     loadSession,
+    pause,
+    resume,
     connectSSE,
     disconnect,
     reset,

@@ -33,26 +33,26 @@ export function useAmbientState(): AmbientStateResult {
     
     const status = executionStore.session.status
     
-    // 检查是否有等待用户介入的请求
-    if (executionStore.isWaitingForUser) {
+    // 检查是否有等待用户介入的请求 (HITL)
+    if (executionStore.pendingHITL) {
       return 'waiting'
     }
     
     switch (status) {
       case 'running':
-        // 检查是否在思考阶段
+        // 检查是否在思考阶段 - manus 节点通常是思考/决策
         const activeNode = executionStore.nodes.find(n => n.status === 'active')
-        if (activeNode?.type === 'thinking' || activeNode?.type === 'planning') {
+        if (activeNode?.type === 'manus') {
           return 'thinking'
         }
         return 'executing'
       case 'completed':
         return 'completed'
       case 'failed':
-      case 'error':
+      case 'cancelled':
         return 'error'
-      case 'paused':
-        return 'waiting'
+      case 'pending':
+        return 'idle'
       default:
         return 'idle'
     }

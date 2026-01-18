@@ -45,12 +45,22 @@ const error = ref<string | null>(null)
 const selectedStyle = ref<PPTStyle>('business')
 
 // PPT 风格选项
-const styleOptions: { value: PPTStyle; label: string }[] = [
-  { value: 'business', label: '商务风' },
-  { value: 'tech', label: '科技风' },
-  { value: 'minimal', label: '简约风' },
-  { value: 'academic', label: '学术风' },
+const styleOptions: { value: PPTStyle; label: string; icon: string }[] = [
+  { value: 'business', label: '商务风', icon: '📊' },
+  { value: 'tech', label: '科技风', icon: '🚀' },
+  { value: 'minimal', label: '简约风', icon: '✨' },
+  { value: 'academic', label: '学术风', icon: '📚' },
 ]
+
+// Importance icon mapping
+const importanceIcon = (importance: string): string => {
+  switch (importance) {
+    case 'high': return '🔴'
+    case 'medium': return '🟡'
+    case 'low': return '🟢'
+    default: return '⚪'
+  }
+}
 
 // Computed - importance badges
 const getImportanceClass = (importance: string): string => {

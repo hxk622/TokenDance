@@ -180,7 +180,16 @@ const getStyleLabel = (style: LayeredSlideStyle): string => {
   return labels[style] || style
 }
 
-// Style icons now handled via Lucide components
+const getStyleIcon = (style: LayeredSlideStyle): string => {
+  const icons: Record<LayeredSlideStyle, string> = {
+    hero_title: '🎯',
+    section_header: '📌',
+    visual_impact: '⚡',
+    minimal_clean: '✨',
+    tech_modern: '🚀',
+  }
+  return icons[style] || '📄'
+}
 
 // Watch for slide changes to update preview
 watch(() => currentSlide.value, () => {

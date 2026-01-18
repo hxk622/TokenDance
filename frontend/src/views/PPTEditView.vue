@@ -63,7 +63,23 @@ const slideTypeLabel = (type: SlideType): string => {
   return labels[type] || type
 }
 
-// Slide type icons now handled via Lucide components
+const slideTypeIcon = (type: SlideType): string => {
+  const icons: Record<SlideType, string> = {
+    title: '🎯',
+    toc: '📋',
+    section: '📁',
+    content: '📝',
+    data: '📊',
+    image: '🖼️',
+    quote: '💬',
+    comparison: '⚖️',
+    timeline: '⏳',
+    conclusion: '🎯',
+    qa: '❓',
+    thank_you: '🙏',
+  }
+  return icons[type] || '📄'
+}
 
 // Methods
 const fetchOutline = async () => {
