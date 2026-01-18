@@ -2,8 +2,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.llm.anthropic import ClaudeLLM
 from app.agent.llm.base import BaseLLM
+from app.agent.llm.router import get_free_llm_for_task, TaskType
 from app.core.config import Settings
 from app.models.agent_config import AgentConfig, LLMModel
 from app.repositories.agent_config_repository import (
@@ -34,8 +34,8 @@ class AgentConfigService:
             workspace_id=workspace_id,
             name=name,
             description="Default agent configuration",
-            llm_provider="anthropic",
-            llm_model="claude-3-5-sonnet-20241022",
+            llm_provider="openrouter",
+            llm_model="meta-llama/llama-3.3-70b-instruct:free",
             llm_max_tokens=8192,
             llm_temperature=1.0,
             max_iterations=20,
@@ -49,47 +49,17 @@ class AgentConfigService:
         return config
 
     async def get_llm_client(self, config: AgentConfig) -> BaseLLM:
-        """Get LLM client instance from configuration"""
+        """Get LLM client instance from configuration
 
-        # Get provider info
-        provider = await self.provider_repo.get_by_name(config.llm_provider)
-        if not provider:
-            raise ValueError(f"LLM provider '{config.llm_provider}' not found")
+        统一使用 OpenRouter 智能路由，自动选择免费模型
+        """
+        # 统一使用 OpenRouter 智能路由
+        return get_free_llm_for_task(
+            task_type=TaskType.GENERAL,
+            max_tokens=config.llm_max_tokens
+        )
 
-        # Get API key based on provider
-        api_key = self._get_api_key(provider.name)
-
-        # Create client based on provider
-        if provider.name == "anthropic":
-            return ClaudeLLM(
-                api_key=api_key,
-                model=config.llm_model,
-                max_tokens=config.llm_max_tokens,
-                temperature=config.llm_temperature,
-                base_url=provider.api_base_url
-            )
-        elif provider.name == "openai":
-            # TODO: Implement OpenAI client
-            raise NotImplementedError("OpenAI client not yet implemented")
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider.name}")
-
-    def _get_api_key(self, provider_name: str) -> str:
-        """Get API key for provider"""
-        if provider_name == "anthropic":
-            api_key = self.settings.ANTHROPIC_API_KEY
-            if not api_key:
-                raise ValueError("ANTHROPIC_API_KEY not configured")
-            return api_key
-        elif provider_name == "openai":
-            api_key = getattr(self.settings, "OPENAI_API_KEY", None)
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY not configured")
-            return api_key
-        else:
-            raise ValueError(f"Unknown provider: {provider_name}")
-
-    async def get_config_for_session(self, session_id: str) -> AgentConfig | None:
+    async def get_config_for_session
         """Get agent configuration for a session"""
         from sqlalchemy import select
 

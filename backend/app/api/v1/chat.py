@@ -20,7 +20,7 @@ try:
         BasicAgent,
         create_working_memory,
     )
-    from app.agent.llm import create_claude_llm
+    from app.agent.llm.router import TaskType, get_free_llm_for_task
     from app.agent.tools import ToolRegistry
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
@@ -109,8 +109,8 @@ async def send_message(
                 # Create Tool Registry (empty for now)
                 tools = ToolRegistry()
 
-                # Create real Claude LLM (reads from env vars)
-                llm = create_claude_llm()
+                # 使用智能路由选择免费 LLM (OpenRouter)
+                llm = get_free_llm_for_task(task_type=TaskType.GENERAL, max_tokens=4096)
 
                 # Create Agent (using BasicAgent for now)
                 agent = BasicAgent(

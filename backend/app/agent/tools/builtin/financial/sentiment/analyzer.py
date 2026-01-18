@@ -79,32 +79,21 @@ SENTIMENT_PROMPT = """你是一个金融情绪分析专家。请分析以下来�
 
 class SentimentAnalyzer:
     """
-    Sentiment analyzer using Claude API.
+    Sentiment analyzer using OpenRouter API.
 
     Analyzes batches of posts to determine overall market sentiment.
+    统一使用 OpenRouter 免费模型。
     """
 
-    def __init__(self, api_key: str | None = None, model: str = "claude-3-haiku-20240307"):
+    def __init__(self, model: str = "xiaomi/mimo-v2-flash:free"):
         """
         Initialize analyzer.
 
         Args:
-            api_key: Anthropic API key. If None, reads from ANTHROPIC_API_KEY env var.
-            model: Model to use. Default: claude-3-haiku (fast & cheap)
+            model: OpenRouter model to use. Default: xiaomi/mimo-v2-flash:free (fast & free)
         """
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.model = model
-        self._client = None
-
-    def _get_client(self):
-        """Get or create Anthropic client."""
-        if self._client is None:
-            try:
-                from anthropic import Anthropic
-                self._client = Anthropic(api_key=self.api_key)
-            except ImportError as e:
-                raise ImportError("anthropic package not installed") from e
-        return self._client
+        self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
 
     async def analyze_posts(
         self,
@@ -141,19 +130,27 @@ class SentimentAnalyzer:
                 posts=posts_text,
             )
 
-            # Call Claude API
-            client = self._get_client()
-
-            message = client.messages.create(
-                model=self.model,
-                max_tokens=2000,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
+            # Call OpenRouter API
+            import httpx
+            async with httpx.AsyncClient(timeout=60.0, verify=False) as client:
+                response = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://tokendance.ai",
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 2000,
+                    }
+                )
+                response.raise_for_status()
+                data = response.json()
 
             # Parse response
-            response_text = message.content[0].text
+            response_text = data["choices"][0]["message"]["content"]
 
             # Extract JSON from response
             result = self._parse_llm_response(response_text, posts)

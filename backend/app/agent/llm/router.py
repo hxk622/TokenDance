@@ -6,7 +6,6 @@ LLM 路由器模块
 import logging
 from enum import Enum
 
-from .anthropic import create_claude_llm
 from .base import BaseLLM
 from .openrouter import create_openrouter_llm
 from .vision_router import VisionRouter
@@ -234,13 +233,9 @@ class SimpleRouter:
         TaskType.GENERAL: "anthropic/claude-3-5-sonnet",           # 通用场景
     }
 
-    def __init__(self, use_openrouter: bool = True):
-        """
-        Args:
-            use_openrouter: 是否使用 OpenRouter（统一网关）还是直连各家 API
-        """
-        self.use_openrouter = use_openrouter
-        logger.info(f"SimpleRouter initialized (use_openrouter={use_openrouter})")
+    def __init__(self):
+        """初始化路由器，统一使用 OpenRouter"""
+        logger.info("SimpleRouter initialized (OpenRouter only)")
 
     def select_model(
         self,
@@ -302,17 +297,8 @@ class SimpleRouter:
             BaseLLM: LLM 客户端实例
         """
         model = self.select_model(task_type)
-
-        if self.use_openrouter:
-            return create_openrouter_llm(model=model, **llm_kwargs)
-        else:
-            # 直连 API（当前只支持 Claude）
-            if "anthropic" in model:
-                return create_claude_llm(**llm_kwargs)
-            else:
-                # 其他模型回退到 OpenRouter
-                logger.warning(f"Model {model} not supported for direct API, using OpenRouter")
-                return create_openrouter_llm(model=model, **llm_kwargs)
+        # 统一使用 OpenRouter
+        return create_openrouter_llm(model=model, **llm_kwargs)
 
     def get_model_info(self, model_name: str) -> ModelConfig:
         """获取模型配置信息
@@ -384,7 +370,7 @@ class FreeModelRouter(SimpleRouter):
             use_free_only: 是否仅使用免费模型
             fallback_to_paid: 当免费模型都不可用时是否回退到付费模型
         """
-        super().__init__(use_openrouter=True)
+        super().__init__()
         self.use_free_only = use_free_only
         self.fallback_to_paid = fallback_to_paid
         logger.info(f"FreeModelRouter initialized (use_free_only={use_free_only})")
@@ -459,14 +445,12 @@ class FreeModelRouter(SimpleRouter):
 # 便捷函数
 def get_llm_for_task(
     task_type: TaskType | str,
-    use_openrouter: bool = True,
     **llm_kwargs
 ) -> BaseLLM:
-    """快捷方式：根据任务类型获取 LLM
+    """快捷方式：根据任务类型获取 LLM (统一使用 OpenRouter)
 
     Args:
         task_type: 任务类型
-        use_openrouter: 是否使用 OpenRouter
         **llm_kwargs: LLM 参数
 
     Returns:
@@ -476,7 +460,7 @@ def get_llm_for_task(
         >>> llm = get_llm_for_task("deep_research")
         >>> llm = get_llm_for_task(TaskType.QUICK_QA, temperature=0.7)
     """
-    router = SimpleRouter(use_openrouter=use_openrouter)
+    router = SimpleRouter()
     return router.create_llm(task_type, **llm_kwargs)
 
 
