@@ -180,6 +180,17 @@ router.beforeEach(async (to, _from, next) => {
   console.log('[Router] importing auth store')
   const { useAuthStore } = await import('@/stores/auth')
   const authStore = useAuthStore()
+  
+  // If we have a token but no user, try to initialize
+  if (authStore.accessToken && !authStore.user) {
+    console.log('[Router] has token but no user, initializing...')
+    try {
+      await authStore.initialize()
+    } catch (e) {
+      console.error('[Router] initialize failed:', e)
+    }
+  }
+  
   console.log('[Router] auth store loaded, isAuthenticated:', authStore.isAuthenticated)
   
   // Check if route requires authentication
