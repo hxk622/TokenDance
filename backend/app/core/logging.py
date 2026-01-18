@@ -35,48 +35,85 @@ def add_request_id(
     return event_dict
 
 
+class RequestIdFilter(logging.Filter):
+    """Logging filter that adds request_id to all log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not hasattr(record, 'request_id'):
+            record.request_id = get_request_id() or "-"
+        return True
+
+
+class RequestIdFormatter(logging.Formatter):
+    """Custom formatter that includes request_id."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not hasattr(record, 'request_id'):
+            record.request_id = get_request_id() or "-"
+        return super().format(record)
+
+
 def configure_logging() -> None:
     """Configure structlog for structured logging."""
 
     # Determine log level
     log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
 
-    # Configure standard library logging
-    logging.basicConfig(
-        format="%(message)s",
-        stream=sys.stdout,
-        level=log_level,
+    # Create custom formatter with request_id for standard library logs
+    std_formatter = RequestIdFormatter(
+        fmt="%(asctime)s [%(levelname)s] [%(request_id)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+    # Configure root handler for non-structlog loggers
+    std_handler = logging.StreamHandler(sys.stdout)
+    std_handler.setFormatter(std_formatter)
+    std_handler.setLevel(log_level)
+
+    # Configure sqlalchemy to use standard format with request_id
+    sqlalchemy_logger = logging.getLogger("sqlalchemy.engine.Engine")
+    sqlalchemy_logger.handlers = []
+    sqlalchemy_logger.addHandler(std_handler)
+    sqlalchemy_logger.setLevel(log_level)
+    sqlalchemy_logger.propagate = False
+
+    # Configure uvicorn access logger
+    uvicorn_access = logging.getLogger("uvicorn.access")
+    uvicorn_access.handlers = []
+    uvicorn_access.addHandler(std_handler)
+    uvicorn_access.propagate = False
+
     # Configure structlog processors
-    processors = [
+    shared_processors = [
         structlog.contextvars.merge_contextvars,
         add_request_id,
         structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
     ]
 
-    # Add JSON renderer for production, pretty console for development
+    # For structlog's output
     if settings.ENVIRONMENT == "production":
-        processors.append(structlog.processors.JSONRenderer())
+        final_processors = shared_processors + [structlog.processors.JSONRenderer()]
     else:
-        processors.append(
+        final_processors = shared_processors + [
             structlog.dev.ConsoleRenderer(
                 colors=True,
                 exception_formatter=structlog.dev.plain_traceback,
             )
-        )
+        ]
 
-    # Configure structlog
+    # Configure structlog to output directly to stdout
     structlog.configure(
-        processors=processors,
-        wrapper_class=structlog.stdlib.BoundLogger,
+        processors=final_processors,
+        wrapper_class=structlog.make_filtering_bound_logger(log_level),
         context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
+        logger_factory=structlog.WriteLoggerFactory(),
         cache_logger_on_first_use=True,
     )
+
+    # Set root logger level
+    logging.getLogger().setLevel(log_level)
 
 
 # Initialize logging on import
