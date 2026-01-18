@@ -77,10 +77,10 @@ def configure_logging() -> None:
     sqlalchemy_logger.setLevel(log_level)
     sqlalchemy_logger.propagate = False
 
-    # Configure uvicorn access logger
+    # Disable uvicorn access logger since we use APILoggingMiddleware with request_id
     uvicorn_access = logging.getLogger("uvicorn.access")
     uvicorn_access.handlers = []
-    uvicorn_access.addHandler(std_handler)
+    uvicorn_access.disabled = True
     uvicorn_access.propagate = False
 
     # Configure structlog processors
