@@ -301,7 +301,7 @@ async def stream_session_events(
             # If task is provided and Agent Engine is available, run real agent
             if task and AGENT_ENGINE_AVAILABLE:
                 async for event in run_agent_stream(
-                    session_id, task, session.workspace_id, str(current_user.id), db
+                    session_id, task, session.workspace_id, str(current_user.id), db, settings
                 ):
                     if await request.is_disconnected():
                         logger.info("sse_client_disconnected", session_id=session_id)
@@ -334,7 +334,12 @@ async def stream_session_events(
 
 
 async def run_agent_stream(
-    session_id: str, task: str, workspace_id: str, user_id: str, db: AsyncSession
+    session_id: str,
+    task: str,
+    workspace_id: str,
+    user_id: str,
+    db: AsyncSession,
+    settings: Settings,
 ) -> AsyncGenerator[str, None]:
     """
     Run Agent and stream events.
@@ -366,8 +371,11 @@ async def run_agent_stream(
             # Create Tool Registry (empty for now)
             tools = ToolRegistry()
 
-            # Create real Claude LLM (reads from env vars)
-            llm = create_claude_llm()
+            # Create real Claude LLM with API key from settings
+            llm = create_claude_llm(
+                api_key=settings.ANTHROPIC_API_KEY,
+                model=settings.DEFAULT_LLM_MODEL,
+            )
 
             # Create Agent (using BasicAgent for now)
             agent = BasicAgent(
