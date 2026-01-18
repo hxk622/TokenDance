@@ -67,12 +67,13 @@ function selectTab(tab: TabType) {
 </script>
 
 <style scoped>
+/* ArtifactTabs - 使用全局主题变量 */
 .artifact-tabs {
   display: flex;
   gap: 4px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.1));
-  background: rgba(28, 28, 30, 0.7);
+  border-bottom: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
 }
 
 .tab {
@@ -80,24 +81,24 @@ function selectTab(tab: TabType) {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: var(--any-radius-md);
   background: transparent;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  color: var(--any-text-secondary);
   font-size: 14px;
   cursor: pointer;
-  transition: all 150ms ease-in-out;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
   border: 1px solid transparent;
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary, #ffffff);
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
 }
 
 .tab.active {
-  background: rgba(0, 217, 255, 0.15);
-  border-color: rgba(0, 217, 255, 0.5);
-  color: #00D9FF;
+  background: var(--td-state-thinking-bg);
+  border-color: var(--td-state-thinking);
+  color: var(--td-state-thinking);
 }
 
 .icon-svg {

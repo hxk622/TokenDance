@@ -325,46 +325,46 @@ const closeLightbox = () => {
   width: 64px;
   height: 64px;
   margin: 0 auto 24px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.4));
+  color: var(--any-text-muted);
 }
 
 h3 {
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 12px 0;
-  color: var(--text-primary, #ffffff);
+  color: var(--any-text-primary);
 }
 
 p {
   font-size: 16px;
   line-height: 1.6;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  color: var(--any-text-secondary);
   margin: 0 0 24px 0;
 }
 
 .mock-diff {
   margin-top: 24px;
   text-align: left;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--any-bg-tertiary);
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--any-radius-md);
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 13px;
 }
 
 .diff-line {
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--any-radius-sm);
 }
 
 .diff-line.removed {
-  background: rgba(255, 59, 48, 0.2);
-  color: #FF3B30;
+  background: var(--td-state-error-bg);
+  color: var(--td-state-error);
 }
 
 .diff-line.added {
-  background: rgba(0, 255, 136, 0.2);
-  color: #00FF88;
+  background: var(--td-state-executing-bg);
+  color: var(--td-state-executing);
 }
 
 /* Live Progress 实时进展 */
@@ -380,8 +380,8 @@ p {
   align-items: center;
   gap: 8px;
   padding: 16px;
-  border-bottom: 1px solid var(--divider-color);
-  color: var(--color-node-active, #00D9FF);
+  border-bottom: 1px solid var(--any-border);
+  color: var(--td-state-thinking);
 }
 
 .live-progress-header h3 {
@@ -402,26 +402,26 @@ p {
   gap: 12px;
   padding: 12px;
   margin-bottom: 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--any-radius-md);
+  background: var(--any-bg-hover);
   border-left: 3px solid transparent;
 }
 
 .progress-item--search {
-  border-left-color: #FFB800;
+  border-left-color: var(--td-state-waiting);
 }
 
 .progress-item--page {
-  border-left-color: #00D9FF;
+  border-left-color: var(--td-state-thinking);
 }
 
 .progress-item--finding {
-  border-left-color: #00FF88;
+  border-left-color: var(--td-state-executing);
 }
 
 .progress-item-icon {
   flex-shrink: 0;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .progress-item-content {
@@ -433,7 +433,7 @@ p {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   margin-bottom: 4px;
 }
 
@@ -441,7 +441,7 @@ p {
 .progress-item-subtitle {
   display: block;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -460,15 +460,15 @@ p {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   text-align: center;
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--color-node-active, #00D9FF);
+  border: 3px solid var(--any-border);
+  border-top-color: var(--td-state-thinking);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -480,16 +480,17 @@ p {
 .refresh-btn {
   margin-top: 16px;
   padding: 8px 16px;
-  background: rgba(0, 217, 255, 0.2);
-  border: 1px solid rgba(0, 217, 255, 0.5);
-  border-radius: 6px;
-  color: #00D9FF;
+  background: var(--td-state-thinking-bg);
+  border: 1px solid var(--td-state-thinking);
+  border-radius: var(--any-radius-md);
+  color: var(--td-state-thinking);
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .refresh-btn:hover {
-  background: rgba(0, 217, 255, 0.3);
+  background: var(--td-state-thinking);
+  color: var(--any-text-inverse);
 }
 
 /* Screenshot Lightbox */
