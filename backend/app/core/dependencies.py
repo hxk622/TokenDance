@@ -231,7 +231,7 @@ async def _verify_and_get_user(token: str, user_repo: UserRepository) -> User:
     # Verify token
     token_data = AuthService.verify_token(token, token_type="access")
     if not token_data:
-        logger.warning("authentication_failed_invalid_token")
+        logger.error("authentication_failed_invalid_token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
@@ -241,7 +241,7 @@ async def _verify_and_get_user(token: str, user_repo: UserRepository) -> User:
     # Get user from database
     user = await user_repo.get_by_email(token_data.email)
     if not user:
-        logger.warning(
+        logger.error(
             "authentication_failed_user_not_found",
             user_id=token_data.user_id,
         )
@@ -253,7 +253,7 @@ async def _verify_and_get_user(token: str, user_repo: UserRepository) -> User:
 
     # Check if user is active
     if not user.is_active:
-        logger.warning(
+        logger.error(
             "authentication_failed_user_inactive",
             user_id=str(user.id),
         )

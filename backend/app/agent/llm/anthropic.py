@@ -50,7 +50,7 @@ class ClaudeLLM(BaseLLM):
             import httpx
             http_client = httpx.AsyncClient(verify=False)
             client_params["http_client"] = http_client
-            logger.debug("Using httpx client with SSL verification disabled")
+            logger.info("SSL verification disabled for Anthropic API client")
         except ImportError:
             pass
 

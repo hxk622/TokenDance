@@ -194,7 +194,7 @@ class AuthService:
                 exp=datetime.fromtimestamp(payload["exp"]),
             )
         except JWTError as e:
-            logger.warning("jwt_decode_error", error=str(e))
+            logger.error("jwt_decode_error", error=str(e))
             return None
 
     async def register(
