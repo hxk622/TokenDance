@@ -10,6 +10,7 @@ import {
   SSEConnection,
   SSEEventType,
   type SSEEvent,
+  type SSEConnectionError,
   type SessionDetail,
   type Message,
   type Artifact,
@@ -133,6 +134,10 @@ export const useExecutionStore = defineStore('execution', () => {
   const session = ref<SessionDetail | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  
+  // SSE connection state
+  const sseConnectionState = ref<'disconnected' | 'connecting' | 'connected' | 'error' | 'fatal_error'>('disconnected')
+  const sseError = ref<string | null>(null)
 
   // Workflow state
   const nodes = ref<WorkflowNode[]>([])
@@ -209,6 +214,15 @@ export const useExecutionStore = defineStore('execution', () => {
     } catch (err: any) {
       error.value = err.message || 'Failed to load session'
       console.error('[ExecutionStore] Load session error:', err)
+      
+      // Clean up SSE connection on session load failure
+      disconnect()
+      
+      // Set fatal error state if session not found
+      if (err.response?.status === 404) {
+        sseConnectionState.value = 'fatal_error'
+        sseError.value = 'Session not found'
+      }
     } finally {
       isLoading.value = false
     }
@@ -271,22 +285,48 @@ export const useExecutionStore = defineStore('execution', () => {
    */
   function connectSSE(task: string | null = null) {
     if (!sessionId.value) return
+    
+    // Don't connect if we have a fatal error
+    if (sseConnectionState.value === 'fatal_error') {
+      console.warn('[ExecutionStore] Skipping SSE connection due to fatal error')
+      return
+    }
 
     currentTask.value = task
+    sseConnectionState.value = 'connecting'
+    sseError.value = null
 
     sseConnection = createSSEConnection(
       sessionId.value,
       {
         onEvent: handleSSEEvent,
-        onError: (err) => {
+        onError: (err: SSEConnectionError) => {
           console.error('[ExecutionStore] SSE error:', err)
-          error.value = 'Connection lost'
+          
+          // Update connection state based on error type
+          if (err.isFatal) {
+            sseConnectionState.value = 'fatal_error'
+            sseError.value = err.message
+            error.value = err.statusCode === 404 
+              ? 'Session not found' 
+              : err.statusCode === 403 
+              ? 'Access denied' 
+              : err.message
+          } else {
+            sseConnectionState.value = 'error'
+            sseError.value = 'Connection lost, retrying...'
+          }
         },
         onOpen: () => {
           console.log('[ExecutionStore] SSE connected')
+          sseConnectionState.value = 'connected'
+          sseError.value = null
         },
         onClose: () => {
           console.log('[ExecutionStore] SSE disconnected')
+          if (sseConnectionState.value === 'connected' || sseConnectionState.value === 'connecting') {
+            sseConnectionState.value = 'disconnected'
+          }
         },
       },
       false, // useDemo
@@ -636,6 +676,8 @@ export const useExecutionStore = defineStore('execution', () => {
     sessionId.value = null
     session.value = null
     currentTask.value = null
+    sseConnectionState.value = 'disconnected'
+    sseError.value = null
     nodes.value = []
     edges.value = []
     logs.value = []
@@ -659,6 +701,8 @@ export const useExecutionStore = defineStore('execution', () => {
     currentTask,
     isLoading,
     error,
+    sseConnectionState,
+    sseError,
     nodes,
     edges,
     logs,

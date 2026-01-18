@@ -287,7 +287,20 @@ async def stream_session_events(
     session = await session_service.get_session(session_id)
 
     if not session:
-        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        logger.warning(
+            "sse_session_not_found",
+            session_id=session_id,
+            user_id=current_user.id,
+            client_ip=request.client.host if request.client else "unknown",
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=f"Session {session_id} not found",
+            headers={
+                "X-Error-Type": "SessionNotFound",
+                "Cache-Control": "no-store",
+            }
+        )
 
     logger.info(
         "sse_stream_started",

@@ -86,7 +86,10 @@ const animationClass = computed(() => ({
 </script>
 
 <template>
-  <g class="animated-edge" :class="animationClass">
+  <g
+    class="animated-edge"
+    :class="animationClass"
+  >
     <!-- 背景线（静态） -->
     <path
       class="edge-bg"

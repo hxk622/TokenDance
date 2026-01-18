@@ -104,17 +104,38 @@ const particles = computed(() => {
     >
       <defs>
         <!-- 主进度渐变 -->
-        <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="var(--td-state-thinking)" />
-          <stop offset="100%" :stop-color="progressColor" />
+        <linearGradient
+          id="progress-gradient"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="0%"
+        >
+          <stop
+            offset="0%"
+            stop-color="var(--td-state-thinking)"
+          />
+          <stop
+            offset="100%"
+            :stop-color="progressColor"
+          />
         </linearGradient>
         
         <!-- 发光滤镜 -->
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+        <filter
+          id="glow"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+        >
+          <feGaussianBlur
+            stdDeviation="2"
+            result="coloredBlur"
+          />
           <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
       </defs>
@@ -176,7 +197,10 @@ const particles = computed(() => {
     
     <!-- 完成粒子效果 -->
     <Transition name="particles">
-      <div v-if="showParticles" class="particles-container">
+      <div
+        v-if="showParticles"
+        class="particles-container"
+      >
         <div
           v-for="(particle, i) in particles"
           :key="i"

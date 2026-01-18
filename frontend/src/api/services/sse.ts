@@ -168,11 +168,19 @@ export interface TokenUsageEvent {
 }
 
 /**
+ * SSE Connection Error
+ */
+export interface SSEConnectionError extends Error {
+  statusCode?: number
+  isFatal?: boolean // Non-recoverable error (404, 403, etc.)
+}
+
+/**
  * SSE Connection Options
  */
 export interface SSEOptions {
   onEvent?: (event: SSEEvent) => void
-  onError?: (error: Error) => void
+  onError?: (error: SSEConnectionError) => void
   onOpen?: () => void
   onClose?: () => void
   reconnectDelay?: number
@@ -189,6 +197,7 @@ export class SSEConnection {
   private reconnectAttempts = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private isClosed = false
+  private hasFatalError = false // Track fatal errors (404, 403)
 
   private task: string | null = null
 
@@ -220,8 +229,8 @@ export class SSEConnection {
    * Connect to SSE stream
    */
   connect(): void {
-    if (this.isClosed) {
-      console.warn('SSE connection is closed, cannot reconnect')
+    if (this.isClosed || this.hasFatalError) {
+      console.warn('[SSE] Connection is closed or has fatal error, cannot reconnect')
       return
     }
 
@@ -246,22 +255,54 @@ export class SSEConnection {
       }
 
       // Error handler
-      this.eventSource.onerror = (error) => {
-        console.error('[SSE] Connection error:', error)
-        this.options.onError(new Error('SSE connection error'))
-
-        // Attempt to reconnect
-        if (!this.isClosed && this.reconnectAttempts < this.options.maxReconnectAttempts) {
-          this.reconnectAttempts++
-          console.log(`[SSE] Reconnecting... (attempt ${this.reconnectAttempts})`)
-          
-          this.eventSource?.close()
-          this.reconnectTimer = setTimeout(() => {
-            this.connect()
-          }, this.options.reconnectDelay)
-        } else if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
-          console.error('[SSE] Max reconnect attempts reached')
-          this.close()
+      this.eventSource.onerror = (event) => {
+        const target = event.target as EventSource
+        
+        // Check EventSource readyState to detect fatal HTTP errors
+        // CLOSED (2) means the connection failed (likely 404, 403, 429, etc.)
+        if (target.readyState === EventSource.CLOSED) {
+          // Try to fetch the URL to get actual HTTP status
+          this.detectHTTPError().then(statusCode => {
+            const isFatal = statusCode === 404 || statusCode === 403 || statusCode === 401
+            
+            const error: SSEConnectionError = new Error(
+              isFatal 
+                ? `SSE connection failed: HTTP ${statusCode}` 
+                : 'SSE connection error'
+            ) as SSEConnectionError
+            error.statusCode = statusCode
+            error.isFatal = isFatal
+            
+            console.error(`[SSE] Connection error: HTTP ${statusCode || 'unknown'}`, { isFatal })
+            this.options.onError(error)
+            
+            // Stop reconnecting on fatal errors
+            if (isFatal) {
+              console.error('[SSE] Fatal error detected, stopping reconnection')
+              this.hasFatalError = true
+              this.close()
+              return
+            }
+            
+            // Attempt reconnection with exponential backoff
+            if (!this.isClosed && this.reconnectAttempts < this.options.maxReconnectAttempts) {
+              this.reconnectAttempts++
+              
+              // Exponential backoff: delay = baseDelay * 2^(attempts - 1)
+              const delay = this.options.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
+              const cappedDelay = Math.min(delay, 30000) // Max 30s
+              
+              console.log(`[SSE] Reconnecting in ${cappedDelay}ms (attempt ${this.reconnectAttempts}/${this.options.maxReconnectAttempts})`)
+              
+              this.eventSource?.close()
+              this.reconnectTimer = setTimeout(() => {
+                this.connect()
+              }, cappedDelay)
+            } else if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
+              console.error('[SSE] Max reconnect attempts reached')
+              this.close()
+            }
+          })
         }
       }
 
@@ -285,6 +326,25 @@ export class SSEConnection {
     } catch (error) {
       console.error('[SSE] Failed to create EventSource:', error)
       this.options.onError(error as Error)
+    }
+  }
+
+  /**
+   * Detect HTTP error by attempting a HEAD request
+   * EventSource doesn't expose HTTP status, so we probe manually
+   */
+  private async detectHTTPError(): Promise<number | undefined> {
+    try {
+      const response = await fetch(this.url, { 
+        method: 'HEAD',
+        headers: {
+          'Accept': 'text/event-stream'
+        }
+      })
+      return response.status
+    } catch (error) {
+      console.warn('[SSE] Could not detect HTTP status:', error)
+      return undefined
     }
   }
 

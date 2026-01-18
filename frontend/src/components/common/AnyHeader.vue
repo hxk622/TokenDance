@@ -93,7 +93,10 @@ const headerClasses = computed(() => {
         :title="themeTooltip"
         @click="cycleTheme"
       >
-        <component :is="themeIcon" class="w-4 h-4" />
+        <component
+          :is="themeIcon"
+          class="w-4 h-4"
+        />
       </button>
     </div>
   </header>

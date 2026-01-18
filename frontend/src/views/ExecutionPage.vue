@@ -64,6 +64,10 @@ const sessionStatus = computed(() => {
 const elapsedTime = ref('0分0秒')
 let elapsedTimer: ReturnType<typeof setInterval> | null = null
 
+// SSE connection state
+const sseConnectionState = computed(() => executionStore.sseConnectionState)
+const sseError = computed(() => executionStore.sseError)
+
 // Plan Recitation: 进度跟踪
 const currentStepIndex = computed(() => {
   const nodes = executionStore.nodes
@@ -249,6 +253,15 @@ async function initializeExecution() {
   } else {
     // Load real session
     await executionStore.loadSession(sessionId.value)
+    
+    // Check for fatal errors (session not found)
+    if (executionStore.sseConnectionState === 'fatal_error') {
+      console.error('[ExecutionPage] Session not found, redirecting to home')
+      setTimeout(() => {
+        router.push('/')
+      }, 2000) // Give user 2s to see the error
+      return
+    }
   }
   
   // Connect SSE stream with task (triggers agent execution if task provided)

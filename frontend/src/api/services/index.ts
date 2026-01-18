@@ -26,6 +26,7 @@ export {
 export type {
   SSEEvent,
   SSEOptions,
+  SSEConnectionError,
   AgentThinkingEvent,
   AgentToolCallEvent,
   AgentToolResultEvent,
