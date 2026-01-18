@@ -21,6 +21,15 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
 const activeCategory = ref('all')
+const errorMessage = ref('')
+
+// 显示错误提示
+const showError = (msg: string) => {
+  errorMessage.value = msg
+  setTimeout(() => {
+    errorMessage.value = ''
+  }, 4000)
+}
 
 // 快捷操作芯片 - AnyGen 风格
 const quickChips = [
@@ -141,11 +150,7 @@ const handleSubmit = async () => {
     router.push(`/execution/${session.id}`)
   } catch (error) {
     console.error('Failed to create session:', error)
-    // 如果创建失败，fallback 到 chat 页面
-    router.push({
-      path: '/chat',
-      query: { q: inputValue.value }
-    })
+    showError('哎呀，遇到了一点小问题，请稍后再试试看 😅')
   } finally {
     isLoading.value = false
   }
@@ -182,7 +187,7 @@ const handleChipClick = async (chip: typeof quickChips[0]) => {
     router.push(`/execution/${session.id}`)
   } catch (error) {
     console.error('Failed to create session:', error)
-    router.push({ path: '/chat', query: { mode: chip.id } })
+    showError('系统开小差了，请稍等片刻再试 ☕')
   } finally {
     isLoading.value = false
   }
@@ -211,7 +216,7 @@ const handleTemplateClick = async (template: typeof templates[0]) => {
     router.push(`/execution/${session.id}`)
   } catch (error) {
     console.error('Failed to create session:', error)
-    router.push({ path: '/chat', query: { template: template.id } })
+    showError('有点小状况，请稍后再试试 🙏')
   } finally {
     isLoading.value = false
   }
@@ -247,7 +252,7 @@ const handleFileSelect = async (e: Event) => {
       router.push(`/execution/${session.id}`)
     } catch (error) {
       console.error('Failed to create session:', error)
-      router.push({ path: '/chat', query: { files: fileNames } })
+      showError('文件处理遇到了麻烦，请稍后重试 📁')
     } finally {
       isLoading.value = false
     }
@@ -334,6 +339,13 @@ onUnmounted(() => {
       </button>
     </header>
     
+    <!-- 错误提示 Toast -->
+    <Transition name="toast">
+      <div v-if="errorMessage" class="error-toast">
+        {{ errorMessage }}
+      </div>
+    </Transition>
+
     <!-- Main Content -->
     <main class="home-main">
       <!-- Hero: 大标题 -->
@@ -986,5 +998,32 @@ onUnmounted(() => {
 /* Hidden utility */
 .hidden {
   display: none;
+}
+
+/* Error Toast */
+.error-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  font-size: 14px;
+  border-radius: var(--any-radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
 }
 </style>
