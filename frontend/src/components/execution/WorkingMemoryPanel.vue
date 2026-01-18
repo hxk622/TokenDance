@@ -172,13 +172,14 @@ setInterval(() => {
 </script>
 
 <style scoped>
+/* Working Memory Panel - 使用全局主题变量 */
 .working-memory-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-lg);
   overflow: hidden;
 }
 
@@ -187,32 +188,32 @@ setInterval(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
 }
 
 .panel-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .refresh-btn {
   padding: 6px 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #6366f1;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  color: var(--td-state-thinking);
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--any-duration-normal) var(--any-ease-out);
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #6366f1;
+  background: var(--any-bg-tertiary);
+  border-color: var(--td-state-thinking);
 }
 
 .refresh-btn:disabled {
@@ -222,39 +223,39 @@ setInterval(() => {
 
 .error-message {
   padding: 12px 20px;
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--td-state-error-bg);
+  color: var(--td-state-error);
   font-size: 14px;
-  border-bottom: 1px solid #fecaca;
+  border-bottom: 1px solid var(--td-state-error);
 }
 
 .tabs {
   display: flex;
   gap: 4px;
   padding: 8px 20px 0;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--any-bg-secondary);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .tab {
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--any-text-tertiary);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .tab:hover {
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .tab.active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
+  color: var(--td-state-thinking);
+  border-bottom-color: var(--td-state-thinking);
 }
 
 .tab-content {
@@ -269,7 +270,7 @@ setInterval(() => {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #6b7280;
+  color: var(--any-text-tertiary);
   font-size: 14px;
 }
 
@@ -283,41 +284,41 @@ setInterval(() => {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .file-description {
   display: block;
   margin-top: 4px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--any-text-tertiary);
 }
 
 .markdown-content {
   font-size: 14px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--any-text-secondary);
 }
 
 .markdown-content :deep(h1) {
   font-size: 24px;
   font-weight: 700;
   margin: 24px 0 16px;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .markdown-content :deep(h2) {
   font-size: 20px;
   font-weight: 600;
   margin: 20px 0 12px;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .markdown-content :deep(h3) {
   font-size: 16px;
   font-weight: 600;
   margin: 16px 0 8px;
-  color: #111827;
+  color: var(--any-text-primary);
 }
 
 .markdown-content :deep(p) {
@@ -336,15 +337,16 @@ setInterval(() => {
 
 .markdown-content :deep(code) {
   padding: 2px 6px;
-  background: #f3f4f6;
-  border-radius: 4px;
+  background: var(--any-bg-tertiary);
+  border-radius: var(--any-radius-sm);
   font-family: 'Monaco', 'Courier New', monospace;
   font-size: 13px;
+  color: var(--any-text-primary);
 }
 
 .markdown-content :deep(pre) {
   padding: 12px;
-  background: #1f2937;
+  background: var(--any-bg-tertiary);
   border-radius: 6px;
   overflow-x: auto;
 }

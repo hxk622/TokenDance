@@ -1,10 +1,22 @@
 """
 TokenDance Backend - FastAPI Application Entry Point
 """
+import os
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC
+
+# Fix SSL certificate issue on macOS
+try:
+    import certifi
+    cert_path = certifi.where()
+    os.environ.setdefault("SSL_CERT_FILE", cert_path)
+    os.environ.setdefault("REQUESTS_CA_BUNDLE", cert_path)
+    # For httpx/httpcore
+    os.environ.setdefault("CURL_CA_BUNDLE", cert_path)
+except ImportError:
+    pass
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware

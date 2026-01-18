@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useThemeStore } from '@/stores/theme'
+import { Sun, Moon, Monitor } from 'lucide-vue-next'
 
 // Props
 interface Props {
@@ -7,13 +9,41 @@ interface Props {
   transparent?: boolean
   bordered?: boolean
   sticky?: boolean
+  showThemeToggle?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   transparent: false,
   bordered: false,
-  sticky: false
+  sticky: false,
+  showThemeToggle: false
 })
+
+// Theme
+const themeStore = useThemeStore()
+
+const themeIcon = computed(() => {
+  switch (themeStore.mode) {
+    case 'light': return Sun
+    case 'dark': return Moon
+    default: return Monitor
+  }
+})
+
+const themeTooltip = computed(() => {
+  switch (themeStore.mode) {
+    case 'light': return '切换到深色模式'
+    case 'dark': return '切换到系统模式'
+    default: return '切换到浅色模式'
+  }
+})
+
+function cycleTheme() {
+  const modes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']
+  const currentIndex = modes.indexOf(themeStore.mode)
+  const nextIndex = (currentIndex + 1) % modes.length
+  themeStore.setMode(modes[nextIndex])
+}
 
 // Computed classes
 const headerClasses = computed(() => {
@@ -55,6 +85,16 @@ const headerClasses = computed(() => {
     <!-- Right section -->
     <div class="any-header-right">
       <slot name="right" />
+      
+      <!-- Theme Toggle -->
+      <button
+        v-if="showThemeToggle"
+        class="theme-toggle"
+        :title="themeTooltip"
+        @click="cycleTheme"
+      >
+        <component :is="themeIcon" class="w-4 h-4" />
+      </button>
     </div>
   </header>
 </template>
@@ -113,5 +153,30 @@ const headerClasses = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--any-radius-md, 8px);
+  background: transparent;
+  color: var(--any-text-secondary);
+  cursor: pointer;
+  transition: all var(--any-duration-fast, 150ms) var(--any-ease-out, ease-out);
+}
+
+.theme-toggle:hover {
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
 }
 </style>

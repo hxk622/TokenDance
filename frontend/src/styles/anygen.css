@@ -148,6 +148,156 @@
 }
 
 /* ============================================
+   TokenDance State Colors (品牌状态色)
+   ============================================ */
+
+:root {
+  --td-state-thinking: #00D9FF;    /* cyan - AI 思考中 */
+  --td-state-executing: #00FF88;   /* green - 执行中 */
+  --td-state-waiting: #FFB800;     /* amber - 等待用户 */
+  --td-state-error: #FF3B30;       /* red - 错误 */
+  --td-state-idle: var(--any-text-tertiary);  /* 空闲 */
+  
+  /* 状态色透明度变体 */
+  --td-state-thinking-bg: rgba(0, 217, 255, 0.1);
+  --td-state-executing-bg: rgba(0, 255, 136, 0.1);
+  --td-state-waiting-bg: rgba(255, 184, 0, 0.1);
+  --td-state-error-bg: rgba(255, 59, 48, 0.1);
+}
+
+/* ============================================
+   Ambient Animation Classes (Living Interface)
+   ============================================ */
+
+/* 呼吸动画 - 用于思考状态 */
+.ambient-breathing {
+  animation: ambient-breathe 3s ease-in-out infinite;
+}
+
+@keyframes ambient-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* 脉动动画 - 用于执行状态 */
+.ambient-pulsing {
+  animation: ambient-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ambient-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+/* 流动动画 - 用于数据传输 */
+.ambient-flowing {
+  animation: ambient-flow 1.5s linear infinite;
+}
+
+@keyframes ambient-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* 微光晕动画 - 用于活跃状态 */
+.ambient-glow {
+  animation: ambient-glow 2s ease-in-out infinite;
+}
+
+@keyframes ambient-glow {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% { 
+    box-shadow: 0 0 20px 2px var(--td-state-thinking);
+  }
+}
+
+/* 状态色边框动画 */
+.state-border-thinking {
+  border-color: var(--td-state-thinking);
+  animation: border-pulse-cyan 2s ease-in-out infinite;
+}
+
+.state-border-executing {
+  border-color: var(--td-state-executing);
+  animation: border-pulse-green 2s ease-in-out infinite;
+}
+
+.state-border-waiting {
+  border-color: var(--td-state-waiting);
+  animation: border-pulse-amber 2s ease-in-out infinite;
+}
+
+@keyframes border-pulse-cyan {
+  0%, 100% { border-color: var(--td-state-thinking); box-shadow: 0 0 0 0 rgba(0, 217, 255, 0.4); }
+  50% { border-color: var(--td-state-thinking); box-shadow: 0 0 8px 2px rgba(0, 217, 255, 0.2); }
+}
+
+@keyframes border-pulse-green {
+  0%, 100% { border-color: var(--td-state-executing); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+  50% { border-color: var(--td-state-executing); box-shadow: 0 0 8px 2px rgba(0, 255, 136, 0.2); }
+}
+
+@keyframes border-pulse-amber {
+  0%, 100% { border-color: var(--td-state-waiting); box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.4); }
+  50% { border-color: var(--td-state-waiting); box-shadow: 0 0 8px 2px rgba(255, 184, 0, 0.2); }
+}
+
+/* ============================================
+   Layer System (分层玻璃效果)
+   ============================================ */
+
+.layer-background {
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  background: var(--any-bg-glass);
+  opacity: 0.6;
+}
+
+.layer-execution {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--any-bg-secondary);
+}
+
+.layer-interaction {
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  background: var(--any-bg-primary);
+}
+
+/* 玻璃卡片样式 */
+.glass-card {
+  background: var(--any-bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--any-border-light);
+  border-radius: var(--any-radius-lg);
+}
+
+/* ============================================
+   Reduced Motion Support
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-breathing,
+  .ambient-pulsing,
+  .ambient-flowing,
+  .ambient-glow,
+  .state-border-thinking,
+  .state-border-executing,
+  .state-border-waiting {
+    animation: none;
+  }
+  
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
    Base Button Styles
    ============================================ */
 
