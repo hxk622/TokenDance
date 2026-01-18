@@ -1,6 +1,6 @@
 <template>
   <div class="preview-area">
-    <!-- Timeline View (for Deep Research) -->
+    <!-- Timeline View (for Deep Research) - 合并了实时进展和时间轴 -->
     <div
       v-if="currentTab === 'timeline'"
       class="timeline-container"
@@ -14,58 +14,6 @@
       />
     </div>
 
-    <!-- 实时进展 Tab - 中间产出 -->
-    <div
-      v-else-if="currentTab === 'live-progress'"
-      class="live-progress-container"
-    >
-      <div class="live-progress-header">
-        <SparklesIcon class="w-5 h-5" />
-        <h3>实时进展</h3>
-      </div>
-      <div class="live-progress-list">
-        <div 
-          v-for="item in liveProgressItems" 
-          :key="item.id" 
-          class="progress-item"
-          :class="`progress-item--${item.type}`"
-        >
-          <div class="progress-item-icon">
-            <MagnifyingGlassIcon
-              v-if="item.type === 'search'"
-              class="w-4 h-4"
-            />
-            <GlobeAltIcon
-              v-else-if="item.type === 'page'"
-              class="w-4 h-4"
-            />
-            <DocumentTextIcon
-              v-else
-              class="w-4 h-4"
-            />
-          </div>
-          <div class="progress-item-content">
-            <span class="progress-item-title">{{ item.title }}</span>
-            <span
-              v-if="item.url"
-              class="progress-item-url"
-            >{{ item.url }}</span>
-            <span
-              v-else-if="item.subtitle"
-              class="progress-item-subtitle"
-            >{{ item.subtitle }}</span>
-          </div>
-        </div>
-        <div
-          v-if="liveProgressItems.length === 0"
-          class="empty-state"
-        >
-          <SparklesIcon class="w-12 h-12" />
-          <p>执行进展将实时显示在这里</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Working Memory Tab -->
     <div
       v-else-if="currentTab === 'working-memory'"
@@ -76,7 +24,7 @@
         class="loading-state"
       >
         <div class="spinner" />
-        <p>加载 Working Memory...</p>
+        <p>加载工作记忆...</p>
       </div>
       <WorkingMemory
         v-else-if="workingMemoryData"
@@ -89,7 +37,7 @@
         class="empty-state"
       >
         <CircleStackIcon class="w-12 h-12" />
-        <p>暂无 Working Memory 数据</p>
+        <p>暂无工作记忆数据</p>
         <button
           class="refresh-btn"
           @click="loadWorkingMemory"
@@ -108,35 +56,64 @@
         v-if="currentTab === 'report'"
         class="preview-placeholder"
       >
-        <DocumentTextIcon class="icon-svg" />
-        <h3>研究报告预览</h3>
-        <p>AI Deep Research 生成的研究报告将在这里显示</p>
+        <div class="empty-icon-wrapper">
+          <DocumentTextIcon class="icon-svg" />
+        </div>
+        <h3>研究报告生成中</h3>
+        <p v-if="isExecuting">
+          AI 正在深度调研并撰写报告,请稍候...
+        </p>
+        <p v-else>
+          任务完成后,研究报告将在这里显示
+        </p>
+        <div
+          v-if="isExecuting"
+          class="progress-dots"
+        >
+          <span class="dot" />
+          <span class="dot" />
+          <span class="dot" />
+        </div>
       </div>
 
       <div
         v-else-if="currentTab === 'ppt'"
         class="preview-placeholder"
       >
-        <PresentationChartBarIcon class="icon-svg" />
-        <h3>PPT 预览</h3>
-        <p>AI PPT Generation 生成的演示文稿将在这里显示</p>
+        <div class="empty-icon-wrapper">
+          <PresentationChartBarIcon class="icon-svg" />
+        </div>
+        <h3>PPT 生成中</h3>
+        <p v-if="isExecuting">
+          AI 正在设计演示文稿,请稍候...
+        </p>
+        <p v-else>
+          任务完成后,演示文稿将在这里显示
+        </p>
+        <div
+          v-if="isExecuting"
+          class="progress-dots"
+        >
+          <span class="dot" />
+          <span class="dot" />
+          <span class="dot" />
+        </div>
       </div>
 
       <div
         v-else-if="currentTab === 'file-diff'"
         class="preview-placeholder"
       >
-        <DocumentDuplicateIcon class="icon-svg" />
-        <h3>文件变更预览</h3>
-        <p>Coworker 修改的文件 Diff 将在这里显示</p>
-        <div class="mock-diff">
-          <div class="diff-line removed">
-            - const oldValue = 'old'
-          </div>
-          <div class="diff-line added">
-            + const newValue = 'new'
-          </div>
+        <div class="empty-icon-wrapper">
+          <DocumentDuplicateIcon class="icon-svg" />
         </div>
+        <h3>文件变更</h3>
+        <p v-if="isExecuting">
+          Coworker 正在修改文件,变更将实时显示...
+        </p>
+        <p v-else>
+          暂无文件变更记录
+        </p>
       </div>
     </div>
 
@@ -173,21 +150,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import ResearchTimeline from './ResearchTimeline.vue'
 import WorkingMemory from './WorkingMemory.vue'
 import { timelineApi, type TimelineEntry } from '@/api/timeline'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
-import { useExecutionStore } from '@/stores/execution'
 import {
   DocumentTextIcon,
   PresentationChartBarIcon,
   DocumentDuplicateIcon,
   XMarkIcon,
-  GlobeAltIcon,
-  MagnifyingGlassIcon,
   CircleStackIcon,
-  SparklesIcon,
 } from '@heroicons/vue/24/outline'
 import type { TabType } from './ArtifactTabs.vue'
 
@@ -198,49 +171,10 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const executionStore = useExecutionStore()
 
 // Working Memory 状态
 const workingMemoryData = ref<WorkingMemoryResponse | null>(null)
 const isLoadingMemory = ref(false)
-
-// 实时进展数据 - 中间产出
-const liveProgressItems = computed(() => {
-  // 从执行日志中提取关键信息
-  const items: Array<{
-    id: string
-    type: 'search' | 'page' | 'finding'
-    title: string
-    subtitle?: string
-    url?: string
-    timestamp: number
-  }> = []
-  
-  executionStore.logs.forEach((log, index) => {
-    if (log.type === 'tool-call' && log.content.includes('web_search')) {
-      items.push({
-        id: `search-${index}`,
-        type: 'search',
-        title: '正在搜索...',
-        subtitle: log.content.slice(0, 100),
-        timestamp: log.timestamp
-      })
-    } else if (log.type === 'result' && log.content.includes('http')) {
-      const urlMatch = log.content.match(/https?:\/\/[^\s]+/)
-      if (urlMatch) {
-        items.push({
-          id: `page-${index}`,
-          type: 'page',
-          title: '已访问网页',
-          url: urlMatch[0],
-          timestamp: log.timestamp
-        })
-      }
-    }
-  })
-  
-  return items.slice(-10) // 只显示最近 10 条
-})
 
 // 加载 Working Memory
 async function loadWorkingMemory() {
@@ -321,10 +255,21 @@ const closeLightbox = () => {
   max-width: 500px;
 }
 
-.icon-svg {
-  width: 64px;
-  height: 64px;
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
   margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--any-bg-hover);
+  border-radius: var(--any-radius-xl);
+  border: 1px solid var(--any-border);
+}
+
+.icon-svg {
+  width: 40px;
+  height: 40px;
   color: var(--any-text-muted);
 }
 
@@ -340,6 +285,46 @@ p {
   line-height: 1.6;
   color: var(--any-text-secondary);
   margin: 0 0 24px 0;
+}
+
+/* Progress dots animation */
+.progress-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.progress-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--td-state-thinking);
+  animation: dot-pulse 1.4s ease-in-out infinite;
+}
+
+.progress-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.progress-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.progress-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .mock-diff {
@@ -365,86 +350,6 @@ p {
 .diff-line.added {
   background: var(--td-state-executing-bg);
   color: var(--td-state-executing);
-}
-
-/* Live Progress 实时进展 */
-.live-progress-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.live-progress-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  border-bottom: 1px solid var(--any-border);
-  color: var(--td-state-thinking);
-}
-
-.live-progress-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.live-progress-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.progress-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  margin-bottom: 8px;
-  border-radius: var(--any-radius-md);
-  background: var(--any-bg-hover);
-  border-left: 3px solid transparent;
-}
-
-.progress-item--search {
-  border-left-color: var(--td-state-waiting);
-}
-
-.progress-item--page {
-  border-left-color: var(--td-state-thinking);
-}
-
-.progress-item--finding {
-  border-left-color: var(--td-state-executing);
-}
-
-.progress-item-icon {
-  flex-shrink: 0;
-  color: var(--any-text-secondary);
-}
-
-.progress-item-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.progress-item-title {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--any-text-primary);
-  margin-bottom: 4px;
-}
-
-.progress-item-url,
-.progress-item-subtitle {
-  display: block;
-  font-size: 12px;
-  color: var(--any-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Working Memory */

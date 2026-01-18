@@ -13,9 +13,10 @@ import AnyHeader from '@/components/common/AnyHeader.vue'
 import AnyButton from '@/components/common/AnyButton.vue'
 import { useExecutionStore } from '@/stores/execution'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
-import { 
+import {
   Home, History, FolderOpen, Settings, Search, LayoutGrid,
-  PauseCircle, StopCircle, ChevronDown, ChevronUp, X, Check
+  PauseCircle, StopCircle, ChevronDown, ChevronUp, X, Check,
+  AlertTriangle as ExclamationTriangleIcon
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -87,6 +88,17 @@ const progressPercent = computed(() => {
   const completed = executionStore.nodes.filter(n => n.status === 'success').length
   const total = totalSteps.value
   return total > 0 ? Math.round((completed / total) * 100) : 0
+})
+
+// 是否处于准备阶段（没有工作流节点）
+const isPreparing = computed(() => totalSteps.value === 0)
+
+// 显示的步骤文本
+const stepDisplayText = computed(() => {
+  if (isPreparing.value) {
+    return '初始化中'
+  }
+  return `Step ${currentStepIndex.value + 1}/${totalSteps.value}`
 })
 
 // HITL 干预状态
@@ -292,6 +304,25 @@ function handleStop() {
     clearInterval(elapsedTimer)
   }
   console.log('Stop execution')
+}
+
+// Handle error retry
+function handleRetry() {
+  // Clear error state
+  executionStore.error = null
+  executionStore.sseError = null
+
+  // Reconnect SSE
+  executionStore.connectSSE(initialTask.value)
+
+  // Restart timer
+  startElapsedTimer()
+}
+
+// Dismiss error banner
+function dismissError() {
+  executionStore.error = null
+  executionStore.sseError = null
 }
 
 // Handle horizontal divider drag
@@ -503,9 +534,32 @@ onUnmounted(() => {
         
         <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
         <div class="plan-progress">
-          <!-- Circular Progress Ring -->
+          <!-- Circular Progress Ring (or Spinner for preparing state) -->
           <div class="progress-ring">
-            <svg viewBox="0 0 36 36">
+            <!-- Preparing state: Indeterminate spinner -->
+            <svg
+              v-if="isPreparing"
+              viewBox="0 0 36 36"
+              class="preparing-spinner"
+            >
+              <circle
+                class="spinner-track"
+                cx="18"
+                cy="18"
+                r="16"
+              />
+              <circle
+                class="spinner-fill"
+                cx="18"
+                cy="18"
+                r="16"
+              />
+            </svg>
+            <!-- Normal state: Progress ring -->
+            <svg
+              v-else
+              viewBox="0 0 36 36"
+            >
               <defs>
                 <linearGradient
                   id="progress-gradient"
@@ -530,19 +584,22 @@ onUnmounted(() => {
                 cy="18"
                 r="16"
               />
-              <circle 
-                class="fill" 
+              <circle
+                class="fill"
                 cx="18"
                 cy="18"
                 r="16"
                 :stroke-dasharray="`${progressPercent} 100`"
               />
             </svg>
-            <span class="percent">{{ progressPercent }}%</span>
+            <span
+              v-if="!isPreparing"
+              class="percent"
+            >{{ progressPercent }}%</span>
           </div>
           <!-- Step Info -->
           <div class="progress-step">
-            <span class="step-label">Step {{ currentStepIndex + 1 }}/{{ totalSteps }}</span>
+            <span class="step-label">{{ stepDisplayText }}</span>
             <span class="step-name">{{ currentStepLabel }}</span>
           </div>
         </div>
@@ -565,6 +622,38 @@ onUnmounted(() => {
           </AnyButton>
         </div>
       </header>
+
+      <!-- Error Banner -->
+      <Transition name="slide-down">
+        <div
+          v-if="sessionStatus === 'error' || sseError"
+          class="error-banner"
+        >
+          <div class="error-left">
+            <ExclamationTriangleIcon class="error-icon" />
+            <div class="error-content">
+              <span class="error-title">执行出错</span>
+              <span class="error-message">{{ executionStore.error || sseError || '未知错误' }}</span>
+            </div>
+          </div>
+          <div class="error-right">
+            <AnyButton
+              variant="ghost"
+              size="sm"
+              @click="handleRetry"
+            >
+              <span>重试</span>
+            </AnyButton>
+            <AnyButton
+              variant="ghost"
+              size="sm"
+              @click="dismissError"
+    >
+              <X class="w-4 h-4" />
+            </AnyButton>
+          </div>
+        </div>
+      </Transition>
 
       <!-- Focus Mode Banner with Breadcrumb -->
       <Transition name="slide-down">
@@ -902,6 +991,31 @@ onUnmounted(() => {
   letter-spacing: -0.02em;
 }
 
+/* Preparing spinner */
+.preparing-spinner {
+  animation: spin 1.5s linear infinite;
+}
+
+.preparing-spinner .spinner-track {
+  fill: none;
+  stroke: var(--exec-border);
+  stroke-width: 3;
+}
+
+.preparing-spinner .spinner-fill {
+  fill: none;
+  stroke: var(--exec-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 80;
+  stroke-dashoffset: 60;
+}
+
+@keyframes spin {
+  0% { transform: rotate(-90deg); }
+  100% { transform: rotate(270deg); }
+}
+
 .progress-step {
   display: flex;
   flex-direction: column;
@@ -1079,6 +1193,58 @@ onUnmounted(() => {
 
 .collapse-toggle.collapsed {
   background: rgba(0, 217, 255, 0.15);
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(255, 59, 48, 0.1);
+  border-bottom: 1px solid rgba(255, 59, 48, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.error-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.error-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--exec-error);
+  flex-shrink: 0;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--exec-error);
+}
+
+.error-message {
+  font-size: 13px;
+  color: var(--exec-text-secondary);
+  max-width: 600px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Focus Mode Banner */

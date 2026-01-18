@@ -21,12 +21,11 @@ import {
   DocumentTextIcon,
   PresentationChartBarIcon,
   DocumentDuplicateIcon,
-  ClockIcon,
   CircleStackIcon,
   SparklesIcon,
 } from '@heroicons/vue/24/outline'
 
-export type TabType = 'report' | 'ppt' | 'file-diff' | 'timeline' | 'working-memory' | 'live-progress'
+export type TabType = 'report' | 'ppt' | 'file-diff' | 'timeline' | 'working-memory'
 
 interface Props {
   sessionId: string
@@ -43,14 +42,14 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const allTabs = [
-  // 新增: 实时进展 Tab - 显示中间产出
-  { id: '0', type: 'live-progress' as const, title: '实时进展', icon: SparklesIcon, showFor: ['deep-research', 'ppt-generation', 'default'] },
-  { id: '1', type: 'timeline' as const, title: '研究时间轴', icon: ClockIcon, showFor: ['deep-research'] },
-  { id: '2', type: 'report' as const, title: '研究报告', icon: DocumentTextIcon, showFor: ['deep-research', 'default'] },
-  { id: '3', type: 'ppt' as const, title: 'PPT', icon: PresentationChartBarIcon, showFor: ['ppt-generation', 'default'] },
-  { id: '4', type: 'file-diff' as const, title: '文件变更', icon: DocumentDuplicateIcon, showFor: ['code-refactor', 'file-operations', 'default'] },
-  // 新增: Working Memory Tab - 展示三文件工作法
-  { id: '5', type: 'working-memory' as const, title: 'Working Memory', icon: CircleStackIcon, showFor: ['deep-research', 'ppt-generation', 'code-refactor', 'file-operations', 'default'] },
+  // 实时进展 - 合并了时间轴和中间产出
+  { id: '0', type: 'timeline' as const, title: '实时进展', icon: SparklesIcon, showFor: ['deep-research', 'ppt-generation', 'default'] },
+  // 最终成果
+  { id: '1', type: 'report' as const, title: '研究报告', icon: DocumentTextIcon, showFor: ['deep-research', 'default'] },
+  { id: '2', type: 'ppt' as const, title: 'PPT', icon: PresentationChartBarIcon, showFor: ['ppt-generation', 'default'] },
+  { id: '3', type: 'file-diff' as const, title: '文件变更', icon: DocumentDuplicateIcon, showFor: ['code-refactor', 'file-operations', 'default'] },
+  // 工作记忆 - 统一使用中文
+  { id: '4', type: 'working-memory' as const, title: '工作记忆', icon: CircleStackIcon, showFor: ['deep-research', 'ppt-generation', 'code-refactor', 'file-operations', 'default'] },
 ]
 
 const tabs = computed(() => {
