@@ -111,7 +111,8 @@ class Settings(BaseSettings):
 
     # LLM
     ANTHROPIC_API_KEY: str | None = None
-    DEFAULT_LLM_MODEL: str = "claude-3-5-sonnet-20241022"
+    OPENROUTER_API_KEY: str | None = None
+    DEFAULT_LLM_MODEL: str = "anthropic/claude-3.5-sonnet"  # OpenRouter model format
     MAX_CONTEXT_TOKENS: int = 128000
 
     # WeChat OAuth

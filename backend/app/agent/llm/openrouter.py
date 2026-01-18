@@ -91,8 +91,8 @@ class OpenRouterLLM(BaseLLM):
         if stop_sequences:
             api_params["stop"] = stop_sequences
 
-        # 调用 API
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        # 调用 API (disable SSL verification for macOS compatibility)
+        async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers=self.headers,
@@ -174,8 +174,8 @@ class OpenRouterLLM(BaseLLM):
         if stop_sequences:
             api_params["stop"] = stop_sequences
 
-        # 流式调用
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        # 流式调用 (disable SSL verification for macOS compatibility)
+        async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
             async with client.stream(
                 "POST",
                 f"{self.base_url}/chat/completions",

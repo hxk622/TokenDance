@@ -162,7 +162,7 @@ function handleKeydown(e: KeyboardEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--any-bg-primary) 60%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -170,10 +170,10 @@ function handleKeydown(e: KeyboardEvent) {
   width: 100%;
   max-width: 560px;
   margin: 16px;
-  background: rgba(28, 28, 30, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border);
   border-radius: 16px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--any-bg-primary) 50%, transparent);
   overflow: hidden;
 }
 
@@ -182,7 +182,7 @@ function handleKeydown(e: KeyboardEvent) {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .header-title {
@@ -191,7 +191,7 @@ function handleKeydown(e: KeyboardEvent) {
   gap: 10px;
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--any-text-primary);
 }
 
 .close-btn {
@@ -203,14 +203,14 @@ function handleKeydown(e: KeyboardEvent) {
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--any-text-secondary);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
 }
 
 .node-info {
@@ -218,21 +218,21 @@ function handleKeydown(e: KeyboardEvent) {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--any-bg-tertiary);
 }
 
 .node-badge {
   padding: 4px 10px;
-  background: rgba(0, 217, 255, 0.15);
+  background: var(--td-state-thinking-bg);
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #00D9FF;
+  color: var(--td-state-thinking);
 }
 
 .node-label {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--any-text-secondary);
 }
 
 .editor-section {
@@ -244,30 +244,30 @@ function handleKeydown(e: KeyboardEvent) {
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--any-text-secondary);
 }
 
 .prompt-textarea {
   width: 100%;
   padding: 14px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
   border-radius: 10px;
   font-size: 14px;
   line-height: 1.6;
-  color: #ffffff;
+  color: var(--any-text-primary);
   resize: vertical;
   transition: all 150ms ease;
 }
 
 .prompt-textarea:focus {
   outline: none;
-  border-color: rgba(0, 217, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+  border-color: color-mix(in srgb, var(--td-state-thinking) 50%, transparent);
+  box-shadow: 0 0 0 3px var(--td-state-thinking-bg);
 }
 
 .prompt-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--any-text-muted);
 }
 
 .editor-hint {
@@ -276,7 +276,7 @@ function handleKeydown(e: KeyboardEvent) {
   justify-content: space-between;
   margin-top: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
 }
 
 .reset-btn {
@@ -285,18 +285,18 @@ function handleKeydown(e: KeyboardEvent) {
   gap: 4px;
   padding: 4px 8px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--any-border);
   border-radius: 6px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--any-text-secondary);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .reset-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+  color: var(--any-text-primary);
 }
 
 .dialog-actions {
@@ -304,23 +304,23 @@ function handleKeydown(e: KeyboardEvent) {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--any-border);
 }
 
 .btn-cancel {
   padding: 10px 20px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--any-border);
   border-radius: 8px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--any-text-secondary);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
 }
 
 .btn-confirm {
@@ -328,18 +328,18 @@ function handleKeydown(e: KeyboardEvent) {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: #00D9FF;
+  background: var(--td-state-thinking);
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #000000;
+  color: var(--any-text-inverse);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .btn-confirm:hover:not(:disabled) {
-  background: #33E1FF;
+  filter: brightness(1.1);
 }
 
 .btn-confirm:disabled {
@@ -349,7 +349,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 .btn-confirm kbd {
   padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--any-bg-primary) 20%, transparent);
   border-radius: 4px;
   font-size: 11px;
   font-family: inherit;

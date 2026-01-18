@@ -29,7 +29,7 @@ try:
         BasicAgent,
         create_working_memory,
     )
-    from app.agent.llm import create_claude_llm
+    from app.agent.llm import create_openrouter_llm
     from app.agent.tools import ToolRegistry
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
@@ -371,9 +371,9 @@ async def run_agent_stream(
             # Create Tool Registry (empty for now)
             tools = ToolRegistry()
 
-            # Create real Claude LLM with API key from settings
-            llm = create_claude_llm(
-                api_key=settings.ANTHROPIC_API_KEY,
+            # Create LLM via OpenRouter
+            llm = create_openrouter_llm(
+                api_key=settings.OPENROUTER_API_KEY,
                 model=settings.DEFAULT_LLM_MODEL,
             )
 

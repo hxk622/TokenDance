@@ -169,6 +169,7 @@ function handleClickOutside(event: MouseEvent) {
 </template>
 
 <style scoped>
+/* NodeContextMenu - 使用全局主题变量 */
 .menu-backdrop {
   position: fixed;
   inset: 0;
@@ -179,14 +180,14 @@ function handleClickOutside(event: MouseEvent) {
   position: fixed;
   z-index: 9999;
   min-width: 200px;
-  background: rgba(28, 28, 30, 0.98);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--any-border);
+  border-radius: var(--any-radius-xl);
+  box-shadow: var(--any-shadow-xl);
   overflow: hidden;
-  animation: menuSlideIn 150ms ease-out;
+  animation: menuSlideIn var(--any-duration-fast) var(--any-ease-out);
 }
 
 @keyframes menuSlideIn {
@@ -205,13 +206,13 @@ function handleClickOutside(event: MouseEvent) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .menu-node-label {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--any-text-primary);
 }
 
 .menu-node-type {
@@ -219,17 +220,17 @@ function handleClickOutside(event: MouseEvent) {
   font-weight: 600;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--any-radius-sm);
 }
 
 .menu-node-type.type-manus {
-  background: rgba(99, 102, 241, 0.2);
-  color: #818CF8;
+  background: var(--td-state-thinking-bg);
+  color: var(--td-state-thinking);
 }
 
 .menu-node-type.type-coworker {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34D399;
+  background: var(--td-state-executing-bg);
+  color: var(--td-state-executing);
 }
 
 .menu-items {
@@ -243,45 +244,45 @@ function handleClickOutside(event: MouseEvent) {
   width: 100%;
   padding: 10px 14px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--any-text-primary);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
 }
 
 .menu-item.variant-warning {
-  color: #FFB800;
+  color: var(--td-state-waiting);
 }
 
 .menu-item.variant-warning:hover {
-  background: rgba(255, 184, 0, 0.15);
+  background: var(--td-state-waiting-bg);
 }
 
 .menu-item.variant-success {
-  color: #00FF88;
+  color: var(--td-state-executing);
 }
 
 .menu-item.variant-success:hover {
-  background: rgba(0, 255, 136, 0.15);
+  background: var(--td-state-executing-bg);
 }
 
 .menu-item.variant-muted {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
 }
 
 .menu-item.variant-muted:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--any-text-secondary);
 }
 
 .menu-divider {
   height: 1px;
   margin: 6px 0;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-border);
 }
 </style>

@@ -277,8 +277,8 @@ onMounted(() => {
 
 <style scoped>
 .research-completion-card {
-  background: rgba(28, 28, 30, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -289,8 +289,8 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(0, 255, 136, 0.1) 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, var(--td-state-thinking-bg) 0%, var(--td-state-executing-bg) 100%);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .header-icon {
@@ -299,20 +299,20 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 255, 136, 0.2);
+  background: var(--td-state-executing-bg);
   border-radius: 12px;
 }
 
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary, #ffffff);
+  color: var(--any-text-primary);
   margin: 0;
 }
 
 .header-subtitle {
   font-size: 14px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  color: var(--any-text-secondary);
   margin: 4px 0 0 0;
 }
 
@@ -331,8 +331,8 @@ onMounted(() => {
 .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #00D9FF;
+  border: 2px solid var(--any-border);
+  border-top-color: var(--td-state-thinking);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -340,8 +340,8 @@ onMounted(() => {
 .spinner-small {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
+  border: 2px solid var(--any-border-hover);
+  border-top-color: var(--any-text-inverse);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -354,16 +354,16 @@ onMounted(() => {
 
 .retry-btn {
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
   border-radius: 8px;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .retry-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--any-bg-hover);
 }
 
 /* Content */
@@ -407,7 +407,7 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
   border-radius: 12px;
 }
 
@@ -434,7 +434,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--any-bg-tertiary);
   border-radius: 8px;
 }
 
@@ -471,22 +471,22 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 12px 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--any-bg-tertiary);
   border: 1px solid transparent;
   border-radius: 12px;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   cursor: pointer;
   transition: all 150ms ease;
 }
 
 .style-option:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--any-bg-hover);
 }
 
 .style-option.active {
-  background: rgba(0, 217, 255, 0.15);
-  border-color: rgba(0, 217, 255, 0.5);
-  color: #00D9FF;
+  background: var(--td-state-thinking-bg);
+  border-color: color-mix(in srgb, var(--td-state-thinking) 50%, transparent);
+  color: var(--td-state-thinking);
 }
 
 .style-icon {
@@ -503,7 +503,7 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--any-border);
 }
 
 .btn-secondary,
@@ -522,24 +522,24 @@ onMounted(() => {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--text-primary);
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
+  color: var(--any-text-primary);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-hover);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #00D9FF 0%, #00FF88 100%);
+  background: linear-gradient(135deg, var(--td-state-thinking) 0%, var(--td-state-executing) 100%);
   border: none;
-  color: #000000;
+  color: var(--any-text-inverse);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--td-state-thinking) 40%, transparent);
 }
 
 .btn-primary:disabled {

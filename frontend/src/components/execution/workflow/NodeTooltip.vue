@@ -128,20 +128,21 @@ const outputPreview = computed(() => {
 </template>
 
 <style scoped>
+/* NodeTooltip - 使用全局主题变量 */
 .node-tooltip {
   position: fixed;
   z-index: 9999;
   min-width: 280px;
   max-width: 400px;
   padding: 16px;
-  background: rgba(28, 28, 30, 0.95);
+  background: var(--any-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  border-radius: var(--any-radius-md);
+  box-shadow: var(--any-shadow-xl);
   pointer-events: none;
-  animation: tooltipFadeIn 150ms ease-out;
+  animation: tooltipFadeIn var(--any-duration-fast) var(--any-ease-out);
 }
 
 @keyframes tooltipFadeIn {
@@ -161,21 +162,21 @@ const outputPreview = computed(() => {
   gap: 8px;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .node-type-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .node-label {
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
 }
 
 .status-row {
@@ -187,7 +188,7 @@ const outputPreview = computed(() => {
 
 .status-badge {
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--any-radius-sm);
   border: 1px solid;
   font-size: 11px;
   font-weight: 600;
@@ -196,10 +197,10 @@ const outputPreview = computed(() => {
 
 .node-id-badge {
   padding: 4px 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--any-radius-sm);
+  background: var(--any-bg-hover);
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   font-family: 'SF Mono', monospace;
 }
 
@@ -217,22 +218,22 @@ const outputPreview = computed(() => {
 }
 
 .meta-label {
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
 }
 
 .meta-value {
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   font-weight: 500;
 }
 
 .output-section {
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--any-border);
 }
 
 .output-label {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -241,11 +242,11 @@ const outputPreview = computed(() => {
 .output-content {
   font-size: 12px;
   line-height: 1.6;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   font-family: 'SF Mono', 'Monaco', monospace;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--any-bg-tertiary);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: var(--any-radius-sm);
   max-height: 120px;
   overflow-y: auto;
 }
@@ -255,16 +256,11 @@ const outputPreview = computed(() => {
 }
 
 .output-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
 }
 
 .output-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 2px;
-}
-
-:root {
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
 }
 </style>

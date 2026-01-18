@@ -346,7 +346,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--any-bg-primary);
 }
 
 .diff-header {
@@ -354,8 +354,8 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--divider-color);
-  background: rgba(28, 28, 30, 0.6);
+  border-bottom: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
 }
 
 .file-path {
@@ -371,7 +371,7 @@ defineExpose({
 .path-text {
   font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
 }
 
 .action-tag {
@@ -383,18 +383,18 @@ defineExpose({
 }
 
 .action-tag.modified {
-  background: rgba(0, 217, 255, 0.2);
-  color: #00D9FF;
+  background: var(--td-state-thinking-bg);
+  color: var(--td-state-thinking);
 }
 
 .action-tag.created {
-  background: rgba(0, 255, 136, 0.2);
-  color: #00FF88;
+  background: var(--td-state-executing-bg);
+  color: var(--td-state-executing);
 }
 
 .action-tag.deleted {
-  background: rgba(255, 59, 48, 0.2);
-  color: #FF3B30;
+  background: var(--td-state-error-bg);
+  color: var(--td-state-error);
 }
 
 .diff-controls {
@@ -406,15 +406,15 @@ defineExpose({
   padding: 6px 10px;
   border: none;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-primary);
   cursor: pointer;
   transition: all 120ms ease-out;
   font-size: 12px;
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-bg-hover);
 }
 
 .diff-container {
@@ -432,10 +432,10 @@ defineExpose({
 
 .side-header {
   padding: 8px 16px;
-  background: rgba(28, 28, 30, 0.4);
+  background: var(--any-bg-secondary);
   font-size: 12px;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--divider-color);
+  color: var(--any-text-secondary);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .code-view {
@@ -451,11 +451,11 @@ defineExpose({
 }
 
 .code-view::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
 }
 
 .code-view::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 4px;
 }
 
@@ -470,21 +470,21 @@ defineExpose({
 }
 
 .code-line.added {
-  background: rgba(0, 255, 136, 0.15);
+  background: var(--td-state-executing-bg);
 }
 
 .code-line.removed {
-  background: rgba(255, 59, 48, 0.15);
+  background: var(--td-state-error-bg);
 }
 
 .code-line.modified {
-  background: rgba(0, 217, 255, 0.15);
+  background: var(--td-state-thinking-bg);
 }
 
 .line-number {
   width: 40px;
   flex-shrink: 0;
-  color: var(--text-secondary);
+  color: var(--any-text-secondary);
   text-align: right;
   padding-right: 12px;
   user-select: none;
@@ -492,14 +492,14 @@ defineExpose({
 
 .line-content {
   flex: 1;
-  color: var(--text-primary);
+  color: var(--any-text-primary);
   white-space: pre;
   overflow-x: auto;
 }
 
 .diff-divider {
   width: 1px;
-  background: var(--divider-color);
+  background: var(--any-border);
 }
 
 .monaco-container {
@@ -510,19 +510,12 @@ defineExpose({
 }
 
 .control-btn.accept:hover {
-  background: rgba(0, 255, 136, 0.2);
-  color: #00FF88;
+  background: var(--td-state-executing-bg);
+  color: var(--td-state-executing);
 }
 
 .control-btn.reject:hover {
-  background: rgba(255, 59, 48, 0.2);
-  color: #FF3B30;
-}
-
-:root {
-  --bg-primary: rgba(18, 18, 18, 0.95);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --divider-color: rgba(255, 255, 255, 0.1);
+  background: var(--td-state-error-bg);
+  color: var(--td-state-error);
 }
 </style>

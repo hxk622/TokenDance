@@ -54,11 +54,11 @@ function selectToken(token: TokenLogit) {
 // Get color for probability (heatmap gradient)
 function getProbabilityColor(prob: number): string {
   // Gradient from cool (low prob) to hot (high prob)
-  if (prob > 0.8) return 'var(--vibe-color-success)' // Green - high confidence
-  if (prob > 0.5) return 'var(--vibe-color-active)' // Cyan - medium-high
-  if (prob > 0.3) return 'var(--vibe-color-pending)' // Amber - medium
+  if (prob > 0.8) return 'var(--td-state-executing)' // Green - high confidence
+  if (prob > 0.5) return 'var(--td-state-thinking)' // Cyan - medium-high
+  if (prob > 0.3) return 'var(--td-state-waiting)' // Amber - medium
   if (prob > 0.1) return '#FF6B6B' // Light red - low
-  return 'var(--vibe-color-error)' // Red - very low
+  return 'var(--td-state-error)' // Red - very low
 }
 
 // Get bar width for visualization
@@ -275,7 +275,7 @@ watch(() => props.visible, (newVal) => {
 .logits-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--any-bg-primary) 60%, transparent);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 1000;
@@ -299,7 +299,7 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .header-title {
@@ -308,7 +308,7 @@ watch(() => props.visible, (newVal) => {
   gap: 8px;
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--any-text-primary);
 }
 
 .title-icon {
@@ -317,9 +317,9 @@ watch(() => props.visible, (newVal) => {
 
 .edge-id {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
   padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
   border-radius: 4px;
   font-family: 'SF Mono', monospace;
 }
@@ -337,8 +337,8 @@ watch(() => props.visible, (newVal) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 120ms ease-out;
@@ -346,7 +346,7 @@ watch(() => props.visible, (newVal) => {
 
 .zoom-btn:hover,
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-hover);
 }
 
 .zoom-btn:disabled {
@@ -357,12 +357,12 @@ watch(() => props.visible, (newVal) => {
 .btn-icon {
   width: 16px;
   height: 16px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--any-text-secondary);
 }
 
 .zoom-level {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
   min-width: 40px;
   text-align: center;
 }
@@ -370,19 +370,19 @@ watch(() => props.visible, (newVal) => {
 /* Context preview */
 .context-preview {
   padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--any-bg-tertiary);
   font-size: 13px;
   font-family: 'SF Mono', monospace;
-  color: rgba(255, 255, 255, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--any-text-secondary);
+  border-bottom: 1px solid var(--any-border);
 }
 
 .context-before {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
 }
 
 .context-cursor {
-  color: var(--vibe-color-active);
+  color: var(--td-state-thinking);
   animation: cursor-blink 1s step-end infinite;
 }
 
@@ -392,7 +392,7 @@ watch(() => props.visible, (newVal) => {
 }
 
 .context-after {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--any-text-muted);
 }
 
 /* Body */
@@ -414,30 +414,30 @@ watch(() => props.visible, (newVal) => {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background: rgba(28, 28, 30, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 150ms ease-out;
 }
 
 .token-row:hover {
-  background: rgba(28, 28, 30, 0.8);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
 }
 
 .token-row.selected {
-  background: rgba(0, 217, 255, 0.1);
-  border-color: rgba(0, 217, 255, 0.3);
+  background: var(--td-state-thinking-bg);
+  border-color: color-mix(in srgb, var(--td-state-thinking) 30%, transparent);
 }
 
 .token-row.top {
-  background: rgba(0, 255, 136, 0.1);
-  border-color: rgba(0, 255, 136, 0.3);
+  background: var(--td-state-executing-bg);
+  border-color: color-mix(in srgb, var(--td-state-executing) 30%, transparent);
 }
 
 .token-row.top .token-text {
-  color: var(--vibe-color-success);
+  color: var(--td-state-executing);
 }
 
 .token-rank {
@@ -448,11 +448,11 @@ watch(() => props.visible, (newVal) => {
 .rank-number {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
 }
 
 .token-row.top .rank-number {
-  color: var(--vibe-color-success);
+  color: var(--td-state-executing);
 }
 
 .token-display {
@@ -463,14 +463,14 @@ watch(() => props.visible, (newVal) => {
 .token-text {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--any-text-primary);
   font-family: 'SF Mono', monospace;
 }
 
 .prob-bar-container {
   flex: 1;
   height: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--any-bg-tertiary);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -505,7 +505,7 @@ watch(() => props.visible, (newVal) => {
 .logit-value {
   width: 50px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
   text-align: right;
   font-family: 'SF Mono', monospace;
 }
@@ -514,12 +514,12 @@ watch(() => props.visible, (newVal) => {
 .heatmap-legend {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--any-border);
 }
 
 .legend-title {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
   margin-bottom: 8px;
 }
 
@@ -534,11 +534,11 @@ watch(() => props.visible, (newVal) => {
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    var(--vibe-color-error) 0%,
+    var(--td-state-error) 0%,
     #FF6B6B 25%,
-    var(--vibe-color-pending) 50%,
-    var(--vibe-color-active) 75%,
-    var(--vibe-color-success) 100%
+    var(--td-state-waiting) 50%,
+    var(--td-state-thinking) 75%,
+    var(--td-state-executing) 100%
   );
 }
 
@@ -546,14 +546,14 @@ watch(() => props.visible, (newVal) => {
   display: flex;
   justify-content: space-between;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--any-text-muted);
 }
 
 /* Token detail */
 .token-detail {
   padding: 16px 20px;
-  background: rgba(0, 217, 255, 0.05);
-  border-top: 1px solid rgba(0, 217, 255, 0.2);
+  background: var(--td-state-thinking-bg);
+  border-top: 1px solid color-mix(in srgb, var(--td-state-thinking) 20%, transparent);
 }
 
 .detail-header {
@@ -566,7 +566,7 @@ watch(() => props.visible, (newVal) => {
 .detail-token {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--any-text-primary);
   font-family: 'SF Mono', monospace;
 }
 
@@ -575,7 +575,7 @@ watch(() => props.visible, (newVal) => {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.8);
+  color: var(--any-text-inverse);
 }
 
 .detail-stats {
@@ -591,14 +591,14 @@ watch(() => props.visible, (newVal) => {
 
 .stat-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--any-text-tertiary);
   text-transform: uppercase;
 }
 
 .stat-value {
   font-size: 14px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--any-text-primary);
   font-family: 'SF Mono', monospace;
 }
 
@@ -635,12 +635,12 @@ watch(() => props.visible, (newVal) => {
 }
 
 .modal-body::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--any-bg-tertiary);
   border-radius: 3px;
 }
 
 .modal-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 3px;
 }
 </style>
