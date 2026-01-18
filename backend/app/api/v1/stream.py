@@ -29,7 +29,7 @@ try:
         BasicAgent,
         create_working_memory,
     )
-    from app.agent.llm import create_openrouter_llm
+    from app.agent.llm.router import TaskType, get_free_llm_for_task
     from app.agent.tools import ToolRegistry
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
@@ -371,10 +371,10 @@ async def run_agent_stream(
             # Create Tool Registry (empty for now)
             tools = ToolRegistry()
 
-            # Create LLM via OpenRouter
-            llm = create_openrouter_llm(
-                api_key=settings.OPENROUTER_API_KEY,
-                model=settings.DEFAULT_LLM_MODEL,
+            # 使用智能路由选择免费 LLM
+            llm = get_free_llm_for_task(
+                task_type=TaskType.GENERAL,
+                max_tokens=4096
             )
 
             # Create Agent (using BasicAgent for now)
