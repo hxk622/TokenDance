@@ -1,11 +1,63 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
+import { Lightbulb, ArrowRight, Loader2 } from 'lucide-vue-next'
+import AnyButton from '@/components/common/AnyButton.vue'
+import type { IntentValidationResponse } from '@/api/services/session'
+
+// Init phase types
+export type InitPhase = 'idle' | 'analyzing' | 'needs-clarification' | 'ready' | 'executing'
 
 interface Props {
   sessionId: string
+  initPhase?: InitPhase
+  preflightResult?: IntentValidationResponse | null
+  userInput?: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  initPhase: 'executing',
+  preflightResult: null,
+  userInput: ''
+})
+
+// Emits
+const emit = defineEmits<{
+  proceed: [updatedInput?: string]
+  'update-input': [input: string]
+}>()
+
+// Selected clarification options
+const selectedOptions = ref<string[]>([])
+
+// Handle proceed action
+function handleProceed() {
+  let finalInput = props.userInput
+  if (selectedOptions.value.length > 0) {
+    const context = selectedOptions.value.join(' | ')
+    finalInput = `${finalInput}\n\n[补充信息: ${context}]`
+  }
+  emit('proceed', finalInput)
+}
+
+// Handle skip (proceed without clarification)
+function handleSkip() {
+  emit('proceed', props.userInput)
+}
+
+// Toggle option selection
+function toggleOption(option: string) {
+  const idx = selectedOptions.value.indexOf(option)
+  if (idx >= 0) {
+    selectedOptions.value.splice(idx, 1)
+  } else {
+    selectedOptions.value.push(option)
+  }
+}
+
+// Reset selections when phase changes
+watch(() => props.initPhase, () => {
+  selectedOptions.value = []
+})
 
 interface LogEntry {
   id: string
@@ -33,7 +85,7 @@ const focusNodeId = ref<string | null>(null)
 
 // Smart scroll strategy
 const lastClickTime = ref(0)
-const userScrollTimeout = ref<NodeJS.Timeout | null>(null)
+const userScrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const isUserScrolling = ref(false)
 
 function formatTime(timestamp: number): string {
@@ -142,8 +194,126 @@ defineExpose({
 
 <template>
   <div class="streaming-info">
-    <!-- Mode Tabs -->
-    <div class="mode-tabs">
+    <!-- Init Phase UI (analyzing / needs-clarification) -->
+    <Transition name="init-phase">
+      <div
+        v-if="initPhase === 'analyzing' || initPhase === 'needs-clarification'"
+        class="init-phase-container"
+      >
+        <!-- Analyzing State -->
+        <div
+          v-if="initPhase === 'analyzing'"
+          class="analyzing-card"
+        >
+          <div class="analyzing-icon">
+            <Loader2 class="spin-icon" />
+          </div>
+          <div class="analyzing-content">
+            <h3 class="analyzing-title">
+              正在理解您的任务...
+            </h3>
+            <p class="analyzing-desc">
+              {{ userInput?.slice(0, 60) }}{{ (userInput?.length || 0) > 60 ? '...' : '' }}
+            </p>
+            <div class="analyzing-progress">
+              <div class="progress-bar" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Needs Clarification State -->
+        <div
+          v-else-if="initPhase === 'needs-clarification' && preflightResult"
+          class="clarification-card"
+        >
+          <div class="clarification-header">
+            <Lightbulb class="clarification-icon" />
+            <div class="clarification-title-wrap">
+              <h3 class="clarification-title">
+                为了更好地完成任务
+              </h3>
+              <p class="clarification-subtitle">
+                建议补充以下信息（可选）
+              </p>
+            </div>
+          </div>
+
+          <!-- Reasoning -->
+          <p
+            v-if="preflightResult.reasoning"
+            class="clarification-reasoning"
+          >
+            {{ preflightResult.reasoning }}
+          </p>
+
+          <!-- Missing Info List -->
+          <div
+            v-if="preflightResult.missing_info?.length"
+            class="missing-info-list"
+          >
+            <div
+              v-for="(info, idx) in preflightResult.missing_info"
+              :key="idx"
+              class="missing-info-item"
+            >
+              <span class="missing-bullet" />
+              <span>{{ info }}</span>
+            </div>
+          </div>
+
+          <!-- Suggested Questions (Selectable) -->
+          <div
+            v-if="preflightResult.suggested_questions?.length"
+            class="suggested-options"
+          >
+            <button
+              v-for="(q, idx) in preflightResult.suggested_questions"
+              :key="idx"
+              :class="['option-btn', { selected: selectedOptions.includes(q) }]"
+              @click="toggleOption(q)"
+            >
+              <span class="option-checkbox">
+                <svg
+                  v-if="selectedOptions.includes(q)"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+              <span class="option-text">{{ q }}</span>
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <div class="clarification-actions">
+            <AnyButton
+              variant="ghost"
+              size="sm"
+              @click="handleSkip"
+            >
+              跳过补充
+            </AnyButton>
+            <AnyButton
+              variant="primary"
+              size="sm"
+              :icon="ArrowRight"
+              @click="handleProceed"
+            >
+              确认并继续
+            </AnyButton>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Mode Tabs (only show when executing) -->
+    <div
+      v-if="initPhase === 'executing' || initPhase === 'ready'"
+      class="mode-tabs"
+    >
       <button
         :class="['tab', { active: mode === 'all' }]"
         @click="mode = 'all'"
@@ -212,7 +382,7 @@ defineExpose({
 
     <!-- Focus Mode Indicator -->
     <div
-      v-if="focusNodeId"
+      v-if="focusNodeId && (initPhase === 'executing' || initPhase === 'ready')"
       class="focus-indicator"
     >
       <span>🎯 聚焦模式：Node-{{ focusNodeId }}</span>
@@ -224,8 +394,9 @@ defineExpose({
       </button>
     </div>
 
-    <!-- Log Stream -->
+    <!-- Log Stream (only show when executing) -->
     <div
+      v-if="initPhase === 'executing' || initPhase === 'ready'"
       ref="logStreamRef"
       class="log-stream"
       @scroll="handleUserScroll"
@@ -267,7 +438,7 @@ defineExpose({
 
     <!-- Empty State -->
     <div
-      v-if="filteredLogs.length === 0"
+      v-if="(initPhase === 'executing' || initPhase === 'ready') && filteredLogs.length === 0"
       class="empty-state"
     >
       <span class="empty-icon">📋</span>
@@ -478,6 +649,253 @@ defineExpose({
 .empty-state p {
   margin: 0;
   font-size: 14px;
+}
+
+/* ========================================
+   Init Phase Styles
+   ======================================== */
+
+.init-phase-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+/* Analyzing Card */
+.analyzing-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: var(--any-bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--any-border);
+}
+
+.analyzing-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--td-state-thinking-bg, rgba(0, 217, 255, 0.1));
+  border-radius: 10px;
+  color: var(--td-state-thinking, #00D9FF);
+}
+
+.spin-icon {
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.analyzing-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analyzing-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+  margin: 0;
+}
+
+.analyzing-desc {
+  font-size: 13px;
+  color: var(--any-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.analyzing-progress {
+  height: 4px;
+  background: var(--any-bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, var(--td-state-thinking, #00D9FF), var(--td-state-executing, #00FF88));
+  border-radius: 2px;
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Clarification Card */
+.clarification-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--any-bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--any-border);
+}
+
+.clarification-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.clarification-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--td-state-waiting, #FFB800);
+}
+
+.clarification-title-wrap {
+  flex: 1;
+}
+
+.clarification-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+  margin: 0;
+}
+
+.clarification-subtitle {
+  font-size: 13px;
+  color: var(--any-text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.clarification-reasoning {
+  font-size: 13px;
+  color: var(--any-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  padding: 12px;
+  background: var(--any-bg-tertiary);
+  border-radius: 8px;
+}
+
+.missing-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missing-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--any-text-primary);
+  padding: 10px 12px;
+  background: rgba(255, 184, 0, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid var(--td-state-waiting, #FFB800);
+}
+
+.missing-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--td-state-waiting, #FFB800);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.suggested-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  text-align: left;
+}
+
+.option-btn:hover {
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+}
+
+.option-btn.selected {
+  background: rgba(0, 217, 255, 0.08);
+  border-color: var(--td-state-thinking, #00D9FF);
+}
+
+.option-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--any-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 150ms ease;
+}
+
+.option-btn.selected .option-checkbox {
+  background: var(--td-state-thinking, #00D9FF);
+  border-color: var(--td-state-thinking, #00D9FF);
+}
+
+.option-checkbox svg {
+  width: 12px;
+  height: 12px;
+  color: var(--any-bg-primary);
+}
+
+.option-text {
+  font-size: 14px;
+  color: var(--any-text-primary);
+  line-height: 1.4;
+}
+
+.clarification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--any-border);
+}
+
+/* Init Phase Transition */
+.init-phase-enter-active,
+.init-phase-leave-active {
+  transition: all 300ms ease;
+}
+
+.init-phase-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.init-phase-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 </style>

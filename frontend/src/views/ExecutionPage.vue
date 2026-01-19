@@ -8,7 +8,6 @@ import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.
 import PreviewArea from '@/components/execution/PreviewArea.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import BrowserPip from '@/components/execution/BrowserPip.vue'
-import InfoCollectionStage from '@/components/execution/InfoCollectionStage.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
 import AnyButton from '@/components/common/AnyButton.vue'
@@ -42,12 +41,10 @@ const taskTitle = computed(() => {
   return '新任务'
 })
 
-// Execution stage management
-type ExecutionStage = 'info-collection' | 'executing' | 'completed'
-const executionStage = ref<ExecutionStage>('executing')
-const preflightLoading = ref(false)
+// Init phase management (for StreamingInfo)
+import type { InitPhase } from '@/components/execution/workflow/StreamingInfo.vue'
+const initPhase = ref<InitPhase>('idle')
 const preflightResult = ref<IntentValidationResponse | null>(null)
-const finalTaskInput = ref('')
 
 // Sidebar navigation
 const sidebarSections = [
@@ -215,20 +212,6 @@ const showBrowserPip = ref(true) // 默认显示
 const browserPipUrl = ref('https://www.google.com/search?q=AI+Agent+market')
 const browserPipScreenshot = ref('')
 
-// 完成庆祝状态
-const showCompletionCelebration = ref(false)
-
-// 监听任务完成
-watch(() => sessionStatus.value, (newStatus) => {
-  if (newStatus === 'completed') {
-    showCompletionCelebration.value = true
-    // 3 秒后自动关闭
-    setTimeout(() => {
-      showCompletionCelebration.value = false
-    }, 3000)
-  }
-})
-
 // Collapse Mode state (mini-graph view)
 const isCollapsed = ref(false)
 const collapsedHeight = 80 // px for mini-graph
@@ -298,9 +281,8 @@ onUnmounted(() => {
   }
 })
 
-// Run preflight check to validate task intent
-async function runPreflightCheck(taskInput: string) {
-  preflightLoading.value = true
+// Run preflight check to validate task intent (async, non-blocking)
+async function runPreflightCheck(taskInput: string): Promise<IntentValidationResponse> {
   try {
     const result = await sessionService.validateIntent({
       user_input: taskInput,
@@ -313,30 +295,21 @@ async function runPreflightCheck(taskInput: string) {
     // Fallback: allow execution if preflight fails
     const fallbackResult: IntentValidationResponse = {
       is_complete: true,
-      confidence_score: 0.0,
+      confidence_score: 1.0,
       missing_info: [],
       suggested_questions: [],
-      reasoning: '预检查失败，将继续执行'
+      reasoning: ''
     }
     preflightResult.value = fallbackResult
     return fallbackResult
-  } finally {
-    preflightLoading.value = false
   }
 }
 
-// Handle info collection stage completion
-function handleInfoCollectionProceed(updatedInput?: string) {
-  finalTaskInput.value = updatedInput || initialTask.value || ''
-  executionStage.value = 'executing'
-  
-  // Now start the actual execution
-  startActualExecution(finalTaskInput.value)
-}
-
-// Handle info collection cancellation - go back to home
-function handleInfoCollectionCancel() {
-  router.push('/')
+// Handle proceed from StreamingInfo (after clarification)
+function handleStreamingProceed(updatedInput?: string) {
+  const taskInput = updatedInput || initialTask.value || ''
+  initPhase.value = 'executing'
+  startActualExecution(taskInput)
 }
 
 // Start the actual agent execution
@@ -346,7 +319,7 @@ function startActualExecution(taskInput: string) {
   startElapsedTimer()
 }
 
-// Initialize execution
+// Initialize execution - In-Place principle: no blocking pages
 async function initializeExecution() {
   try {
     // Validate sessionId
@@ -354,7 +327,7 @@ async function initializeExecution() {
       throw new Error('Session ID is required')
     }
 
-    // For demo session, skip preflight and loading
+    // For demo session, skip preflight
     if (sessionId.value.startsWith('demo')) {
       // Initialize demo workflow
       executionStore.nodes = [
@@ -368,7 +341,7 @@ async function initializeExecution() {
         { id: 'e2', from: '2', to: '3', type: 'context', active: false },
         { id: 'e3', from: '3', to: '4', type: 'result', active: false },
       ]
-      executionStage.value = 'executing'
+      initPhase.value = 'executing'
       startActualExecution(initialTask.value || '')
       return
     }
@@ -385,20 +358,24 @@ async function initializeExecution() {
       return
     }
 
-    // If there's an initial task, run preflight check
+    // If there's an initial task, run preflight check in-place
     if (initialTask.value) {
-      executionStage.value = 'info-collection'
+      // Set analyzing phase - user sees the execution page with analyzing indicator
+      initPhase.value = 'analyzing'
+      
       const result = await runPreflightCheck(initialTask.value)
       
-      // If intent is complete with high confidence, skip info collection
+      // If intent is complete with high confidence, start execution immediately
       if (result.is_complete && result.confidence_score >= 0.8) {
-        executionStage.value = 'executing'
+        initPhase.value = 'executing'
         startActualExecution(initialTask.value)
+      } else {
+        // Show clarification UI in StreamingInfo area
+        initPhase.value = 'needs-clarification'
       }
-      // Otherwise stay in info-collection stage for user review
     } else {
-      // No initial task, go directly to executing stage
-      executionStage.value = 'executing'
+      // No initial task, go directly to executing
+      initPhase.value = 'executing'
       startActualExecution('')
     }
   } catch (error) {
@@ -644,22 +621,6 @@ onUnmounted(() => {
 
 <template>
   <div class="execution-page">
-    <!-- Info Collection Stage (Phase 1) -->
-    <Transition name="stage-fade">
-      <InfoCollectionStage
-        v-if="executionStage === 'info-collection'"
-        :user-input="initialTask || ''"
-        :is-complete="preflightResult?.is_complete ?? true"
-        :confidence-score="preflightResult?.confidence_score ?? 0"
-        :missing-info="preflightResult?.missing_info ?? []"
-        :suggested-questions="preflightResult?.suggested_questions ?? []"
-        :reasoning="preflightResult?.reasoning"
-        :loading="preflightLoading"
-        @proceed="handleInfoCollectionProceed"
-        @cancel="handleInfoCollectionCancel"
-      />
-    </Transition>
-
     <!-- Fixed Header (always visible) -->
     <AnyHeader />
     
@@ -670,8 +631,8 @@ onUnmounted(() => {
       </h1>
     </div>
 
-    <!-- Main Execution UI (Phase 2) -->
-    <template v-if="executionStage === 'executing' || executionStage === 'completed'">
+    <!-- Main Execution UI (always visible - In-Place principle) -->
+    <template v-if="true">
       <!-- Sidebar -->
       <AnySidebar
         :sections="sidebarSections"
@@ -897,24 +858,6 @@ onUnmounted(() => {
           </div>
         </Transition>
       
-        <!-- 任务完成庆祝 -->
-        <Transition name="celebration-fade">
-          <div
-            v-if="showCompletionCelebration"
-            class="completion-celebration"
-          >
-            <div class="celebration-content">
-              <Check class="celebration-icon" />
-              <h2 class="celebration-title">
-                任务完成！
-              </h2>
-              <p class="celebration-desc">
-                报告已生成，可在右侧查看
-              </p>
-            </div>
-          </div>
-        </Transition>
-
         <!-- Panel Toggle (Compact Mode) -->
         <div
           v-if="isCompactMode"
@@ -1002,12 +945,13 @@ onUnmounted(() => {
               class="streaming-info-container" 
               :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
             >
-            <StreamingInfo 
+              <StreamingInfo 
                 ref="streamingInfoRef"
                 :session-id="sessionId"
-                :user-query="initialTask || ''"
-                :user-initial="userInitial"
-                @send-message="handleChatMessage"
+                :init-phase="initPhase"
+                :preflight-result="preflightResult"
+                :user-input="initialTask || ''"
+                @proceed="handleStreamingProceed"
               />
             </div>
           </div>
@@ -1688,82 +1632,6 @@ onUnmounted(() => {
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-100%);
-}
-
-/* 完成庆祝动画 */
-.completion-celebration {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(12px);
-  overflow: hidden;
-}
-
-.celebration-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  padding: 56px 72px;
-  background: var(--exec-bg-secondary);
-  border: 1px solid rgba(0, 255, 136, 0.4);
-  border-radius: var(--any-radius-xl);
-  box-shadow: 
-    0 0 80px rgba(0, 255, 136, 0.25),
-    0 0 120px rgba(0, 217, 255, 0.15);
-  animation: celebration-pop 0.5s var(--any-ease-bounce);
-}
-
-@keyframes celebration-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.celebration-icon {
-  width: 64px;
-  height: 64px;
-  color: var(--exec-success);
-}
-
-.celebration-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--exec-success);
-  margin: 0;
-}
-
-.celebration-desc {
-  font-size: 16px;
-  color: var(--exec-text-secondary);
-  margin: 0;
-}
-
-/* Celebration Fade Transition */
-.celebration-fade-enter-active,
-.celebration-fade-leave-active {
-  transition: all 300ms ease-out;
-}
-
-.celebration-fade-enter-from,
-.celebration-fade-leave-to {
-  opacity: 0;
-}
-
-.celebration-fade-enter-from .celebration-content,
-.celebration-fade-leave-to .celebration-content {
-  transform: scale(0.9);
 }
 
 .streaming-info-container {
