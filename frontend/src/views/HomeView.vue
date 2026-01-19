@@ -7,12 +7,14 @@ import { useAuthGuard } from '@/composables/useAuthGuard'
 import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { 
   Search, FileText, Presentation, BarChart3, 
-  Plus, Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
+  Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
   Languages, MoreHorizontal, Bell, FolderOpen,
   History, Settings, LayoutGrid, User, LogOut,
   Sun, Moon, Monitor
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
+import AnySidebar from '@/components/common/AnySidebar.vue'
+import type { NavItem } from '@/components/common/AnySidebar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -296,6 +298,30 @@ const handleFileSelect = async (e: Event) => {
 }
 
 
+// Sidebar navigation
+const sidebarSections = [
+  {
+    id: 'main',
+    items: [
+      { id: 'search', label: '搜索', icon: Search },
+      { id: 'templates', label: '模板', icon: LayoutGrid },
+      { id: 'files', label: '文件', icon: FolderOpen },
+      { id: 'history', label: '历史', icon: History },
+    ] as NavItem[]
+  }
+]
+
+const handleSidebarNavClick = (item: NavItem) => {
+  switch (item.id) {
+    case 'search':
+      inputRef.value?.focus()
+      break
+    case 'history':
+      router.push('/history')
+      break
+  }
+}
+
 // New button handler
 const handleNewClick = () => {
   inputRef.value?.focus()
@@ -323,56 +349,20 @@ onUnmounted(() => {
 <template>
   <div class="home-view">
     <!-- 左侧边栏 - 固定宽度图标栏 -->
-    <aside class="icon-sidebar">
-      <div class="sidebar-top">
-        <!-- Logo -->
-        <div class="sidebar-logo">
-          <span class="logo-text">T</span>
-        </div>
-        <!-- New -->
+    <AnySidebar
+      :sections="sidebarSections"
+      @new-click="handleNewClick"
+      @nav-click="handleSidebarNavClick"
+    >
+      <template #footer>
         <button
-          class="sidebar-icon-btn"
-          data-tooltip="新建任务"
-          @click="handleNewClick"
-        >
-          <Plus class="w-5 h-5" />
-        </button>
-        <!-- Nav items -->
-        <button
-          class="sidebar-icon-btn"
-          data-tooltip="搜索"
-          @click="inputRef?.focus()"
-        >
-          <Search class="w-5 h-5" />
-        </button>
-        <button
-          class="sidebar-icon-btn"
-          data-tooltip="模板"
-        >
-          <LayoutGrid class="w-5 h-5" />
-        </button>
-        <button
-          class="sidebar-icon-btn"
-          data-tooltip="文件"
-        >
-          <FolderOpen class="w-5 h-5" />
-        </button>
-        <button
-          class="sidebar-icon-btn"
-          data-tooltip="历史"
-        >
-          <History class="w-5 h-5" />
-        </button>
-      </div>
-      <div class="sidebar-bottom">
-        <button
-          class="sidebar-icon-btn"
+          class="sidebar-footer-btn"
           data-tooltip="设置"
         >
-          <Settings class="w-5 h-5" />
+          <Settings class="icon" />
         </button>
-      </div>
-    </aside>
+      </template>
+    </AnySidebar>
     
     <!-- 右上角个人信息栏 - 固定定位 -->
     <header class="top-header">
@@ -688,47 +678,9 @@ onUnmounted(() => {
   background: var(--any-bg-secondary);
 }
 
-/* 固定左侧图标栏 */
-.icon-sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 56px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 12px 8px;
-  background: var(--any-bg-secondary);
-  border-right: 1px solid var(--any-border);
-  z-index: 100;
-}
-
-.sidebar-top,
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.sidebar-logo {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--any-text-primary);
-  font-family: serif;
-}
-
-.sidebar-icon-btn {
+/* Sidebar footer button - reuses AnySidebar styling */
+.sidebar-footer-btn {
+  position: relative;
   width: 40px;
   height: 40px;
   display: flex;
@@ -742,17 +694,17 @@ onUnmounted(() => {
   transition: all var(--any-duration-fast) var(--any-ease-default);
 }
 
-.sidebar-icon-btn:hover {
+.sidebar-footer-btn:hover {
   color: var(--any-text-primary);
   background: var(--any-bg-tertiary);
 }
 
-/* Custom Tooltip */
-.sidebar-icon-btn[data-tooltip] {
-  position: relative;
+.sidebar-footer-btn .icon {
+  width: 20px;
+  height: 20px;
 }
 
-.sidebar-icon-btn[data-tooltip]::after {
+.sidebar-footer-btn[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   left: 100%;
@@ -772,7 +724,7 @@ onUnmounted(() => {
   z-index: 1000;
 }
 
-.sidebar-icon-btn[data-tooltip]:hover::after {
+.sidebar-footer-btn[data-tooltip]:hover::after {
   opacity: 1;
   visibility: visible;
 }

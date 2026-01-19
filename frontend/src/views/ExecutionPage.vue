@@ -34,8 +34,7 @@ const preflightLoading = ref(false)
 const preflightResult = ref<IntentValidationResponse | null>(null)
 const finalTaskInput = ref('')
 
-// Sidebar state
-const sidebarCollapsed = ref(true) // Default collapsed for execution page
+// Sidebar navigation
 const sidebarSections = [
   {
     id: 'main',
@@ -637,27 +636,22 @@ onUnmounted(() => {
     <template v-if="executionStage === 'executing' || executionStage === 'completed'">
       <!-- Sidebar -->
       <AnySidebar
-        v-model:collapsed="sidebarCollapsed"
         :sections="sidebarSections"
-        :show-footer="true"
         @nav-click="handleNavClick"
         @new-click="handleNewClick"
       >
         <template #footer>
           <button
-            class="any-sidebar__footer-btn"
-            title="设置"
+            class="sidebar-footer-btn"
+            data-tooltip="设置"
           >
-            <Settings class="w-5 h-5" />
+            <Settings class="icon" />
           </button>
         </template>
       </AnySidebar>
 
       <!-- Main execution area -->
-      <div
-        class="execution-main"
-        :class="{ 'sidebar-collapsed': sidebarCollapsed }"
-      >
+      <div class="execution-main">
         <!-- Header with Plan Recitation -->
         <header class="execution-header">
           <div class="task-info">
@@ -1063,12 +1057,58 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 200px;
-  transition: margin-left var(--any-duration-normal) var(--any-ease-default);
+  margin-left: 56px;
 }
 
-.execution-main.sidebar-collapsed {
-  margin-left: 56px;
+/* Sidebar footer button */
+.sidebar-footer-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--any-radius-md);
+  color: var(--any-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.sidebar-footer-btn:hover {
+  color: var(--any-text-primary);
+  background: var(--any-bg-tertiary);
+}
+
+.sidebar-footer-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-footer-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  padding: 6px 10px;
+  background: var(--any-text-primary);
+  color: var(--any-bg-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: var(--any-radius-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.sidebar-footer-btn[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Header - Glass morphism */
