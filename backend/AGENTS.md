@@ -9,6 +9,10 @@
 uv sync --all-extras
 
 # Run dev server (logs to /tmp/backend.log)
+# 稳定模式（多窗口并行开发时推荐）:
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 >> /tmp/backend.log 2>&1 &
+
+# 热加载模式（单窗口开发时使用）:
 uv run uvicorn app.main:app --reload >> /tmp/backend.log 2>&1
 
 # Run tests
@@ -65,6 +69,46 @@ backend/
 - **Type hints**: Required (strict mypy)
 - **Linting**: ruff (includes isort, flake8, etc.)
 - **Run before commit**: `uv run ruff check . && uv run mypy .`
+
+## 代码质量检查 (必须遵循)
+
+**快速全量检测命令:**
+```bash
+uv run ruff check . && uv run mypy . && uv run pytest tests/ -x -q
+```
+
+**各命令作用:**
+- `ruff check .` - 代码风格、import 顺序、常见 bug 模式
+- `mypy .` - 类型不匹配、枚举用法错误
+- `pytest tests/ -x -q` - 运行测试，第一个失败即停止
+
+**CI 必跑:** PR 合并前必须通过 ruff + mypy + pytest
+
+## Enum 定义规范 (必须遵循)
+
+**问题:** SQLAlchemy 默认存储枚举成员名 (如 `PENDING`)，而非 `.value` (如 `pending`)，导致数据库枚举值不匹配。
+
+**解决方案:** 所有 Enum 列必须使用 `values_callable`:
+
+```python
+# ✅ 正确写法
+from sqlalchemy import Enum
+
+status: Mapped[SessionStatus] = mapped_column(
+    Enum(SessionStatus, values_callable=lambda x: [e.value for e in x]),
+    default=SessionStatus.PENDING,
+    nullable=False
+)
+
+# ❌ 错误写法 - 会导致 PENDING/pending 不匹配
+status: Mapped[SessionStatus] = mapped_column(
+    Enum(SessionStatus), default=SessionStatus.PENDING, nullable=False
+)
+```
+
+**迁移规范:**
+- 写迁移时优先使用 `alembic revision --autogenerate`，它会根据模型生成正确的 enum 值
+- 手动写 enum 迁移时，使用 Python Enum 的 `.value` (小写)
 
 ## Optional Dependencies
 

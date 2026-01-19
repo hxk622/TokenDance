@@ -8,11 +8,20 @@ import apiClient from '../client'
  * Types
  */
 export enum SessionStatus {
+  /** Session created, waiting for agent to start */
   PENDING = 'pending',
+  /** Deprecated: use RUNNING instead */
+  ACTIVE = 'active',
+  /** Agent is actively executing */
   RUNNING = 'running',
+  /** Task finished successfully */
   COMPLETED = 'completed',
+  /** Task failed with error */
   FAILED = 'failed',
+  /** User stopped the execution */
   CANCELLED = 'cancelled',
+  /** Old session archived for storage */
+  ARCHIVED = 'archived',
 }
 
 export interface Session {
@@ -201,6 +210,29 @@ class SessionService {
       findings: '# Findings\n\n- Found 3 relevant reports',
       progress: '# Progress\n\n- [x] Completed Phase 1\n- [ ] Phase 2 in progress',
     }
+  }
+
+  /**
+   * P1-1: Get SSE token for secure streaming connection
+   * Exchange JWT token for a short-lived, single-use SSE token
+   */
+  async getSSEToken(sessionId: string): Promise<{ sse_token: string; expires_in: number }> {
+    const response = await apiClient.post<{ sse_token: string; expires_in: number }>(
+      `${this.basePath}/sse-token`,
+      { session_id: sessionId }
+    )
+    return response.data
+  }
+
+  /**
+   * P1-2: Stop agent execution for a session
+   */
+  async stopSession(sessionId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      `${this.basePath}/${sessionId}/stop`,
+      { reason }
+    )
+    return response.data
   }
 }
 

@@ -45,7 +45,9 @@ class Organization(Base):
 
     # Status
     status: Mapped[OrgStatus] = mapped_column(
-        Enum(OrgStatus), default=OrgStatus.ACTIVE, nullable=False
+        Enum(OrgStatus, values_callable=lambda x: [e.value for e in x]),
+        default=OrgStatus.ACTIVE,
+        nullable=False
     )
 
     # Settings

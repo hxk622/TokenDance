@@ -103,7 +103,9 @@ onMounted(() => {
     <header class="history-header">
       <div class="header-left">
         <Clock class="header-icon" />
-        <h1 class="header-title">任务历史</h1>
+        <h1 class="header-title">
+          任务历史
+        </h1>
       </div>
       <AnyButton
         variant="primary"

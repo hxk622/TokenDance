@@ -23,13 +23,13 @@ class SessionRepository:
         title: str = "New Chat",
         skill_id: str | None = None,
     ) -> Session:
-        """Create a new session."""
+        """Create a new session with PENDING status."""
         session = Session(
             id=str(uuid4()),
             workspace_id=workspace_id,
             title=title,
             skill_id=skill_id,
-            status=SessionStatus.ACTIVE,
+            status=SessionStatus.PENDING,
         )
         self.db.add(session)
         await self.db.commit()
@@ -113,6 +113,60 @@ class SessionRepository:
     ) -> Session | None:
         """Update session status."""
         return await self.update(session_id, status=status)
+
+    async def start_session(
+        self,
+        session_id: str,
+    ) -> Session | None:
+        """Mark session as RUNNING (agent started)."""
+        return await self.update(session_id, status=SessionStatus.RUNNING)
+
+    async def complete_session(
+        self,
+        session_id: str,
+        total_tokens_used: int | None = None,
+    ) -> Session | None:
+        """Mark session as COMPLETED."""
+        from datetime import datetime
+        updates = {
+            "status": SessionStatus.COMPLETED,
+            "completed_at": datetime.utcnow(),
+        }
+        if total_tokens_used is not None:
+            updates["total_tokens_used"] = total_tokens_used
+        return await self.update(session_id, **updates)
+
+    async def fail_session(
+        self,
+        session_id: str,
+        error_message: str | None = None,
+    ) -> Session | None:
+        """Mark session as FAILED."""
+        from datetime import datetime
+        updates = {
+            "status": SessionStatus.FAILED,
+            "completed_at": datetime.utcnow(),
+        }
+        if error_message:
+            # Store error in extra_data
+            session = await self.get_by_id(session_id)
+            if session:
+                extra = session.extra_data or {}
+                extra["last_error"] = error_message
+                updates["extra_data"] = extra
+        return await self.update(session_id, **updates)
+
+    async def cancel_session(
+        self,
+        session_id: str,
+    ) -> Session | None:
+        """Mark session as CANCELLED (user stopped)."""
+        from datetime import datetime
+        return await self.update(
+            session_id,
+            status=SessionStatus.CANCELLED,
+            completed_at=datetime.utcnow(),
+        )
 
     async def update_todo_list(
         self,

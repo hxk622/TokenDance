@@ -18,7 +18,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...agent.agents.ppt import PPTStyle
+from ...core.config import settings
 from ...services.findings_extractor import FindingsExtractor
+from ...services.object_storage import get_object_storage
 from ...services.research_to_ppt import ResearchToPPTConverter
 
 logger = logging.getLogger(__name__)
@@ -309,13 +311,24 @@ async def get_research_findings(task_id: str):
     if task.get("report"):
         report_markdown = task["report"].report_markdown
 
-    # 提取发现
+    # 提取结构化发现
     findings = await extractor.extract_all(
         report_markdown=report_markdown
     )
 
     # 缓存发现
     task["findings"] = findings
+
+    # 异步上传 findings.json（容错）
+    try:
+        storage = get_object_storage()
+        if storage:
+            bucket = settings.MINIO_BUCKET_REPORTS
+            prefix = f"{task_id}"
+            storage.ensure_bucket(bucket)
+            storage.put_json(bucket, f"{prefix}/findings.json", findings.to_dict())
+    except Exception as e:
+        logger.warning(f"Upload findings.json failed: {e}")
 
     return FindingsResponse(
         task_id=task_id,
@@ -517,6 +530,39 @@ This is a placeholder research report for the topic: {topic}
             sources=[],
             generated_at=datetime.now().isoformat()
         )
+
+        # 上传到对象存储（容错）
+        try:
+            storage = get_object_storage()
+            if storage:
+                bucket = settings.MINIO_BUCKET_REPORTS
+                prefix = f"{task_id}"
+                storage.ensure_bucket(bucket)
+                # report.md
+                storage.put_text(
+                    bucket,
+                    f"{prefix}/report.md",
+                    task["report"].report_markdown,
+                    content_type="text/markdown; charset=utf-8",
+                )
+                # metadata.json
+                metadata = {
+                    "task_id": task_id,
+                    "topic": topic,
+                    "generated_at": task["report"].generated_at,
+                    "sources_collected": task.get("sources_collected", 0),
+                }
+                storage.put_json(bucket, f"{prefix}/metadata.json", metadata)
+                # timeline.json
+                storage.put_json(
+                    bucket,
+                    f"{prefix}/timeline.json",
+                    {"task_id": task_id, "topic": topic, "entries": task.get("timeline", [])},
+                )
+                # record key for traceability
+                task["report_object_key"] = f"{prefix}/report.md"
+        except Exception as e:
+            logger.warning(f"Upload to object storage failed: {e}")
 
         task["status"] = "completed"
         task["progress"] = 1.0

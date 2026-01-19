@@ -50,7 +50,8 @@ class Message(Base):
 
     # Message content
     role: Mapped[MessageRole] = mapped_column(
-        Enum(MessageRole), nullable=False
+        Enum(MessageRole, values_callable=lambda x: [e.value for e in x]),
+        nullable=False
     )
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
 

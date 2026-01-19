@@ -120,7 +120,9 @@ class TeamMember(Base):
 
     # Role and permissions
     role: Mapped[MemberRole] = mapped_column(
-        Enum(MemberRole), default=MemberRole.MEMBER, nullable=False
+        Enum(MemberRole, values_callable=lambda x: [e.value for e in x]),
+        default=MemberRole.MEMBER,
+        nullable=False
     )
     permissions: Mapped[list[str]] = mapped_column(
         JSON,

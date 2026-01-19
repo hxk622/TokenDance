@@ -65,6 +65,10 @@ export enum SSEEventType {
   // System events
   PING = 'ping',
   ERROR = 'error',
+  
+  // P1-3: Replay events (sent on reconnection)
+  REPLAY_START = 'replay_start',
+  REPLAY_END = 'replay_end',
 }
 
 export interface SSEEvent<T = any> {
@@ -192,34 +196,56 @@ export interface SSEOptions {
   onClose?: () => void
   reconnectDelay?: number
   maxReconnectAttempts?: number
+  /** P1-3: Callback when replay starts */
+  onReplayStart?: (lastSeq: number) => void
+  /** P1-3: Callback when replay ends */
+  onReplayEnd?: (replayedCount: number) => void
 }
 
 /**
  * SSE Connection Class
+ * 
+ * P1-1: Supports SSE token authentication (preferred over JWT in URL)
+ * P1-3: Supports event replay on reconnection via lastSeq parameter
  */
 export class SSEConnection {
   private eventSource: EventSource | null = null
   private url: string
+  private baseUrl: string
+  private sessionId: string
   private options: Required<SSEOptions>
   private reconnectAttempts = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private isClosed = false
   private hasFatalError = false // Track fatal errors (404, 403)
-
   private task: string | null = null
+  
+  /** P1-3: Track last received sequence number for replay */
+  private lastSeq = 0
+  /** P1-1: SSE token (preferred) */
+  private sseToken: string | null = null
+  /** Fallback JWT token (deprecated) */
+  private jwtToken: string | null = null
 
-  constructor(sessionId: string, options: SSEOptions = {}, useDemo = false, task: string | null = null) {
-    const token = localStorage.getItem('access_token')
+  constructor(
+    sessionId: string,
+    options: SSEOptions = {},
+    useDemo = false,
+    task: string | null = null,
+    sseToken: string | null = null
+  ) {
+    this.sessionId = sessionId
     this.task = task
+    this.sseToken = sseToken
+    this.jwtToken = localStorage.getItem('access_token')
     
     // Use demo endpoint for testing, or real session endpoint
     if (useDemo || sessionId === 'demo' || sessionId.startsWith('demo-')) {
-      this.url = `${API_BASE_URL}/api/v1/demo/stream`
+      this.baseUrl = `${API_BASE_URL}/api/v1/demo/stream`
+      this.url = this.baseUrl
     } else {
-      const params = new URLSearchParams()
-      if (token) params.set('token', token)
-      if (task) params.set('task', task)
-      this.url = `${API_BASE_URL}/api/v1/sessions/${sessionId}/stream?${params.toString()}`
+      this.baseUrl = `${API_BASE_URL}/api/v1/sessions/${sessionId}/stream`
+      this.url = this.buildUrl()
     }
     
     this.options = {
@@ -229,7 +255,44 @@ export class SSEConnection {
       onClose: options.onClose || (() => {}),
       reconnectDelay: options.reconnectDelay || 3000,
       maxReconnectAttempts: options.maxReconnectAttempts || 10,
+      onReplayStart: options.onReplayStart || (() => {}),
+      onReplayEnd: options.onReplayEnd || (() => {}),
     }
+  }
+  
+  /**
+   * P1-1: Set SSE token (preferred authentication method)
+   */
+  setSSEToken(token: string): void {
+    this.sseToken = token
+    this.url = this.buildUrl()
+  }
+  
+  /**
+   * Build URL with authentication and replay parameters
+   */
+  private buildUrl(): string {
+    const params = new URLSearchParams()
+    
+    // P1-1: Prefer SSE token over JWT token
+    if (this.sseToken) {
+      params.set('sse_token', this.sseToken)
+    } else if (this.jwtToken) {
+      // Deprecated: fallback to JWT token
+      console.warn('[SSE] Using deprecated JWT token in URL. Use SSE token instead.')
+      params.set('token', this.jwtToken)
+    }
+    
+    if (this.task) {
+      params.set('task', this.task)
+    }
+    
+    // P1-3: Include last_seq for replay on reconnection
+    if (this.lastSeq > 0) {
+      params.set('last_seq', this.lastSeq.toString())
+    }
+    
+    return `${this.baseUrl}?${params.toString()}`
   }
 
   /**
@@ -255,6 +318,19 @@ export class SSEConnection {
       this.eventSource.onmessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data) as SSEEvent
+          
+          // P1-3: Track sequence number for replay
+          if (data.data?._seq) {
+            this.lastSeq = data.data._seq
+          }
+          
+          // P1-3: Handle replay events
+          if (data.event === SSEEventType.REPLAY_START) {
+            this.options.onReplayStart(data.data?.last_seq || 0)
+          } else if (data.event === SSEEventType.REPLAY_END) {
+            this.options.onReplayEnd(data.data?.replayed_count || 0)
+          }
+          
           this.options.onEvent(data)
         } catch (error) {
           console.error('[SSE] Failed to parse event data:', error)
@@ -302,6 +378,10 @@ export class SSEConnection {
               console.log(`[SSE] Reconnecting in ${cappedDelay}ms (attempt ${this.reconnectAttempts}/${this.options.maxReconnectAttempts})`)
               
               this.eventSource?.close()
+              
+              // P1-3: Update URL with last_seq for replay
+              this.url = this.buildUrl()
+              
               this.reconnectTimer = setTimeout(() => {
                 this.connect()
               }, cappedDelay)
@@ -319,11 +399,25 @@ export class SSEConnection {
           const messageEvent = event as MessageEvent
           try {
             const parsedData = JSON.parse(messageEvent.data)
+            
+            // P1-3: Track sequence number
+            if (parsedData._seq) {
+              this.lastSeq = parsedData._seq
+            }
+            
             const sseEvent: SSEEvent = {
               event: eventType as SSEEventType,
               data: parsedData,
               timestamp: new Date().toISOString(),
             }
+            
+            // P1-3: Handle replay events
+            if (eventType === SSEEventType.REPLAY_START) {
+              this.options.onReplayStart(parsedData.last_seq || 0)
+            } else if (eventType === SSEEventType.REPLAY_END) {
+              this.options.onReplayEnd(parsedData.replayed_count || 0)
+            }
+            
             this.options.onEvent(sseEvent)
           } catch (error) {
             console.error(`[SSE] Failed to parse ${eventType} event:`, error)
@@ -380,6 +474,13 @@ export class SSEConnection {
   isConnected(): boolean {
     return this.eventSource !== null && this.eventSource.readyState === EventSource.OPEN
   }
+  
+  /**
+   * P1-3: Get last received sequence number
+   */
+  getLastSeq(): number {
+    return this.lastSeq
+  }
 }
 
 /**
@@ -388,14 +489,16 @@ export class SSEConnection {
  * @param options - SSE options
  * @param useDemo - Whether to use demo endpoint
  * @param task - Task to execute (triggers agent execution if provided)
+ * @param sseToken - P1-1: Short-lived SSE token (preferred over JWT)
  */
 export function createSSEConnection(
   sessionId: string,
   options: SSEOptions = {},
   useDemo = false,
-  task: string | null = null
+  task: string | null = null,
+  sseToken: string | null = null
 ): SSEConnection {
-  const connection = new SSEConnection(sessionId, options, useDemo, task)
+  const connection = new SSEConnection(sessionId, options, useDemo, task, sseToken)
   connection.connect()
   return connection
 }

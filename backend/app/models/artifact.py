@@ -56,7 +56,8 @@ class Artifact(Base):
 
     # Type
     artifact_type: Mapped[ArtifactType] = mapped_column(
-        Enum(ArtifactType), nullable=False
+        Enum(ArtifactType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False
     )
 
     # File storage

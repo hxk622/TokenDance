@@ -20,10 +20,22 @@ if TYPE_CHECKING:
 
 
 class SessionStatus(PyEnum):
-    """Session status enum."""
-    ACTIVE = "active"
+    """Session status enum.
+
+    Status transitions:
+    - PENDING: Session created, waiting for agent to start
+    - RUNNING: Agent is actively executing
+    - COMPLETED: Task finished successfully
+    - FAILED: Task failed with error
+    - CANCELLED: User stopped the execution
+    - ARCHIVED: Old session archived for storage
+    """
+    PENDING = "pending"
+    ACTIVE = "active"  # Deprecated: use RUNNING instead
+    RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
     ARCHIVED = "archived"
 
 
@@ -62,7 +74,9 @@ class Session(Base):
 
     # Status
     status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus), default=SessionStatus.ACTIVE, nullable=False
+        Enum(SessionStatus, values_callable=lambda x: [e.value for e in x]),
+        default=SessionStatus.PENDING,
+        nullable=False
     )
 
     # Skill tracking

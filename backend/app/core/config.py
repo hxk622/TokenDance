@@ -98,6 +98,15 @@ class Settings(BaseSettings):
 
     # FileSystem
     DATA_ROOT: str = "/data"
+    WORKSPACE_ROOT_PATH: str = "/data/workspaces"
+
+    # Object Storage (MinIO / S3 compatible)
+    MINIO_ENDPOINT: str | None = None  # e.g. "localhost:9000"
+    MINIO_ACCESS_KEY: str | None = None
+    MINIO_SECRET_KEY: str | None = None
+    MINIO_REGION: str | None = None
+    MINIO_SECURE: bool = False
+    MINIO_BUCKET_REPORTS: str = "research-reports"
 
     @property
     def USERS_DATA_PATH(self) -> str:
@@ -108,6 +117,11 @@ class Settings(BaseSettings):
     def ORGS_DATA_PATH(self) -> str:
         """Path for organization data."""
         return f"{self.DATA_ROOT}/orgs"
+
+    @property
+    def SESSIONS_DATA_PATH(self) -> str:
+        """Path for session working memory data."""
+        return f"{self.WORKSPACE_ROOT_PATH}/sessions"
 
     # LLM
     ANTHROPIC_API_KEY: str | None = None
@@ -137,7 +151,7 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings()  # type: ignore
+    return Settings()
 
 
 # Global settings instance

@@ -665,7 +665,10 @@ onUnmounted(() => {
             :aria-label="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
             @click="requestIntervention"
           >
-            <PauseCircle class="w-4 h-4" aria-hidden="true" />
+            <PauseCircle
+              class="w-4 h-4"
+              aria-hidden="true"
+            />
             <span>介入</span>
           </AnyButton>
           <AnyButton
@@ -675,7 +678,10 @@ onUnmounted(() => {
             :aria-label="'终止任务执行'"
             @click="handleStop"
           >
-            <StopCircle class="w-4 h-4" aria-hidden="true" />
+            <StopCircle
+              class="w-4 h-4"
+              aria-hidden="true"
+            />
             <span>终止</span>
           </AnyButton>
         </div>
@@ -690,7 +696,10 @@ onUnmounted(() => {
           aria-live="assertive"
         >
           <div class="error-left">
-            <ExclamationTriangleIcon class="error-icon" aria-hidden="true" />
+            <ExclamationTriangleIcon
+              class="error-icon"
+              aria-hidden="true"
+            />
             <div class="error-content">
               <span class="error-title">执行出错</span>
               <span class="error-message">{{ executionStore.error || sseError || '未知错误' }}</span>
@@ -711,7 +720,10 @@ onUnmounted(() => {
               aria-label="关闭错误提示"
               @click="dismissError"
             >
-              <X class="w-4 h-4" aria-hidden="true" />
+              <X
+                class="w-4 h-4"
+                aria-hidden="true"
+              />
             </AnyButton>
           </div>
         </div>
@@ -726,7 +738,10 @@ onUnmounted(() => {
           aria-live="polite"
         >
           <div class="focus-left">
-            <Search class="focus-icon" aria-hidden="true" />
+            <Search
+              class="focus-icon"
+              aria-hidden="true"
+            />
             <div class="focus-breadcrumb">
               <button
                 class="breadcrumb-item"
@@ -735,21 +750,30 @@ onUnmounted(() => {
               >
                 执行流程
               </button>
-              <span class="breadcrumb-separator" aria-hidden="true">/</span>
+              <span
+                class="breadcrumb-separator"
+                aria-hidden="true"
+              >/</span>
               <span class="breadcrumb-current">
                 节点 {{ focusedNodeId }}
               </span>
             </div>
           </div>
           <div class="focus-right">
-            <span class="focus-hint" aria-hidden="true">按 ESC 退出</span>
+            <span
+              class="focus-hint"
+              aria-hidden="true"
+            >按 ESC 退出</span>
             <AnyButton
               variant="ghost"
               size="sm"
               aria-label="退出聚焦模式"
               @click="exitFocusMode"
             >
-              <X class="w-4 h-4" aria-hidden="true" />
+              <X
+                class="w-4 h-4"
+                aria-hidden="true"
+              />
               <span>退出聚焦</span>
             </AnyButton>
           </div>
@@ -803,7 +827,9 @@ onUnmounted(() => {
         >
           <div class="loading-content">
             <div class="loading-spinner" />
-            <p class="loading-text">加载任务执行环境...</p>
+            <p class="loading-text">
+              加载任务执行环境...
+            </p>
           </div>
         </div>
       </Transition>

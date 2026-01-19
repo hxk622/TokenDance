@@ -136,7 +136,10 @@ function resetDragState() {
       @drop="handleDrop($event, index)"
       @dragend="handleDragEnd"
     >
-      <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+      <span
+        class="drag-handle"
+        aria-hidden="true"
+      >⋮⋮</span>
       <component
         :is="tab.icon"
         class="icon w-4 h-4"

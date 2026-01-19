@@ -231,7 +231,10 @@
           aria-label="`跳转到最新日志，有 ${newContentCount} 条新日志`"
           @click="scrollToBottom()"
         >
-          <ArrowDownIcon class="jump-icon" aria-hidden="true" />
+          <ArrowDownIcon
+            class="jump-icon"
+            aria-hidden="true"
+          />
           <span>{{ newContentCount }} 条新日志</span>
         </button>
       </Transition>

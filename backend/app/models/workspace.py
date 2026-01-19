@@ -49,7 +49,9 @@ class Workspace(Base):
 
     # Type and ownership
     workspace_type: Mapped[WorkspaceType] = mapped_column(
-        Enum(WorkspaceType), default=WorkspaceType.PERSONAL, nullable=False
+        Enum(WorkspaceType, values_callable=lambda x: [e.value for e in x]),
+        default=WorkspaceType.PERSONAL,
+        nullable=False
     )
     owner_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False, index=True

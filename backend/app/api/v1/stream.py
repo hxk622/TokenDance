@@ -15,12 +15,22 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pydantic import BaseModel
+from redis.asyncio import Redis
+
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_user_from_token, get_user_repo
+from app.core.dependencies import get_current_user, get_current_user_from_token, get_permission_service, get_user_repo
 from app.core.logging import get_logger
+from app.core.redis import get_redis
+from app.models.user import User
+from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
+from app.services.agent_stop_service import AgentStopService, get_agent_stop_service
+from app.services.permission_service import PermissionError, PermissionService
 from app.services.session_service import SessionService
+from app.services.sse_event_store import SSEEventStore, get_sse_event_store
+from app.services.sse_token_service import SSETokenService, get_sse_token_service
 
 # Agent Engine imports
 try:
@@ -97,11 +107,110 @@ class SSEEventType(str, Enum):
     # System events
     PING = "ping"
     ERROR = "error"
+    
+    # P1-3: Replay events (sent on reconnection)
+    REPLAY_START = "replay_start"
+    REPLAY_END = "replay_end"
 
 
-def format_sse(event: str, data: dict) -> str:
-    """Format data as SSE message"""
+def format_sse(event: str, data: dict, seq: int | None = None) -> str:
+    """Format data as SSE message with optional sequence number."""
+    if seq is not None:
+        data = {**data, "_seq": seq}
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+# ==================== P1-1: SSE Token Exchange ====================
+
+class SSETokenRequest(BaseModel):
+    """Request for SSE token exchange."""
+    session_id: str
+
+
+class SSETokenResponse(BaseModel):
+    """Response with short-lived SSE token."""
+    sse_token: str
+    expires_in: int = 300  # seconds
+
+
+@router.post("/sse-token", response_model=SSETokenResponse)
+async def create_sse_token(
+    request: SSETokenRequest,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
+    redis: Redis = Depends(get_redis),
+):
+    """
+    P1-1: Exchange access token for short-lived SSE token.
+    
+    This avoids exposing JWT tokens in SSE connection URLs.
+    The returned SSE token:
+    - Is valid for 5 minutes
+    - Can only be used for the specified session
+    - Is single-use (consumed on first SSE connection)
+    
+    Usage:
+    1. POST /api/v1/sessions/sse-token with {session_id: "..."}
+    2. Use returned sse_token in SSE connection URL: ?sse_token=...
+    """
+    # Check session access permission
+    try:
+        await permission_service.check_session_access(current_user, request.session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=403,
+            detail=str(e),
+        ) from e
+    
+    # Create SSE token
+    sse_service = await get_sse_token_service(redis)
+    token = await sse_service.create_sse_token(
+        user_id=str(current_user.id),
+        session_id=request.session_id,
+    )
+    
+    return SSETokenResponse(sse_token=token)
+
+
+# ==================== P1-2: Stop Signal ====================
+
+class StopResponse(BaseModel):
+    """Response from stop request."""
+    status: str
+    message: str
+
+
+@router.post("/{session_id}/stop", response_model=StopResponse)
+async def stop_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
+    redis: Redis = Depends(get_redis),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    P1-2: Request agent to stop execution.
+    
+    Sets a stop flag in Redis that the agent checks periodically.
+    The agent will gracefully terminate and update session status to CANCELLED.
+    """
+    # Check session access permission
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=403,
+            detail=str(e),
+        ) from e
+    
+    # Set stop signal
+    stop_service = get_agent_stop_service(redis)
+    await stop_service.request_stop(session_id, str(current_user.id))
+    
+    return StopResponse(
+        status="stop_requested",
+        message="Stop signal sent. Agent will terminate gracefully.",
+    )
 
 
 async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, None]:
@@ -254,13 +363,20 @@ async def stream_session_events(
     session_id: str,
     request: Request,
     task: str | None = Query(None, description="Task to execute"),
-    token: str = Query(..., description="Auth token (required for SSE)"),
+    token: str | None = Query(None, description="JWT auth token (deprecated, use sse_token)"),
+    sse_token: str | None = Query(None, description="P1-1: Short-lived SSE token from /sse-token"),
+    last_seq: int | None = Query(None, description="P1-3: Last received sequence number for replay"),
     user_repo: UserRepository = Depends(get_user_repo),
+    permission_service: PermissionService = Depends(get_permission_service),
     db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ):
     """
     Stream SSE events for a session.
+
+    P1-1: Supports both JWT token (deprecated) and short-lived SSE token.
+    P1-3: Supports event replay via last_seq parameter.
 
     If task is provided, starts Agent execution.
     Otherwise, returns mock stream for demo purposes.
@@ -273,14 +389,72 @@ async def stream_session_events(
     - node_started/completed/failed: Workflow node status
     - file_created/modified/deleted: Coworker file operations
     - session_started/completed/failed: Session lifecycle
+    - replay_start/replay_end: P1-3 event replay markers
     - ping: Keepalive
 
-    Usage:
-        const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?task=...&token=${token}`);
-        eventSource.addEventListener('agent_thinking', (e) => console.log(JSON.parse(e.data)));
+    Usage (recommended - P1-1):
+        1. POST /api/v1/sessions/sse-token to get short-lived token
+        2. const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}`);
+    
+    Usage (reconnection - P1-3):
+        const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}&last_seq=${lastSeq}`);
     """
-    # Authenticate user from query token (SSE can't use headers)
-    current_user = await get_current_user_from_token(token, user_repo)
+    # P1-1: Authenticate using SSE token (preferred) or JWT token (deprecated)
+    current_user = None
+    
+    if sse_token:
+        # Validate SSE token
+        sse_service = await get_sse_token_service(redis)
+        token_data = await sse_service.validate_sse_token(
+            sse_token,
+            session_id,
+            consume=True,  # Single-use
+        )
+        if not token_data:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired SSE token",
+                headers={"X-Error-Type": "InvalidSSEToken"},
+            )
+        # Get user from token data
+        user_id = token_data.get("user_id")
+        current_user = await user_repo.get_by_id(user_id)
+        if not current_user:
+            raise HTTPException(
+                status_code=401,
+                detail="User not found",
+            )
+    elif token:
+        # Fallback to JWT token (deprecated)
+        logger.warning(
+            "sse_using_deprecated_jwt_token",
+            session_id=session_id,
+        )
+        current_user = await get_current_user_from_token(token, user_repo)
+    else:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide sse_token or token parameter.",
+        )
+
+    # P0-4: Check session access permission
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        logger.warning(
+            "sse_session_access_denied",
+            session_id=session_id,
+            user_id=str(current_user.id),
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=403,
+            detail=str(e),
+            headers={
+                "X-Error-Type": "PermissionDenied",
+                "Cache-Control": "no-store",
+            }
+        ) from e
 
     # Verify session exists
     session_service = SessionService(db)
@@ -290,7 +464,7 @@ async def stream_session_events(
         logger.warning(
             "sse_session_not_found",
             session_id=session_id,
-            user_id=current_user.id,
+            user_id=str(current_user.id),
             client_ip=request.client.host if request.client else "unknown",
         )
         raise HTTPException(
@@ -302,22 +476,54 @@ async def stream_session_events(
             }
         )
 
+    # P1-3: Get event store for replay and storage
+    event_store = get_sse_event_store(redis)
+
     logger.info(
         "sse_stream_started",
         session_id=session_id,
         task=task,
+        last_seq=last_seq,
         client_ip=request.client.host if request.client else "unknown",
     )
 
     async def event_generator():
         try:
+            # P1-3: Replay missed events if last_seq is provided
+            if last_seq is not None:
+                yield format_sse(SSEEventType.REPLAY_START, {
+                    "last_seq": last_seq,
+                    "timestamp": time.time(),
+                })
+                
+                missed_events = await event_store.get_events_since(
+                    session_id,
+                    last_seq,
+                    max_events=100,
+                )
+                
+                for event in missed_events:
+                    yield format_sse(
+                        event["event"],
+                        event["data"],
+                        seq=event["seq"],
+                    )
+                
+                yield format_sse(SSEEventType.REPLAY_END, {
+                    "replayed_count": len(missed_events),
+                    "timestamp": time.time(),
+                })
+            
             # If task is provided and Agent Engine is available, run real agent
             if task and AGENT_ENGINE_AVAILABLE:
-                async for event in run_agent_stream(
-                    session_id, task, session.workspace_id, str(current_user.id), db, settings
+                async for event in run_agent_stream_with_store(
+                    session_id, task, session.workspace_id, str(current_user.id),
+                    db, redis, settings, event_store
                 ):
                     if await request.is_disconnected():
                         logger.info("sse_client_disconnected", session_id=session_id)
+                        # P0-1: Cancel session on disconnect
+                        await session_service.cancel_session(session_id)
                         break
                     yield event
             else:
@@ -331,6 +537,8 @@ async def stream_session_events(
 
         except asyncio.CancelledError:
             logger.info("sse_stream_cancelled", session_id=session_id)
+            # P0-1: Cancel session on stream cancellation
+            await session_service.cancel_session(session_id)
         except Exception as e:
             logger.error("sse_stream_error", session_id=session_id, error=str(e))
             yield format_sse(SSEEventType.ERROR, {"message": str(e)})
@@ -356,7 +564,23 @@ async def run_agent_stream(
 ) -> AsyncGenerator[str, None]:
     """
     Run Agent and stream events.
+    
+    P0 fixes applied:
+    - P0-1: Update session status (RUNNING -> COMPLETED/FAILED)
+    - P0-2: Use persistent workspace path instead of temp directory
+    - P0-3: Save messages to database
+    - P0-4: Permission check done in caller (stream_session_events)
     """
+    import os
+    from app.models.message import MessageRole
+    
+    session_service = SessionService(db)
+    message_repo = MessageRepository(db)
+    total_tokens = 0
+    
+    # P0-1: Mark session as RUNNING
+    await session_service.start_session(session_id)
+    
     # Send session started
     yield format_sse(SSEEventType.SESSION_STARTED, {
         "session_id": session_id,
@@ -365,56 +589,309 @@ async def run_agent_stream(
     })
 
     try:
-        # Create temporary workspace for this session
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Initialize Working Memory
-            memory = await create_working_memory(
-                workspace_path=tmpdir,
+        # P0-2: Use persistent workspace path instead of temp directory
+        workspace_path = os.path.join(
+            settings.SESSIONS_DATA_PATH,
+            workspace_id,
+            session_id
+        )
+        os.makedirs(workspace_path, exist_ok=True)
+        
+        # P0-3: Save user message to database
+        await message_repo.create_user_message(
+            session_id=session_id,
+            content=task,
+        )
+        
+        # Initialize Working Memory with persistent path
+        memory = await create_working_memory(
+            workspace_path=workspace_path,
+            session_id=session_id,
+            initial_task=task
+        )
+
+        # Create Agent Context
+        context = AgentContext(
+            session_id=session_id,
+            user_id=user_id,
+            workspace_id=workspace_id
+        )
+
+        # Create Tool Registry (empty for now)
+        tools = ToolRegistry()
+
+        # 使用智能路由选择免费 LLM
+        llm = get_free_llm_for_task(
+            task_type=TaskType.GENERAL,
+            max_tokens=4096
+        )
+
+        # Create Agent (using BasicAgent for now)
+        agent = BasicAgent(
+            context=context,
+            llm=llm,
+            tools=tools,
+            memory=memory,
+            db=db,
+            max_iterations=50
+        )
+
+        # Collect assistant response for saving
+        assistant_content_parts = []
+        assistant_thinking = None
+        assistant_tool_calls = []
+        
+        # Run Agent and stream events
+        async for event in agent.run(task):
+            # Convert agent event to SSE format
+            yield format_sse(event.type.value, event.data)
+            
+            # P0-3: Collect response data for message saving
+            event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
+            
+            if event_type == 'thinking':
+                assistant_thinking = event.data.get('content', '')
+            elif event_type == 'content':
+                assistant_content_parts.append(event.data.get('content', ''))
+            elif event_type == 'tool_call':
+                assistant_tool_calls.append({
+                    'id': event.data.get('id'),
+                    'name': event.data.get('name'),
+                    'args': event.data.get('args'),
+                    'status': event.data.get('status'),
+                })
+            elif event_type == 'tool_result':
+                # Update tool call status
+                tool_id = event.data.get('id')
+                for tc in assistant_tool_calls:
+                    if tc.get('id') == tool_id:
+                        tc['status'] = 'success' if event.data.get('success') else 'error'
+                        tc['result'] = event.data.get('result')
+                        break
+            elif event_type == 'done':
+                total_tokens = event.data.get('tokens_used', 0)
+
+        # P0-3: Save assistant message to database
+        assistant_content = ''.join(assistant_content_parts)
+        if assistant_content or assistant_tool_calls:
+            await message_repo.create_assistant_message(
                 session_id=session_id,
-                initial_task=task
+                content=assistant_content if assistant_content else None,
+                thinking=assistant_thinking,
+                tool_calls=assistant_tool_calls if assistant_tool_calls else None,
+                tokens_used=total_tokens,
             )
 
-            # Create Agent Context
-            context = AgentContext(
-                session_id=session_id,
-                user_id=user_id,
-                workspace_id=workspace_id
-            )
-
-            # Create Tool Registry (empty for now)
-            tools = ToolRegistry()
-
-            # 使用智能路由选择免费 LLM
-            llm = get_free_llm_for_task(
-                task_type=TaskType.GENERAL,
-                max_tokens=4096
-            )
-
-            # Create Agent (using BasicAgent for now)
-            agent = BasicAgent(
-                context=context,
-                llm=llm,
-                tools=tools,
-                memory=memory,
-                db=db,
-                max_iterations=50
-            )
-
-            # Run Agent and stream events
-            async for event in agent.run(task):
-                # Convert agent event to SSE format
-                yield format_sse(event.type.value, event.data)
-
+        # P0-1: Mark session as COMPLETED with token count
+        await session_service.complete_session(
+            session_id,
+            total_tokens_used=total_tokens,
+        )
+        
         # Session completed
         yield format_sse(SSEEventType.SESSION_COMPLETED, {
             "session_id": session_id,
             "status": "completed",
+            "total_tokens": total_tokens,
             "timestamp": time.time(),
         })
 
     except Exception as e:
         logger.error(f"Agent execution error: {e}", exc_info=True)
+        
+        # P0-1: Mark session as FAILED
+        await session_service.fail_session(
+            session_id,
+            error_message=str(e),
+        )
+        
         yield format_sse(SSEEventType.SESSION_FAILED, {
+            "session_id": session_id,
+            "error": str(e),
+            "timestamp": time.time(),
+        })
+
+
+async def run_agent_stream_with_store(
+    session_id: str,
+    task: str,
+    workspace_id: str,
+    user_id: str,
+    db: AsyncSession,
+    redis: Redis,
+    settings: Settings,
+    event_store: SSEEventStore,
+) -> AsyncGenerator[str, None]:
+    """
+    Run Agent and stream events with P1 enhancements:
+    - P1-2: Check stop signal periodically
+    - P1-3: Store events for replay
+    - P1-4: Atomic session status updates
+    """
+    import os
+    from app.models.message import MessageRole
+    
+    session_service = SessionService(db)
+    message_repo = MessageRepository(db)
+    stop_service = get_agent_stop_service(redis)
+    total_tokens = 0
+    
+    async def emit_event(event_type: str, data: dict) -> str:
+        """Emit event, store it, and return formatted SSE."""
+        seq = await event_store.store_event(session_id, event_type, data)
+        return format_sse(event_type, data, seq=seq)
+    
+    # P0-1: Mark session as RUNNING
+    await session_service.start_session(session_id)
+    
+    # Send session started
+    yield await emit_event(SSEEventType.SESSION_STARTED, {
+        "session_id": session_id,
+        "task": task,
+        "timestamp": time.time(),
+    })
+
+    try:
+        # P0-2: Use persistent workspace path
+        workspace_path = os.path.join(
+            settings.SESSIONS_DATA_PATH,
+            workspace_id,
+            session_id
+        )
+        os.makedirs(workspace_path, exist_ok=True)
+        
+        # P0-3: Save user message to database
+        await message_repo.create_user_message(
+            session_id=session_id,
+            content=task,
+        )
+        
+        # Initialize Working Memory
+        memory = await create_working_memory(
+            workspace_path=workspace_path,
+            session_id=session_id,
+            initial_task=task
+        )
+
+        # Create Agent Context
+        context = AgentContext(
+            session_id=session_id,
+            user_id=user_id,
+            workspace_id=workspace_id
+        )
+
+        # Create Tool Registry
+        tools = ToolRegistry()
+
+        # Get LLM
+        llm = get_free_llm_for_task(
+            task_type=TaskType.GENERAL,
+            max_tokens=4096
+        )
+
+        # Create Agent
+        agent = BasicAgent(
+            context=context,
+            llm=llm,
+            tools=tools,
+            memory=memory,
+            db=db,
+            max_iterations=50
+        )
+
+        # Collect assistant response
+        assistant_content_parts = []
+        assistant_thinking = None
+        assistant_tool_calls = []
+        iteration_count = 0
+        
+        # Run Agent and stream events
+        async for event in agent.run(task):
+            # P1-2: Check stop signal periodically (every 5 iterations)
+            iteration_count += 1
+            if iteration_count % 5 == 0:
+                if await stop_service.should_stop(session_id):
+                    logger.info(
+                        "agent_stop_signal_received",
+                        session_id=session_id,
+                        iteration=iteration_count,
+                    )
+                    # Clear stop signal
+                    await stop_service.clear_stop_signal(session_id)
+                    # Set agent stopped flag
+                    agent.stopped = True
+                    # Emit cancellation event
+                    yield await emit_event(SSEEventType.SESSION_COMPLETED, {
+                        "session_id": session_id,
+                        "status": "cancelled",
+                        "reason": "User requested stop",
+                        "timestamp": time.time(),
+                    })
+                    # P1-4: Atomic update - cancel session
+                    await session_service.cancel_session(session_id)
+                    return
+            
+            # P1-3: Store event and emit
+            event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
+            yield await emit_event(event_type, event.data)
+            
+            # Collect response data for message saving
+            if event_type == 'thinking':
+                assistant_thinking = event.data.get('content', '')
+            elif event_type == 'content':
+                assistant_content_parts.append(event.data.get('content', ''))
+            elif event_type == 'tool_call':
+                assistant_tool_calls.append({
+                    'id': event.data.get('id'),
+                    'name': event.data.get('name'),
+                    'args': event.data.get('args'),
+                    'status': event.data.get('status'),
+                })
+            elif event_type == 'tool_result':
+                tool_id = event.data.get('id')
+                for tc in assistant_tool_calls:
+                    if tc.get('id') == tool_id:
+                        tc['status'] = 'success' if event.data.get('success') else 'error'
+                        tc['result'] = event.data.get('result')
+                        break
+            elif event_type == 'done':
+                total_tokens = event.data.get('tokens_used', 0)
+
+        # P0-3: Save assistant message
+        assistant_content = ''.join(assistant_content_parts)
+        if assistant_content or assistant_tool_calls:
+            await message_repo.create_assistant_message(
+                session_id=session_id,
+                content=assistant_content if assistant_content else None,
+                thinking=assistant_thinking,
+                tool_calls=assistant_tool_calls if assistant_tool_calls else None,
+                tokens_used=total_tokens,
+            )
+
+        # P1-4: Atomic update - complete session with tokens
+        await session_service.complete_session(
+            session_id,
+            total_tokens_used=total_tokens,
+        )
+        
+        # Session completed
+        yield await emit_event(SSEEventType.SESSION_COMPLETED, {
+            "session_id": session_id,
+            "status": "completed",
+            "total_tokens": total_tokens,
+            "timestamp": time.time(),
+        })
+
+    except Exception as e:
+        logger.error(f"Agent execution error: {e}", exc_info=True)
+        
+        # P1-4: Atomic update - fail session with error
+        await session_service.fail_session(
+            session_id,
+            error_message=str(e),
+        )
+        
+        yield await emit_event(SSEEventType.SESSION_FAILED, {
             "session_id": session_id,
             "error": str(e),
             "timestamp": time.time(),

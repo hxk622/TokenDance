@@ -186,23 +186,111 @@ class SessionService:
             completed_at=session.completed_at,
         )
 
-    async def complete_session(
+    async def start_session(
         self,
         session_id: str,
     ) -> SessionResponse | None:
-        """Mark session as completed."""
-        from datetime import datetime
+        """Mark session as RUNNING (agent started execution)."""
+        session = await self.session_repo.start_session(session_id)
 
-        session = await self.session_repo.update(
+        if not session:
+            return None
+
+        logger.info("session_started", session_id=session_id)
+
+        message_count = await self.session_repo.get_message_count(session_id)
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=message_count,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
+
+    async def complete_session(
+        self,
+        session_id: str,
+        total_tokens_used: int | None = None,
+    ) -> SessionResponse | None:
+        """Mark session as COMPLETED with optional token count."""
+        session = await self.session_repo.complete_session(
             session_id,
-            status=SessionStatus.COMPLETED,
-            completed_at=datetime.utcnow(),
+            total_tokens_used=total_tokens_used,
         )
 
         if not session:
             return None
 
-        logger.info("session_completed", session_id=session_id)
+        logger.info(
+            "session_completed",
+            session_id=session_id,
+            total_tokens_used=total_tokens_used,
+        )
+
+        message_count = await self.session_repo.get_message_count(session_id)
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=message_count,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
+
+    async def fail_session(
+        self,
+        session_id: str,
+        error_message: str | None = None,
+    ) -> SessionResponse | None:
+        """Mark session as FAILED."""
+        session = await self.session_repo.fail_session(
+            session_id,
+            error_message=error_message,
+        )
+
+        if not session:
+            return None
+
+        logger.info(
+            "session_failed",
+            session_id=session_id,
+            error=error_message,
+        )
+
+        message_count = await self.session_repo.get_message_count(session_id)
+        return SessionResponse(
+            id=session.id,
+            workspace_id=session.workspace_id,
+            title=session.title,
+            status=session.status,
+            skill_id=session.skill_id,
+            total_tokens_used=session.total_tokens_used,
+            message_count=message_count,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            completed_at=session.completed_at,
+        )
+
+    async def cancel_session(
+        self,
+        session_id: str,
+    ) -> SessionResponse | None:
+        """Mark session as CANCELLED (user stopped)."""
+        session = await self.session_repo.cancel_session(session_id)
+
+        if not session:
+            return None
+
+        logger.info("session_cancelled", session_id=session_id)
 
         message_count = await self.session_repo.get_message_count(session_id)
         return SessionResponse(

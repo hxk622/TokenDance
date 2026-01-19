@@ -252,9 +252,10 @@ export const useExecutionStore = defineStore('execution', () => {
 
   /**
    * Connect to SSE stream
+   * P1-1: First exchanges JWT for SSE token, then connects with SSE token
    * @param task - Task to execute (triggers agent execution if provided)
    */
-  function connectSSE(task: string | null = null) {
+  async function connectSSE(task: string | null = null) {
     if (!sessionId.value) return
     
     // Don't connect if we have a fatal error
@@ -266,6 +267,17 @@ export const useExecutionStore = defineStore('execution', () => {
     currentTask.value = task
     sseConnectionState.value = 'connecting'
     sseError.value = null
+    
+    // P1-1: Get SSE token first (exchange JWT for short-lived SSE token)
+    let sseToken: string | null = null
+    try {
+      const tokenResponse = await sessionService.getSSEToken(sessionId.value)
+      sseToken = tokenResponse.sse_token
+      console.log('[ExecutionStore] SSE token obtained, expires in', tokenResponse.expires_in, 'seconds')
+    } catch (tokenErr: any) {
+      console.warn('[ExecutionStore] Failed to get SSE token, falling back to JWT:', tokenErr.message)
+      // Fall back to JWT token (deprecated but still supported)
+    }
 
     sseConnection = createSSEConnection(
       sessionId.value,
@@ -299,10 +311,39 @@ export const useExecutionStore = defineStore('execution', () => {
             sseConnectionState.value = 'disconnected'
           }
         },
+        // P1-3: Handle replay events
+        onReplayStart: (lastSeq: number) => {
+          console.log('[ExecutionStore] SSE replay starting from seq:', lastSeq)
+        },
+        onReplayEnd: (replayedCount: number) => {
+          console.log('[ExecutionStore] SSE replay ended, replayed', replayedCount, 'events')
+        },
       },
-      false, // useDemo
-      task   // task parameter
+      false,     // useDemo
+      task,      // task parameter
+      sseToken   // P1-1: SSE token (preferred over JWT)
     )
+  }
+  
+  /**
+   * P1-2: Stop agent execution
+   */
+  async function stopExecution(reason?: string) {
+    if (!sessionId.value) return
+    
+    try {
+      const result = await sessionService.stopSession(sessionId.value, reason)
+      if (result.success) {
+        console.log('[ExecutionStore] Stop signal sent:', result.message)
+        // Update local session status
+        if (session.value) {
+          session.value.status = 'cancelled' as any
+        }
+      }
+    } catch (err: any) {
+      console.error('[ExecutionStore] Failed to stop execution:', err.message)
+      error.value = 'Failed to stop execution: ' + err.message
+    }
   }
 
   /**
@@ -723,6 +764,7 @@ export const useExecutionStore = defineStore('execution', () => {
     pause,
     resume,
     connectSSE,
+    stopExecution,  // P1-2
     disconnect,
     reset,
     addLog,
