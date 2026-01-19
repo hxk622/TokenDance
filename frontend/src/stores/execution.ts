@@ -9,6 +9,7 @@ import {
   createSSEConnection,
   SSEConnection,
   SSEEventType,
+  SessionStatus,
   type SSEEvent,
   type SSEConnectionError,
   type SessionDetail,
@@ -349,7 +350,7 @@ export const useExecutionStore = defineStore('execution', () => {
         console.log('[ExecutionStore] Stop signal sent:', result.message)
         // Update local session status
         if (session.value) {
-          session.value.status = 'cancelled' as any
+          session.value.status = SessionStatus.CANCELLED
         }
       }
     } catch (err: any) {
@@ -365,6 +366,13 @@ export const useExecutionStore = defineStore('execution', () => {
     console.log('[ExecutionStore] SSE event received:', event.event, event.data)
     
     switch (event.event) {
+      // Session lifecycle events
+      case SSEEventType.SESSION_STARTED:
+        if (session.value) {
+          session.value.status = SessionStatus.RUNNING
+        }
+        break
+
       // Backend actual events: thinking, tool_call, tool_result, content, done
       case SSEEventType.THINKING:
       case SSEEventType.AGENT_THINKING:
@@ -407,7 +415,7 @@ export const useExecutionStore = defineStore('execution', () => {
       // Agent done
       case SSEEventType.DONE:
         if (session.value) {
-          session.value.status = 'completed' as any
+          session.value.status = SessionStatus.COMPLETED
         }
         break
 
@@ -439,7 +447,7 @@ export const useExecutionStore = defineStore('execution', () => {
 
       case SSEEventType.SESSION_COMPLETED:
         if (session.value) {
-          session.value.status = 'completed' as any
+          session.value.status = SessionStatus.COMPLETED
         }
         // Close SSE connection - session is done, no need to reconnect
         sseConnection?.close()
@@ -448,11 +456,27 @@ export const useExecutionStore = defineStore('execution', () => {
 
       case SSEEventType.SESSION_FAILED:
         if (session.value) {
-          session.value.status = 'failed' as any
+          session.value.status = SessionStatus.FAILED
         }
         // Close SSE connection - session failed, no need to reconnect
         sseConnection?.close()
         sseConnectionState.value = 'disconnected'
+        break
+
+      // Error event (non-fatal errors during execution)
+      case SSEEventType.ERROR:
+        addLog({
+          type: 'error',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.message || 'Unknown error',
+        })
+        // If fatal error, update session status
+        if (event.data.fatal) {
+          if (session.value) {
+            session.value.status = SessionStatus.FAILED
+          }
+          error.value = event.data.message || 'Fatal error occurred'
+        }
         break
 
       // Skill events
