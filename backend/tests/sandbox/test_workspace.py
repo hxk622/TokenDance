@@ -4,7 +4,6 @@ AgentWorkspace 单元测试
 重点测试路径遍历保护。
 """
 
-import tempfile
 from pathlib import Path
 
 import pytest

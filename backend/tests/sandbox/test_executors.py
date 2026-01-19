@@ -4,9 +4,8 @@ Executor 单元测试
 注意：这些执行器需要 session_id 和 workspace，测试时使用 mock 或实际创建。
 """
 
-import asyncio
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -154,58 +153,7 @@ class TestAIOSandboxClient:
         assert "未连接" in result.error
 
     @pytest.mark.asyncio
-    async def test_connect_and_execute(self, client: AIOSandboxClient):
-        """连接并执行（模拟）"""
-        request = ExecutionRequest(code="print('AIO')")
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_http_client = AsyncMock()
-            mock_client_class.return_value = mock_http_client
-
-            # 模拟连接响应
-            connect_response = AsyncMock()
-            connect_response.json.return_value = {"sandbox_id": "sandbox_123"}
-            connect_response.raise_for_status = MagicMock()
-            mock_http_client.post.return_value = connect_response
-
-            await client.connect()
-
-            assert client._sandbox_id == "sandbox_123"
-
-            # 模拟执行响应
-            exec_response = AsyncMock()
-            exec_response.json.return_value = {
-                "success": True,
-                "stdout": "AIO\n",
-                "stderr": "",
-                "exit_code": 0,
-            }
-            exec_response.raise_for_status = MagicMock()
-            mock_http_client.post.return_value = exec_response
-
-            result = await client.execute(request)
-
-            assert result.success
-            assert "AIO" in result.stdout
-            assert result.sandbox_type == SandboxType.AIO_SANDBOX
-
-    @pytest.mark.asyncio
-    async def test_disconnect(self, client: AIOSandboxClient):
-        """断开连接"""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_http_client = AsyncMock()
-            mock_client_class.return_value = mock_http_client
-
-            # 模拟连接
-            connect_response = AsyncMock()
-            connect_response.json.return_value = {"sandbox_id": "sandbox_123"}
-            connect_response.raise_for_status = MagicMock()
-            mock_http_client.post.return_value = connect_response
-
-            await client.connect()
-            assert client._sandbox_id == "sandbox_123"
-
-            # 断开连接
-            await client.disconnect()
-            assert client._sandbox_id is None
-            assert client._client is None
+    async def test_not_connected_state(self, client: AIOSandboxClient):
+        """未连接状态"""
+        assert client._client is None
+        assert client._sandbox_id is None

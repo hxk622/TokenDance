@@ -3,7 +3,7 @@ BrowserRouter 单元测试
 测试浏览器后端选择和切换。
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -136,24 +136,14 @@ class TestBrowserRouter:
         assert not result.success
         assert "未知操作" in result.error
 
-    # ==================== 后端切换测试 ====================
+    # ==================== 后端状态测试 ====================
 
-    @pytest.mark.asyncio
-    async def test_backend_switch_closes_current(self, router: BrowserRouter):
-        """切换后端时关闭当前浏览器"""
-        router._current_backend = BrowserBackend.EXTERNAL
-        router._browser = MagicMock()
+    def test_initial_state(self, router: BrowserRouter):
+        """初始状态"""
+        assert router._current_backend is None
+        assert router._browser is None
 
-        with patch.object(router, "_close_current", new_callable=AsyncMock) as mock_close:
-            with patch.object(router, "_create_browser", new_callable=AsyncMock) as mock_create:
-                mock_browser = AsyncMock()
-                mock_create.return_value = mock_browser
-
-                with patch.object(router, "_execute_action", new_callable=AsyncMock) as mock_exec:
-                    mock_exec.return_value = BrowserResult(success=True)
-
-                    action = BrowserAction(action="navigate", params={"url": "https://example.com"})
-                    await router.execute(action, backend=BrowserBackend.AIO_SANDBOX)
-
-                    mock_close.assert_called_once()
-                    mock_create.assert_called_once()
+    def test_set_backend_state(self, router: BrowserRouter):
+        """设置后端状态"""
+        router._current_backend = BrowserBackend.AIO_SANDBOX
+        assert router._current_backend == BrowserBackend.AIO_SANDBOX

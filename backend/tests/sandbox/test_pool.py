@@ -4,16 +4,13 @@ AIOSandboxPool 单元测试
 重点测试并发访问控制和 SessionState 状态机。
 """
 
-import asyncio
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.sandbox.exceptions import ConcurrentAccessError
 from app.sandbox.pool import AIOSandboxPool, PoolConfig, PooledSandbox, SessionState
-from app.sandbox.workspace import AgentWorkspace, WorkspaceConfig
 
 
 class TestSessionState:
@@ -158,8 +155,8 @@ class TestAIOSandboxPool:
         assert pool._session_map["test_session"].use_count == 1
 
     @pytest.mark.asyncio
-    async def test_release_returns_to_idle(self, pool: AIOSandboxPool):
-        """释放会话后返回 idle 队列"""
+    async def test_release_sets_to_idle(self, pool: AIOSandboxPool):
+        """释放会话后状态变为 IDLE"""
         # 放置一个 BUSY 状态的 session
         mock_sandbox = MagicMock()
         pooled = PooledSandbox(
@@ -172,9 +169,8 @@ class TestAIOSandboxPool:
         # 释放
         await pool.release("test_session")
 
-        # 应该移到 idle 队列
-        assert "test_session" in pool._idle_queue
-        assert pool._idle_queue["test_session"].state == SessionState.IDLE
+        # 状态应该变为 IDLE
+        assert pool._session_map["test_session"].state == SessionState.IDLE
 
     @pytest.mark.asyncio
     async def test_release_nonexistent_session_no_error(self, pool: AIOSandboxPool):
@@ -197,7 +193,7 @@ class TestAIOSandboxPool:
         pool._running = True
 
         # 停止
-        with patch.object(pool, "_destroy", new_callable=AsyncMock) as mock_destroy:
+        with patch.object(pool, "_destroy", new_callable=AsyncMock):
             await pool.stop()
 
             assert not pool._running

@@ -2,7 +2,6 @@
 UnifiedRiskPolicy 单元测试
 """
 
-import pytest
 
 from app.sandbox.risk_policy import RiskLevel, UnifiedRiskPolicy
 from app.sandbox.types import SandboxType, SecurityMode

@@ -5,14 +5,13 @@ SandboxManager 单元测试
 """
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.sandbox.confirmation import AutoApproveConfirmationService
 from app.sandbox.manager import SandboxManager
-from app.sandbox.risk_policy import RiskLevel, SecurityMode
-from app.sandbox.types import ExecutionRequest, ExecutionResult, SandboxType
+from app.sandbox.risk_policy import SecurityMode
+from app.sandbox.types import ExecutionRequest, SandboxType
 from app.sandbox.workspace import AgentWorkspace, WorkspaceConfig
 
 
