@@ -102,7 +102,21 @@ class OpenRouterLLM(BaseLLM):
                 json=api_params
             )
             response.raise_for_status()
-            data = response.json()  # httpx response.json() is synchronous
+            
+            # 安全解析 JSON 响应
+            try:
+                data = response.json()  # httpx response.json() is synchronous
+            except json.JSONDecodeError as e:
+                # 记录原始响应以便调试
+                raw_text = response.text[:500] if response.text else "(empty)"
+                logger.error(f"[OpenRouter] JSON decode error: {e}")
+                logger.error(f"[OpenRouter] Raw response (first 500 chars): {raw_text}")
+                raise ValueError(f"OpenRouter returned invalid JSON: {e}") from e
+            
+            # 验证响应结构
+            if "choices" not in data or not data["choices"]:
+                logger.error(f"[OpenRouter] Invalid response structure: {data}")
+                raise ValueError(f"OpenRouter response missing 'choices': {data}")
 
         # 打印响应日志
         usage_info = data.get("usage", {})

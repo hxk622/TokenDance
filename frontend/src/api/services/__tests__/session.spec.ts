@@ -39,7 +39,7 @@ describe('SessionService', () => {
         title: 'Test Session',
       })
 
-      expect(apiClient.post).toHaveBeenCalledWith('/sessions', {
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/sessions', {
         workspace_id: 'workspace-1',
         title: 'Test Session',
       })
@@ -62,7 +62,7 @@ describe('SessionService', () => {
         workspace_id: 'workspace-1',
       })
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions', {
         params: { workspace_id: 'workspace-1' },
       })
       expect(result).toEqual(mockResponse)
@@ -85,7 +85,7 @@ describe('SessionService', () => {
         status: SessionStatus.RUNNING,
       })
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions', {
         params: {
           workspace_id: 'workspace-1',
           limit: 10,
@@ -113,7 +113,7 @@ describe('SessionService', () => {
 
       const result = await sessionService.getSession('session-1')
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions/session-1', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions/session-1', {
         params: { include_details: false },
       })
       expect(result).toEqual(mockSession)
@@ -136,7 +136,7 @@ describe('SessionService', () => {
 
       const result = await sessionService.getSession('session-1', true)
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions/session-1', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions/session-1', {
         params: { include_details: true },
       })
       expect(result).toEqual(mockSessionDetail)
@@ -161,7 +161,7 @@ describe('SessionService', () => {
         title: 'Updated Title',
       })
 
-      expect(apiClient.patch).toHaveBeenCalledWith('/sessions/session-1', {
+      expect(apiClient.patch).toHaveBeenCalledWith('/api/v1/sessions/session-1', {
         title: 'Updated Title',
       })
       expect(result).toEqual(mockSession)
@@ -174,7 +174,7 @@ describe('SessionService', () => {
 
       await sessionService.deleteSession('session-1')
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/sessions/session-1')
+      expect(apiClient.delete).toHaveBeenCalledWith('/api/v1/sessions/session-1')
     })
   })
 
@@ -194,7 +194,7 @@ describe('SessionService', () => {
 
       const result = await sessionService.completeSession('session-1')
 
-      expect(apiClient.post).toHaveBeenCalledWith('/sessions/session-1/complete')
+      expect(apiClient.post).toHaveBeenCalledWith('/api/v1/sessions/session-1/complete')
       expect(result.status).toBe(SessionStatus.COMPLETED)
     })
   })
@@ -218,7 +218,7 @@ describe('SessionService', () => {
 
       const result = await sessionService.getSessionMessages('session-1')
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions/session-1/messages', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions/session-1/messages', {
         params: { limit: undefined },
       })
       expect(result).toEqual(mockResponse)
@@ -234,7 +234,7 @@ describe('SessionService', () => {
 
       await sessionService.getSessionMessages('session-1', 50)
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions/session-1/messages', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions/session-1/messages', {
         params: { limit: 50 },
       })
     })
@@ -259,7 +259,7 @@ describe('SessionService', () => {
 
       const result = await sessionService.getSessionArtifacts('session-1')
 
-      expect(apiClient.get).toHaveBeenCalledWith('/sessions/session-1/artifacts')
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/sessions/session-1/artifacts')
       expect(result).toEqual(mockResponse)
     })
   })

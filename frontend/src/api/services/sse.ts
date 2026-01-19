@@ -15,7 +15,14 @@ export enum SSEEventType {
   SKILL_MATCHED = 'skill_matched',
   SKILL_COMPLETED = 'skill_completed',
   
-  // Agent events
+  // Agent events (new backend format)
+  THINKING = 'thinking',
+  TOOL_CALL = 'tool_call',
+  TOOL_RESULT = 'tool_result',
+  CONTENT = 'content',
+  DONE = 'done',
+  
+  // Agent events (legacy format - keep for compatibility)
   AGENT_THINKING = 'agent_thinking',
   AGENT_TOOL_CALL = 'agent_tool_call',
   AGENT_TOOL_RESULT = 'agent_tool_result',

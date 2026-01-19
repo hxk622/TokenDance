@@ -230,53 +230,24 @@ export const useExecutionStore = defineStore('execution', () => {
 
   /**
    * Initialize workflow from session metadata
+   * Workflow will be dynamically built from SSE events
    */
   function initializeWorkflow() {
-    // TODO: Parse actual workflow from session metadata
-    // For now, use mock data
+    // Start with a single initial node representing the task
+    // More nodes will be added dynamically as the agent progresses
     nodes.value = [
       {
-        id: '1',
+        id: 'initial',
         type: 'manus',
-        status: 'success',
-        label: '搜索市场数据',
+        status: 'active',
+        label: '任务执行中',
         x: 100,
         y: 100,
-        metadata: { duration: 45000 }
-      },
-      {
-        id: '2',
-        type: 'manus',
-        status: 'success',
-        label: '分析竞品',
-        x: 300,
-        y: 100,
-        metadata: { duration: 38000 }
-      },
-      {
-        id: '3',
-        type: 'coworker',
-        status: 'active',
-        label: '生成报告',
-        x: 500,
-        y: 100,
-        metadata: { duration: 15000 }
-      },
-      {
-        id: '4',
-        type: 'manus',
-        status: 'inactive',
-        label: '创建PPT',
-        x: 700,
-        y: 100
+        metadata: { startTime: Date.now() }
       },
     ]
 
-    edges.value = [
-      { id: 'e1', from: '1', to: '2', type: 'context', active: true },
-      { id: 'e2', from: '2', to: '3', type: 'context', active: true },
-      { id: 'e3', from: '3', to: '4', type: 'result', active: false },
-    ]
+    edges.value = []
   }
 
   /**
@@ -338,7 +309,11 @@ export const useExecutionStore = defineStore('execution', () => {
    * Handle SSE event
    */
   function handleSSEEvent(event: SSEEvent) {
+    console.log('[ExecutionStore] SSE event received:', event.event, event.data)
+    
     switch (event.event) {
+      // Backend actual events: thinking, tool_call, tool_result, content, done
+      case SSEEventType.THINKING:
       case SSEEventType.AGENT_THINKING:
         addLog({
           type: 'thinking',
@@ -347,22 +322,40 @@ export const useExecutionStore = defineStore('execution', () => {
         })
         break
 
+      case SSEEventType.TOOL_CALL:
       case SSEEventType.AGENT_TOOL_CALL:
         addLog({
           type: 'tool-call',
           nodeId: event.data.node_id || activeNodeId.value || '0',
-          content: `${event.data.tool_name}(${JSON.stringify(event.data.arguments)})`,
+          content: `${event.data.tool_name || event.data.name}(${JSON.stringify(event.data.arguments || event.data.args)})`,
         })
         break
 
+      case SSEEventType.TOOL_RESULT:
       case SSEEventType.AGENT_TOOL_RESULT:
         addLog({
-          type: event.data.success ? 'result' : 'error',
+          type: event.data.success !== false ? 'result' : 'error',
           nodeId: event.data.node_id || activeNodeId.value || '0',
-          content: event.data.success
+          content: event.data.success !== false
             ? JSON.stringify(event.data.result)
             : event.data.error || 'Unknown error',
         })
+        break
+      
+      // Content streaming (from backend)
+      case SSEEventType.CONTENT:
+        addLog({
+          type: 'result',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.content,
+        })
+        break
+      
+      // Agent done
+      case SSEEventType.DONE:
+        if (session.value) {
+          session.value.status = 'completed' as any
+        }
         break
 
       case SSEEventType.NODE_STARTED:
