@@ -66,14 +66,21 @@ class IntentValidationService:
         Raises:
             ValueError: If no API keys are configured
         """
-        # Prefer Anthropic if available
-        if settings.ANTHROPIC_API_KEY:
+        # Prefer Anthropic if available AND valid format (starts with sk-ant-)
+        if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY.startswith("sk-ant-"):
             logger.info("Using Anthropic Claude for intent validation")
             return ClaudeLLM(
                 api_key=settings.ANTHROPIC_API_KEY,
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=2048,
                 temperature=0.3,  # Lower temperature for more consistent validation
+            )
+
+        # Warn if ANTHROPIC_API_KEY is set but invalid format
+        if settings.ANTHROPIC_API_KEY and not settings.ANTHROPIC_API_KEY.startswith("sk-ant-"):
+            logger.warning(
+                f"ANTHROPIC_API_KEY has invalid format (should start with 'sk-ant-'), "
+                f"falling back to OpenRouter. Key prefix: {settings.ANTHROPIC_API_KEY[:10]}..."
             )
 
         # Fallback to OpenRouter
@@ -87,7 +94,7 @@ class IntentValidationService:
             )
 
         raise ValueError(
-            "No LLM API key configured. Set ANTHROPIC_API_KEY or OPENROUTER_API_KEY"
+            "No valid LLM API key configured. Set a valid ANTHROPIC_API_KEY (starts with 'sk-ant-') or OPENROUTER_API_KEY"
         )
 
     async def validate_intent(

@@ -201,6 +201,22 @@ class ClaudeLLM(BaseLLM):
         return formatted
 
 
+def is_valid_anthropic_key(api_key: str | None) -> bool:
+    """验证 Anthropic API Key 格式是否正确
+    
+    Anthropic API Keys 应该以 'sk-ant-' 开头
+    
+    Args:
+        api_key: 要验证的 API Key
+        
+    Returns:
+        bool: Key 格式是否有效
+    """
+    if not api_key:
+        return False
+    return api_key.startswith("sk-ant-")
+
+
 # 便捷函数
 def create_claude_llm(
     api_key: str | None = None,
@@ -225,6 +241,9 @@ def create_claude_llm(
 
     Returns:
         ClaudeLLM: Claude LLM 实例
+        
+    Raises:
+        ValueError: 如果 API Key 缺失或格式无效
     """
     import os
 
@@ -235,6 +254,13 @@ def create_claude_llm(
             raise ValueError(
                 "API Key not found. Set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY"
             )
+    
+    # 验证 API Key 格式
+    if not is_valid_anthropic_key(api_key):
+        logger.warning(
+            f"ANTHROPIC_API_KEY may be invalid (should start with 'sk-ant-'). "
+            f"Key prefix: {api_key[:10] if api_key else 'None'}..."
+        )
 
     # 读取模型名称
     if model is None:
