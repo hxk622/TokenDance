@@ -43,7 +43,7 @@ const handleNavClick = (item: { id: string }) => {
       router.push('/')
       break
     case 'history':
-      router.push('/chat')
+      router.push('/history')
       break
   }
 }
@@ -207,116 +207,169 @@ const collapsedHeight = 80 // px for mini-graph
 const isCompactMode = ref(false)
 const activePanel = ref<'left' | 'right'>('left') // Which panel is visible in compact mode
 
-// Check viewport width
+// Check viewport width - 使用 1024px 作为主要断点
 function checkResponsiveMode() {
-  isCompactMode.value = window.innerWidth < 1280
+  const width = window.innerWidth
+  isCompactMode.value = width < 1024
 }
 
 // Load saved ratios
 onMounted(async () => {
-  const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
-  const savedVertical = localStorage.getItem('execution-vertical-ratio')
-  
-  if (savedHorizontal) {
-    const [left, right] = savedHorizontal.split(':').map(Number)
-    leftWidth.value = left
-    rightWidth.value = right
+  try {
+    const savedHorizontal = localStorage.getItem('execution-horizontal-ratio')
+    const savedVertical = localStorage.getItem('execution-vertical-ratio')
+
+    if (savedHorizontal) {
+      const [left, right] = savedHorizontal.split(':').map(Number)
+      // Validate parsed values
+      if (!isNaN(left) && !isNaN(right) && left > 0 && right > 0 && left + right === 100) {
+        leftWidth.value = left
+        rightWidth.value = right
+      }
+    }
+
+    if (savedVertical) {
+      const [top, bottom] = savedVertical.split(':').map(Number)
+      // Validate parsed values
+      if (!isNaN(top) && !isNaN(bottom) && top > 0 && bottom > 0 && top + bottom === 100) {
+        topHeight.value = top
+        bottomHeight.value = bottom
+      }
+    }
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to load saved ratios:', error)
+    // Usefault values on error
   }
-  
-  if (savedVertical) {
-    const [top, bottom] = savedVertical.split(':').map(Number)
-    topHeight.value = top
-    bottomHeight.value = bottom
-  }
-  
+
   // Initialize responsive check
   checkResponsiveMode()
   window.addEventListener('resize', checkResponsiveMode)
-  
+
   // Initialize store and connect SSE
-  await initializeExecution()
+  try {
+    await initializeExecution()
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to initialize execution:', error)
+    executionStore.error = error instanceof Error ? error.message : '初始化失败'
+  }
 })
 
 onUnmounted(() => {
-  // Cleanup
-  executionStore.disconnect()
-  window.removeEventListener('resize', checkResponsiveMode)
-  if (elapsedTimer) {
-    clearInterval(elapsedTimer)
+  try {
+    // Cleanup
+    executionStore.disconnect()
+    window.removeEventListener('resize', checkResponsiveMode)
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer)
+      elapsedTimer = null
+    }
+  } catch (error) {
+    console.error('[ExecutionPage] Error during cleanup:', error)
   }
 })
 
 // Initialize execution
 async function initializeExecution() {
-  // For demo session, skip loading and just connect SSE
-  if (sessionId.value.startsWith('demo')) {
-    // Initialize demo workflow
-    executionStore.nodes = [
-      { id: '1', type: 'manus', status: 'pending', label: '收集市场数据', x: 100, y: 100 },
-      { id: '2', type: 'manus', status: 'pending', label: '研究竞争对手', x: 300, y: 100 },
-      { id: '3', type: 'coworker', status: 'pending', label: '整理关键发现', x: 500, y: 100 },
-      { id: '4', type: 'coworker', status: 'pending', label: '撰写分析报告', x: 700, y: 100 },
-    ]
-    executionStore.edges = [
-      { id: 'e1', from: '1', to: '2', type: 'context', active: false },
-      { id: 'e2', from: '2', to: '3', type: 'context', active: false },
-      { id: 'e3', from: '3', to: '4', type: 'result', active: false },
-    ]
-  } else {
-    // Load real session
-    await executionStore.loadSession(sessionId.value)
-    
-    // Check for fatal errors (session not found)
-    if (executionStore.sseConnectionState === 'fatal_error') {
-      console.error('[ExecutionPage] Session not found, redirecting to home')
-      setTimeout(() => {
-        router.push('/')
-      }, 2000) // Give user 2s to see the error
-      return
+  try {
+    // Validate sessionId
+    if (!sessionId.value) {
+      throw new Error('Session ID is required')
     }
+
+    // For demo session, skip loading and just connect SSE
+    if (sessionId.value.startsWith('demo')) {
+      // Initialize demo workflow
+      executionStore.nodes = [
+        { id: '1', type: 'manus', status: 'pending', label: '收集市场数据', x: 100, y: 100 },
+        { id: '2', type: 'manus', status: 'pending', label: '研究竞争对手', x: 300, y: 100 },
+        { id: '3', type: 'coworker', status: 'pending', label: '整理关键发现', x: 500, y: 100 },
+        { id: '4', type: 'coworker', status: 'pending', label: '撰写分析报告', x: 700, y: 100 },
+      ]
+      executionStore.edges = [
+        { id: 'e1', from: '1', to: '2', type: 'context', active: false },
+        { id: 'e2', from: '2', to: '3', type: 'context', active: false },
+        { id: 'e3', from: '3', to: '4', type: 'result', active: false },
+      ]
+    } else {
+      // Load real session
+      await executionStore.loadSession(sessionId.value)
+
+      // Check for fatal errors (session not found)
+      if (executionStore.sseConnectionState === 'fatal_error') {
+        console.error('[ExecutionPage] Session not found, redirecting to home')
+        setTimeout(() => {
+          router.push('/')
+        }, 2000) // Give user 2s to see the error
+        return
+      }
+    }
+
+    // Connect SSE stream with task (triggers agent execution if task provided)
+    executionStore.sessionId = sessionId.value
+    executionStore.connectSSE(initialTask.value)
+
+    // Start elapsed timer
+    startElapsedTimer()
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to initialize execution:', error)
+    executionStore.error = error instanceof Error ? error.message : '初始化失败'
+    throw error // Re-throw to be caught by onMounted
   }
-  
-  // Connect SSE stream with task (triggers agent execution if task provided)
-  executionStore.sessionId = sessionId.value
-  executionStore.connectSSE(initialTask.value)
-  
-  // Start elapsed timer
-  startElapsedTimer()
 }
 
 // Elapsed time tracking
 function startElapsedTimer() {
-  const startTime = Date.now()
-  elapsedTimer = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000)
-    const minutes = Math.floor(elapsed / 60)
-    const seconds = elapsed % 60
-    elapsedTime.value = `${minutes}分${seconds}秒`
-  }, 1000)
+  try {
+    // Clear existing timer if any
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer)
+      elapsedTimer = null
+    }
+
+    const startTime = Date.now()
+    elapsedTimer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      const minutes = Math.floor(elapsed / 60)
+      const seconds = elapsed % 60
+      elapsedTime.value = `${minutes}分${seconds}秒`
+    }, 1000)
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to start elapsed timer:', error)
+  }
 }
 
 // Handle stop action
 // Note: handlePause removed as pause is not yet implemented
 
 function handleStop() {
-  executionStore.disconnect()
-  if (elapsedTimer) {
-    clearInterval(elapsedTimer)
+  try {
+    executionStore.disconnect()
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer)
+      elapsedTimer = null
+    }
+    console.log('Stop execution')
+  } catch (error) {
+    console.error('[ExecutionPage] Error stopping execution:', error)
   }
-  console.log('Stop execution')
 }
 
 // Handle error retry
 function handleRetry() {
-  // Clear error state
-  executionStore.error = null
-  executionStore.sseError = null
+  try {
+    // Clear error state
+    executionStore.error = null
+    executionStore.sseError = null
 
-  // Reconnect SSE
-  executionStore.connectSSE(initialTask.value)
+    // Reconnect SSE
+    executionStore.connectSSE(initialTask.value)
 
-  // Restart timer
-  startElapsedTimer()
+    // Restart timer
+    startElapsedTimer()
+  } catch (error) {
+    console.error('[ExecutionPage] Error retrying execution:', error)
+    executionStore.error = error instanceof Error ? error.message : '重试失败'
+  }
 }
 
 // Dismiss error banner
@@ -605,20 +658,25 @@ onUnmounted(() => {
         </div>
         
         <div class="header-actions">
-          <AnyButton 
+          <AnyButton
             variant="secondary"
-            :disabled="!isRunning || isRequestingIntervention" 
+            :disabled="!isRunning || isRequestingIntervention"
+            :title="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
+            :aria-label="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
             @click="requestIntervention"
           >
-            <PauseCircle class="w-4 h-4" />
-            <span>暂停并介入</span>
+            <PauseCircle class="w-4 h-4" aria-hidden="true" />
+            <span>介入</span>
           </AnyButton>
           <AnyButton
             variant="ghost"
+            class="btn-stop"
+            :title="'终止任务执行'"
+            :aria-label="'终止任务执行'"
             @click="handleStop"
           >
-            <StopCircle class="w-4 h-4" />
-            <span>停止</span>
+            <StopCircle class="w-4 h-4" aria-hidden="true" />
+            <span>终止</span>
           </AnyButton>
         </div>
       </header>
@@ -628,9 +686,11 @@ onUnmounted(() => {
         <div
           v-if="sessionStatus === 'error' || sseError"
           class="error-banner"
+          role="alert"
+          aria-live="assertive"
         >
           <div class="error-left">
-            <ExclamationTriangleIcon class="error-icon" />
+            <ExclamationTriangleIcon class="error-icon" aria-hidden="true" />
             <div class="error-content">
               <span class="error-title">执行出错</span>
               <span class="error-message">{{ executionStore.error || sseError || '未知错误' }}</span>
@@ -640,6 +700,7 @@ onUnmounted(() => {
             <AnyButton
               variant="ghost"
               size="sm"
+              aria-label="重试任务执行"
               @click="handleRetry"
             >
               <span>重试</span>
@@ -647,9 +708,10 @@ onUnmounted(() => {
             <AnyButton
               variant="ghost"
               size="sm"
+              aria-label="关闭错误提示"
               @click="dismissError"
-    >
-              <X class="w-4 h-4" />
+            >
+              <X class="w-4 h-4" aria-hidden="true" />
             </AnyButton>
           </div>
         </div>
@@ -660,30 +722,34 @@ onUnmounted(() => {
         <div
           v-if="isFocusMode"
           class="focus-mode-banner"
+          role="status"
+          aria-live="polite"
         >
           <div class="focus-left">
-            <Search class="focus-icon" />
+            <Search class="focus-icon" aria-hidden="true" />
             <div class="focus-breadcrumb">
               <button
                 class="breadcrumb-item"
+                aria-label="退出聚焦模式，返回执行流程"
                 @click="exitFocusMode"
               >
                 执行流程
               </button>
-              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-separator" aria-hidden="true">/</span>
               <span class="breadcrumb-current">
                 节点 {{ focusedNodeId }}
               </span>
             </div>
           </div>
           <div class="focus-right">
-            <span class="focus-hint">按 ESC 退出</span>
+            <span class="focus-hint" aria-hidden="true">按 ESC 退出</span>
             <AnyButton
               variant="ghost"
               size="sm"
+              aria-label="退出聚焦模式"
               @click="exitFocusMode"
             >
-              <X class="w-4 h-4" />
+              <X class="w-4 h-4" aria-hidden="true" />
               <span>退出聚焦</span>
             </AnyButton>
           </div>
@@ -729,24 +795,40 @@ onUnmounted(() => {
         </button>
       </div>
 
+      <!-- Loading Overlay -->
+      <Transition name="fade">
+        <div
+          v-if="executionStore.isLoading"
+          class="loading-overlay"
+        >
+          <div class="loading-content">
+            <div class="loading-spinner" />
+            <p class="loading-text">加载任务执行环境...</p>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Main Content -->
       <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
         <!-- Left Panel: Execution Area -->
-        <div 
-          class="left-panel" 
+        <div
+          class="left-panel"
           :class="{ hidden: isCompactMode && activePanel !== 'left' }"
           :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
         >
           <!-- Collapse Toggle Button -->
-          <button 
+          <button
             class="collapse-toggle"
             :class="{ collapsed: isCollapsed }"
             :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+            :aria-label="isCollapsed ? '展开工作流图' : '折叠工作流图'"
+            :aria-expanded="!isCollapsed"
             @click="toggleCollapse"
           >
             <component
               :is="isCollapsed ? ChevronDown : ChevronUp"
               class="w-4 h-4"
+              aria-hidden="true"
             />
           </button>
 
@@ -1140,11 +1222,63 @@ onUnmounted(() => {
   gap: 8px;
 }
 
+/* Stop button warning style */
+.btn-stop:hover {
+  color: var(--exec-error) !important;
+  border-color: var(--exec-error) !important;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--exec-bg-primary);
+  backdrop-filter: blur(8px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--exec-border);
+  border-top-color: var(--exec-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--exec-text-secondary);
+  margin: 0;
+}
+
+/* Fade transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--any-duration-normal) var(--any-ease-out);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* Main Content */
 .execution-content {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 /* Left Panel */
@@ -1189,6 +1323,12 @@ onUnmounted(() => {
   background: rgba(0, 217, 255, 0.2);
   border-color: var(--exec-accent);
   color: var(--exec-accent);
+}
+
+/* Accessibility: Focus styles */
+.collapse-toggle:focus-visible {
+  outline: 2px solid var(--exec-accent);
+  outline-offset: 2px;
 }
 
 .collapse-toggle.collapsed {
@@ -1247,14 +1387,25 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-/* Focus Mode Banner */
+/* Focus Mode Banner - Enhanced Prominence */
 .focus-mode-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  background: rgba(0, 217, 255, 0.1);
-  border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.15) 0%, rgba(0, 255, 136, 0.1) 100%);
+  border-bottom: 2px solid rgba(0, 217, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+  animation: banner-glow 3s ease-in-out infinite;
+}
+
+@keyframes banner-glow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(0, 217, 255, 0.25);
+  }
 }
 
 .focus-left {
@@ -1264,9 +1415,19 @@ onUnmounted(() => {
 }
 
 .focus-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   color: var(--exec-accent);
+  animation: icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .focus-breadcrumb {
@@ -1289,6 +1450,12 @@ onUnmounted(() => {
 .breadcrumb-item:hover {
   background: var(--exec-border-hover);
   color: var(--exec-text-primary);
+}
+
+/* Accessibility: Focus styles for breadcrumb */
+.breadcrumb-item:focus-visible {
+  outline: 2px solid var(--exec-accent);
+  outline-offset: 2px;
 }
 
 .breadcrumb-separator {
@@ -1513,29 +1680,58 @@ onUnmounted(() => {
   min-height: 100px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1279px) {
+/* Responsive adjustments - 多级断点优化 */
+
+/* Tablet landscape (1024px - 1366px) */
+@media (max-width: 1366px) and (min-width: 1024px) {
+  .execution-header {
+    padding: 0 20px;
+  }
+
+  .task-title {
+    font-size: 17px;
+  }
+
+  .plan-progress {
+    padding: 6px 12px;
+  }
+
+  .step-name {
+    max-width: 150px;
+  }
+}
+
+/* Tablet portrait and below (< 1024px) */
+@media (max-width: 1023px) {
   .execution-header {
     padding: 0 16px;
   }
-  
+
   .task-title {
     font-size: 16px;
   }
-  
+
   .status-indicator {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-  
+
   .header-actions {
     gap: 8px;
   }
-  
+
   .btn-secondary {
     padding: 6px 12px;
     font-size: 13px;
+  }
+
+  .plan-progress {
+    padding: 6px 12px;
+  }
+
+  .step-name {
+    max-width: 140px;
   }
 }
 

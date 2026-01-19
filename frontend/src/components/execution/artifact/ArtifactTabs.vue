@@ -122,7 +122,13 @@ function resetDragState() {
         }
       ]"
       draggable="true"
+      tabindex="0"
+      role="tab"
+      :aria-selected="current === tab.id"
+      :aria-label="`${tab.title}标签页${tab.isPinned ? '，已固定' : ''}`"
       @click="switchTab(tab.id)"
+      @keydown.enter="switchTab(tab.id)"
+      @keydown.space.prevent="switchTab(tab.id)"
       @contextmenu.prevent="togglePin(tab.id)"
       @dragstart="handleDragStart($event, tab)"
       @dragover="handleDragOver($event, index)"
@@ -130,15 +136,17 @@ function resetDragState() {
       @drop="handleDrop($event, index)"
       @dragend="handleDragEnd"
     >
-      <span class="drag-handle">⋮⋮</span>
+      <span class="drag-handle" aria-hidden="true">⋮⋮</span>
       <component
         :is="tab.icon"
         class="icon w-4 h-4"
+        aria-hidden="true"
       />
       <span class="title">{{ tab.title }}</span>
       <Pin
         v-if="tab.isPinned"
         class="pin w-3 h-3"
+        aria-hidden="true"
       />
     </div>
   </div>
@@ -185,6 +193,12 @@ function resetDragState() {
   border-color: var(--color-node-active);
   background: rgba(0, 217, 255, 0.1);
   transform: translateX(4px);
+}
+
+/* Accessibility: Focus styles */
+.tab:focus-visible {
+  outline: 2px solid var(--color-node-active);
+  outline-offset: 2px;
 }
 
 .drag-handle {

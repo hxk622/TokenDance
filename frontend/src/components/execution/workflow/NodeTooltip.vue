@@ -123,6 +123,12 @@ const outputPreview = computed(() => {
           {{ outputPreview }}
         </div>
       </div>
+
+      <!-- Focus Mode Hint -->
+      <div class="focus-hint">
+        <span class="hint-icon">💡</span>
+        <span class="hint-text">双击节点进入聚焦模式</span>
+      </div>
     </div>
   </Teleport>
 </template>
@@ -262,5 +268,41 @@ const outputPreview = computed(() => {
 .output-content::-webkit-scrollbar-thumb {
   background: var(--any-border-hover);
   border-radius: 2px;
+}
+
+/* Focus Mode Hint */
+.focus-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: var(--any-radius-sm);
+  animation: hint-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.hint-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.hint-text {
+  font-size: 11px;
+  color: rgba(0, 217, 255, 0.9);
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 </style>

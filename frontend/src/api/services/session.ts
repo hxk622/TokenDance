@@ -94,7 +94,7 @@ export interface ArtifactListResponse {
  * Session API Service Class
  */
 class SessionService {
-  private readonly basePath = '/sessions'
+  private readonly basePath = '/api/v1/sessions'
 
   /**
    * Create a new session

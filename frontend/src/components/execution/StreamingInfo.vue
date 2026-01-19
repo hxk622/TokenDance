@@ -4,34 +4,39 @@
       <div class="mode-tabs glass-tabs">
         <button
           :class="['glass-tab', { active: mode === 'all' }]"
+          aria-label="显示全部日志"
           @click="mode = 'all'"
         >
           全部
         </button>
         <button
           :class="['glass-tab', { active: mode === 'coworker' }]"
+          aria-label="显示 Coworker 模式"
           @click="mode = 'coworker'"
         >
           Coworker
         </button>
         <button
           :class="['glass-tab', { active: mode === 'browser' }]"
+          aria-label="显示浏览器操作日志"
           @click="mode = 'browser'"
         >
           浏览器
         </button>
       </div>
       <div class="toolbar-actions">
-        <button 
-          v-if="isFocusMode" 
-          class="btn-exit-focus glass-button" 
+        <button
+          v-if="isFocusMode"
+          class="btn-exit-focus glass-button"
+          aria-label="退出聚焦模式"
           @click="exitFocusMode"
         >
           退出聚焦
         </button>
-        <button 
+        <button
           :class="['btn-lock', { active: isUserReading }]"
           :title="isUserReading ? '解锁滚动' : '锁定滚动'"
+          :aria-label="isUserReading ? '解锁自动滚动' : '锁定自动滚动'"
           @click="toggleScrollLock"
         >
           <svg
@@ -133,19 +138,36 @@
       ref="logsContainerRef"
       class="logs-container"
     >
+      <!-- Performance indicator when logs are trimmed -->
+      <div
+        v-if="executionStore.logs.length > MAX_RENDERED_LOGS"
+        class="performance-indicator"
+      >
+        <span class="indicator-icon">⚡</span>
+        <span class="indicator-text">
+          显示最近 {{ MAX_RENDERED_LOGS }} 条日志（共 {{ executionStore.logs.length }} 条）
+        </span>
+      </div>
+
       <!-- Timeline track -->
       <div class="timeline-track" />
       
-      <div 
-        v-for="log in displayLogs" 
+      <div
+        v-for="log in displayLogs"
         :key="log.id"
         :class="[
-          'log-entry', 
+          'log-entry',
           `type-${log.type}`,
           { expanded: isLogExpanded(log.id) }
         ]"
         :data-node-id="log.nodeId"
+        tabindex="0"
+        role="button"
+        :aria-expanded="isLogExpanded(log.id)"
+        :aria-label="`${log.type} 日志，${isLogExpanded(log.id) ? '已展开' : '已折叠'}，点击${isLogExpanded(log.id) ? '折叠' : '展开'}`"
         @click="toggleLogExpand(log.id)"
+        @keydown.enter="toggleLogExpand(log.id)"
+        @keydown.space.prevent="toggleLogExpand(log.id)"
       >
         <!-- Timeline dot -->
         <div
@@ -203,12 +225,13 @@
       
       <!-- Jump to latest button -->
       <Transition name="fade-up">
-        <button 
-          v-if="showJumpToLatest" 
+        <button
+          v-if="showJumpToLatest"
           class="jump-to-latest glass-button-primary"
+          aria-label="`跳转到最新日志，有 ${newContentCount} 条新日志`"
           @click="scrollToBottom()"
         >
-          <ArrowDownIcon class="jump-icon" />
+          <ArrowDownIcon class="jump-icon" aria-hidden="true" />
           <span>{{ newContentCount }} 条新日志</span>
         </button>
       </Transition>
@@ -306,16 +329,38 @@ const coworkerSplitRatio = ref(50) // 50% FileTree, 50% LiveDiff
 // Log expansion state
 const expandedLogs = ref<Set<string>>(new Set())
 
-// Use logs from store
+// Performance optimization: Virtual scrolling with windowing
+const MAX_RENDERED_LOGS = 500 // Maximum logs to render at once
+const WINDOW_SIZE = 100 // Keep last N logs when trimming
+
+// Use logs from store with performance optimization
 const displayLogs = computed(() => {
-  let logs = executionStore.logs
-  
-  // Filter by focus mode
-  if (isFocusMode.value && focusedNodeId.value) {
-    logs = logs.filter(log => log.nodeId === focusedNodeId.value)
+  try {
+    let logs = executionStore.logs || []
+
+    // Validate logs is an array
+    if (!Array.isArray(logs)) {
+      console.error('[StreamingInfo] logs is not an array:', logs)
+      return []
+    }
+
+    // Filter by focus mode
+    if (isFocusMode.value && focusedNodeId.value) {
+      logs = logs.filter(log => log?.nodeId === focusedNodeId.value)
+    }
+
+    // Performance optimization: Limit rendered logs
+    // Keep the most recent logs to prevent DOM bloat
+    if (logs.length > MAX_RENDERED_LOGS) {
+      // Keep last WINDOW_SIZE logs for smooth scrolling
+      logs = logs.slice(-MAX_RENDERED_LOGS)
+    }
+
+    return logs
+  } catch (error) {
+    console.error('[StreamingInfo] Error computing displayLogs:', error)
+    return []
   }
-  
-  return logs
 })
 
 // Auto-scroll to bottom when new logs arrive
@@ -327,8 +372,21 @@ watch(
 )
 
 function formatTime(timestamp: number) {
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  try {
+    // Validate timestamp
+    if (typeof timestamp !== 'number' || isNaN(timestamp) || timestamp < 0) {
+      return '--:--:--'
+    }
+    const date = new Date(timestamp)
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return '--:--:--'
+    }
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  } catch (error) {
+    console.error('[StreamingInfo] Error formatting time:', error)
+    return '--:--:--'
+  }
 }
 
 // Get icon for log type
@@ -382,20 +440,42 @@ function toggleScrollLock() {
 }
 
 function scrollToNode(nodeId: string) {
-  const element = logsContainerRef.value?.querySelector(`[data-node-id="${nodeId}"]`)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  try {
+    if (!nodeId || !logsContainerRef.value) {
+      console.warn('[StreamingInfo] Invalid nodeId or container ref')
+      return
+    }
+    const element = logsContainerRef.value.querySelector(`[data-node-id="${nodeId}"]`)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      console.warn('[StreamingInfo] Node element not found:', nodeId)
+    }
+  } catch (error) {
+    console.error('[StreamingInfo] Error scrolling to node:', error)
   }
 }
 
 function enterFocusMode(nodeId: string) {
-  isFocusMode.value = true
-  focusedNodeId.value = nodeId
+  try {
+    if (!nodeId) {
+      console.warn('[StreamingInfo] Invalid nodeId for focus mode')
+      return
+    }
+    isFocusMode.value = true
+    focusedNodeId.value = nodeId
+  } catch (error) {
+    console.error('[StreamingInfo] Error entering focus mode:', error)
+  }
 }
 
 function exitFocusMode() {
-  isFocusMode.value = false
-  focusedNodeId.value = null
+  try {
+    isFocusMode.value = false
+    focusedNodeId.value = null
+  } catch (error) {
+    console.error('[StreamingInfo] Error exiting focus mode:', error)
+  }
 }
 
 // Browser Operations
@@ -552,6 +632,43 @@ defineExpose({
   overflow-y: auto;
   padding: 16px 16px 16px 32px;
   position: relative;
+  /* Performance optimization: Use GPU acceleration */
+  will-change: scroll-position;
+  transform: translateZ(0);
+}
+
+/* Performance indicator */
+.performance-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: rgba(255, 184, 0, 0.1);
+  border: 1px solid rgba(255, 184, 0, 0.3);
+  border-radius: var(--any-radius-sm);
+  font-size: 12px;
+  color: var(--td-state-waiting);
+}
+
+.indicator-icon {
+  font-size: 14px;
+  animation: pulse-icon 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.indicator-text {
+  font-weight: 500;
 }
 
 .timeline-track {
@@ -707,6 +824,28 @@ defineExpose({
 .fade-up-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(10px);
+}
+
+/* Accessibility: Focus styles */
+.glass-tab:focus-visible {
+  outline: 2px solid var(--vibe-color-active);
+  outline-offset: 2px;
+}
+
+.btn-exit-focus:focus-visible,
+.btn-lock:focus-visible {
+  outline: 2px solid var(--vibe-color-active);
+  outline-offset: 2px;
+}
+
+.log-entry:focus-visible {
+  outline: 2px solid var(--vibe-color-active);
+  outline-offset: 2px;
+}
+
+.jump-to-latest:focus-visible {
+  outline: 2px solid var(--vibe-color-active);
+  outline-offset: 2px;
 }
 
 /* Scrollbar */

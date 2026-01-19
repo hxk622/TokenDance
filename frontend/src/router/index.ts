@@ -89,6 +89,14 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/history',
+    name: 'TaskHistory',
+    component: () => import('@/views/TaskHistoryView.vue'),
+    meta: {
+      title: 'Task History - TokenDance'
+    }
+  },
+  {
     path: '/files',
     name: 'Files',
     component: () => import('@/views/FilesView.vue'),
