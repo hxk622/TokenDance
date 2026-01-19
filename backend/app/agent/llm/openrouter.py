@@ -4,8 +4,10 @@ OpenRouter LLM 客户端实现
 OpenRouter 是一个 LLM 网关服务，提供统一接口访问多家 LLM 提供商
 支持 Claude、GPT、Gemini 等模型，通过单一 API Key 调用
 """
+import asyncio
 import json
 import logging
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -14,6 +16,11 @@ import httpx
 from .base import BaseLLM, LLMMessage, LLMResponse
 
 logger = logging.getLogger(__name__)
+
+# Global rate limiting for OpenRouter API calls (applies to all instances)
+_openrouter_last_call_time: float = 0.0
+_openrouter_min_interval: float = 3.0  # Minimum 3 seconds between calls for free tier
+_openrouter_call_lock = asyncio.Lock()
 
 
 class OpenRouterLLM(BaseLLM):
@@ -71,8 +78,6 @@ class OpenRouterLLM(BaseLLM):
         Returns:
             LLMResponse: 完整响应
         """
-        import asyncio
-
         params = self._merge_params(max_tokens, temperature)
 
         # 构造 OpenAI Chat Completions 格式
@@ -96,9 +101,19 @@ class OpenRouterLLM(BaseLLM):
         # 打印请求日志
         logger.info(f"[OpenRouter] Calling model: {self.model} | max_tokens: {params['max_tokens']}")
 
+        # Global rate limiting for free tier accounts
+        global _openrouter_last_call_time
+        async with _openrouter_call_lock:
+            elapsed = time.time() - _openrouter_last_call_time
+            if elapsed < _openrouter_min_interval:
+                wait_time = _openrouter_min_interval - elapsed
+                logger.info(f"[OpenRouter] Rate limiting: waiting {wait_time:.1f}s before API call")
+                await asyncio.sleep(wait_time)
+            _openrouter_last_call_time = time.time()
+
         # 重试配置
         max_retries = 3
-        base_delay = 1.0  # 初始延迟1秒
+        base_delay = 2.0  # 初始延迟2秒 (increased for free tier)
 
         for attempt in range(max_retries):
             try:
@@ -182,7 +197,7 @@ class OpenRouterLLM(BaseLLM):
                     else:
                         logger.error(f"[OpenRouter] Rate limit exceeded after {max_retries} retries")
                         raise ValueError(
-                            f"OpenRouter API rate limit exceeded. Please try again later or upgrade your plan."
+                            "OpenRouter API rate limit exceeded. Please try again later or upgrade your plan."
                         ) from e
 
                 # 其他HTTP错误直接抛出

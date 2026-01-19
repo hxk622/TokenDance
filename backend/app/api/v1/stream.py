@@ -6,31 +6,34 @@ Provides real-time streaming of Agent execution events.
 import asyncio
 import json
 import logging
-import tempfile
 import time
 from collections.abc import AsyncGenerator
 from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from pydantic import BaseModel
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, get_current_user_from_token, get_permission_service, get_user_repo
+from app.core.dependencies import (
+    get_current_user,
+    get_current_user_from_token,
+    get_permission_service,
+    get_user_repo,
+)
 from app.core.logging import get_logger
 from app.core.redis import get_redis
 from app.models.user import User
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
-from app.services.agent_stop_service import AgentStopService, get_agent_stop_service
+from app.services.agent_stop_service import get_agent_stop_service
 from app.services.permission_service import PermissionError, PermissionService
 from app.services.session_service import SessionService
 from app.services.sse_event_store import SSEEventStore, get_sse_event_store
-from app.services.sse_token_service import SSETokenService, get_sse_token_service
+from app.services.sse_token_service import get_sse_token_service
 
 # Agent Engine imports
 try:
@@ -107,7 +110,7 @@ class SSEEventType(str, Enum):
     # System events
     PING = "ping"
     ERROR = "error"
-    
+
     # P1-3: Replay events (sent on reconnection)
     REPLAY_START = "replay_start"
     REPLAY_END = "replay_end"
@@ -200,14 +203,14 @@ async def create_sse_token(
             status_code=403,
             detail=str(e),
         ) from e
-    
+
     # Create SSE token
     sse_service = await get_sse_token_service(redis)
     token = await sse_service.create_sse_token(
         user_id=str(current_user.id),
         session_id=request.session_id,
     )
-    
+
     return SSETokenResponse(sse_token=token)
 
 
@@ -241,11 +244,11 @@ async def stop_session(
             status_code=403,
             detail=str(e),
         ) from e
-    
+
     # Set stop signal
     stop_service = get_agent_stop_service(redis)
     await stop_service.request_stop(session_id, str(current_user.id))
-    
+
     return StopResponse(
         status="stop_requested",
         message="Stop signal sent. Agent will terminate gracefully.",
@@ -451,7 +454,7 @@ async def stream_session_events(
         )
     # P1-1: Authenticate using SSE token (preferred) or JWT token (deprecated)
     current_user = None
-    
+
     if sse_token:
         # Validate SSE token
         sse_service = await get_sse_token_service(redis)
@@ -545,27 +548,42 @@ async def stream_session_events(
                     "last_seq": last_seq,
                     "timestamp": time.time(),
                 })
-                
+
                 missed_events = await event_store.get_events_since(
                     session_id,
                     last_seq,
                     max_events=100,
                 )
-                
+
                 for event in missed_events:
                     yield format_sse(
                         event["event"],
                         event["data"],
                         seq=event["seq"],
                     )
-                
+
                 yield format_sse(SSEEventType.REPLAY_END, {
                     "replayed_count": len(missed_events),
                     "timestamp": time.time(),
                 })
-            
+
             # If task is provided and Agent Engine is available, run real agent
-            if task and AGENT_ENGINE_AVAILABLE:
+            # BUG FIX: Only start Agent if session is PENDING to prevent
+            # SSE reconnection from re-triggering Agent execution
+            from app.models.session import SessionStatus
+
+            should_start_agent = (
+                task and
+                AGENT_ENGINE_AVAILABLE and
+                session.status == SessionStatus.PENDING
+            )
+
+            if should_start_agent:
+                logger.info(
+                    "sse_starting_agent",
+                    session_id=session_id,
+                    task=task[:100] if task else None,
+                )
                 async for event in run_agent_stream_with_store(
                     session_id, task, session.workspace_id, str(current_user.id),
                     db, redis, settings, event_store
@@ -576,6 +594,15 @@ async def stream_session_events(
                         await session_service.cancel_session(session_id)
                         break
                     yield event
+            elif task and session.status != SessionStatus.PENDING:
+                # Session already running or completed - don't re-trigger
+                logger.info(
+                    "sse_skipping_agent_already_processed",
+                    session_id=session_id,
+                    session_status=session.status.value,
+                )
+                # Just replay events, don't start new agent
+                pass
             else:
                 # Use mock stream for demo
                 stream = mock_agent_execution_stream(session_id)
@@ -622,15 +649,15 @@ async def run_agent_stream(
     - P0-4: Permission check done in caller (stream_session_events)
     """
     import os
-    from app.models.message import MessageRole
-    
+
+
     session_service = SessionService(db)
     message_repo = MessageRepository(db)
     total_tokens = 0
-    
+
     # P0-1: Mark session as RUNNING
     await session_service.start_session(session_id)
-    
+
     # Send session started
     yield format_sse(SSEEventType.SESSION_STARTED, {
         "session_id": session_id,
@@ -646,13 +673,13 @@ async def run_agent_stream(
             session_id
         )
         os.makedirs(workspace_path, exist_ok=True)
-        
+
         # P0-3: Save user message to database
         await message_repo.create_user_message(
             session_id=session_id,
             content=task,
         )
-        
+
         # Initialize Working Memory with persistent path
         memory = await create_working_memory(
             workspace_path=workspace_path,
@@ -690,15 +717,15 @@ async def run_agent_stream(
         assistant_content_parts = []
         assistant_thinking = None
         assistant_tool_calls = []
-        
+
         # Run Agent and stream events
         async for event in agent.run(task):
             # Convert agent event to SSE format
             yield format_sse(event.type.value, event.data)
-            
+
             # P0-3: Collect response data for message saving
             event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
-            
+
             if event_type == 'thinking':
                 assistant_thinking = event.data.get('content', '')
             elif event_type == 'content':
@@ -737,7 +764,7 @@ async def run_agent_stream(
             session_id,
             total_tokens_used=total_tokens,
         )
-        
+
         # Session completed
         yield format_sse(SSEEventType.SESSION_COMPLETED, {
             "session_id": session_id,
@@ -748,13 +775,13 @@ async def run_agent_stream(
 
     except Exception as e:
         logger.error(f"Agent execution error: {e}", exc_info=True)
-        
+
         # P0-1: Mark session as FAILED
         await session_service.fail_session(
             session_id,
             error_message=str(e),
         )
-        
+
         yield format_sse(SSEEventType.SESSION_FAILED, {
             "session_id": session_id,
             "error": str(e),
@@ -779,21 +806,21 @@ async def run_agent_stream_with_store(
     - P1-4: Atomic session status updates
     """
     import os
-    from app.models.message import MessageRole
-    
+
+
     session_service = SessionService(db)
     message_repo = MessageRepository(db)
     stop_service = get_agent_stop_service(redis)
     total_tokens = 0
-    
+
     async def emit_event(event_type: str, data: dict) -> str:
         """Emit event, store it, and return formatted SSE."""
         seq = await event_store.store_event(session_id, event_type, data)
         return format_sse(event_type, data, seq=seq)
-    
+
     # P0-1: Mark session as RUNNING
     await session_service.start_session(session_id)
-    
+
     # Send session started
     yield await emit_event(SSEEventType.SESSION_STARTED, {
         "session_id": session_id,
@@ -809,13 +836,13 @@ async def run_agent_stream_with_store(
             session_id
         )
         os.makedirs(workspace_path, exist_ok=True)
-        
+
         # P0-3: Save user message to database
         await message_repo.create_user_message(
             session_id=session_id,
             content=task,
         )
-        
+
         # Initialize Working Memory
         memory = await create_working_memory(
             workspace_path=workspace_path,
@@ -854,7 +881,7 @@ async def run_agent_stream_with_store(
         assistant_thinking = None
         assistant_tool_calls = []
         iteration_count = 0
-        
+
         # Run Agent and stream events
         async for event in agent.run(task):
             # P1-2: Check stop signal periodically (every 5 iterations)
@@ -880,11 +907,11 @@ async def run_agent_stream_with_store(
                     # P1-4: Atomic update - cancel session
                     await session_service.cancel_session(session_id)
                     return
-            
+
             # P1-3: Store event and emit
             event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
             yield await emit_event(event_type, event.data)
-            
+
             # Collect response data for message saving
             if event_type == 'thinking':
                 assistant_thinking = event.data.get('content', '')
@@ -923,7 +950,7 @@ async def run_agent_stream_with_store(
             session_id,
             total_tokens_used=total_tokens,
         )
-        
+
         # Session completed
         yield await emit_event(SSEEventType.SESSION_COMPLETED, {
             "session_id": session_id,
@@ -934,13 +961,13 @@ async def run_agent_stream_with_store(
 
     except Exception as e:
         logger.error(f"Agent execution error: {e}", exc_info=True)
-        
+
         # P1-4: Atomic update - fail session with error
         await session_service.fail_session(
             session_id,
             error_message=str(e),
         )
-        
+
         yield await emit_event(SSEEventType.SESSION_FAILED, {
             "session_id": session_id,
             "error": str(e),

@@ -651,7 +651,9 @@ onUnmounted(() => {
     
     <!-- Task Title (top-left, next to sidebar) -->
     <div class="task-title-bar">
-      <h1 class="task-title-text">{{ taskTitle }}</h1>
+      <h1 class="task-title-text">
+        {{ taskTitle }}
+      </h1>
     </div>
 
     <!-- Main Execution UI (Phase 2) -->

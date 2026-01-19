@@ -3,8 +3,11 @@ Intent validation service for pre-flight checks.
 
 Uses LLM (via OpenRouter) to analyze if user input is complete and actionable.
 """
+import asyncio
+import hashlib
 import json
 import logging
+import time
 
 from app.agent.llm.base import LLMMessage
 from app.agent.llm.openrouter import OpenRouterLLM
@@ -13,8 +16,49 @@ from app.schemas.intent import IntentValidationRequest, IntentValidationResponse
 
 logger = logging.getLogger(__name__)
 
+# Global rate limiting for OpenRouter calls
+_last_call_time: float = 0.0
+_min_call_interval: float = 2.0  # Minimum 2 seconds between calls
+_call_lock = asyncio.Lock()
+
+# Simple in-memory cache for validation results
+_validation_cache: dict[str, tuple[IntentValidationResponse, float]] = {}
+_cache_ttl: float = 300.0  # Cache for 5 minutes
+_max_cache_size: int = 100
+
+
+def _get_cache_key(user_input: str, context: dict[str, str] | None) -> str:
+    """Generate cache key from input and context."""
+    context_str = json.dumps(context, sort_keys=True) if context else ""
+    content = f"{user_input}|{context_str}"
+    return hashlib.md5(content.encode()).hexdigest()
+
+
+def _get_cached_response(cache_key: str) -> IntentValidationResponse | None:
+    """Get cached response if valid."""
+    if cache_key in _validation_cache:
+        response, timestamp = _validation_cache[cache_key]
+        if time.time() - timestamp < _cache_ttl:
+            logger.info(f"Intent validation cache hit for key: {cache_key[:8]}...")
+            return response
+        else:
+            # Expired, remove from cache
+            del _validation_cache[cache_key]
+    return None
+
+
+def _set_cached_response(cache_key: str, response: IntentValidationResponse) -> None:
+    """Cache a response."""
+    # Evict old entries if cache is too large
+    if len(_validation_cache) >= _max_cache_size:
+        # Remove oldest entry
+        oldest_key = min(_validation_cache.keys(), key=lambda k: _validation_cache[k][1])
+        del _validation_cache[oldest_key]
+    _validation_cache[cache_key] = (response, time.time())
+
+
 # System prompt for intent validation
-INTENT_VALIDATION_PROMPT = """你是一个意图验证助手。分析用户输入是否包含足够的信息来执行任务。
+INTENT_VALIDATION_PROMPT = """
 
 评估标准：
 1. 意图是否清晰且可执行？
@@ -84,7 +128,7 @@ class IntentValidationService:
     async def validate_intent(
         self, request: IntentValidationRequest
     ) -> IntentValidationResponse:
-        """Validate user intent using LLM.
+        """Validate user intent using LLM with caching and rate limiting.
 
         Args:
             request: Intent validation request with user input
@@ -95,7 +139,24 @@ class IntentValidationService:
         Raises:
             Exception: If LLM call fails
         """
+        global _last_call_time
+
+        # Check cache first
+        cache_key = _get_cache_key(request.user_input, request.context)
+        cached_response = _get_cached_response(cache_key)
+        if cached_response is not None:
+            return cached_response
+
         try:
+            # Rate limiting: ensure minimum interval between calls
+            async with _call_lock:
+                elapsed = time.time() - _last_call_time
+                if elapsed < _min_call_interval:
+                    wait_time = _min_call_interval - elapsed
+                    logger.info(f"Rate limiting: waiting {wait_time:.1f}s before LLM call")
+                    await asyncio.sleep(wait_time)
+                _last_call_time = time.time()
+
             # Prepare user message
             user_message = f"用户输入: {request.user_input}"
             if request.context:
@@ -122,13 +183,17 @@ class IntentValidationService:
             validation_result = json.loads(json_content)
 
             # Convert to response schema
-            return IntentValidationResponse(
+            result = IntentValidationResponse(
                 is_complete=validation_result.get("is_complete", False),
                 confidence_score=validation_result.get("confidence_score", 0.0),
                 missing_info=validation_result.get("missing_info", []),
                 suggested_questions=validation_result.get("suggested_questions", []),
                 reasoning=validation_result.get("reasoning"),
             )
+
+            # Cache successful response
+            _set_cached_response(cache_key, result)
+            return result
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse LLM response as JSON: {e}")
