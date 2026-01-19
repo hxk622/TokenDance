@@ -676,20 +676,16 @@ onUnmounted(() => {
 
       <!-- Main execution area -->
       <div class="execution-main">
-        <!-- Header with Plan Recitation -->
+        <!-- Header with status and progress -->
         <header class="execution-header">
-          <div class="task-info">
-            <h1 class="task-title">
-              Deep Research: AI Agent 市场分析
-            </h1>
-            <div class="status-indicator">
-              <span :class="['status-badge', sessionStatus]">
-                {{ sessionStatus === 'running' ? '执行中' : 
-                  sessionStatus === 'completed' ? '已完成' : 
-                  sessionStatus === 'error' ? '错误' : '准备中' }}
-              </span>
-              <span class="time">已执行 {{ elapsedTime }}</span>
-            </div>
+          <!-- Status indicator -->
+          <div class="status-indicator">
+            <span :class="['status-badge', sessionStatus]">
+              {{ sessionStatus === 'running' ? '执行中' : 
+                sessionStatus === 'completed' ? '已完成' : 
+                sessionStatus === 'error' ? '错误' : '准备中' }}
+            </span>
+            <span class="time">已执行 {{ elapsedTime }}</span>
           </div>
         
           <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
@@ -1165,19 +1161,6 @@ onUnmounted(() => {
   background: var(--exec-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-}
-
-.task-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.task-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--exec-text-primary);
 }
 
 .status-indicator {
