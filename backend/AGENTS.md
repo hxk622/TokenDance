@@ -158,6 +158,15 @@ Copy `.env.example` to `.env` and configure:
 - 启动命令: `uv run uvicorn app.main:app --reload >> /tmp/backend.log 2>&1`
 - 查看日志: `tail -f /tmp/backend.log`
 
+## 问题排查原则 (必须遵循)
+
+**刨根问底原则:**
+- 排查问题时必须追溯到根本原因，不能停留在表面现象
+- 讨论问题时必须深入分析，不能敷衍了事
+- 执行命令时必须验证结果，不能假设成功
+- 遇到错误不轻易放弃，要像硬骨头一样坚持到底
+- 每个问题都要问：为什么会发生？根本原因是什么？如何彻底解决？
+
 ## Git Workflow
 
 **自动提交规则 (必须遵循):**
