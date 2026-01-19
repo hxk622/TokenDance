@@ -318,6 +318,18 @@ export const useExecutionStore = defineStore('execution', () => {
         onReplayEnd: (replayedCount: number) => {
           console.log('[ExecutionStore] SSE replay ended, replayed', replayedCount, 'events')
         },
+        // P1-1: Refresh SSE token on reconnection (tokens are single-use)
+        onTokenRefresh: async () => {
+          if (!sessionId.value) return null
+          try {
+            const tokenResponse = await sessionService.getSSEToken(sessionId.value)
+            console.log('[ExecutionStore] SSE token refreshed for reconnection')
+            return tokenResponse.sse_token
+          } catch (err: any) {
+            console.warn('[ExecutionStore] Failed to refresh SSE token:', err.message)
+            return null
+          }
+        },
       },
       false,     // useDemo
       task,      // task parameter

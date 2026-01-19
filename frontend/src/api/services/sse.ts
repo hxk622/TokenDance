@@ -200,6 +200,8 @@ export interface SSEOptions {
   onReplayStart?: (lastSeq: number) => void
   /** P1-3: Callback when replay ends */
   onReplayEnd?: (replayedCount: number) => void
+  /** P1-1: Callback to refresh SSE token on reconnection (tokens are single-use) */
+  onTokenRefresh?: () => Promise<string | null>
 }
 
 /**
@@ -257,6 +259,7 @@ export class SSEConnection {
       maxReconnectAttempts: options.maxReconnectAttempts || 10,
       onReplayStart: options.onReplayStart || (() => {}),
       onReplayEnd: options.onReplayEnd || (() => {}),
+      onTokenRefresh: options.onTokenRefresh || (async () => null),
     }
   }
   
@@ -379,10 +382,21 @@ export class SSEConnection {
               
               this.eventSource?.close()
               
-              // P1-3: Update URL with last_seq for replay
-              this.url = this.buildUrl()
-              
-              this.reconnectTimer = setTimeout(() => {
+              this.reconnectTimer = setTimeout(async () => {
+                // P1-1: Refresh SSE token before reconnecting (tokens are single-use)
+                try {
+                  const newToken = await this.options.onTokenRefresh()
+                  if (newToken) {
+                    this.sseToken = newToken
+                    console.log('[SSE] Token refreshed for reconnection')
+                  }
+                } catch (err) {
+                  console.warn('[SSE] Failed to refresh token:', err)
+                }
+                
+                // P1-3: Update URL with last_seq for replay and new token
+                this.url = this.buildUrl()
+                
                 this.connect()
               }, cappedDelay)
             } else if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
