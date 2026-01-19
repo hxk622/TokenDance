@@ -8,10 +8,13 @@ import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.
 import PreviewArea from '@/components/execution/PreviewArea.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import BrowserPip from '@/components/execution/BrowserPip.vue'
+import InfoCollectionStage from '@/components/execution/InfoCollectionStage.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
 import AnyButton from '@/components/common/AnyButton.vue'
 import { useExecutionStore } from '@/stores/execution'
+import { sessionService } from '@/api/services/session'
+import type { IntentValidationResponse } from '@/api/services/session'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
 import {
   Home, History, FolderOpen, Settings, Search, LayoutGrid,
@@ -23,6 +26,13 @@ const route = useRoute()
 const router = useRouter()
 const sessionId = ref(route.params.id as string)
 const initialTask = ref(route.query.task as string | null)
+
+// Execution stage management
+type ExecutionStage = 'info-collection' | 'executing' | 'completed'
+const executionStage = ref<ExecutionStage>('executing')
+const preflightLoading = ref(false)
+const preflightResult = ref<IntentValidationResponse | null>(null)
+const finalTaskInput = ref('')
 
 // Sidebar state
 const sidebarCollapsed = ref(true) // Default collapsed for execution page
@@ -268,6 +278,54 @@ onUnmounted(() => {
   }
 })
 
+// Run preflight check to validate task intent
+async function runPreflightCheck(taskInput: string) {
+  preflightLoading.value = true
+  try {
+    const result = await sessionService.validateIntent({
+      user_input: taskInput,
+      context: { session_id: sessionId.value }
+    })
+    preflightResult.value = result
+    return result
+  } catch (error) {
+    console.error('[ExecutionPage] Preflight check failed:', error)
+    // Fallback: allow execution if preflight fails
+    const fallbackResult: IntentValidationResponse = {
+      is_complete: true,
+      confidence_score: 0.0,
+      missing_info: [],
+      suggested_questions: [],
+      reasoning: '预检查失败，将继续执行'
+    }
+    preflightResult.value = fallbackResult
+    return fallbackResult
+  } finally {
+    preflightLoading.value = false
+  }
+}
+
+// Handle info collection stage completion
+function handleInfoCollectionProceed(updatedInput?: string) {
+  finalTaskInput.value = updatedInput || initialTask.value || ''
+  executionStage.value = 'executing'
+  
+  // Now start the actual execution
+  startActualExecution(finalTaskInput.value)
+}
+
+// Handle info collection cancellation - go back to home
+function handleInfoCollectionCancel() {
+  router.push('/')
+}
+
+// Start the actual agent execution
+function startActualExecution(taskInput: string) {
+  executionStore.sessionId = sessionId.value
+  executionStore.connectSSE(taskInput)
+  startElapsedTimer()
+}
+
 // Initialize execution
 async function initializeExecution() {
   try {
@@ -276,7 +334,7 @@ async function initializeExecution() {
       throw new Error('Session ID is required')
     }
 
-    // For demo session, skip loading and just connect SSE
+    // For demo session, skip preflight and loading
     if (sessionId.value.startsWith('demo')) {
       // Initialize demo workflow
       executionStore.nodes = [
@@ -290,30 +348,43 @@ async function initializeExecution() {
         { id: 'e2', from: '2', to: '3', type: 'context', active: false },
         { id: 'e3', from: '3', to: '4', type: 'result', active: false },
       ]
-    } else {
-      // Load real session
-      await executionStore.loadSession(sessionId.value)
-
-      // Check for fatal errors (session not found)
-      if (executionStore.sseConnectionState === 'fatal_error') {
-        console.error('[ExecutionPage] Session not found, redirecting to home')
-        setTimeout(() => {
-          router.push('/')
-        }, 2000) // Give user 2s to see the error
-        return
-      }
+      executionStage.value = 'executing'
+      startActualExecution(initialTask.value || '')
+      return
     }
 
-    // Connect SSE stream with task (triggers agent execution if task provided)
-    executionStore.sessionId = sessionId.value
-    executionStore.connectSSE(initialTask.value)
+    // Load real session
+    await executionStore.loadSession(sessionId.value)
 
-    // Start elapsed timer
-    startElapsedTimer()
+    // Check for fatal errors (session not found)
+    if (executionStore.sseConnectionState === 'fatal_error') {
+      console.error('[ExecutionPage] Session not found, redirecting to home')
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
+      return
+    }
+
+    // If there's an initial task, run preflight check
+    if (initialTask.value) {
+      executionStage.value = 'info-collection'
+      const result = await runPreflightCheck(initialTask.value)
+      
+      // If intent is complete with high confidence, skip info collection
+      if (result.is_complete && result.confidence_score >= 0.8) {
+        executionStage.value = 'executing'
+        startActualExecution(initialTask.value)
+      }
+      // Otherwise stay in info-collection stage for user review
+    } else {
+      // No initial task, go directly to executing stage
+      executionStage.value = 'executing'
+      startActualExecution('')
+    }
   } catch (error) {
     console.error('[ExecutionPage] Failed to initialize execution:', error)
     executionStore.error = error instanceof Error ? error.message : '初始化失败'
-    throw error // Re-throw to be caught by onMounted
+    throw error
   }
 }
 
@@ -546,398 +617,417 @@ onUnmounted(() => {
 
 <template>
   <div class="execution-page">
-    <!-- Sidebar -->
-    <AnySidebar
-      v-model:collapsed="sidebarCollapsed"
-      :sections="sidebarSections"
-      :show-footer="true"
-      @nav-click="handleNavClick"
-      @new-click="handleNewClick"
-    >
-      <template #footer>
-        <button
-          class="any-sidebar__footer-btn"
-          title="设置"
-        >
-          <Settings class="w-5 h-5" />
-        </button>
-      </template>
-    </AnySidebar>
+    <!-- Info Collection Stage (Phase 1) -->
+    <Transition name="stage-fade">
+      <InfoCollectionStage
+        v-if="executionStage === 'info-collection'"
+        :user-input="initialTask || ''"
+        :is-complete="preflightResult?.is_complete ?? true"
+        :confidence-score="preflightResult?.confidence_score ?? 0"
+        :missing-info="preflightResult?.missing_info ?? []"
+        :suggested-questions="preflightResult?.suggested_questions ?? []"
+        :reasoning="preflightResult?.reasoning"
+        :loading="preflightLoading"
+        @proceed="handleInfoCollectionProceed"
+        @cancel="handleInfoCollectionCancel"
+      />
+    </Transition>
 
-    <!-- Main execution area -->
-    <div
-      class="execution-main"
-      :class="{ 'sidebar-collapsed': sidebarCollapsed }"
-    >
-      <!-- Header with Plan Recitation -->
-      <header class="execution-header">
-        <div class="task-info">
-          <h1 class="task-title">
-            Deep Research: AI Agent 市场分析
-          </h1>
-          <div class="status-indicator">
-            <span :class="['status-badge', sessionStatus]">
-              {{ sessionStatus === 'running' ? '执行中' : 
-                sessionStatus === 'completed' ? '已完成' : 
-                sessionStatus === 'error' ? '错误' : '准备中' }}
-            </span>
-            <span class="time">已执行 {{ elapsedTime }}</span>
-          </div>
-        </div>
-        
-        <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
-        <div class="plan-progress">
-          <!-- Circular Progress Ring (or Spinner for preparing state) -->
-          <div class="progress-ring">
-            <!-- Preparing state: Indeterminate spinner -->
-            <svg
-              v-if="isPreparing"
-              viewBox="0 0 36 36"
-              class="preparing-spinner"
-            >
-              <circle
-                class="spinner-track"
-                cx="18"
-                cy="18"
-                r="16"
-              />
-              <circle
-                class="spinner-fill"
-                cx="18"
-                cy="18"
-                r="16"
-              />
-            </svg>
-            <!-- Normal state: Progress ring -->
-            <svg
-              v-else
-              viewBox="0 0 36 36"
-            >
-              <defs>
-                <linearGradient
-                  id="progress-gradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop
-                    offset="0%"
-                    stop-color="#00D9FF"
-                  />
-                  <stop
-                    offset="100%"
-                    stop-color="#00FF88"
-                  />
-                </linearGradient>
-              </defs>
-              <circle
-                class="bg"
-                cx="18"
-                cy="18"
-                r="16"
-              />
-              <circle
-                class="fill"
-                cx="18"
-                cy="18"
-                r="16"
-                :stroke-dasharray="`${progressPercent} 100`"
-              />
-            </svg>
-            <span
-              v-if="!isPreparing"
-              class="percent"
-            >{{ progressPercent }}%</span>
-          </div>
-          <!-- Step Info -->
-          <div class="progress-step">
-            <span class="step-label">{{ stepDisplayText }}</span>
-            <span class="step-name">{{ currentStepLabel }}</span>
-          </div>
-        </div>
-        
-        <div class="header-actions">
-          <AnyButton
-            variant="secondary"
-            :disabled="!isRunning || isRequestingIntervention"
-            :title="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
-            :aria-label="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
-            @click="requestIntervention"
+    <!-- Main Execution UI (Phase 2) -->
+    <template v-if="executionStage === 'executing' || executionStage === 'completed'">
+      <!-- Sidebar -->
+      <AnySidebar
+        v-model:collapsed="sidebarCollapsed"
+        :sections="sidebarSections"
+        :show-footer="true"
+        @nav-click="handleNavClick"
+        @new-click="handleNewClick"
+      >
+        <template #footer>
+          <button
+            class="any-sidebar__footer-btn"
+            title="设置"
           >
-            <PauseCircle
-              class="w-4 h-4"
-              aria-hidden="true"
-            />
-            <span>介入</span>
-          </AnyButton>
-          <AnyButton
-            variant="ghost"
-            class="btn-stop"
-            :title="'终止任务执行'"
-            :aria-label="'终止任务执行'"
-            @click="handleStop"
-          >
-            <StopCircle
-              class="w-4 h-4"
-              aria-hidden="true"
-            />
-            <span>终止</span>
-          </AnyButton>
-        </div>
-      </header>
+            <Settings class="w-5 h-5" />
+          </button>
+        </template>
+      </AnySidebar>
 
-      <!-- Error Banner -->
-      <Transition name="slide-down">
-        <div
-          v-if="sessionStatus === 'error' || sseError"
-          class="error-banner"
-          role="alert"
-          aria-live="assertive"
-        >
-          <div class="error-left">
-            <ExclamationTriangleIcon
-              class="error-icon"
-              aria-hidden="true"
-            />
-            <div class="error-content">
-              <span class="error-title">执行出错</span>
-              <span class="error-message">{{ executionStore.error || sseError || '未知错误' }}</span>
+      <!-- Main execution area -->
+      <div
+        class="execution-main"
+        :class="{ 'sidebar-collapsed': sidebarCollapsed }"
+      >
+        <!-- Header with Plan Recitation -->
+        <header class="execution-header">
+          <div class="task-info">
+            <h1 class="task-title">
+              Deep Research: AI Agent 市场分析
+            </h1>
+            <div class="status-indicator">
+              <span :class="['status-badge', sessionStatus]">
+                {{ sessionStatus === 'running' ? '执行中' : 
+                  sessionStatus === 'completed' ? '已完成' : 
+                  sessionStatus === 'error' ? '错误' : '准备中' }}
+              </span>
+              <span class="time">已执行 {{ elapsedTime }}</span>
             </div>
           </div>
-          <div class="error-right">
+        
+          <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
+          <div class="plan-progress">
+            <!-- Circular Progress Ring (or Spinner for preparing state) -->
+            <div class="progress-ring">
+              <!-- Preparing state: Indeterminate spinner -->
+              <svg
+                v-if="isPreparing"
+                viewBox="0 0 36 36"
+                class="preparing-spinner"
+              >
+                <circle
+                  class="spinner-track"
+                  cx="18"
+                  cy="18"
+                  r="16"
+                />
+                <circle
+                  class="spinner-fill"
+                  cx="18"
+                  cy="18"
+                  r="16"
+                />
+              </svg>
+              <!-- Normal state: Progress ring -->
+              <svg
+                v-else
+                viewBox="0 0 36 36"
+              >
+                <defs>
+                  <linearGradient
+                    id="progress-gradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="0%"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="#00D9FF"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="#00FF88"
+                    />
+                  </linearGradient>
+                </defs>
+                <circle
+                  class="bg"
+                  cx="18"
+                  cy="18"
+                  r="16"
+                />
+                <circle
+                  class="fill"
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  :stroke-dasharray="`${progressPercent} 100`"
+                />
+              </svg>
+              <span
+                v-if="!isPreparing"
+                class="percent"
+              >{{ progressPercent }}%</span>
+            </div>
+            <!-- Step Info -->
+            <div class="progress-step">
+              <span class="step-label">{{ stepDisplayText }}</span>
+              <span class="step-name">{{ currentStepLabel }}</span>
+            </div>
+          </div>
+        
+          <div class="header-actions">
             <AnyButton
-              variant="ghost"
-              size="sm"
-              aria-label="重试任务执行"
-              @click="handleRetry"
+              variant="secondary"
+              :disabled="!isRunning || isRequestingIntervention"
+              :title="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
+              :aria-label="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
+              @click="requestIntervention"
             >
-              <span>重试</span>
-            </AnyButton>
-            <AnyButton
-              variant="ghost"
-              size="sm"
-              aria-label="关闭错误提示"
-              @click="dismissError"
-            >
-              <X
+              <PauseCircle
                 class="w-4 h-4"
                 aria-hidden="true"
               />
+              <span>介入</span>
+            </AnyButton>
+            <AnyButton
+              variant="ghost"
+              class="btn-stop"
+              :title="'终止任务执行'"
+              :aria-label="'终止任务执行'"
+              @click="handleStop"
+            >
+              <StopCircle
+                class="w-4 h-4"
+                aria-hidden="true"
+              />
+              <span>终止</span>
             </AnyButton>
           </div>
-        </div>
-      </Transition>
+        </header>
 
-      <!-- Focus Mode Banner with Breadcrumb -->
-      <Transition name="slide-down">
-        <div
-          v-if="isFocusMode"
-          class="focus-mode-banner"
-          role="status"
-          aria-live="polite"
-        >
-          <div class="focus-left">
-            <Search
-              class="focus-icon"
-              aria-hidden="true"
-            />
-            <div class="focus-breadcrumb">
-              <button
-                class="breadcrumb-item"
-                aria-label="退出聚焦模式，返回执行流程"
+        <!-- Error Banner -->
+        <Transition name="slide-down">
+          <div
+            v-if="sessionStatus === 'error' || sseError"
+            class="error-banner"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div class="error-left">
+              <ExclamationTriangleIcon
+                class="error-icon"
+                aria-hidden="true"
+              />
+              <div class="error-content">
+                <span class="error-title">执行出错</span>
+                <span class="error-message">{{ executionStore.error || sseError || '未知错误' }}</span>
+              </div>
+            </div>
+            <div class="error-right">
+              <AnyButton
+                variant="ghost"
+                size="sm"
+                aria-label="重试任务执行"
+                @click="handleRetry"
+              >
+                <span>重试</span>
+              </AnyButton>
+              <AnyButton
+                variant="ghost"
+                size="sm"
+                aria-label="关闭错误提示"
+                @click="dismissError"
+              >
+                <X
+                  class="w-4 h-4"
+                  aria-hidden="true"
+                />
+              </AnyButton>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Focus Mode Banner with Breadcrumb -->
+        <Transition name="slide-down">
+          <div
+            v-if="isFocusMode"
+            class="focus-mode-banner"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="focus-left">
+              <Search
+                class="focus-icon"
+                aria-hidden="true"
+              />
+              <div class="focus-breadcrumb">
+                <button
+                  class="breadcrumb-item"
+                  aria-label="退出聚焦模式，返回执行流程"
+                  @click="exitFocusMode"
+                >
+                  执行流程
+                </button>
+                <span
+                  class="breadcrumb-separator"
+                  aria-hidden="true"
+                >/</span>
+                <span class="breadcrumb-current">
+                  节点 {{ focusedNodeId }}
+                </span>
+              </div>
+            </div>
+            <div class="focus-right">
+              <span
+                class="focus-hint"
+                aria-hidden="true"
+              >按 ESC 退出</span>
+              <AnyButton
+                variant="ghost"
+                size="sm"
+                aria-label="退出聚焦模式"
                 @click="exitFocusMode"
               >
-                执行流程
-              </button>
-              <span
-                class="breadcrumb-separator"
-                aria-hidden="true"
-              >/</span>
-              <span class="breadcrumb-current">
-                节点 {{ focusedNodeId }}
-              </span>
+                <X
+                  class="w-4 h-4"
+                  aria-hidden="true"
+                />
+                <span>退出聚焦</span>
+              </AnyButton>
             </div>
           </div>
-          <div class="focus-right">
-            <span
-              class="focus-hint"
-              aria-hidden="true"
-            >按 ESC 退出</span>
-            <AnyButton
-              variant="ghost"
-              size="sm"
-              aria-label="退出聚焦模式"
-              @click="exitFocusMode"
+        </Transition>
+      
+        <!-- 任务完成庆祝 -->
+        <Transition name="celebration-fade">
+          <div
+            v-if="showCompletionCelebration"
+            class="completion-celebration"
+          >
+            <div class="celebration-content">
+              <Check class="celebration-icon" />
+              <h2 class="celebration-title">
+                任务完成！
+              </h2>
+              <p class="celebration-desc">
+                报告已生成，可在右侧查看
+              </p>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Panel Toggle (Compact Mode) -->
+        <div
+          v-if="isCompactMode"
+          class="panel-toggle"
+        >
+          <button 
+            :class="['toggle-btn', { active: activePanel === 'left' }]" 
+            @click="activePanel = 'left'"
+          >
+            <LayoutGrid class="w-4 h-4" />
+            <span>执行跟踪</span>
+          </button>
+          <button 
+            :class="['toggle-btn', { active: activePanel === 'right' }]" 
+            @click="activePanel = 'right'"
+          >
+            <FolderOpen class="w-4 h-4" />
+            <span>成果预览</span>
+          </button>
+        </div>
+
+        <!-- Loading Overlay -->
+        <Transition name="fade">
+          <div
+            v-if="executionStore.isLoading"
+            class="loading-overlay"
+          >
+            <div class="loading-content">
+              <div class="loading-spinner" />
+              <p class="loading-text">
+                加载任务执行环境...
+              </p>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Main Content -->
+        <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
+          <!-- Left Panel: Execution Area -->
+          <div
+            class="left-panel"
+            :class="{ hidden: isCompactMode && activePanel !== 'left' }"
+            :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
+          >
+            <!-- Collapse Toggle Button -->
+            <button
+              class="collapse-toggle"
+              :class="{ collapsed: isCollapsed }"
+              :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+              :aria-label="isCollapsed ? '展开工作流图' : '折叠工作流图'"
+              :aria-expanded="!isCollapsed"
+              @click="toggleCollapse"
             >
-              <X
+              <component
+                :is="isCollapsed ? ChevronDown : ChevronUp"
                 class="w-4 h-4"
                 aria-hidden="true"
               />
-              <span>退出聚焦</span>
-            </AnyButton>
-          </div>
-        </div>
-      </Transition>
-      
-      <!-- 任务完成庆祝 -->
-      <Transition name="celebration-fade">
-        <div
-          v-if="showCompletionCelebration"
-          class="completion-celebration"
-        >
-          <div class="celebration-content">
-            <Check class="celebration-icon" />
-            <h2 class="celebration-title">
-              任务完成！
-            </h2>
-            <p class="celebration-desc">
-              报告已生成，可在右侧查看
-            </p>
-          </div>
-        </div>
-      </Transition>
+            </button>
 
-      <!-- Panel Toggle (Compact Mode) -->
-      <div
-        v-if="isCompactMode"
-        class="panel-toggle"
-      >
-        <button 
-          :class="['toggle-btn', { active: activePanel === 'left' }]" 
-          @click="activePanel = 'left'"
-        >
-          <LayoutGrid class="w-4 h-4" />
-          <span>执行跟踪</span>
-        </button>
-        <button 
-          :class="['toggle-btn', { active: activePanel === 'right' }]" 
-          @click="activePanel = 'right'"
-        >
-          <FolderOpen class="w-4 h-4" />
-          <span>成果预览</span>
-        </button>
-      </div>
+            <!-- Top: Workflow Graph -->
+            <div 
+              class="workflow-graph-container" 
+              :class="{ collapsed: isCollapsed }"
+              :style="{ height: isCollapsed ? `${collapsedHeight}px` : `${topHeight}%` }"
+            >
+              <WorkflowGraph 
+                :session-id="sessionId" 
+                :mini-mode="isCollapsed || isCompactMode"
+                @node-click="handleNodeClick"
+                @node-double-click="handleNodeDoubleClick"
+              />
+            </div>
 
-      <!-- Loading Overlay -->
-      <Transition name="fade">
-        <div
-          v-if="executionStore.isLoading"
-          class="loading-overlay"
-        >
-          <div class="loading-content">
-            <div class="loading-spinner" />
-            <p class="loading-text">
-              加载任务执行环境...
-            </p>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- Main Content -->
-      <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
-        <!-- Left Panel: Execution Area -->
-        <div
-          class="left-panel"
-          :class="{ hidden: isCompactMode && activePanel !== 'left' }"
-          :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
-        >
-          <!-- Collapse Toggle Button -->
-          <button
-            class="collapse-toggle"
-            :class="{ collapsed: isCollapsed }"
-            :title="isCollapsed ? '展开工作流' : '折叠工作流'"
-            :aria-label="isCollapsed ? '展开工作流图' : '折叠工作流图'"
-            :aria-expanded="!isCollapsed"
-            @click="toggleCollapse"
-          >
-            <component
-              :is="isCollapsed ? ChevronDown : ChevronUp"
-              class="w-4 h-4"
-              aria-hidden="true"
+            <!-- Vertical Divider (hidden when collapsed) -->
+            <ResizableDivider
+              v-if="!isCollapsed && !isCompactMode"
+              direction="vertical"
+              @resize="handleVerticalDrag"
+              @reset="resetVerticalRatio"
             />
-          </button>
 
-          <!-- Top: Workflow Graph -->
-          <div 
-            class="workflow-graph-container" 
-            :class="{ collapsed: isCollapsed }"
-            :style="{ height: isCollapsed ? `${collapsedHeight}px` : `${topHeight}%` }"
-          >
-            <WorkflowGraph 
-              :session-id="sessionId" 
-              :mini-mode="isCollapsed || isCompactMode"
-              @node-click="handleNodeClick"
-              @node-double-click="handleNodeDoubleClick"
-            />
+            <!-- Bottom: Streaming Info -->
+            <div 
+              class="streaming-info-container" 
+              :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
+            >
+              <StreamingInfo 
+                ref="streamingInfoRef"
+                :session-id="sessionId" 
+              />
+            </div>
           </div>
 
-          <!-- Vertical Divider (hidden when collapsed) -->
+          <!-- Horizontal Divider (hidden in compact mode) -->
           <ResizableDivider
-            v-if="!isCollapsed && !isCompactMode"
-            direction="vertical"
-            @resize="handleVerticalDrag"
-            @reset="resetVerticalRatio"
+            v-if="!isCompactMode"
+            direction="horizontal"
+            @resize="handleHorizontalDrag"
+            @reset="resetHorizontalRatio"
           />
 
-          <!-- Bottom: Streaming Info -->
+          <!-- Right Panel: Preview Area -->
           <div 
-            class="streaming-info-container" 
-            :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
+            class="right-panel" 
+            :class="{ hidden: isCompactMode && activePanel !== 'right' }"
+            :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
           >
-            <StreamingInfo 
-              ref="streamingInfoRef"
+            <ArtifactTabs 
+              v-model:current-tab="currentTab" 
+              :session-id="sessionId"
+              :task-type="taskType"
+              @tab-change="handleTabChange"
+            />
+            <PreviewArea 
               :session-id="sessionId" 
+              :current-tab="currentTab"
+              :is-executing="isRunning"
             />
           </div>
-        </div>
-
-        <!-- Horizontal Divider (hidden in compact mode) -->
-        <ResizableDivider
-          v-if="!isCompactMode"
-          direction="horizontal"
-          @resize="handleHorizontalDrag"
-          @reset="resetHorizontalRatio"
+        </main>
+      
+        <!-- HITL 干预弹窗 -->
+        <HITLConfirmDialog
+          :visible="showHITLDialog"
+          :request="currentHITLRequest"
+          @close="handleHITLClose"
+          @confirmed="handleHITLConfirmed"
         />
-
-        <!-- Right Panel: Preview Area -->
-        <div 
-          class="right-panel" 
-          :class="{ hidden: isCompactMode && activePanel !== 'right' }"
-          :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
-        >
-          <ArtifactTabs 
-            v-model:current-tab="currentTab" 
-            :session-id="sessionId"
-            :task-type="taskType"
-            @tab-change="handleTabChange"
-          />
-          <PreviewArea 
-            :session-id="sessionId" 
-            :current-tab="currentTab"
-            :is-executing="isRunning"
-          />
-        </div>
-      </main>
       
-      <!-- HITL 干预弹窗 -->
-      <HITLConfirmDialog
-        :visible="showHITLDialog"
-        :request="currentHITLRequest"
-        @close="handleHITLClose"
-        @confirmed="handleHITLConfirmed"
-      />
-      
-      <!-- 浏览器画中画 -->
-      <BrowserPip
-        :visible="showBrowserPip && isRunning"
-        :url="browserPipUrl"
-        :screenshot="browserPipScreenshot"
-        title="Manus 浏览器"
-        @close="closeBrowserPip"
-        @open-url="openBrowserUrl"
-      />
-    </div>
+        <!-- 浏览器画中画 -->
+        <BrowserPip
+          :visible="showBrowserPip && isRunning"
+          :url="browserPipUrl"
+          :screenshot="browserPipScreenshot"
+          title="Manus 浏览器"
+          @close="closeBrowserPip"
+          @open-url="openBrowserUrl"
+        />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -1794,4 +1884,19 @@ onUnmounted(() => {
   }
 }
 
+/* Stage Fade Transition - for switching between info-collection and executing */
+.stage-fade-enter-active,
+.stage-fade-leave-active {
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+
+.stage-fade-enter-from {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+.stage-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.98);
+}
 </style>

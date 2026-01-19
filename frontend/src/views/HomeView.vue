@@ -13,9 +13,6 @@ import {
   Sun, Moon, Monitor
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
-import PreflightDialog from '@/components/execution/PreflightDialog.vue'
-import { sessionService } from '@/api/services/session'
-import type { IntentValidationResponse } from '@/api/services/session'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -31,12 +28,6 @@ const activeCategory = ref('all')
 const errorMessage = ref('')
 const showUserMenu = ref(false)
 const showThemeMenu = ref(false)
-
-// Pre-flight check state
-const showPreflightDialog = ref(false)
-const preflightLoading = ref(false)
-const preflightResult = ref<IntentValidationResponse | null>(null)
-const pendingInput = ref('')
 
 // 主题选项
 const themeOptions: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
@@ -170,71 +161,7 @@ const filteredTemplates = computed(() => {
 // Placeholder 提示
 const placeholderText = '描述你要完成的任务...'
 
-// 执行预检查
-const runPreflightCheck = async (input: string) => {
-  preflightLoading.value = true
-  showPreflightDialog.value = true
-  try {
-    const result = await sessionService.validateIntent({
-      user_input: input,
-      context: {
-        workspace: sessionStore.currentWorkspaceId || 'default'
-      }
-    })
-    preflightResult.value = result
-  } catch (error) {
-    console.error('Preflight check failed:', error)
-    // Fallback: allow execution if preflight fails
-    preflightResult.value = {
-      is_complete: true,
-      confidence_score: 0.0,
-      missing_info: [],
-      suggested_questions: [],
-      reasoning: '预检查失败，将继续执行'
-    }
-  } finally {
-    preflightLoading.value = false
-  }
-}
-
-// 处理预检查对话框的确认
-const handlePreflightProceed = async (updatedInput?: string) => {
-  const finalInput = updatedInput || pendingInput.value
-  showPreflightDialog.value = false
-  await createSessionAndNavigate(finalInput)
-}
-
-// 处理预检查对话框的取消
-const handlePreflightCancel = () => {
-  showPreflightDialog.value = false
-  pendingInput.value = ''
-  preflightResult.value = null
-}
-
-// 创建 session 并跳转
-const createSessionAndNavigate = async (taskInput: string) => {
-  isLoading.value = true
-  try {
-    const workspaceId = sessionStore.currentWorkspaceId || 'default'
-    
-    const session = await sessionStore.createSession({
-      workspace_id: workspaceId,
-      title: taskInput.slice(0, 50)
-    })
-    
-    router.push({
-      path: `/execution/${session.id}`,
-      query: { task: taskInput }
-    })
-  } catch (error) {
-    console.error('Failed to create session:', error)
-    showError('哎呀，遇到了一点小问题，请稍后再试试看 😅')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// 处理提交 - 运行预检查然后创建 session
+// 处理提交 - 直接创建 session 并跳转到执行页，预检查在执行页进行
 const handleSubmit = async () => {
   if (!inputValue.value.trim() || isLoading.value) return
   
@@ -242,9 +169,26 @@ const handleSubmit = async () => {
   const canProceed = await requireAuth('请先登录后发送请求')
   if (!canProceed) return
   
-  // 运行预检查
-  pendingInput.value = inputValue.value
-  await runPreflightCheck(inputValue.value)
+  isLoading.value = true
+  try {
+    const workspaceId = sessionStore.currentWorkspaceId || 'default'
+    
+    const session = await sessionStore.createSession({
+      workspace_id: workspaceId,
+      title: inputValue.value.slice(0, 50)
+    })
+    
+    // 跳转到执行页，预检查将在执行页进行
+    router.push({
+      path: `/execution/${session.id}`,
+      query: { task: inputValue.value }
+    })
+  } catch (error) {
+    console.error('Failed to create session:', error)
+    showError('哎呀，遇到了一点小问题，请稍后再试试看 😅')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // 处理键盘事件
@@ -731,20 +675,6 @@ onUnmounted(() => {
         </div>
       </section>
     </main>
-    
-    <!-- Pre-flight Dialog -->
-    <PreflightDialog
-      v-model="showPreflightDialog"
-      :user-input="pendingInput"
-      :is-complete="preflightResult?.is_complete ?? true"
-      :confidence-score="preflightResult?.confidence_score ?? 0"
-      :missing-info="preflightResult?.missing_info ?? []"
-      :suggested-questions="preflightResult?.suggested_questions ?? []"
-      :reasoning="preflightResult?.reasoning"
-      :loading="preflightLoading"
-      @proceed="handlePreflightProceed"
-      @cancel="handlePreflightCancel"
-    />
   </div>
 </template>
 
