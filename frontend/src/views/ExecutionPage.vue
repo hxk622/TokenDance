@@ -27,6 +27,20 @@ const router = useRouter()
 const sessionId = ref(route.params.id as string)
 const initialTask = ref(route.query.task as string | null)
 
+// Task title - AI summary or first 30 chars of query
+const taskTitle = computed(() => {
+  // Priority: session title from store > initial task truncated
+  const sessionTitle = executionStore.session?.title
+  if (sessionTitle) return sessionTitle
+  
+  if (initialTask.value) {
+    return initialTask.value.length > 30 
+      ? initialTask.value.slice(0, 30) + '...' 
+      : initialTask.value
+  }
+  return '新任务'
+})
+
 // Execution stage management
 type ExecutionStage = 'info-collection' | 'executing' | 'completed'
 const executionStage = ref<ExecutionStage>('executing')
@@ -634,6 +648,11 @@ onUnmounted(() => {
 
     <!-- Fixed Header (always visible) -->
     <AnyHeader />
+    
+    <!-- Task Title (top-left, next to sidebar) -->
+    <div class="task-title-bar">
+      <h1 class="task-title-text">{{ taskTitle }}</h1>
+    </div>
 
     <!-- Main Execution UI (Phase 2) -->
     <template v-if="executionStage === 'executing' || executionStage === 'completed'">
@@ -1053,6 +1072,25 @@ onUnmounted(() => {
   --exec-success: #00FF88;
   --exec-warning: #FFB800;
   --exec-error: #FF3B30;
+}
+
+/* Task title bar - fixed top-left */
+.task-title-bar {
+  position: fixed;
+  top: 12px;
+  left: 72px; /* sidebar width (56px) + gap (16px) */
+  z-index: 100;
+}
+
+.task-title-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
 }
 
 /* Main area with sidebar offset */
