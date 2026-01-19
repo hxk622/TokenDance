@@ -104,7 +104,7 @@ class WebSocketConfirmationService(ConfirmationService):
         try:
             result = await asyncio.wait_for(future, timeout=request.timeout_seconds)
             return result
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"确认超时: {request.request_id}")
             raise ConfirmationTimeoutError(f"确认超时 ({request.timeout_seconds}s)")
         finally:

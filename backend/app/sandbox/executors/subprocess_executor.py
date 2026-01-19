@@ -93,7 +93,7 @@ class SubprocessExecutor(BaseSandboxExecutor):
                 stdout, stderr = await asyncio.wait_for(
                     process.communicate(), timeout=request.timeout
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 process.kill()
                 await process.wait()
                 raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
@@ -130,7 +130,7 @@ class SubprocessExecutor(BaseSandboxExecutor):
                 stdout, stderr = await asyncio.wait_for(
                     process.communicate(), timeout=request.timeout
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 process.kill()
                 await process.wait()
                 raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
@@ -157,7 +157,7 @@ class SubprocessExecutor(BaseSandboxExecutor):
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(), timeout=request.timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
             raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")

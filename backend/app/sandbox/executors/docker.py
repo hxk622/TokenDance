@@ -152,7 +152,7 @@ class DockerSimpleSandbox(BaseSandboxExecutor):
                     loop.run_in_executor(None, lambda: container.wait(timeout=request.timeout)),
                     timeout=request.timeout + 5,  # 额外 5 秒用于 Docker 操作
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # 超时，强制停止
                 await loop.run_in_executor(None, lambda: container.stop(timeout=1))
                 raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
@@ -193,7 +193,7 @@ class DockerSimpleSandbox(BaseSandboxExecutor):
         max_bytes = request.max_output_bytes
         if len(output.encode("utf-8")) > max_bytes:
             truncated = output[: max_bytes // 2]
-            return truncated + f"\n\n... (输出过长，已截断)"
+            return truncated + "\n\n... (输出过长，已截断)"
         return output
 
     async def cleanup(self) -> None:
