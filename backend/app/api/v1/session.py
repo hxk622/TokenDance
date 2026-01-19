@@ -10,6 +10,7 @@ from app.core.dependencies import get_current_user, get_permission_service
 from app.models.session import SessionStatus
 from app.models.user import User
 from app.schemas.artifact import ArtifactList
+from app.schemas.intent import IntentValidationRequest, IntentValidationResponse
 from app.schemas.message import MessageList
 from app.schemas.session import (
     SessionCreate,
@@ -18,6 +19,7 @@ from app.schemas.session import (
     SessionResponse,
     SessionUpdate,
 )
+from app.services.intent_validation_service import IntentValidationService
 from app.services.permission_service import PermissionError, PermissionService
 from app.services.session_service import SessionService
 
@@ -244,3 +246,39 @@ async def get_session_artifacts(
         )
 
     return await service.get_session_artifacts(session_id)
+
+
+@router.post("/preflight", response_model=IntentValidationResponse)
+async def preflight_check(
+    data: IntentValidationRequest,
+):
+    """Pre-flight check to validate user intent completeness.
+
+    This endpoint analyzes user input to determine if it contains
+    sufficient information to execute a task. No authentication required.
+
+    Returns:
+        IntentValidationResponse: Validation results including:
+        - is_complete: Whether the intent is actionable
+        - confidence_score: Confidence in the validation (0-1)
+        - missing_info: List of missing critical information
+        - suggested_questions: Questions to clarify intent
+    """
+    try:
+        service = IntentValidationService()
+        return await service.validate_intent(data)
+    except ValueError as e:
+        # No LLM API key configured
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        # LLM call failed - return permissive response
+        return IntentValidationResponse(
+            is_complete=True,
+            confidence_score=0.0,
+            missing_info=[],
+            suggested_questions=[],
+            reasoning=f"验证服务暂不可用: {str(e)}",
+        )

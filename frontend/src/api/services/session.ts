@@ -99,6 +99,19 @@ export interface ArtifactListResponse {
   total: number
 }
 
+export interface IntentValidationRequest {
+  user_input: string
+  context?: Record<string, string>
+}
+
+export interface IntentValidationResponse {
+  is_complete: boolean
+  confidence_score: number
+  missing_info: string[]
+  suggested_questions: string[]
+  reasoning?: string
+}
+
 /**
  * Session API Service Class
  */
@@ -231,6 +244,17 @@ class SessionService {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `${this.basePath}/${sessionId}/stop`,
       { reason }
+    )
+    return response.data
+  }
+
+  /**
+   * Pre-flight check: Validate user intent completeness before creating session
+   */
+  async validateIntent(data: IntentValidationRequest): Promise<IntentValidationResponse> {
+    const response = await apiClient.post<IntentValidationResponse>(
+      `${this.basePath}/preflight`,
+      data
     )
     return response.data
   }
