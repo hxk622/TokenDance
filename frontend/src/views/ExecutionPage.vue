@@ -13,6 +13,7 @@ import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
 import AnyButton from '@/components/common/AnyButton.vue'
 import { useExecutionStore } from '@/stores/execution'
+import { useAuthStore } from '@/stores/auth'
 import { sessionService } from '@/api/services/session'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
@@ -77,6 +78,12 @@ const handleNewClick = () => {
 
 // Pinia Store
 const executionStore = useExecutionStore()
+const authStore = useAuthStore()
+
+// User initial for avatar
+const userInitial = computed(() => {
+  return authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U'
+})
 
 // Computed from store
 const isRunning = computed(() => executionStore.isRunning)
@@ -612,6 +619,13 @@ function openBrowserUrl(url: string) {
   window.open(url, '_blank')
 }
 
+// Handle chat message from StreamingInfo
+function handleChatMessage(message: string) {
+  console.log('Chat message received:', message)
+  // TODO: Send message to backend to supplement task execution
+  // executionStore.sendSupplementMessage(sessionId.value, message)
+}
+
 // ESC 键盘快捷键退出聚焦模式
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && isFocusMode.value) {
@@ -988,9 +1002,12 @@ onUnmounted(() => {
               class="streaming-info-container" 
               :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
             >
-              <StreamingInfo 
+            <StreamingInfo 
                 ref="streamingInfoRef"
-                :session-id="sessionId" 
+                :session-id="sessionId"
+                :user-query="initialTask || ''"
+                :user-initial="userInitial"
+                @send-message="handleChatMessage"
               />
             </div>
           </div>
