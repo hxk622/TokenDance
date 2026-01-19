@@ -96,7 +96,7 @@ class SubprocessExecutor(BaseSandboxExecutor):
             except TimeoutError:
                 process.kill()
                 await process.wait()
-                raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
+                raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)") from None
 
             return ExecutionResult(
                 success=process.returncode == 0,
@@ -133,7 +133,7 @@ class SubprocessExecutor(BaseSandboxExecutor):
             except TimeoutError:
                 process.kill()
                 await process.wait()
-                raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
+                raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)") from None
 
             return ExecutionResult(
                 success=process.returncode == 0,
@@ -160,7 +160,7 @@ class SubprocessExecutor(BaseSandboxExecutor):
         except TimeoutError:
             process.kill()
             await process.wait()
-            raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
+            raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)") from None
 
         return ExecutionResult(
             success=process.returncode == 0,

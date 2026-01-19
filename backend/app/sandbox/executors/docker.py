@@ -55,10 +55,12 @@ class DockerSimpleSandbox(BaseSandboxExecutor):
                 self._docker_client = docker.from_env()
                 # 测试连接
                 self._docker_client.ping()
-            except ImportError:
-                raise SandboxNotAvailableError("Docker SDK 未安装: pip install docker")
+            except ImportError as e:
+                raise SandboxNotAvailableError(
+                    "Docker SDK 未安装: pip install docker"
+                ) from e
             except Exception as e:
-                raise SandboxNotAvailableError(f"Docker 不可用: {e}")
+                raise SandboxNotAvailableError(f"Docker 不可用: {e}") from e
         return self._docker_client
 
     async def execute(self, request: ExecutionRequest) -> ExecutionResult:
@@ -155,10 +157,7 @@ class DockerSimpleSandbox(BaseSandboxExecutor):
             except TimeoutError:
                 # 超时，强制停止
                 await loop.run_in_executor(None, lambda: container.stop(timeout=1))
-                raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
-
-            # 获取输出
-            logs = await loop.run_in_executor(None, lambda: container.logs(stdout=True, stderr=True))
+                raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)") from None
 
             # 分离 stdout 和 stderr
             stdout_logs = await loop.run_in_executor(

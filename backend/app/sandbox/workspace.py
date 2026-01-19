@@ -86,8 +86,8 @@ class AgentWorkspace:
         # 4. 确保在 workspace 内
         try:
             resolved.relative_to(self.host_path.resolve())
-        except ValueError:
-            raise PathTraversalError(f"路径遍历检测: {relative} -> {resolved}")
+        except ValueError as e:
+            raise PathTraversalError(f"路径遍历检测: {relative} -> {resolved}") from e
 
         return resolved
 

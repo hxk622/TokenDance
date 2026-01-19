@@ -61,7 +61,7 @@ class AIOSandboxClient(BaseSandboxExecutor):
             self._sandbox_id = data.get("sandbox_id") or data.get("id")
             logger.info(f"AIO Sandbox 连接成功: {self._sandbox_id}")
         except httpx.HTTPError as e:
-            raise SandboxNotAvailableError(f"AIO Sandbox 连接失败: {e}")
+            raise SandboxNotAvailableError(f"AIO Sandbox 连接失败: {e}") from e
 
     async def disconnect(self) -> None:
         """断开连接"""
@@ -111,8 +111,8 @@ class AIOSandboxClient(BaseSandboxExecutor):
                 files_created=data.get("files_created", []),
             )
 
-        except httpx.TimeoutException:
-            raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)")
+        except httpx.TimeoutException as e:
+            raise SandboxTimeoutError(f"执行超时 ({request.timeout}s)") from e
         except httpx.HTTPStatusError as e:
             return ExecutionResult(
                 success=False,

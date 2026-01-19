@@ -28,5 +28,9 @@ class BaseSandboxExecutor(ABC):
         pass
 
     async def cleanup(self) -> None:
-        """清理资源"""
-        pass
+        """清理资源
+
+        子类可以覆写此方法以清理资源。
+        默认实现不做任何事情。
+        """
+        return None

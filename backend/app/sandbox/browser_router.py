@@ -138,12 +138,12 @@ class BrowserRouter:
                 from app.agent.tools.builtin.browser_ops import create_browser_session
 
                 return await create_browser_session(self.session_id)
-            except ImportError:
+            except ImportError as e:
                 logger.warning("browser_ops 模块不可用，回退到 AIO Sandbox")
                 if self._aio_sandbox:
                     self._current_backend = BrowserBackend.AIO_SANDBOX
                     return self._aio_sandbox
-                raise RuntimeError("没有可用的浏览器后端")
+                raise RuntimeError("没有可用的浏览器后端") from e
 
     async def _execute_action(self, action: BrowserAction) -> BrowserResult:
         """执行浏览器操作"""

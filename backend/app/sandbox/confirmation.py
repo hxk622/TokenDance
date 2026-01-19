@@ -106,7 +106,9 @@ class WebSocketConfirmationService(ConfirmationService):
             return result
         except TimeoutError:
             logger.warning(f"确认超时: {request.request_id}")
-            raise ConfirmationTimeoutError(f"确认超时 ({request.timeout_seconds}s)")
+            raise ConfirmationTimeoutError(
+                f"确认超时 ({request.timeout_seconds}s)"
+            ) from None
         finally:
             self._pending.pop(request.request_id, None)
 
