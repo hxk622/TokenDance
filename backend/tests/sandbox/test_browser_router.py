@@ -1,13 +1,60 @@
 """
 BrowserRouter 单元测试
+测试浏览器后端选择和切换。
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.sandbox.browser_router import BrowserRouter
-from app.sandbox.exceptions import SandboxError
+from app.sandbox.browser_router import BrowserAction, BrowserBackend, BrowserResult, BrowserRouter
+
+
+class TestBrowserBackend:
+    """BrowserBackend 枚举测试"""
+
+    def test_values(self):
+        """检查所有值"""
+        assert BrowserBackend.EXTERNAL.value == "external"
+        assert BrowserBackend.AIO_SANDBOX.value == "aio_sandbox"
+
+
+class TestBrowserAction:
+    """BrowserAction 测试"""
+
+    def test_create_action(self):
+        """创建操作"""
+        action = BrowserAction(action="navigate", params={"url": "https://example.com"})
+
+        assert action.action == "navigate"
+        assert action.params["url"] == "https://example.com"
+
+
+class TestBrowserResult:
+    """BrowserResult 测试"""
+
+    def test_success_result(self):
+        """成功结果"""
+        result = BrowserResult(success=True, data={"content": "Hello"})
+
+        assert result.success
+        assert result.data["content"] == "Hello"
+        assert result.error is None
+
+    def test_failure_result(self):
+        """失败结果"""
+        result = BrowserResult(success=False, error="浏览器无法连接")
+
+        assert not result.success
+        assert result.error == "浏览器无法连接"
+
+    def test_screenshot_result(self):
+        """截图结果"""
+        screenshot_data = b"\x89PNG\r\n\x1a\n"
+        result = BrowserResult(success=True, screenshot=screenshot_data)
+
+        assert result.success
+        assert result.screenshot == screenshot_data
 
 
 class TestBrowserRouter:
@@ -16,158 +63,97 @@ class TestBrowserRouter:
     @pytest.fixture
     def router(self) -> BrowserRouter:
         """创建路由器"""
-        return BrowserRouter()
+        return BrowserRouter(session_id="test_session")
 
-    # ==================== 单例测试 ====================
+    # ==================== 后端选择测试 ====================
 
-    def test_singleton_instance(self):
-        """确保单例"""
-        router1 = BrowserRouter()
-        router2 = BrowserRouter()
+    def test_select_backend_needs_file_access(self, router: BrowserRouter):
+        """需要文件访问时选择 AIO Sandbox"""
+        context = {"needs_file_access": True}
+        backend = router.select_backend(context)
 
-        assert router1 is router2
+        assert backend == BrowserBackend.AIO_SANDBOX
+
+    def test_select_backend_research_task(self, router: BrowserRouter):
+        """研究任务选择 AIO Sandbox"""
+        context = {"is_research": True}
+        backend = router.select_backend(context)
+
+        assert backend == BrowserBackend.AIO_SANDBOX
+
+    def test_select_backend_default(self, router: BrowserRouter):
+        """默认选择 External"""
+        context = {}
+        backend = router.select_backend(context)
+
+        assert backend == BrowserBackend.EXTERNAL
+
+    # ==================== 执行测试 ====================
+
+    @pytest.mark.asyncio
+    async def test_execute_no_browser(self, router: BrowserRouter):
+        """没有浏览器实例时尝试创建"""
+        action = BrowserAction(action="navigate", params={"url": "https://example.com"})
+
+        with patch.object(router, "_create_browser", new_callable=AsyncMock) as mock_create:
+            mock_browser = AsyncMock()
+            mock_create.return_value = mock_browser
+
+            with patch.object(router, "_execute_action", new_callable=AsyncMock) as mock_exec:
+                mock_exec.return_value = BrowserResult(success=True)
+
+                result = await router.execute(action, backend=BrowserBackend.EXTERNAL)
+
+                assert result.success
+                mock_create.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_aio_navigate(self, router: BrowserRouter):
+        """使用 AIO Sandbox 浏览器导航"""
+        mock_sandbox = AsyncMock()
+        mock_sandbox.browser_navigate = AsyncMock()
+        router._browser = mock_sandbox
+        router._current_backend = BrowserBackend.AIO_SANDBOX
+
+        action = BrowserAction(action="navigate", params={"url": "https://example.com"})
+
+        result = await router._execute_aio(action)
+
+        assert result.success
+        mock_sandbox.browser_navigate.assert_called_once_with("https://example.com")
+
+    @pytest.mark.asyncio
+    async def test_execute_aio_unknown_action(self, router: BrowserRouter):
+        """未知操作返回失败"""
+        mock_sandbox = AsyncMock()
+        router._browser = mock_sandbox
+        router._current_backend = BrowserBackend.AIO_SANDBOX
+
+        action = BrowserAction(action="unknown_action", params={})
+
+        result = await router._execute_aio(action)
+
+        assert not result.success
+        assert "未知操作" in result.error
 
     # ==================== 后端切换测试 ====================
 
     @pytest.mark.asyncio
-    async def test_switch_to_docker(self, router: BrowserRouter):
-        """切换到 Docker 后端"""
-        with patch("docker.from_env") as mock_docker:
-            mock_client = MagicMock()
-            mock_docker.return_value = mock_client
+    async def test_backend_switch_closes_current(self, router: BrowserRouter):
+        """切换后端时关闭当前浏览器"""
+        router._current_backend = BrowserBackend.EXTERNAL
+        router._browser = MagicMock()
 
-            await router.switch_backend("docker", docker_client=mock_client)
+        with patch.object(router, "_close_current", new_callable=AsyncMock) as mock_close:
+            with patch.object(router, "_create_browser", new_callable=AsyncMock) as mock_create:
+                mock_browser = AsyncMock()
+                mock_create.return_value = mock_browser
 
-            assert router.current_backend == "docker"
-            assert router._docker_client == mock_client
-            assert router._browser is None
+                with patch.object(router, "_execute_action", new_callable=AsyncMock) as mock_exec:
+                    mock_exec.return_value = BrowserResult(success=True)
 
-    @pytest.mark.asyncio
-    async def test_switch_to_aio_sandbox(self, router: BrowserRouter):
-        """切换到 AIO Sandbox 后端"""
-        await router.switch_backend("aio_sandbox", api_url="http://localhost:8000")
+                    action = BrowserAction(action="navigate", params={"url": "https://example.com"})
+                    await router.execute(action, backend=BrowserBackend.AIO_SANDBOX)
 
-        assert router.current_backend == "aio_sandbox"
-        assert router._aio_api_url == "http://localhost:8000"
-
-    @pytest.mark.asyncio
-    async def test_switch_to_none(self, router: BrowserRouter):
-        """切换到 None（关闭浏览器）"""
-        with patch("docker.from_env") as mock_docker:
-            mock_client = MagicMock()
-            mock_docker.return_value = mock_client
-
-            # 先切换到 Docker
-            await router.switch_backend("docker", docker_client=mock_client)
-
-            # 再切换到 None
-            await router.switch_backend(None)
-
-            assert router.current_backend is None
-            assert router._docker_client is None
-
-    # ==================== 浏览器获取测试 ====================
-
-    @pytest.mark.asyncio
-    async def test_get_browser_creates_new_instance(self, router: BrowserRouter):
-        """获取浏览器创建新实例"""
-        with patch("docker.from_env") as mock_docker, patch(
-            "playwright.async_api.async_playwright"
-        ) as mock_playwright:
-            mock_client = MagicMock()
-            mock_docker.return_value = mock_client
-
-            # 模拟 playwright
-            mock_pw = AsyncMock()
-            mock_browser = AsyncMock()
-            mock_pw.chromium.connect_over_cdp = AsyncMock(return_value=mock_browser)
-            mock_playwright.return_value.__aenter__.return_value = mock_pw
-
-            await router.switch_backend("docker", docker_client=mock_client)
-
-            # 启动容器
-            with patch.object(router, "_ensure_browser_container") as mock_ensure:
-                mock_ensure.return_value = ("container_id", "ws://localhost:9222")
-
-                browser = await router.get_browser()
-
-                assert browser == mock_browser
-                assert router._browser == mock_browser
-
-    @pytest.mark.asyncio
-    async def test_get_browser_reuses_existing(self, router: BrowserRouter):
-        """获取浏览器复用现有实例"""
-        mock_browser = AsyncMock()
-        router._browser = mock_browser
-        router.current_backend = "docker"
-
-        browser = await router.get_browser()
-
-        assert browser == mock_browser
-
-    @pytest.mark.asyncio
-    async def test_get_browser_no_backend_raises(self, router: BrowserRouter):
-        """没有后端时抛出异常"""
-        with pytest.raises(SandboxError, match="未设置浏览器后端"):
-            await router.get_browser()
-
-    # ==================== 清理测试 ====================
-
-    @pytest.mark.asyncio
-    async def test_cleanup_closes_browser(self, router: BrowserRouter):
-        """清理关闭浏览器"""
-        mock_browser = AsyncMock()
-        router._browser = mock_browser
-        router.current_backend = "docker"
-
-        await router.cleanup()
-
-        mock_browser.close.assert_called_once()
-        assert router._browser is None
-
-    @pytest.mark.asyncio
-    async def test_cleanup_stops_container(self, router: BrowserRouter):
-        """清理停止容器"""
-        with patch("docker.from_env") as mock_docker:
-            mock_client = MagicMock()
-            mock_container = MagicMock()
-            mock_client.containers.get.return_value = mock_container
-            mock_docker.return_value = mock_client
-
-            router._docker_client = mock_client
-            router._browser_container_id = "container_123"
-            router.current_backend = "docker"
-
-            await router.cleanup()
-
-            mock_container.stop.assert_called_once()
-            mock_container.remove.assert_called_once()
-
-    # ==================== 后端检查测试 ====================
-
-    def test_is_backend_active(self, router: BrowserRouter):
-        """检查后端是否激活"""
-        router.current_backend = None
-        assert not router.is_backend_active()
-
-        router.current_backend = "docker"
-        assert router.is_backend_active()
-
-    # ==================== 状态管理测试 ====================
-
-    @pytest.mark.asyncio
-    async def test_switch_backend_cleans_up_previous(self, router: BrowserRouter):
-        """切换后端时清理旧的"""
-        mock_browser = AsyncMock()
-        router._browser = mock_browser
-        router.current_backend = "docker"
-
-        with patch("docker.from_env") as mock_docker:
-            mock_client = MagicMock()
-            mock_docker.return_value = mock_client
-
-            await router.switch_backend("aio_sandbox", api_url="http://localhost:8000")
-
-            # 旧的浏览器被关闭
-            mock_browser.close.assert_called_once()
-            assert router.current_backend == "aio_sandbox"
+                    mock_close.assert_called_once()
+                    mock_create.assert_called_once()

@@ -125,7 +125,8 @@ class Settings(BaseSettings):
 
     # LLM (unified via OpenRouter)
     OPENROUTER_API_KEY: str | None = None
-    DEFAULT_LLM_MODEL: str = "anthropic/claude-3.5-sonnet"  # OpenRouter model format
+    # Default model - use deepseek for global availability (Claude may be region-restricted)
+    DEFAULT_LLM_MODEL: str = "deepseek/deepseek-chat"
     MAX_CONTEXT_TOKENS: int = 128000
 
     # WeChat OAuth

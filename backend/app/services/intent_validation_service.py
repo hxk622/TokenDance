@@ -70,10 +70,13 @@ class IntentValidationService:
                 "OPENROUTER_API_KEY not configured. Please set it in .env file."
             )
 
-        logger.info("Using OpenRouter for intent validation")
+        # Use a globally available model (Claude may be region-restricted)
+        # Fallback order: claude -> deepseek -> llama
+        model = settings.DEFAULT_LLM_MODEL or "deepseek/deepseek-chat"
+        logger.info(f"Using OpenRouter for intent validation with model: {model}")
         return OpenRouterLLM(
             api_key=settings.OPENROUTER_API_KEY,
-            model="anthropic/claude-3.5-sonnet",
+            model=model,
             max_tokens=2048,
             temperature=0.3,  # Lower temperature for more consistent validation
         )

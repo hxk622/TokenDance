@@ -1,16 +1,83 @@
 """
 AIOSandboxPool 单元测试
 
-重点测试并发访问控制。
+重点测试并发访问控制和 SessionState 状态机。
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.sandbox.exceptions import ConcurrentAccessError
 from app.sandbox.pool import AIOSandboxPool, PoolConfig, PooledSandbox, SessionState
+from app.sandbox.workspace import AgentWorkspace, WorkspaceConfig
+
+
+class TestSessionState:
+    """SessionState 枚举测试"""
+
+    def test_values(self):
+        """检查所有值"""
+        assert SessionState.IDLE.value == "idle"
+        assert SessionState.ACQUIRING.value == "acquiring"
+        assert SessionState.BUSY.value == "busy"
+
+
+class TestPooledSandbox:
+    """PooledSandbox 测试"""
+
+    def test_default_state(self):
+        """默认状态"""
+        mock_sandbox = MagicMock()
+        pooled = PooledSandbox(
+            sandbox=mock_sandbox,
+            session_id="test_session",
+        )
+
+        assert pooled.state == SessionState.IDLE
+        assert pooled.use_count == 0
+        assert isinstance(pooled.created_at, datetime)
+
+    def test_custom_state(self):
+        """自定义状态"""
+        mock_sandbox = MagicMock()
+        pooled = PooledSandbox(
+            sandbox=mock_sandbox,
+            session_id="test_session",
+            state=SessionState.BUSY,
+            use_count=5,
+        )
+
+        assert pooled.state == SessionState.BUSY
+        assert pooled.use_count == 5
+
+
+class TestPoolConfig:
+    """PoolConfig 测试"""
+
+    def test_default_values(self):
+        """默认配置"""
+        config = PoolConfig()
+
+        assert config.max_instances == 10
+        assert config.min_instances == 2
+        assert config.idle_timeout_seconds == 300
+        assert config.max_use_count == 100
+
+    def test_custom_values(self):
+        """自定义配置"""
+        config = PoolConfig(
+            max_instances=5,
+            min_instances=1,
+            idle_timeout_seconds=60,
+            max_use_count=50,
+        )
+
+        assert config.max_instances == 5
+        assert config.min_instances == 1
 
 
 class TestAIOSandboxPool:
@@ -32,255 +99,106 @@ class TestAIOSandboxPool:
 
     # ==================== 基本功能测试 ====================
 
-    @pytest.mark.asyncio
-    async def test_acquire_new_session(self, pool: AIOSandboxPool):
-        """获取新会话"""
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
-
-            session_id = await pool.acquire_session("user_1")
-
-            assert session_id == "session_123"
-            assert pool._sessions["user_1"].session_id == "session_123"
-            assert pool._sessions["user_1"].state == SessionState.ACTIVE
+    def test_init(self, pool: AIOSandboxPool):
+        """初始化"""
+        assert pool.config.max_instances == 3
+        assert len(pool._session_map) == 0
+        assert len(pool._idle_queue) == 0
+        assert not pool._running
 
     @pytest.mark.asyncio
-    async def test_release_session(self, pool: AIOSandboxPool):
-        """释放会话"""
-        # 先获取会话
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
+    async def test_acquire_busy_session_raises(self, pool: AIOSandboxPool):
+        """获取已占用的会话抛出 ConcurrentAccessError"""
+        # 直接放置一个 BUSY 状态的 session
+        mock_sandbox = MagicMock()
+        pooled = PooledSandbox(
+            sandbox=mock_sandbox,
+            session_id="test_session",
+            state=SessionState.BUSY,
+        )
+        pool._session_map["test_session"] = pooled
 
-            session_id = await pool.acquire_session("user_1")
-
-        # 释放会话
-        with patch("aiohttp.ClientSession.delete") as mock_delete:
-            mock_delete_response = AsyncMock()
-            mock_delete_response.status = 200
-            mock_delete.return_value.__aenter__.return_value = mock_delete_response
-
-            await pool.release_session("user_1")
-
-            assert "user_1" not in pool._sessions
+        # 再次获取应该抛出异常
+        with pytest.raises(ConcurrentAccessError, match="正在被使用"):
+            await pool.acquire("test_session")
 
     @pytest.mark.asyncio
-    async def test_get_session_info(self, pool: AIOSandboxPool):
-        """获取会话信息"""
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
+    async def test_acquire_acquiring_session_raises(self, pool: AIOSandboxPool):
+        """获取正在初始化的会话抛出 ConcurrentAccessError"""
+        # 直接放置一个 ACQUIRING 状态的 session
+        pooled = PooledSandbox(
+            sandbox=None,  # type: ignore
+            session_id="test_session",
+            state=SessionState.ACQUIRING,
+        )
+        pool._session_map["test_session"] = pooled
 
-            await pool.acquire_session("user_1")
-
-        with patch("aiohttp.ClientSession.get") as mock_get:
-            mock_info_response = AsyncMock()
-            mock_info_response.status = 200
-            mock_info_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "active"}
-            )
-            mock_get.return_value.__aenter__.return_value = mock_info_response
-
-            info = await pool.get_session_info("user_1")
-
-            assert info["session_id"] == "session_123"
-            assert info["status"] == "active"
-
-    # ==================== 并发访问控制测试 ====================
+        # 再次获取应该抛出异常
+        with pytest.raises(ConcurrentAccessError, match="正在初始化"):
+            await pool.acquire("test_session")
 
     @pytest.mark.asyncio
-    async def test_concurrent_acquire_same_user(self, pool: AIOSandboxPool):
-        """同一用户并发获取会话"""
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
+    async def test_acquire_idle_session_reuses(self, pool: AIOSandboxPool):
+        """获取空闲会话时复用"""
+        # 放置一个 IDLE 状态的 session
+        mock_sandbox = MagicMock()
+        pooled = PooledSandbox(
+            sandbox=mock_sandbox,
+            session_id="test_session",
+            state=SessionState.IDLE,
+            use_count=0,
+        )
+        pool._session_map["test_session"] = pooled
 
-            # 第一次获取成功
-            session_id = await pool.acquire_session("user_1")
-            assert session_id == "session_123"
+        # 获取应该复用
+        sandbox = await pool.acquire("test_session")
 
-            # 第二次获取应该抛出异常（已经有会话在使用）
-            with pytest.raises(ConcurrentAccessError, match="已经在使用"):
-                await pool.acquire_session("user_1")
-
-    @pytest.mark.asyncio
-    async def test_concurrent_acquire_different_users(self, pool: AIOSandboxPool):
-        """不同用户并发获取会话"""
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_response1 = AsyncMock()
-            mock_response1.status = 200
-            mock_response1.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-
-            mock_response2 = AsyncMock()
-            mock_response2.status = 200
-            mock_response2.json = AsyncMock(
-                return_value={"session_id": "session_456", "status": "ready"}
-            )
-
-            mock_post.return_value.__aenter__.side_effect = [
-                mock_response1,
-                mock_response2,
-            ]
-
-            # 不同用户可以同时获取会话
-            session1 = await pool.acquire_session("user_1")
-            session2 = await pool.acquire_session("user_2")
-
-            assert session1 == "session_123"
-            assert session2 == "session_456"
-            assert len(pool._sessions) == 2
+        assert sandbox == mock_sandbox
+        assert pool._session_map["test_session"].state == SessionState.BUSY
+        assert pool._session_map["test_session"].use_count == 1
 
     @pytest.mark.asyncio
-    async def test_reacquire_after_release(self, pool: AIOSandboxPool):
-        """释放后重新获取"""
-        with patch("aiohttp.ClientSession.post") as mock_post, patch(
-            "aiohttp.ClientSession.delete"
-        ) as mock_delete:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
+    async def test_release_returns_to_idle(self, pool: AIOSandboxPool):
+        """释放会话后返回 idle 队列"""
+        # 放置一个 BUSY 状态的 session
+        mock_sandbox = MagicMock()
+        pooled = PooledSandbox(
+            sandbox=mock_sandbox,
+            session_id="test_session",
+            state=SessionState.BUSY,
+        )
+        pool._session_map["test_session"] = pooled
 
-            mock_delete_response = AsyncMock()
-            mock_delete_response.status = 200
-            mock_delete.return_value.__aenter__.return_value = mock_delete_response
+        # 释放
+        await pool.release("test_session")
 
-            # 获取
-            session_id1 = await pool.acquire_session("user_1")
-            assert session_id1 == "session_123"
-
-            # 释放
-            await pool.release_session("user_1")
-
-            # 重新获取
-            session_id2 = await pool.acquire_session("user_1")
-            assert session_id2 == "session_123"
-
-    # ==================== 池大小限制测试 ====================
+        # 应该移到 idle 队列
+        assert "test_session" in pool._idle_queue
+        assert pool._idle_queue["test_session"].state == SessionState.IDLE
 
     @pytest.mark.asyncio
-    async def test_pool_size_limit(self, pool: AIOSandboxPool):
-        """池大小限制"""
-        with patch("aiohttp.ClientSession.post") as mock_post:
-
-            async def mock_post_response(*args, **kwargs):
-                mock_response = AsyncMock()
-                mock_response.status = 200
-                user_id = kwargs.get("json", {}).get("user_id", "default")
-                mock_response.json = AsyncMock(
-                    return_value={
-                        "session_id": f"session_{user_id}",
-                        "status": "ready",
-                    }
-                )
-                return mock_response
-
-            mock_post.return_value.__aenter__.side_effect = mock_post_response
-
-            # 获取最大数量的会话
-            for i in range(pool.config.max_pool_size):
-                await pool.acquire_session(f"user_{i}")
-
-            # 超过限制应该抛出异常
-            with pytest.raises(
-                SandboxNotAvailableError, match="已达到最大池大小"
-            ):
-                await pool.acquire_session("user_overflow")
-
-    # ==================== 会话状态测试 ====================
-
-    @pytest.mark.asyncio
-    async def test_session_state_transitions(self, pool: AIOSandboxPool):
-        """会话状态转换"""
-        with patch("aiohttp.ClientSession.post") as mock_post, patch(
-            "aiohttp.ClientSession.delete"
-        ) as mock_delete:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
-
-            mock_delete_response = AsyncMock()
-            mock_delete_response.status = 200
-            mock_delete.return_value.__aenter__.return_value = mock_delete_response
-
-            # IDLE -> ACQUIRING
-            assert "user_1" not in pool._sessions
-
-            # ACQUIRING -> ACTIVE
-            await pool.acquire_session("user_1")
-            assert pool._sessions["user_1"].state == SessionState.ACTIVE
-
-            # ACTIVE -> IDLE (after release)
-            await pool.release_session("user_1")
-            assert "user_1" not in pool._sessions
-
-    @pytest.mark.asyncio
-    async def test_get_pool_status(self, pool: AIOSandboxPool):
-        """获取池状态"""
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.json = AsyncMock(
-                return_value={"session_id": "session_123", "status": "ready"}
-            )
-            mock_post.return_value.__aenter__.return_value = mock_response
-
-            # 初始状态
-            status = pool.get_pool_status()
-            assert status["active_sessions"] == 0
-            assert status["available_slots"] == 3
-
-            # 获取一个会话
-            await pool.acquire_session("user_1")
-
-            status = pool.get_pool_status()
-            assert status["active_sessions"] == 1
-            assert status["available_slots"] == 2
-
-    # ==================== 错误处理测试 ====================
-
-    @pytest.mark.asyncio
-    async def test_release_nonexistent_session(self, pool: AIOSandboxPool):
-        """释放不存在的会话"""
+    async def test_release_nonexistent_session_no_error(self, pool: AIOSandboxPool):
+        """释放不存在的会话不抛出异常"""
         # 不应该抛出异常
-        await pool.release_session("nonexistent_user")
+        await pool.release("nonexistent_session")
 
     @pytest.mark.asyncio
-    async def test_get_info_nonexistent_session(self, pool: AIOSandboxPool):
-        """获取不存在的会话信息"""
-        with pytest.raises(SandboxNotAvailableError, match="会话不存在"):
-            await pool.get_session_info("nonexistent_user")
+    async def test_stop_cleans_up(self, pool: AIOSandboxPool):
+        """停止池时清理所有会话"""
+        # 放置一些 session
+        mock_sandbox = MagicMock()
+        mock_sandbox.cleanup = AsyncMock()
+        pooled = PooledSandbox(
+            sandbox=mock_sandbox,
+            session_id="test_session",
+            state=SessionState.BUSY,
+        )
+        pool._session_map["test_session"] = pooled
+        pool._running = True
 
+        # 停止
+        with patch.object(pool, "_destroy", new_callable=AsyncMock) as mock_destroy:
+            await pool.stop()
 
-class TestSessionState:
-    """SessionState 枚举测试"""
-
-    def test_values(self):
-        """检查所有值"""
-        assert SessionState.IDLE.value == "idle"
-        assert SessionState.ACQUIRING.value == "acquiring"
-        assert SessionState.ACTIVE.value == "active"
+            assert not pool._running
+            assert len(pool._session_map) == 0

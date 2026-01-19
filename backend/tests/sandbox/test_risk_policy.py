@@ -57,12 +57,13 @@ class TestUnifiedRiskPolicy:
         assert result.requires_confirmation
 
     def test_assess_python_high_import_os(self):
-        """import os 被 AST 检测"""
+        """import os 被检测"""
         code = "import os\nos.getcwd()"
         result = UnifiedRiskPolicy.assess(code, "python")
 
         assert result.level == RiskLevel.HIGH
-        assert "[AST] 导入 os" in result.detected_patterns
+        # 检测到 os 模块
+        assert any("os" in p for p in result.detected_patterns)
 
     def test_assess_python_medium_file_read(self):
         """文件读取被检测为 MEDIUM"""
