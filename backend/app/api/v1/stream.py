@@ -881,6 +881,8 @@ async def run_agent_stream_with_store(
         assistant_thinking = None
         assistant_tool_calls = []
         iteration_count = 0
+        has_fatal_error = False
+        fatal_error_message = None
 
         # Run Agent and stream events
         async for event in agent.run(task):
@@ -933,6 +935,16 @@ async def run_agent_stream_with_store(
                         break
             elif event_type == 'done':
                 total_tokens = event.data.get('tokens_used', 0)
+            elif event_type == 'error':
+                # Check if this is a fatal error
+                if event.data.get('fatal', False):
+                    has_fatal_error = True
+                    fatal_error_message = event.data.get('message', 'Unknown error')
+                    logger.warning(
+                        "agent_fatal_error_detected",
+                        session_id=session_id,
+                        error=fatal_error_message,
+                    )
 
         # P0-3: Save assistant message
         assistant_content = ''.join(assistant_content_parts)
@@ -945,19 +957,31 @@ async def run_agent_stream_with_store(
                 tokens_used=total_tokens,
             )
 
-        # P1-4: Atomic update - complete session with tokens
-        await session_service.complete_session(
-            session_id,
-            total_tokens_used=total_tokens,
-        )
-
-        # Session completed
-        yield await emit_event(SSEEventType.SESSION_COMPLETED, {
-            "session_id": session_id,
-            "status": "completed",
-            "total_tokens": total_tokens,
-            "timestamp": time.time(),
-        })
+        # P1-4: Atomic update - set session status based on outcome
+        if has_fatal_error:
+            # Mark session as FAILED if there was a fatal error
+            await session_service.fail_session(
+                session_id,
+                error_message=fatal_error_message,
+            )
+            yield await emit_event(SSEEventType.SESSION_FAILED, {
+                "session_id": session_id,
+                "status": "failed",
+                "error": fatal_error_message,
+                "timestamp": time.time(),
+            })
+        else:
+            # Mark session as COMPLETED
+            await session_service.complete_session(
+                session_id,
+                total_tokens_used=total_tokens,
+            )
+            yield await emit_event(SSEEventType.SESSION_COMPLETED, {
+                "session_id": session_id,
+                "status": "completed",
+                "total_tokens": total_tokens,
+                "timestamp": time.time(),
+            })
 
     except Exception as e:
         logger.error(f"Agent execution error: {e}", exc_info=True)
