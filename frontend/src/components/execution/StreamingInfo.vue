@@ -1,5 +1,17 @@
 <template>
-  <div class="streaming-info glass-panel">
+  <div class="streaming-info">
+    <!-- User Query Bubble -->
+    <div
+      v-if="userQuery"
+      class="user-query-section"
+    >
+      <div class="user-query-bubble">
+        <span class="user-avatar">{{ userInitial }}</span>
+        <span class="user-query-text">{{ userQuery }}</span>
+      </div>
+    </div>
+
+    <!-- Toolbar -->  
     <div class="toolbar">
       <div class="mode-tabs glass-tabs">
         <button
@@ -240,8 +252,31 @@
       </Transition>
     </div>
 
+    <!-- Bottom Input Box -->
+    <div class="chat-input-section">
+      <div class="chat-input-box">
+        <textarea
+          v-model="chatInputValue"
+          class="chat-textarea"
+          placeholder="追加指令或补充信息..."
+          rows="1"
+          @keydown="handleChatKeydown"
+          @input="autoResizeTextarea"
+        />
+        <div class="chat-input-actions">
+          <button
+            class="chat-send-btn"
+            :disabled="!chatInputValue.trim()"
+            @click="sendChatMessage"
+          >
+            <ArrowUpIcon class="send-icon" />
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- TimeLapse Gallery Modal -->
-    <TimeLapseGallery 
+    <TimeLapseGallery
       v-if="showTimeLapseModal"
       :playback="timeLapsePlayback"
       :loading="timeLapseLoading"
@@ -302,9 +337,14 @@ import {
 
 interface Props {
   sessionId: string
+  userQuery?: string
+  userInitial?: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  userQuery: '',
+  userInitial: 'U'
+})
 
 // Use Pinia store
 const executionStore = useExecutionStore()
@@ -313,6 +353,36 @@ const mode = ref<'all' | 'coworker' | 'browser'>('all')
 const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 const logsContainerRef = ref<HTMLElement | null>(null)
+
+// Chat input
+const chatInputValue = ref('')
+
+// Emit events
+const emit = defineEmits<{
+  'send-message': [message: string]
+}>()
+
+// Handle chat input keydown
+function handleChatKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    sendChatMessage()
+  }
+}
+
+// Auto resize textarea
+function autoResizeTextarea(e: Event) {
+  const target = e.target as HTMLTextAreaElement
+  target.style.height = 'auto'
+  target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+}
+
+// Send chat message
+function sendChatMessage() {
+  if (!chatInputValue.value.trim()) return
+  emit('send-message', chatInputValue.value.trim())
+  chatInputValue.value = ''
+}
 
 // Use scroll sync composable
 const {
@@ -545,6 +615,44 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--any-bg-primary);
+}
+
+/* User Query Section */
+.user-query-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--any-border);
+}
+
+.user-query-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 80%;
+  margin-left: auto;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: #a855f7;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.user-query-text {
+  padding: 10px 14px;
+  background: var(--any-bg-tertiary);
+  border-radius: 16px 16px 4px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--any-text-primary);
 }
 
 .toolbar {
@@ -864,5 +972,85 @@ defineExpose({
 .logs-container::-webkit-scrollbar-thumb {
   background: var(--any-border-hover);
   border-radius: 3px;
+}
+
+/* Chat Input Section */
+.chat-input-section {
+  padding: 12px 16px;
+  border-top: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
+}
+
+.chat-input-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  border-radius: 20px;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.chat-input-box:focus-within {
+  border-color: var(--any-border-hover);
+  box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.1);
+}
+
+.chat-textarea {
+  flex: 1;
+  min-height: 20px;
+  max-height: 120px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--any-text-primary);
+  background: transparent;
+  border: none;
+  resize: none;
+  outline: none;
+}
+
+.chat-textarea::placeholder {
+  color: var(--any-text-muted);
+}
+
+.chat-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-send-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--exec-accent, #00D9FF);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 217, 255, 0.4);
+}
+
+.chat-send-btn:disabled {
+  background: var(--any-bg-tertiary);
+  cursor: not-allowed;
+}
+
+.chat-send-btn .send-icon {
+  width: 16px;
+  height: 16px;
+  color: white;
+}
+
+.chat-send-btn:disabled .send-icon {
+  color: var(--any-text-muted);
 }
 </style>

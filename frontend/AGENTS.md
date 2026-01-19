@@ -76,11 +76,25 @@ frontend/
 
 ## UI/UX Rules (必读)
 
+**In-Place 交互原则 (核心):**
+
+所有状态变化必须在当前页面内完成，禁止使用全屏过渡页打断用户体验：
+
+- ❌ 禁止：全屏 loading 过渡页（如"正在分析您的任务..."）
+- ❌ 禁止：全屏完成页（如"任务已完成！"独立页面）
+- ❌ 禁止：任何阻断式的状态切换页面
+- ✅ 要求：初始化/思考状态在页面内相应区域展示（如 StreamingInfo 区域）
+- ✅ 要求：完成状态用内联效果表示（撒花动画 + 状态标签变化）
+- ✅ 要求：错误/确认等交互用 Toast/内联卡片，非全屏弹窗
+
+核心思想：用户应始终感觉 Agent "已经在工作"，而不是"在等待准入许可"。
+
 **禁止:**
 - ❌ AI assistant phrases: "我能帮你...", "让我帮你..."
 - ❌ Emoji as icons
 - ❌ Rainbow gradients, heavy glassmorphism
 - ❌ Generic prompts: "帮我...", "生成..."
+- ❌ 全屏过渡页/完成页（见 In-Place 原则）
 
 **要求:**
 - ✅ User-as-director language

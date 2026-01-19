@@ -601,8 +601,26 @@ async def stream_session_events(
                     session_id=session_id,
                     session_status=session.status.value,
                 )
-                # Just replay events, don't start new agent
-                pass
+                # Send current session status to frontend so it can close connection
+                if session.status == SessionStatus.COMPLETED:
+                    yield format_sse(SSEEventType.SESSION_COMPLETED.value, {
+                        "session_id": session_id,
+                        "status": "completed",
+                        "timestamp": time.time(),
+                    })
+                elif session.status == SessionStatus.FAILED:
+                    yield format_sse(SSEEventType.SESSION_FAILED.value, {
+                        "session_id": session_id,
+                        "status": "failed",
+                        "timestamp": time.time(),
+                    })
+                elif session.status == SessionStatus.CANCELLED:
+                    yield format_sse(SSEEventType.SESSION_COMPLETED.value, {
+                        "session_id": session_id,
+                        "status": "cancelled",
+                        "timestamp": time.time(),
+                    })
+                # For RUNNING status, don't send anything - let the original stream continue
             else:
                 # Use mock stream for demo
                 stream = mock_agent_execution_stream(session_id)
