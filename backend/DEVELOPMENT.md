@@ -195,8 +195,7 @@ DATABASE_URL=postgresql+asyncpg://user:pass@localhost/tokendance
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# API Keys
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+# API Keys (OpenRouter unified access to all LLMs)
 OPENROUTER_API_KEY=sk-or-xxxxx
 
 # 环境

@@ -1,12 +1,11 @@
 """
 Intent validation service for pre-flight checks.
 
-Uses LLM to analyze if user input is complete and actionable.
+Uses LLM (via OpenRouter) to analyze if user input is complete and actionable.
 """
 import json
 import logging
 
-from app.agent.llm.anthropic import ClaudeLLM
 from app.agent.llm.base import LLMMessage
 from app.agent.llm.openrouter import OpenRouterLLM
 from app.core.config import settings
@@ -51,50 +50,32 @@ INTENT_VALIDATION_PROMPT = """你是一个意图验证助手。分析用户输�
 
 
 class IntentValidationService:
-    """Service for validating user intent completeness using LLM."""
+    """Service for validating user intent completeness using LLM (via OpenRouter)."""
 
     def __init__(self) -> None:
         """Initialize the intent validation service with LLM client."""
         self.llm = self._create_llm_client()
 
-    def _create_llm_client(self) -> ClaudeLLM | OpenRouterLLM:
-        """Create LLM client based on available API keys.
+    def _create_llm_client(self) -> OpenRouterLLM:
+        """Create OpenRouter LLM client.
 
         Returns:
-            BaseLLM: Initialized LLM client
+            OpenRouterLLM: Initialized LLM client
 
         Raises:
-            ValueError: If no API keys are configured
+            ValueError: If OPENROUTER_API_KEY is not configured
         """
-        # Prefer Anthropic if available AND valid format (starts with sk-ant-)
-        if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY.startswith("sk-ant-"):
-            logger.info("Using Anthropic Claude for intent validation")
-            return ClaudeLLM(
-                api_key=settings.ANTHROPIC_API_KEY,
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=2048,
-                temperature=0.3,  # Lower temperature for more consistent validation
+        if not settings.OPENROUTER_API_KEY:
+            raise ValueError(
+                "OPENROUTER_API_KEY not configured. Please set it in .env file."
             )
 
-        # Warn if ANTHROPIC_API_KEY is set but invalid format
-        if settings.ANTHROPIC_API_KEY and not settings.ANTHROPIC_API_KEY.startswith("sk-ant-"):
-            logger.warning(
-                f"ANTHROPIC_API_KEY has invalid format (should start with 'sk-ant-'), "
-                f"falling back to OpenRouter. Key prefix: {settings.ANTHROPIC_API_KEY[:10]}..."
-            )
-
-        # Fallback to OpenRouter
-        if settings.OPENROUTER_API_KEY:
-            logger.info("Using OpenRouter for intent validation")
-            return OpenRouterLLM(
-                api_key=settings.OPENROUTER_API_KEY,
-                model="anthropic/claude-3.5-sonnet",
-                max_tokens=2048,
-                temperature=0.3,
-            )
-
-        raise ValueError(
-            "No valid LLM API key configured. Set a valid ANTHROPIC_API_KEY (starts with 'sk-ant-') or OPENROUTER_API_KEY"
+        logger.info("Using OpenRouter for intent validation")
+        return OpenRouterLLM(
+            api_key=settings.OPENROUTER_API_KEY,
+            model="anthropic/claude-3.5-sonnet",
+            max_tokens=2048,
+            temperature=0.3,  # Lower temperature for more consistent validation
         )
 
     async def validate_intent(

@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from app.agent.engine import AgentEngine
-from app.agent.llm.anthropic import AnthropicLLM
+from app.agent.llm.openrouter import OpenRouterLLM
 from app.filesystem import AgentFileSystem
 
 # ========== 测试环境配置 ==========
@@ -54,14 +54,14 @@ def filesystem(workspace_id):
 
 @pytest.fixture
 def llm():
-    """初始化 LLM 客户端"""
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    """初始化 LLM 客户端 (via OpenRouter)"""
+    api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        pytest.skip("ANTHROPIC_API_KEY not set")
+        pytest.skip("OPENROUTER_API_KEY not set")
 
-    return AnthropicLLM(
+    return OpenRouterLLM(
         api_key=api_key,
-        model="claude-3-5-sonnet-20241022",
+        model="anthropic/claude-3.5-sonnet",
         max_tokens=4096
     )
 
@@ -255,9 +255,9 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # 检查 API key
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        print("Error: ANTHROPIC_API_KEY environment variable not set")
+        print("Error: OPENROUTER_API_KEY environment variable not set")
         exit(1)
 
     # 创建临时环境
@@ -272,9 +272,9 @@ if __name__ == "__main__":
         base_dir=str(base_dir)
     )
 
-    llm = AnthropicLLM(
+    llm = OpenRouterLLM(
         api_key=api_key,
-        model="claude-3-5-sonnet-20241022",
+        model="anthropic/claude-3.5-sonnet",
         max_tokens=4096
     )
 

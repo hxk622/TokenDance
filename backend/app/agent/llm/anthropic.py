@@ -201,83 +201,9 @@ class ClaudeLLM(BaseLLM):
         return formatted
 
 
-def is_valid_anthropic_key(api_key: str | None) -> bool:
-    """验证 Anthropic API Key 格式是否正确
-    
-    Anthropic API Keys 应该以 'sk-ant-' 开头
-    
-    Args:
-        api_key: 要验证的 API Key
-        
-    Returns:
-        bool: Key 格式是否有效
-    """
-    if not api_key:
-        return False
-    return api_key.startswith("sk-ant-")
-
-
-# 便捷函数
-def create_claude_llm(
-    api_key: str | None = None,
-    model: str | None = None,
-    max_tokens: int = 8192,
-    temperature: float = 1.0,
-    base_url: str | None = None
-) -> ClaudeLLM:
-    """创建 ClaudeLLM 实例
-
-    支持从环境变量读取配置：
-    - ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY: API Key
-    - ANTHROPIC_API_MODEL: 模型名称
-    - ANTHROPIC_BASE_URL: API Base URL
-
-    Args:
-        api_key: Anthropic API Key（如果为 None，从环境变量读取）
-        model: 模型名称（如果为 None，从环境变量读取）
-        max_tokens: 最大输出 token 数
-        temperature: 温度参数
-        base_url: API Base URL（如果为 None，从环境变量读取）
-
-    Returns:
-        ClaudeLLM: Claude LLM 实例
-        
-    Raises:
-        ValueError: 如果 API Key 缺失或格式无效
-    """
-    import os
-
-    # 读取 API Key（支持两种环境变量）
-    if api_key is None:
-        api_key = os.getenv("ANTHROPIC_AUTH_TOKEN") or os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "API Key not found. Set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY"
-            )
-    
-    # 验证 API Key 格式
-    if not is_valid_anthropic_key(api_key):
-        logger.warning(
-            f"ANTHROPIC_API_KEY may be invalid (should start with 'sk-ant-'). "
-            f"Key prefix: {api_key[:10] if api_key else 'None'}..."
-        )
-
-    # 读取模型名称
-    if model is None:
-        model = os.getenv("ANTHROPIC_API_MODEL", "claude-3-5-sonnet-20241022")
-
-    # 读取 Base URL
-    if base_url is None:
-        base_url = os.getenv("ANTHROPIC_BASE_URL")
-
-    return ClaudeLLM(
-        api_key=api_key,
-        model=model,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        base_url=base_url
-    )
-
+# NOTE: ClaudeLLM is kept for direct Anthropic API usage if needed,
+# but the recommended approach is to use OpenRouter for all LLM calls.
+# See app/agent/llm/openrouter.py for the primary LLM client.
 
 # 兼容别名 - 保持向后兼容
 AnthropicLLM = ClaudeLLM

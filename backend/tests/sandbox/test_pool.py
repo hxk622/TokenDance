@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from app.sandbox.exceptions import ConcurrentAccessError, SandboxNotAvailableError
-from app.sandbox.pool import AIOSandboxPool, PoolConfig, SessionState
+from app.sandbox.exceptions import ConcurrentAccessError
+from app.sandbox.pool import AIOSandboxPool, PoolConfig, PooledSandbox, SessionState
 
 
 class TestAIOSandboxPool:
@@ -20,10 +20,9 @@ class TestAIOSandboxPool:
     def pool_config(self) -> PoolConfig:
         """池配置"""
         return PoolConfig(
-            max_pool_size=3,
-            session_timeout=60,
-            idle_timeout=300,
-            api_url="http://localhost:8000",
+            max_instances=3,
+            min_instances=0,  # 测试时不预热
+            idle_timeout_seconds=60,
         )
 
     @pytest.fixture

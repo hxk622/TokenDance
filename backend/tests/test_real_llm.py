@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-测试真实 LLM 集成
+测试真实 LLM 集成 (via OpenRouter)
 
 运行前需要设置环境变量：
-export ANTHROPIC_BASE_URL="https://cc.honoursoft.cn"
-export ANTHROPIC_AUTH_TOKEN="sk-WUtbw1fxnjgFEoAHL9UINGge2PiuFBthNajfQeCvimlfU3bp"
-export ANTHROPIC_API_MODEL="claude-opus-4.5-thinking"
+export OPENROUTER_API_KEY="your-openrouter-api-key"
 """
 import asyncio
 import os
@@ -20,7 +18,7 @@ from app.agent import (
     BasicAgent,
     create_working_memory,
 )
-from app.agent.llm import create_claude_llm
+from app.agent.llm import create_openrouter_llm
 from app.agent.tools import ToolRegistry
 
 
@@ -31,17 +29,15 @@ async def test_real_llm():
     print("=" * 60)
 
     # 检查环境变量
-    api_key = os.getenv("ANTHROPIC_AUTH_TOKEN") or os.getenv("ANTHROPIC_API_KEY")
-    base_url = os.getenv("ANTHROPIC_BASE_URL")
-    model = os.getenv("ANTHROPIC_API_MODEL", "claude-3-5-sonnet-20241022")
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    model = "anthropic/claude-3.5-sonnet"
 
     print("\n配置检查:")
     print(f"  - API Key: {api_key[:10]}..." if api_key else "  - API Key: 未设置")
-    print(f"  - Base URL: {base_url or '默认'}")
     print(f"  - Model: {model}")
 
     if not api_key:
-        print("\n❌ 错误: 未设置 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY")
+        print("\n❌ 错误: 未设置 OPENROUTER_API_KEY")
         return
 
     # 创建临时工作目录
@@ -71,12 +67,15 @@ async def test_real_llm():
         tools = ToolRegistry()
         print("  ✅ Tool Registry")
 
-        # 4. 真实 LLM
+        # 4. 真实 LLM (via OpenRouter)
         try:
-            llm = create_claude_llm()
-            print(f"  ✅ Claude LLM (model: {llm.model})")
+            llm = create_openrouter_llm(
+                api_key=api_key,
+                model=model
+            )
+            print(f"  ✅ OpenRouter LLM (model: {llm.model})")
         except Exception as e:
-            print(f"  ❌ Claude LLM 创建失败: {e}")
+            print(f"  ❌ OpenRouter LLM 创建失败: {e}")
             return
 
         # 5. BasicAgent

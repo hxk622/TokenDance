@@ -12,8 +12,8 @@ from httpx import AsyncClient
 
 # 跳过如果没有配置 API KEY
 pytestmark = pytest.mark.skipif(
-    not os.getenv("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set"
+    not os.getenv("OPENROUTER_API_KEY"),
+    reason="OPENROUTER_API_KEY not set"
 )
 
 

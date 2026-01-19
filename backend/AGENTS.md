@@ -173,8 +173,7 @@ uv sync --extra finance        # OpenBB, AKShare, etc.
 Copy `.env.example` to `.env` and configure:
 - `DATABASE_URL`
 - `REDIS_URL`
-- `ANTHROPIC_API_KEY`
-- `OPENROUTER_API_KEY`
+- `OPENROUTER_API_KEY` (required for all LLM calls)
 
 ## Logging
 

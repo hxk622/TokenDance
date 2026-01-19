@@ -123,8 +123,7 @@ class Settings(BaseSettings):
         """Path for session working memory data."""
         return f"{self.WORKSPACE_ROOT_PATH}/sessions"
 
-    # LLM
-    ANTHROPIC_API_KEY: str | None = None
+    # LLM (unified via OpenRouter)
     OPENROUTER_API_KEY: str | None = None
     DEFAULT_LLM_MODEL: str = "anthropic/claude-3.5-sonnet"  # OpenRouter model format
     MAX_CONTEXT_TOKENS: int = 128000
