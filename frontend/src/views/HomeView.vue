@@ -1,26 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
 import { useAuthGuard } from '@/composables/useAuthGuard'
-import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
-  Languages, MoreHorizontal, Bell, FolderOpen,
-  History, Settings, LayoutGrid, User, LogOut,
-  Sun, Moon, Monitor
+  Languages, FolderOpen,
+  History, Settings, LayoutGrid, Plus
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
+import AnyHeader from '@/components/common/AnyHeader.vue'
 import type { NavItem } from '@/components/common/AnySidebar.vue'
 
 const router = useRouter()
-const authStore = useAuthStore()
 const sessionStore = useSessionStore()
-const themeStore = useThemeStore()
-const { requireAuth, showLogin } = useAuthGuard()
+const { requireAuth } = useAuthGuard()
 
 const inputValue = ref('')
 const inputRef = ref<HTMLTextAreaElement | null>(null)
@@ -28,15 +24,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
 const activeCategory = ref('all')
 const errorMessage = ref('')
-const showUserMenu = ref(false)
-const showThemeMenu = ref(false)
-
-// 主题选项
-const themeOptions: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
-  { mode: 'light', label: '浅色', icon: Sun },
-  { mode: 'dark', label: '深色', icon: Moon },
-  { mode: 'system', label: '跟随系统', icon: Monitor },
-]
 
 // 显示错误提示
 const showError = (msg: string) => {
@@ -44,31 +31,6 @@ const showError = (msg: string) => {
   setTimeout(() => {
     errorMessage.value = ''
   }, 4000)
-}
-
-// 登出
-const handleLogout = () => {
-  showUserMenu.value = false
-  authStore.logout()
-  sessionStore.setCurrentWorkspace(null)
-  router.push('/login')
-}
-
-// 点击外部关闭菜单
-const closeMenus = (e: MouseEvent) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.user-menu-container')) {
-    showUserMenu.value = false
-  }
-  if (!target.closest('.theme-menu-container')) {
-    showThemeMenu.value = false
-  }
-}
-
-// 选择主题
-const selectTheme = (mode: ThemeMode) => {
-  themeStore.setMode(mode)
-  showThemeMenu.value = false
 }
 
 // 快捷操作芯片 - AnyGen 风格
@@ -337,12 +299,10 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
-  window.addEventListener('click', closeMenus)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
-  window.removeEventListener('click', closeMenus)
 })
 </script>
 
@@ -365,107 +325,7 @@ onUnmounted(() => {
     </AnySidebar>
     
     <!-- 右上角个人信息栏 - 固定定位 -->
-    <header class="top-header">
-      <!-- 主题切换 -->
-      <div class="theme-menu-container">
-        <button
-          class="header-icon-btn"
-          data-tooltip="主题"
-          @click="showThemeMenu = !showThemeMenu"
-        >
-          <Sun
-            v-if="themeStore.resolvedTheme === 'light'"
-            class="w-4 h-4"
-          />
-          <Moon
-            v-else
-            class="w-4 h-4"
-          />
-        </button>
-        <!-- 主题下拉菜单 -->
-        <Transition name="dropdown">
-          <div
-            v-if="showThemeMenu"
-            class="theme-dropdown"
-          >
-            <button
-              v-for="opt in themeOptions"
-              :key="opt.mode"
-              class="dropdown-item"
-              :class="{ active: themeStore.mode === opt.mode }"
-              @click="selectTheme(opt.mode)"
-            >
-              <component
-                :is="opt.icon"
-                class="w-4 h-4"
-              />
-              <span>{{ opt.label }}</span>
-              <span
-                v-if="themeStore.mode === opt.mode"
-                class="check-mark"
-              >✓</span>
-            </button>
-          </div>
-        </Transition>
-      </div>
-      
-      <!-- 游客模式：显示登录按钮 -->
-      <template v-if="!authStore.isAuthenticated">
-        <button 
-          class="sign-in-btn"
-          @click="showLogin()"
-        >
-          <User class="w-4 h-4" />
-          <span>Sign in</span>
-        </button>
-      </template>
-      
-      <!-- 已登录：显示通知、积分、头像 -->
-      <template v-else>
-        <!-- 通知铃铛 -->
-        <button
-          class="header-icon-btn"
-          data-tooltip="通知"
-        >
-          <Bell class="w-4 h-4" />
-          <span class="notification-badge">4</span>
-        </button>
-        <!-- 积分/Token -->
-        <div class="credits-badge">
-          <Sparkles class="w-3 h-3" />
-          <span>1,200</span>
-        </div>
-        <!-- 用户头像和下拉菜单 -->
-        <div class="user-menu-container">
-          <button 
-            class="avatar-btn"
-            @click="showUserMenu = !showUserMenu"
-          >
-            <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
-          </button>
-          <!-- 下拉菜单 -->
-          <Transition name="dropdown">
-            <div
-              v-if="showUserMenu"
-              class="user-dropdown"
-            >
-              <div class="dropdown-header">
-                <span class="user-name">{{ authStore.user?.display_name || authStore.user?.username }}</span>
-                <span class="user-email">{{ authStore.user?.email }}</span>
-              </div>
-              <div class="dropdown-divider" />
-              <button
-                class="dropdown-item"
-                @click="handleLogout"
-              >
-                <LogOut class="w-4 h-4" />
-                <span>退出登录</span>
-              </button>
-            </div>
-          </Transition>
-        </div>
-      </template>
-    </header>
+    <AnyHeader />
     
     <!-- 错误提示 Toast -->
     <Transition name="toast">
@@ -729,206 +589,6 @@ onUnmounted(() => {
   visibility: visible;
 }
 
-/* 右上角固定 Header */
-.top-header {
-  position: fixed;
-  top: 12px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 100;
-}
-
-/* Header icon buttons */
-.header-icon-btn {
-  @apply relative p-1.5 rounded-full cursor-pointer;
-  color: var(--any-text-secondary);
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-}
-
-.header-icon-btn:hover {
-  color: var(--any-text-primary);
-  background: var(--any-bg-tertiary);
-}
-
-/* Header tooltip */
-.header-icon-btn[data-tooltip] {
-  position: relative;
-}
-
-.header-icon-btn[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 6px;
-  padding: 4px 8px;
-  background: var(--any-text-primary);
-  color: var(--any-bg-primary);
-  font-size: 11px;
-  white-space: nowrap;
-  border-radius: var(--any-radius-sm);
-  opacity: 0;
-  visibility: hidden;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.header-icon-btn[data-tooltip]:hover::after {
-  opacity: 1;
-  visibility: visible;
-}
-
-.notification-badge {
-  @apply absolute -top-0.5 -right-0.5
-         min-w-[14px] h-[14px] px-0.5
-         flex items-center justify-center
-         text-[10px] font-medium text-white
-         bg-red-500 rounded-full;
-}
-
-.credits-badge {
-  @apply flex items-center gap-1 px-2 py-1
-         text-xs rounded-full;
-  color: var(--any-text-secondary);
-  background: var(--any-bg-primary);
-  border: 1px solid var(--any-border);
-}
-
-.avatar-btn {
-  @apply w-7 h-7 flex items-center justify-center
-         text-xs font-medium text-white
-         bg-purple-500 rounded-full
-         cursor-pointer;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-}
-
-.avatar-btn:hover {
-  @apply bg-purple-600;
-}
-
-/* Theme menu dropdown */
-.theme-menu-container {
-  position: relative;
-}
-
-.theme-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  min-width: 140px;
-  background: var(--any-bg-primary);
-  border: 1px solid var(--any-border);
-  border-radius: var(--any-radius-lg, 12px);
-  box-shadow: var(--any-shadow-lg);
-  overflow: hidden;
-  z-index: 1000;
-  padding: 4px;
-}
-
-.theme-dropdown .dropdown-item {
-  border-radius: var(--any-radius-md);
-  padding: 8px 12px;
-}
-
-.theme-dropdown .dropdown-item.active {
-  background: var(--any-bg-tertiary);
-  color: var(--any-text-primary);
-}
-
-.check-mark {
-  margin-left: auto;
-  color: var(--any-success);
-  font-weight: 600;
-}
-
-/* User menu dropdown */
-.user-menu-container {
-  position: relative;
-}
-
-.user-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  min-width: 200px;
-  background: var(--any-bg-primary);
-  border: 1px solid var(--any-border);
-  border-radius: var(--any-radius-lg, 12px);
-  box-shadow: var(--any-shadow-lg);
-  overflow: hidden;
-  z-index: 1000;
-}
-
-.dropdown-header {
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.user-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--any-text-primary);
-}
-
-.user-email {
-  font-size: 12px;
-  color: var(--any-text-tertiary);
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: var(--any-border);
-}
-
-.dropdown-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  font-size: 14px;
-  color: var(--any-text-secondary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-}
-
-.dropdown-item:hover {
-  color: var(--any-text-primary);
-  background: var(--any-bg-tertiary);
-}
-
-/* Dropdown transition */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.15s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-/* Sign in button for guest mode */
-.sign-in-btn {
-  @apply flex items-center gap-1.5 px-4 py-2
-         text-sm font-medium rounded-full
-         cursor-pointer;
-  color: var(--any-text-primary);
-  background: var(--any-bg-primary);
-  border: 1px solid var(--any-border);
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-}
 
 .sign-in-btn:hover {
   background: var(--any-bg-tertiary);

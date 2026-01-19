@@ -632,6 +632,9 @@ onUnmounted(() => {
       />
     </Transition>
 
+    <!-- Fixed Header (always visible) -->
+    <AnyHeader />
+
     <!-- Main Execution UI (Phase 2) -->
     <template v-if="executionStage === 'executing' || executionStage === 'completed'">
       <!-- Sidebar -->
