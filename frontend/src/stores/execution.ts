@@ -441,12 +441,18 @@ export const useExecutionStore = defineStore('execution', () => {
         if (session.value) {
           session.value.status = 'completed' as any
         }
+        // Close SSE connection - session is done, no need to reconnect
+        sseConnection?.close()
+        sseConnectionState.value = 'disconnected'
         break
 
       case SSEEventType.SESSION_FAILED:
         if (session.value) {
           session.value.status = 'failed' as any
         }
+        // Close SSE connection - session failed, no need to reconnect
+        sseConnection?.close()
+        sseConnectionState.value = 'disconnected'
         break
 
       // Skill events
