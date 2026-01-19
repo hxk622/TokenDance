@@ -156,16 +156,36 @@ class BaseAgent(ABC):
 
                     # 记录错误
                     error_type = e.__class__.__name__
+                    error_message = str(e)
+
+                    # 检查是否是致命错误（应该停止而不是重启）
+                    is_fatal = self._is_fatal_error(e, error_message)
+
+                    if is_fatal:
+                        logger.error(f"Fatal error detected: {error_type} - {error_message}")
+                        # 发送致命错误事件
+                        yield SSEEvent(
+                            type=SSEEventType.ERROR,
+                            data={
+                                'message': error_message,
+                                'type': error_type,
+                                'fatal': True
+                            }
+                        )
+                        # 停止执行
+                        break
+
+                    # 记录非致命错误
                     triggered = await self.memory.log_error(
                         error_type=error_type,
-                        details=str(e)
+                        details=error_message
                     )
 
                     # 发送错误事件
                     yield SSEEvent(
                         type=SSEEventType.ERROR,
                         data={
-                            'message': str(e),
+                            'message': error_message,
                             'type': error_type
                         }
                     )
@@ -580,6 +600,57 @@ class BaseAgent(ABC):
             return False
 
         return True
+
+    def _is_fatal_error(self, exception: Exception, error_message: str) -> bool:
+        """判断是否是致命错误（应该停止而不是重启）
+
+        致命错误包括：
+        - API速率限制（429）- 重试也无法解决
+        - 认证失败（401, 403）- 配置问题
+        - 配额耗尽 - 需要人工介入
+        - ValueError包含特定关键词 - 表示不可恢复的错误
+
+        Args:
+            exception: 异常对象
+            error_message: 错误消息
+
+        Returns:
+            bool: 是否是致命错误
+        """
+        # 检查错误类型
+        error_type = exception.__class__.__name__
+
+        # HTTPStatusError - 检查具体状态码
+        if error_type == 'HTTPStatusError':
+            # 429 Too Many Requests - 速率限制
+            if '429' in error_message or 'Too Many Requests' in error_message:
+                logger.warning("Detected 429 rate limit error - marking as fatal")
+                return True
+            # 401 Unauthorized - 认证失败
+            if '401' in error_message or 'Unauthorized' in error_message:
+                logger.warning("Detected 401 auth error - marking as fatal")
+                return True
+            # 403 Forbidden - 权限不足
+            if '403' in error_message or 'Forbidden' in error_message:
+                logger.warning("Detected 403 permission error - marking as fatal")
+                return True
+
+        # ValueError - 检查特定消息
+        if error_type == 'ValueError':
+            fatal_keywords = [
+                'rate limit exceeded',
+                'quota exceeded',
+                'insufficient credits',
+                'API key invalid',
+                'authentication failed'
+            ]
+            for keyword in fatal_keywords:
+                if keyword.lower() in error_message.lower():
+                    logger.warning(f"Detected fatal ValueError with keyword '{keyword}'")
+                    return True
+
+        # 默认不是致命错误
+        return False
 
     async def stop(self) -> None:
         """停止 Agent 执行"""

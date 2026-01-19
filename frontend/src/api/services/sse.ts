@@ -412,29 +412,35 @@ export class SSEConnection {
         this.eventSource?.addEventListener(eventType, (event: Event) => {
           const messageEvent = event as MessageEvent
           try {
+            // Handle edge case: "undefined" string or empty data
+            if (!messageEvent.data || messageEvent.data === 'undefined' || messageEvent.data.trim() === '') {
+              console.warn(`[SSE] Received empty or undefined data for ${eventType}, skipping`)
+              return
+            }
+
             const parsedData = JSON.parse(messageEvent.data)
-            
+
             // P1-3: Track sequence number
             if (parsedData._seq) {
               this.lastSeq = parsedData._seq
             }
-            
+
             const sseEvent: SSEEvent = {
               event: eventType as SSEEventType,
               data: parsedData,
               timestamp: new Date().toISOString(),
             }
-            
+
             // P1-3: Handle replay events
             if (eventType === SSEEventType.REPLAY_START) {
               this.options.onReplayStart(parsedData.last_seq || 0)
             } else if (eventType === SSEEventType.REPLAY_END) {
               this.options.onReplayEnd(parsedData.replayed_count || 0)
             }
-            
+
             this.options.onEvent(sseEvent)
           } catch (error) {
-            console.error(`[SSE] Failed to parse ${eventType} event:`, error)
+            console.error(`[SSE] Failed to parse ${eventType} event:`, error, 'Raw data:', messageEvent.data)
           }
         })
       })

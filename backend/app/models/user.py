@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.research_task import ResearchTask
     from app.models.team import TeamMember
     from app.models.workspace import Workspace
 
@@ -105,6 +106,11 @@ class User(Base):
     )
     team_memberships: Mapped[list["TeamMember"]] = relationship(
         "TeamMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    research_tasks: Mapped[list["ResearchTask"]] = relationship(
+        "ResearchTask",
         back_populates="user",
         cascade="all, delete-orphan",
     )

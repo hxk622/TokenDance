@@ -5,6 +5,7 @@ from app.models.agent_state import AgentState  # noqa: F401
 from app.models.artifact import Artifact, ArtifactType  # noqa: F401
 from app.models.message import Message, MessageRole  # noqa: F401
 from app.models.organization import Organization  # noqa: F401
+from app.models.research_task import ResearchTask, ResearchTaskStatus  # noqa: F401
 from app.models.session import Session, SessionStatus  # noqa: F401
 from app.models.skill import Skill  # noqa: F401
 from app.models.team import MemberRole, Team, TeamMember  # noqa: F401
@@ -39,4 +40,7 @@ __all__ = [
     "AgentState",
     "AgentConfig",
     "AgentLesson",
+    # Research
+    "ResearchTask",
+    "ResearchTaskStatus",
 ]

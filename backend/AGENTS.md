@@ -86,29 +86,55 @@ uv run ruff check . && uv run mypy . && uv run pytest tests/ -x -q
 
 ## Enum 定义规范 (必须遵循)
 
-**问题:** SQLAlchemy 默认存储枚举成员名 (如 `PENDING`)，而非 `.value` (如 `pending`)，导致数据库枚举值不匹配。
+**核心原则:** 所有枚举值统一使用**小写** (lowercase)。
 
-**解决方案:** 所有 Enum 列必须使用 `values_callable`:
+**问题根源:** SQLAlchemy 默认存储枚举成员名 (如 `PENDING`)，而非 `.value` (如 `pending`)，导致数据库枚举值不匹配，引发运行时错误。
 
+### Python Enum 定义
 ```python
-# ✅ 正确写法
-from sqlalchemy import Enum
+# ✅ 正确: 成员名大写，值小写
+class SessionStatus(PyEnum):
+    PENDING = "pending"      # 存入DB的是 "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
 
+# ❌ 错误: 值也用大写会导致混乱
+class SessionStatus(PyEnum):
+    PENDING = "PENDING"      # 不要这样做
+```
+
+### SQLAlchemy 模型定义
+```python
+# ✅ 正确: 必须使用 values_callable
 status: Mapped[SessionStatus] = mapped_column(
     Enum(SessionStatus, values_callable=lambda x: [e.value for e in x]),
     default=SessionStatus.PENDING,
     nullable=False
 )
 
-# ❌ 错误写法 - 会导致 PENDING/pending 不匹配
+# ❌ 错误: 会存储大写成员名
 status: Mapped[SessionStatus] = mapped_column(
     Enum(SessionStatus), default=SessionStatus.PENDING, nullable=False
 )
 ```
 
-**迁移规范:**
-- 写迁移时优先使用 `alembic revision --autogenerate`，它会根据模型生成正确的 enum 值
-- 手动写 enum 迁移时，使用 Python Enum 的 `.value` (小写)
+### 数据库迁移规范
+```python
+# ✅ 正确: 使用小写值
+sa.Column('status', sa.Enum('pending', 'running', 'completed', name='sessionstatus'), nullable=False)
+
+# ✅ 正确: 添加新枚举值用小写
+op.execute("ALTER TYPE sessionstatus ADD VALUE IF NOT EXISTS 'cancelled'")
+
+# ❌ 错误: 大写会导致不匹配
+sa.Column('status', sa.Enum('PENDING', 'RUNNING', 'COMPLETED', name='sessionstatus'), nullable=False)
+```
+
+### 检查清单
+- [ ] Python Enum: 成员名大写，`.value` 小写
+- [ ] SQLAlchemy: 使用 `values_callable=lambda x: [e.value for e in x]`
+- [ ] 迁移: 枚举值全部小写
+- [ ] 新增枚举值: 使用 `ADD VALUE IF NOT EXISTS '小写值'`
 
 ## Optional Dependencies
 

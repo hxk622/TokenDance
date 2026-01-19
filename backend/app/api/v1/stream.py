@@ -12,7 +12,7 @@ from collections.abc import AsyncGenerator
 from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pydantic import BaseModel
@@ -113,11 +113,50 @@ class SSEEventType(str, Enum):
     REPLAY_END = "replay_end"
 
 
-def format_sse(event: str, data: dict, seq: int | None = None) -> str:
-    """Format data as SSE message with optional sequence number."""
+def format_sse(event: str, data: dict | None, seq: int | None = None) -> str:
+    """Format data as SSE message with optional sequence number.
+
+    Args:
+        event: SSE event type
+        data: Event data (dict or None). If None, sends empty object.
+        seq: Optional sequence number for event replay
+
+    Returns:
+        Formatted SSE message string
+    """
+    # Ensure data is never None or undefined
+    if data is None:
+        data = {}
+
+    # Validate data is a dict
+    if not isinstance(data, dict):
+        logger.warning(
+            "sse_invalid_data_type",
+            event=event,
+            data_type=type(data).__name__,
+        )
+        data = {"error": "Invalid data type", "original_type": type(data).__name__}
+
+    # Add sequence number if provided
     if seq is not None:
         data = {**data, "_seq": seq}
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+    # Serialize to JSON with error handling
+    try:
+        json_data = json.dumps(data, ensure_ascii=False)
+    except (TypeError, ValueError) as e:
+        logger.error(
+            "sse_json_serialization_error",
+            event=event,
+            error=str(e),
+        )
+        # Fallback to safe error message
+        json_data = json.dumps({
+            "error": "Failed to serialize event data",
+            "event_type": event,
+        })
+
+    return f"event: {event}\ndata: {json_data}\n\n"
 
 
 # ==================== P1-1: SSE Token Exchange ====================
@@ -358,7 +397,7 @@ async def keepalive_generator(
             last_ping = now
 
 
-@router.get("/{session_id}/stream")
+@router.api_route("/{session_id}/stream", methods=["GET", "HEAD"])
 async def stream_session_events(
     session_id: str,
     request: Request,
@@ -395,10 +434,21 @@ async def stream_session_events(
     Usage (recommended - P1-1):
         1. POST /api/v1/sessions/sse-token to get short-lived token
         2. const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}`);
-    
+
     Usage (reconnection - P1-3):
         const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}&last_seq=${lastSeq}`);
     """
+    # Handle HEAD requests - browsers send these to check if SSE endpoint is available
+    if request.method == "HEAD":
+        return Response(
+            status_code=200,
+            headers={
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
     # P1-1: Authenticate using SSE token (preferred) or JWT token (deprecated)
     current_user = None
     

@@ -71,9 +71,11 @@ class OpenRouterLLM(BaseLLM):
         Returns:
             LLMResponse: 完整响应
         """
+        import asyncio
+
         params = self._merge_params(max_tokens, temperature)
 
-        # 构造 OpenAI Chat Completions API 格式
+        # 构造 OpenAI Chat Completions 格式
         formatted_messages = self._format_messages(messages, system)
 
         api_params = {
@@ -94,67 +96,115 @@ class OpenRouterLLM(BaseLLM):
         # 打印请求日志
         logger.info(f"[OpenRouter] Calling model: {self.model} | max_tokens: {params['max_tokens']}")
 
-        # 调用 API (disable SSL verification for macOS compatibility)
-        async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
-            response = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=self.headers,
-                json=api_params
-            )
-            response.raise_for_status()
-            
-            # 安全解析 JSON 响应
+        # 重试配置
+        max_retries = 3
+        base_delay = 1.0  # 初始延迟1秒
+
+        for attempt in range(max_retries):
             try:
-                data = response.json()  # httpx response.json() is synchronous
-            except json.JSONDecodeError as e:
-                # 记录原始响应以便调试
-                raw_text = response.text[:500] if response.text else "(empty)"
-                logger.error(f"[OpenRouter] JSON decode error: {e}")
-                logger.error(f"[OpenRouter] Raw response (first 500 chars): {raw_text}")
-                raise ValueError(f"OpenRouter returned invalid JSON: {e}") from e
-            
-            # 验证响应结构
-            if "choices" not in data or not data["choices"]:
-                logger.error(f"[OpenRouter] Invalid response structure: {data}")
-                raise ValueError(f"OpenRouter response missing 'choices': {data}")
+                # 调用 API (disable SSL verification for macOS compatibility)
+                async with httpx.AsyncClient(timeout=120.0, verify=False) as client:
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=self.headers,
+                        json=api_params
+                    )
+                    response.raise_for_status()
 
-        # 打印响应日志
-        usage_info = data.get("usage", {})
-        logger.info(
-            f"[OpenRouter] Response from {self.model} | "
-            f"tokens: {usage_info.get('prompt_tokens', '?')}/{usage_info.get('completion_tokens', '?')}"
-        )
+                    # 安全解析 JSON 响应
+                    try:
+                        data = response.json()  # httpx response.json() is synchronous
+                    except json.JSONDecodeError as e:
+                        # 记录原始响应以便调试
+                        raw_text = response.text[:500] if response.text else "(empty)"
+                        logger.error(f"[OpenRouter] JSON decode error: {e}")
+                        logger.error(f"[OpenRouter] Raw response (first 500 chars): {raw_text}")
+                        raise ValueError(f"OpenRouter returned invalid JSON: {e}") from e
 
-        # 解析响应
-        choice = data["choices"][0]
-        message = choice["message"]
+                    # 验证响应结构
+                    if "choices" not in data or not data["choices"]:
+                        logger.error(f"[OpenRouter] Invalid response structure: {data}")
+                        raise ValueError(f"OpenRouter response missing 'choices': {data}")
 
-        content = message.get("content", "")
-        tool_calls = []
+                # 打印响应日志
+                usage_info = data.get("usage", {})
+                logger.info(
+                    f"[OpenRouter] Response from {self.model} | "
+                    f"tokens: {usage_info.get('prompt_tokens', '?')}/{usage_info.get('completion_tokens', '?')}"
+                )
 
-        # 处理 function calling
-        if "function_call" in message:
-            func_call = message["function_call"]
-            tool_calls.append({
-                "id": f"call_{hash(func_call['name'])}",  # 生成虚拟 ID
-                "name": func_call["name"],
-                "input": json.loads(func_call["arguments"])
-            })
+                # 解析响应
+                choice = data["choices"][0]
+                message = choice["message"]
 
-        # 处理使用量信息
-        usage = None
-        if "usage" in data:
-            usage = {
-                "input_tokens": data["usage"]["prompt_tokens"],
-                "output_tokens": data["usage"]["completion_tokens"]
-            }
+                content = message.get("content", "")
+                tool_calls = []
 
-        return LLMResponse(
-            content=content,
-            tool_calls=tool_calls if tool_calls else None,
-            stop_reason=choice["finish_reason"],
-            usage=usage
-        )
+                # 处理 function calling
+                if "function_call" in message:
+                    func_call = message["function_call"]
+                    tool_calls.append({
+                        "id": f"call_{hash(func_call['name'])}",  # 生成虚拟 ID
+                        "name": func_call["name"],
+                        "input": json.loads(func_call["arguments"])
+                    })
+
+                # 处理使用量信息
+                usage = None
+                if "usage" in data:
+                    usage = {
+                        "input_tokens": data["usage"]["prompt_tokens"],
+                        "output_tokens": data["usage"]["completion_tokens"]
+                    }
+
+                return LLMResponse(
+                    content=content,
+                    tool_calls=tool_calls if tool_calls else None,
+                    stop_reason=choice["finish_reason"],
+                    usage=usage
+                )
+
+            except httpx.HTTPStatusError as e:
+                # 处理HTTP错误
+                status_code = e.response.status_code
+
+                # 429 Too Many Requests - 需要重试
+                if status_code == 429:
+                    if attempt < max_retries - 1:
+                        # 指数退避：1s, 2s, 4s
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(
+                            f"[OpenRouter] Rate limited (429), retrying in {delay}s "
+                            f"(attempt {attempt + 1}/{max_retries})"
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"[OpenRouter] Rate limit exceeded after {max_retries} retries")
+                        raise ValueError(
+                            f"OpenRouter API rate limit exceeded. Please try again later or upgrade your plan."
+                        ) from e
+
+                # 其他HTTP错误直接抛出
+                logger.error(f"[OpenRouter] HTTP {status_code} error: {e.response.text[:200]}")
+                raise
+
+            except httpx.RequestError as e:
+                # 网络错误
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(
+                        f"[OpenRouter] Network error, retrying in {delay}s "
+                        f"(attempt {attempt + 1}/{max_retries}): {e}"
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    logger.error(f"[OpenRouter] Network error after {max_retries} retries: {e}")
+                    raise
+
+        # 不应该到达这里
+        raise RuntimeError("OpenRouter API call failed after all retries")
 
     async def stream(
         self,

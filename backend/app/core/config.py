@@ -97,8 +97,8 @@ class Settings(BaseSettings):
         return f"redis://{auth}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     # FileSystem
-    DATA_ROOT: str = "/data"
-    WORKSPACE_ROOT_PATH: str = "/data/workspaces"
+    DATA_ROOT: str = "./data"
+    WORKSPACE_ROOT_PATH: str = "./data/workspaces"
 
     # Object Storage (MinIO / S3 compatible)
     MINIO_ENDPOINT: str | None = None  # e.g. "localhost:9000"

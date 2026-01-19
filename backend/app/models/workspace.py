@@ -14,6 +14,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.agent_config import AgentConfig
+    from app.models.research_task import ResearchTask
     from app.models.session import Session
     from app.models.user import User
 
@@ -108,6 +109,11 @@ class Workspace(Base):
     )
     agent_configs: Mapped[list["AgentConfig"]] = relationship(
         "AgentConfig",
+        back_populates="workspace",
+        cascade="all, delete-orphan"
+    )
+    research_tasks: Mapped[list["ResearchTask"]] = relationship(
+        "ResearchTask",
         back_populates="workspace",
         cascade="all, delete-orphan"
     )
