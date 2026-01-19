@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CpuChipIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { ClockIcon, CheckCircleIcon, ExclamationCircleIcon, PauseCircleIcon } from '@heroicons/vue/24/outline'
 
 interface Props {
   visible: boolean
   nodeId: string
-  nodeType: 'manus' | 'coworker'
-  status: 'active' | 'success' | 'pending' | 'error' | 'inactive'
+  status: 'pending' | 'running' | 'success' | 'error'
   label: string
   x: number
   y: number
+  dependencies?: string[]
   metadata?: {
     startTime?: number
+    endTime?: number
     duration?: number
     output?: string
+    errorMessage?: string
   }
 }
 
@@ -21,25 +23,31 @@ const props = defineProps<Props>()
 
 const statusText = computed(() => {
   const statusMap = {
-    active: '执行中',
+    pending: '未执行',
+    running: '执行中',
     success: '已完成',
-    pending: '等待确认',
-    error: '执行失败',
-    inactive: '待执行',
+    error: '出错',
   }
   return statusMap[props.status]
 })
 
 const statusColor = computed(() => {
   const colorMap = {
-    active: '#00D9FF',
-    success: '#00FF88',
-    pending: '#FFB800',
-    error: '#FF3B30',
-    inactive: '#8E8E93',
+    pending: '#8E8E93',   // 灰色
+    running: '#FFB800',   // 黄色
+    success: '#00FF88',   // 绿色
+    error: '#FF3B30',     // 红色
   }
   return colorMap[props.status]
 })
+
+// 状态图标组件映射
+const statusIconMap = {
+  pending: PauseCircleIcon,
+  running: ClockIcon,
+  success: CheckCircleIcon,
+  error: ExclamationCircleIcon,
+}
 
 const duration = computed(() => {
   if (!props.metadata?.duration) return '-'
@@ -69,18 +77,13 @@ const outputPreview = computed(() => {
         borderColor: statusColor 
       }"
     >
-      <!-- Header -->
+      <!-- Header: 任务名称 + 状态图标 -->
       <div class="tooltip-header">
-        <span class="node-type-icon">
-          <CpuChipIcon
-            v-if="nodeType === 'manus'"
-            class="w-5 h-5"
-          />
-          <PencilSquareIcon
-            v-else
-            class="w-5 h-5"
-          />
-        </span>
+        <component 
+          :is="statusIconMap[status]" 
+          class="w-5 h-5 status-icon"
+          :style="{ color: statusColor }"
+        />
         <span class="node-label">{{ label }}</span>
       </div>
 
@@ -96,7 +99,7 @@ const outputPreview = computed(() => {
         >
           {{ statusText }}
         </span>
-        <span class="node-id-badge">Node-{{ nodeId }}</span>
+        <span class="node-id-badge">Task-{{ nodeId }}</span>
       </div>
 
       <!-- Metadata -->
@@ -105,15 +108,31 @@ const outputPreview = computed(() => {
           <span class="meta-label">执行时长</span>
           <span class="meta-value">{{ duration }}</span>
         </div>
-        <div class="metadata-row">
-          <span class="meta-label">Agent类型</span>
-          <span class="meta-value">{{ nodeType === 'manus' ? 'Manus' : 'Coworker' }}</span>
+        <div
+          v-if="dependencies && dependencies.length > 0"
+          class="metadata-row"
+        >
+          <span class="meta-label">依赖任务</span>
+          <span class="meta-value">{{ dependencies.length }} 个上游</span>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div
+        v-if="status === 'error' && metadata?.errorMessage"
+        class="error-section"
+      >
+        <div class="error-label">
+          错误信息
+        </div>
+        <div class="error-content">
+          {{ metadata.errorMessage }}
         </div>
       </div>
 
       <!-- Output Preview -->
       <div
-        v-if="metadata?.output"
+        v-if="metadata?.output && status !== 'error'"
         class="output-section"
       >
         <div class="output-label">
@@ -126,8 +145,7 @@ const outputPreview = computed(() => {
 
       <!-- Focus Mode Hint -->
       <div class="focus-hint">
-        <span class="hint-icon">💡</span>
-        <span class="hint-text">双击节点进入聚焦模式</span>
+        <span class="hint-text">双击节点查看详情</span>
       </div>
     </div>
   </Teleport>
@@ -270,39 +288,48 @@ const outputPreview = computed(() => {
   border-radius: 2px;
 }
 
+/* Error Section */
+.error-section {
+  padding-top: 12px;
+  border-top: 1px solid var(--any-border);
+}
+
+.error-label {
+  font-size: 11px;
+  color: #FF3B30;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-content {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #FF3B30;
+  background: rgba(255, 59, 48, 0.1);
+  padding: 8px;
+  border-radius: var(--any-radius-sm);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+}
+
 /* Focus Mode Hint */
 .focus-hint {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  justify-content: center;
+  padding: 6px 12px;
   margin-top: 12px;
-  background: rgba(0, 217, 255, 0.1);
-  border: 1px solid rgba(0, 217, 255, 0.3);
+  background: var(--any-bg-tertiary);
   border-radius: var(--any-radius-sm);
-  animation: hint-pulse 2s ease-in-out infinite;
-}
-
-@keyframes hint-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.85;
-    transform: scale(0.98);
-  }
-}
-
-.hint-icon {
-  font-size: 14px;
-  flex-shrink: 0;
 }
 
 .hint-text {
   font-size: 11px;
-  color: rgba(0, 217, 255, 0.9);
-  font-weight: 500;
+  color: var(--any-text-secondary);
   letter-spacing: 0.3px;
+}
+
+.status-icon {
+  flex-shrink: 0;
 }
 </style>

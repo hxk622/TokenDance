@@ -6,13 +6,11 @@ import {
   ClipboardDocumentIcon,
   ForwardIcon,
   PauseIcon,
-  PlayIcon,
 } from '@heroicons/vue/24/outline'
 
 interface NodeData {
   id: string
-  type: 'manus' | 'coworker'
-  status: 'active' | 'success' | 'pending' | 'error' | 'inactive'
+  status: 'pending' | 'running' | 'success' | 'error'
   label: string
 }
 
@@ -36,6 +34,16 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+function statusText(status: string): string {
+  const map: Record<string, string> = {
+    pending: '未执行',
+    running: '执行中',
+    success: '已完成',
+    error: '出错'
+  }
+  return map[status] || status
+}
+
 const menuStyle = computed(() => ({
   left: `${props.x}px`,
   top: `${props.y}px`
@@ -47,7 +55,7 @@ const menuItems = computed(() => {
   const items = []
   
   // 根据状态显示不同菜单项
-  if (props.node.status === 'active') {
+  if (props.node.status === 'running') {
     items.push({
       id: 'pause',
       icon: PauseIcon,
@@ -59,11 +67,11 @@ const menuItems = computed(() => {
   
   if (props.node.status === 'pending') {
     items.push({
-      id: 'resume',
-      icon: PlayIcon,
-      label: '继续执行',
-      handler: () => emit('resume', props.node!.id),
-      variant: 'success'
+      id: 'skip',
+      icon: ForwardIcon,
+      label: '跳过此步',
+      handler: () => emit('skip', props.node!.id),
+      variant: 'muted'
     })
   }
   
@@ -74,16 +82,6 @@ const menuItems = computed(() => {
       label: '重新执行',
       handler: () => emit('rerun', props.node!.id),
       variant: 'default'
-    })
-  }
-  
-  if (props.node.status === 'inactive') {
-    items.push({
-      id: 'skip',
-      icon: ForwardIcon,
-      label: '跳过此步',
-      handler: () => emit('skip', props.node!.id),
-      variant: 'muted'
     })
   }
   
@@ -132,10 +130,10 @@ function handleClickOutside(event: MouseEvent) {
         <div class="menu-header">
           <span class="menu-node-label">{{ node.label }}</span>
           <span
-            class="menu-node-type"
-            :class="`type-${node.type}`"
+            class="menu-status-badge"
+            :class="`status-${node.status}`"
           >
-            {{ node.type === 'manus' ? 'Manus' : 'Coworker' }}
+            {{ statusText(node.status) }}
           </span>
         </div>
         
@@ -215,7 +213,7 @@ function handleClickOutside(event: MouseEvent) {
   color: var(--any-text-primary);
 }
 
-.menu-node-type {
+.menu-status-badge {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -223,14 +221,24 @@ function handleClickOutside(event: MouseEvent) {
   border-radius: var(--any-radius-sm);
 }
 
-.menu-node-type.type-manus {
-  background: var(--td-state-thinking-bg);
-  color: var(--td-state-thinking);
+.menu-status-badge.status-pending {
+  background: rgba(142, 142, 147, 0.2);
+  color: #8E8E93;
 }
 
-.menu-node-type.type-coworker {
-  background: var(--td-state-executing-bg);
-  color: var(--td-state-executing);
+.menu-status-badge.status-running {
+  background: rgba(255, 184, 0, 0.2);
+  color: #FFB800;
+}
+
+.menu-status-badge.status-success {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00FF88;
+}
+
+.menu-status-badge.status-error {
+  background: rgba(255, 59, 48, 0.2);
+  color: #FF3B30;
 }
 
 .menu-items {

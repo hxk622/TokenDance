@@ -18,85 +18,87 @@ const emit = defineEmits<{
   'edge-disconnect': [edgeId: string]
 }>()
 
-// Node types
+// Node interface - 节点只区分状态，不区分类型
 interface Node {
   id: string
-  type: 'manus' | 'coworker'
-  status: 'active' | 'success' | 'pending' | 'error' | 'inactive'
-  label: string
+  status: 'pending' | 'running' | 'success' | 'error'  // 灰/黄/绿/红
+  label: string  // 任务名称
   x: number
   y: number
+  dependencies?: string[]  // 上游依赖节点 ID 列表
   metadata?: {
     startTime?: number
+    endTime?: number
     duration?: number
     output?: string
+    errorMessage?: string
   }
 }
 
-// Edge types
+// Edge interface - 依赖关系连线
 interface Edge {
   id: string
-  from: string
-  to: string
-  type: 'context' | 'result'
-  active: boolean
+  from: string  // 上游节点 ID
+  to: string    // 下游节点 ID
 }
 
-// Mock data for Phase 1
+// Mock data for Phase 1 - 模拟后端推送的工作流数据
 const nodes = ref<Node[]>([
   { 
     id: '1', 
-    type: 'manus', 
     status: 'success', 
     label: '搜索市场数据', 
     x: 100, 
-    y: 100,
+    y: 150,
+    dependencies: [],
     metadata: {
       startTime: Date.now() - 120000,
+      endTime: Date.now() - 75000,
       duration: 45000,
       output: 'Found 3 relevant reports on AI Agent market size and growth trends'
     }
   },
   { 
     id: '2', 
-    type: 'manus', 
     status: 'success', 
     label: '分析竞品', 
     x: 300, 
-    y: 100,
+    y: 150,
+    dependencies: ['1'],
     metadata: {
       startTime: Date.now() - 75000,
+      endTime: Date.now() - 37000,
       duration: 38000,
-      output: 'Analyzed Manus (sandbox execution), Coworker (local files), GenSpark (deep research)'
+      output: 'Analyzed Manus, Coworker, GenSpark competitive landscape'
     }
   },
   { 
     id: '3', 
-    type: 'coworker', 
-    status: 'active', 
+    status: 'running', 
     label: '生成报告', 
     x: 500, 
-    y: 100,
+    y: 150,
+    dependencies: ['2'],
     metadata: {
       startTime: Date.now() - 15000,
-      duration: 15000,
-      output: 'Generating markdown report with competitive analysis and market insights...'
+      output: 'Generating markdown report...'
     }
   },
   { 
     id: '4', 
-    type: 'manus', 
-    status: 'inactive', 
+    status: 'pending', 
     label: '创建PPT', 
     x: 700, 
-    y: 100 
+    y: 150,
+    dependencies: ['3']
   },
 ])
 
+// 边从依赖关系自动生成
 const edges = ref<Edge[]>([
-  { id: 'e1', from: '1', to: '2', type: 'context', active: true },
-  { id: 'e2', from: '2', to: '3', type: 'context', active: true },
-  { id: 'e3', from: '3', to: '4', type: 'result', active: false },
+  { id: 'e1', from: '1', to: '2' },
+  { id: 'e2', from: '2', to: '3' },
+  { id: 'e3', from: '3', to: '4' },
 ])
 
 const selectedNodeId = ref<string | null>(null)
@@ -241,15 +243,52 @@ function handleCanvasClick() {
   }
 }
 
+// 根据状态返回节点颜色
 function getNodeColor(status: Node['status']): string {
   const colors = {
-    active: '#00D9FF',      // 青色脉冲
-    success: '#00FF88',     // 绿色锁定
-    pending: '#FFB800',     // 琥珀暂停
-    error: '#FF3B30',       // 红色冲突
-    inactive: '#8E8E93',    // 灰色待执行
+    pending: '#8E8E93',     // 灰色 - 未执行
+    running: '#FFB800',     // 黄色 - 执行中
+    success: '#00FF88',     // 绿色 - 已完成
+    error: '#FF3B30',       // 红色 - 出错
   }
   return colors[status]
+}
+
+// 根据上游节点状态判断边是否激活（用于动画效果）
+function isEdgeActive(edge: Edge): boolean {
+  const fromNode = nodes.value.find(n => n.id === edge.from)
+  const toNode = nodes.value.find(n => n.id === edge.to)
+  // 当上游完成且下游正在执行时，边激活
+  return fromNode?.status === 'success' && toNode?.status === 'running'
+}
+
+// 计算箭头指向的三角形顶点
+function getArrowPoints(edge: Edge): string {
+  const fromNode = nodes.value.find(n => n.id === edge.from)
+  const toNode = nodes.value.find(n => n.id === edge.to)
+  if (!fromNode || !toNode) return ''
+  
+  const dx = toNode.x - fromNode.x
+  const dy = toNode.y - fromNode.y
+  const len = Math.sqrt(dx * dx + dy * dy)
+  if (len === 0) return ''
+  
+  // 单位向量
+  const ux = dx / len
+  const uy = dy / len
+  
+  // 箭头尖端位置（距离目标节点圆心 35px，因为节点半径 30）
+  const tipX = toNode.x - ux * 35
+  const tipY = toNode.y - uy * 35
+  
+  // 箭头两侧的点
+  const arrowSize = 8
+  const perpX = -uy * arrowSize
+  const perpY = ux * arrowSize
+  const backX = tipX - ux * arrowSize * 1.5
+  const backY = tipY - uy * arrowSize * 1.5
+  
+  return `${tipX},${tipY} ${backX + perpX},${backY + perpY} ${backX - perpX},${backY - perpY}`
 }
 
 onMounted(() => {
@@ -332,7 +371,7 @@ watch(() => props.sessionId, (newId) => {
         @click="handleNodeClick(node.id)"
       >
         <span
-          v-if="node.status === 'active'"
+          v-if="node.status === 'running'"
           class="mini-node-pulse"
         />
       </div>
@@ -346,47 +385,40 @@ watch(() => props.sessionId, (newId) => {
       height="100%"
       @click="handleCanvasClick"
     >
-      <!-- Draw edges -->
+      <!-- Draw edges (依赖关系连线) -->
       <g class="edges">
         <g
           v-for="edge in edges"
           :key="edge.id"
           class="edge-group"
         >
-          <!-- Invisible wider line for easier interaction -->
+          <!-- 依赖连线 -->
           <line
             :x1="nodes.find(n => n.id === edge.from)?.x"
             :y1="nodes.find(n => n.id === edge.from)?.y"
             :x2="nodes.find(n => n.id === edge.to)?.x"
             :y2="nodes.find(n => n.id === edge.to)?.y"
-            class="edge-hitbox"
-            stroke="transparent"
-            stroke-width="20"
-            @dblclick="handleEdgeDoubleClick(edge)"
-            @mousedown="handleEdgeMouseDown(edge, $event)"
-          />
-          <!-- Visible edge line -->
-          <line
-            :x1="nodes.find(n => n.id === edge.from)?.x"
-            :y1="nodes.find(n => n.id === edge.from)?.y"
-            :x2="nodes.find(n => n.id === edge.to)?.x"
-            :y2="nodes.find(n => n.id === edge.to)?.y"
-            :class="['edge', { active: edge.active, dragging: draggingEdge === edge.id }]"
-            stroke="rgba(255, 255, 255, 0.3)"
+            :class="['edge', { active: isEdgeActive(edge) }]"
+            :stroke="isEdgeActive(edge) ? '#FFB800' : 'rgba(255, 255, 255, 0.3)'"
             stroke-width="2"
-            pointer-events="none"
+          />
+          <!-- 箭头标记 -->
+          <polygon
+            v-if="nodes.find(n => n.id === edge.to)"
+            :points="getArrowPoints(edge)"
+            :fill="isEdgeActive(edge) ? '#FFB800' : 'rgba(255, 255, 255, 0.3)'"
           />
         </g>
       </g>
 
-      <!-- Draw nodes -->
+      <!-- Draw nodes (任务节点) -->
       <g class="nodes">
         <g
           v-for="node in nodes"
           :key="node.id"
           :data-node-id="node.id"
           :transform="`translate(${node.x}, ${node.y})`"
-          :class="['node', node.status, { selected: selectedNodeId === node.id }]"
+          :class="['node', `status-${node.status}`, { selected: selectedNodeId === node.id }]"
           @click.stop="handleNodeClick(node.id)"
           @dblclick="handleNodeDoubleClick(node.id)"
           @contextmenu="handleContextMenu(node, $event)"
@@ -397,12 +429,12 @@ watch(() => props.sessionId, (newId) => {
           <circle
             r="30"
             :fill="getNodeColor(node.status)"
-            :class="{ 'pulse': node.status === 'active' }"
+            :class="{ 'pulse': node.status === 'running' }"
           />
           
-          <!-- Node label -->
+          <!-- 任务名称标签 -->
           <text
-            y="55"
+            y="50"
             text-anchor="middle"
             class="node-label"
           >
@@ -417,12 +449,12 @@ watch(() => props.sessionId, (newId) => {
       v-if="hoveredNode"
       :visible="tooltipVisible"
       :node-id="hoveredNode.id"
-      :node-type="hoveredNode.type"
       :status="hoveredNode.status"
       :label="hoveredNode.label"
       :x="tooltipPosition.x"
       :y="tooltipPosition.y"
       :metadata="hoveredNode.metadata"
+      :dependencies="hoveredNode.dependencies"
     />
 
     <!-- Context Menu -->
@@ -517,10 +549,14 @@ watch(() => props.sessionId, (newId) => {
       </Transition>
     </Teleport>
 
-    <!-- Legend -->
+    <!-- Legend (状态图例) -->
     <div class="graph-legend">
       <div class="legend-item">
-        <span class="legend-dot active" />
+        <span class="legend-dot pending" />
+        <span>未执行</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot running" />
         <span>执行中</span>
       </div>
       <div class="legend-item">
@@ -528,12 +564,8 @@ watch(() => props.sessionId, (newId) => {
         <span>已完成</span>
       </div>
       <div class="legend-item">
-        <span class="legend-dot pending" />
-        <span>等待确认</span>
-      </div>
-      <div class="legend-item">
         <span class="legend-dot error" />
-        <span>执行失败</span>
+        <span>出错</span>
       </div>
     </div>
   </div>
@@ -666,7 +698,7 @@ watch(() => props.sessionId, (newId) => {
   stroke-width: 3;
 }
 
-/* Pulse animation for active nodes - Enhanced Vibe breathing */
+/* Running node - 黄色脉冲呼吸动画 */
 .node circle.pulse {
   animation: vibe-node-breath 1.5s ease-in-out infinite;
 }
@@ -675,38 +707,29 @@ watch(() => props.sessionId, (newId) => {
   0%, 100% {
     transform: scale(1);
     opacity: 1;
-    filter: drop-shadow(0 0 12px var(--vibe-color-active-glow)) 
-            drop-shadow(0 0 24px var(--vibe-color-active-glow));
+    filter: drop-shadow(0 0 12px rgba(255, 184, 0, 0.6)) 
+            drop-shadow(0 0 24px rgba(255, 184, 0, 0.4));
   }
   50% {
-    transform: scale(1.18);
+    transform: scale(1.15);
     opacity: 0.92;
-    filter: drop-shadow(0 0 24px var(--vibe-color-active-glow-strong)) 
-            drop-shadow(0 0 48px var(--vibe-color-active-glow-strong));
+    filter: drop-shadow(0 0 24px rgba(255, 184, 0, 0.8)) 
+            drop-shadow(0 0 48px rgba(255, 184, 0, 0.6));
   }
 }
 
-/* Pending node animation - slower breathing */
-.node.pending circle {
-  animation: vibe-node-pending 2s ease-in-out infinite;
+/* Pending node - 灰色静态 */
+.node.status-pending circle {
+  filter: drop-shadow(0 0 8px rgba(142, 142, 147, 0.4));
 }
 
-@keyframes vibe-node-pending {
-  0%, 100% {
-    filter: drop-shadow(0 0 10px var(--vibe-color-pending-glow));
-  }
-  50% {
-    filter: drop-shadow(0 0 20px var(--vibe-color-pending-glow-strong));
-  }
+/* Success node - 绿色光晕 */
+.node.status-success circle {
+  filter: drop-shadow(0 0 12px rgba(0, 255, 136, 0.5));
 }
 
-/* Success node animation - brief celebration */
-.node.success circle {
-  filter: drop-shadow(0 0 12px var(--vibe-color-success-glow));
-}
-
-.node.success.just-completed circle {
-  animation: vibe-node-success-pop 0.5s var(--vibe-ease-bounce);
+.node.status-success.just-completed circle {
+  animation: vibe-node-success-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes vibe-node-success-pop {
@@ -716,10 +739,10 @@ watch(() => props.sessionId, (newId) => {
   100% { transform: scale(1); }
 }
 
-/* Error node animation - shake */
-.node.error circle {
+/* Error node - 红色抖动 */
+.node.status-error circle {
   animation: vibe-node-error 0.4s ease-in-out;
-  filter: drop-shadow(0 0 12px var(--vibe-color-error-glow));
+  filter: drop-shadow(0 0 12px rgba(255, 59, 48, 0.6));
 }
 
 @keyframes vibe-node-error {
@@ -765,30 +788,30 @@ watch(() => props.sessionId, (newId) => {
   border-radius: 50%;
 }
 
-.legend-dot.active {
-  background: var(--vibe-color-active);
-  box-shadow: 0 0 8px var(--vibe-color-active-glow);
+.legend-dot.pending {
+  background: #8E8E93;
+  box-shadow: 0 0 6px rgba(142, 142, 147, 0.5);
+}
+
+.legend-dot.running {
+  background: #FFB800;
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.6);
   animation: vibe-legend-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes vibe-legend-pulse {
-  0%, 100% { box-shadow: 0 0 6px var(--vibe-color-active-glow); }
-  50% { box-shadow: 0 0 12px var(--vibe-color-active-glow-strong); }
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 184, 0, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(255, 184, 0, 0.8); }
 }
 
 .legend-dot.success {
-  background: var(--vibe-color-success);
-  box-shadow: 0 0 6px var(--vibe-color-success-glow);
-}
-
-.legend-dot.pending {
-  background: var(--vibe-color-pending);
-  box-shadow: 0 0 6px var(--vibe-color-pending-glow);
+  background: #00FF88;
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
 }
 
 .legend-dot.error {
-  background: var(--vibe-color-error);
-  box-shadow: 0 0 6px var(--vibe-color-error-glow);
+  background: #FF3B30;
+  box-shadow: 0 0 6px rgba(255, 59, 48, 0.5);
 }
 
 /* Collapse Mode */
@@ -821,7 +844,7 @@ watch(() => props.sessionId, (newId) => {
   transform: scale(1.15);
 }
 
-.mini-node.active {
+.mini-node.running {
   animation: vibe-mini-pulse 1.5s ease-in-out infinite;
 }
 

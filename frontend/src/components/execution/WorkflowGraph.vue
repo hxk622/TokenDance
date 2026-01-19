@@ -12,12 +12,12 @@
     <NodeTooltip
       :visible="tooltipState.visible"
       :node-id="tooltipState.nodeId"
-      :node-type="tooltipState.nodeType"
       :status="tooltipState.status"
       :label="tooltipState.label"
       :x="tooltipState.x"
       :y="tooltipState.y"
       :metadata="tooltipState.metadata"
+      :dependencies="tooltipState.dependencies"
     />
     
     <!-- Node Context Menu -->
@@ -84,18 +84,18 @@ const svgRef = ref<SVGSVGElement | null>(null)
 const tooltipState = ref({
   visible: false,
   nodeId: '',
-  nodeType: 'manus' as 'manus' | 'coworker',
-  status: 'inactive' as 'active' | 'success' | 'pending' | 'error' | 'inactive',
+  status: 'pending' as 'pending' | 'running' | 'success' | 'error',
   label: '',
   x: 0,
   y: 0,
-  metadata: undefined as { startTime?: number; duration?: number; output?: string } | undefined
+  dependencies: [] as string[],
+  metadata: undefined as { startTime?: number; endTime?: number; duration?: number; output?: string; errorMessage?: string } | undefined
 })
 
 // Context menu state
 const contextMenuState = ref({
   visible: false,
-  node: null as { id: string; type: 'manus' | 'coworker'; status: 'active' | 'success' | 'pending' | 'error' | 'inactive'; label: string } | null,
+  node: null as { id: string; status: 'pending' | 'running' | 'success' | 'error'; label: string } | null,
   x: 0,
   y: 0
 })
@@ -369,14 +369,23 @@ function updateNodeStyles() {
 // Tooltip functions
 function showTooltip(event: MouseEvent, d: any) {
   const storeNode = executionStore.nodes.find(n => n.id === d.id)
+  // 将旧状态映射到新状态
+  const statusMap: Record<string, 'pending' | 'running' | 'success' | 'error'> = {
+    'active': 'running',
+    'inactive': 'pending',
+    'pending': 'pending',
+    'running': 'running',
+    'success': 'success',
+    'error': 'error'
+  }
   tooltipState.value = {
     visible: true,
     nodeId: d.id,
-    nodeType: d.type,
-    status: d.status,
+    status: statusMap[d.status] || 'pending',
     label: d.label,
     x: event.clientX,
     y: event.clientY,
+    dependencies: (storeNode as any)?.dependencies || [],
     metadata: storeNode?.metadata
   }
 }
@@ -387,12 +396,20 @@ function hideTooltip() {
 
 // Context menu functions
 function showContextMenu(event: MouseEvent, d: any) {
+  // 将旧状态映射到新状态
+  const statusMap: Record<string, 'pending' | 'running' | 'success' | 'error'> = {
+    'active': 'running',
+    'inactive': 'pending',
+    'pending': 'pending',
+    'running': 'running',
+    'success': 'success',
+    'error': 'error'
+  }
   contextMenuState.value = {
     visible: true,
     node: {
       id: d.id,
-      type: d.type,
-      status: d.status,
+      status: statusMap[d.status] || 'pending',
       label: d.label
     },
     x: event.clientX,

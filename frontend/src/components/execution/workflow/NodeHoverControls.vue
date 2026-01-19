@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PauseIcon, PlayIcon, ForwardIcon } from '@heroicons/vue/24/solid'
+import { PauseIcon, ForwardIcon } from '@heroicons/vue/24/solid'
 
 interface Props {
   visible: boolean
   nodeId: string
-  status: 'active' | 'success' | 'pending' | 'error' | 'inactive'
+  status: 'pending' | 'running' | 'success' | 'error'
   x: number
   y: number
 }
@@ -24,16 +24,15 @@ const controlsStyle = computed(() => ({
   top: `${props.y - 15}px`
 }))
 
-const showPause = computed(() => props.status === 'active')
-const showResume = computed(() => props.status === 'pending')
-const showSkip = computed(() => ['inactive', 'pending'].includes(props.status))
+const showPause = computed(() => props.status === 'running')
+const showSkip = computed(() => props.status === 'pending')
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="controls-fade">
       <div 
-        v-if="visible && (showPause || showResume || showSkip)"
+        v-if="visible && (showPause || showSkip)"
         class="node-hover-controls"
         :style="controlsStyle"
       >
@@ -44,15 +43,6 @@ const showSkip = computed(() => ['inactive', 'pending'].includes(props.status))
           @click.stop="emit('pause', nodeId)"
         >
           <PauseIcon class="w-3.5 h-3.5" />
-        </button>
-        
-        <button 
-          v-if="showResume"
-          class="control-btn control-resume"
-          title="继续执行"
-          @click.stop="emit('resume', nodeId)"
-        >
-          <PlayIcon class="w-3.5 h-3.5" />
         </button>
         
         <button 
