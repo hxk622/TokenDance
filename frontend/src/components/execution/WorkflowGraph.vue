@@ -118,11 +118,20 @@ const edges = computed(() => executionStore.edges.map(e => ({
 
 let simulation: d3.Simulation<d3.SimulationNodeDatum, undefined> | null = null
 
-// Watch for node status changes to update graph
+// Watch for node status changes to update graph styles
 watch(
   () => executionStore.nodes.map(n => n.status).join(','),
   () => {
     updateNodeStyles()
+  }
+)
+
+// Watch for new nodes/edges being added (dynamic workflow from SSE)
+watch(
+  () => executionStore.nodes.length + executionStore.edges.length,
+  () => {
+    // Re-render when nodes or edges are added/removed
+    renderGraph()
   }
 )
 
