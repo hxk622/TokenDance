@@ -111,6 +111,59 @@ class DeepResearchAgent(BaseAgent):
         self._pending_urls: list[str] = []  # 待并发读取的 URL
         self._pending_queries: list[str] = []  # 待并发搜索的查询
 
+    # ==================== 覆写工具执行以发送 Timeline 事件 ====================
+
+    async def _execute_tool(
+        self,
+        action: AgentAction
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """覆写 BaseAgent._execute_tool 以在工具执行后发送 Timeline 事件"""
+        tool_name = action.tool_name
+        tool_args = action.tool_args or {}
+
+        # 调用父类的工具执行逻辑
+        tool_result = None
+        async for event in super()._execute_tool(action):
+            yield event
+            # 捕获工具执行结果
+            if event.type == SSEEventType.TOOL_RESULT and event.data.get('status') == 'success':
+                tool_result = event.data.get('result', '')
+
+        # 工具执行成功后，发送 Timeline 事件
+        if tool_result is not None:
+            if tool_name == "web_search":
+                # 尝试解析结果获取结果数
+                try:
+                    import json
+                    result_data = json.loads(tool_result) if isinstance(tool_result, str) else tool_result
+                    results_count = len(result_data.get('results', [])) if isinstance(result_data, dict) else 0
+                except Exception:
+                    results_count = 0
+                query = tool_args.get('query', '')
+                yield self._emit_timeline_search(query, results_count)
+
+            elif tool_name == "read_url":
+                url = tool_args.get('url', '')
+                # 尝试从结果中提取标题
+                try:
+                    import json
+                    result_data = json.loads(tool_result) if isinstance(tool_result, str) else tool_result
+                    title = result_data.get('title', 'Unknown') if isinstance(result_data, dict) else 'Unknown'
+                except Exception:
+                    title = 'Unknown'
+                yield self._emit_timeline_read(url, title)
+
+            elif tool_name == "browser_screenshot":
+                try:
+                    import json
+                    result_data = json.loads(tool_result) if isinstance(tool_result, str) else tool_result
+                    path = result_data.get('path', '') if isinstance(result_data, dict) else ''
+                    url = result_data.get('url', '') if isinstance(result_data, dict) else ''
+                except Exception:
+                    path = ''
+                    url = ''
+                yield self._emit_timeline_screenshot(path, url)
+
     # ==================== Timeline 事件发送 ====================
 
     def _emit_timeline_search(self, query: str, results_count: int) -> SSEEvent:
