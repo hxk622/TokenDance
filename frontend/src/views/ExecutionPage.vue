@@ -328,19 +328,11 @@ async function initializeExecution() {
     }
 
     // For demo session, skip preflight
+    // 节点和边会通过 SSE 事件动态创建 (plan_created, node_created, edge_created)
     if (sessionId.value.startsWith('demo')) {
-      // Initialize demo workflow
-      executionStore.nodes = [
-        { id: '1', type: 'manus', status: 'pending', label: '收集市场数据', x: 100, y: 100 },
-        { id: '2', type: 'manus', status: 'pending', label: '研究竞争对手', x: 300, y: 100 },
-        { id: '3', type: 'coworker', status: 'pending', label: '整理关键发现', x: 500, y: 100 },
-        { id: '4', type: 'coworker', status: 'pending', label: '撰写分析报告', x: 700, y: 100 },
-      ]
-      executionStore.edges = [
-        { id: 'e1', from: '1', to: '2', type: 'context', active: false },
-        { id: 'e2', from: '2', to: '3', type: 'context', active: false },
-        { id: 'e3', from: '3', to: '4', type: 'result', active: false },
-      ]
+      // 不再硬编码节点，等待 SSE 事件动态构建工作流
+      executionStore.nodes = []
+      executionStore.edges = []
       initPhase.value = 'executing'
       startActualExecution(initialTask.value || '')
       return
@@ -918,11 +910,10 @@ onUnmounted(() => {
               />
             </button>
 
-            <!-- Top: Workflow Graph -->
+            <!-- Top: Workflow Graph - 高度自适应，不随 streaming 区域增长 -->
             <div 
               class="workflow-graph-container" 
               :class="{ collapsed: isCollapsed }"
-              :style="{ height: isCollapsed ? `${collapsedHeight}px` : `${topHeight}%` }"
             >
               <WorkflowGraph 
                 :session-id="sessionId" 
@@ -932,18 +923,9 @@ onUnmounted(() => {
               />
             </div>
 
-            <!-- Vertical Divider (hidden when collapsed) -->
-            <ResizableDivider
-              v-if="!isCollapsed && !isCompactMode"
-              direction="vertical"
-              @resize="handleVerticalDrag"
-              @reset="resetVerticalRatio"
-            />
-
-            <!-- Bottom: Streaming Info -->
+            <!-- Bottom: Streaming Info - 填充剩余空间 -->
             <div 
-              class="streaming-info-container" 
-              :style="{ height: isCollapsed ? 'calc(100% - 80px)' : (isCompactMode ? 'calc(100% - 100px)' : `${bottomHeight}%`) }"
+              class="streaming-info-container"
             >
               <StreamingInfo 
                 ref="streamingInfoRef"
@@ -951,6 +933,7 @@ onUnmounted(() => {
                 :init-phase="initPhase"
                 :preflight-result="preflightResult"
                 :user-input="initialTask || ''"
+                :user-avatar="userInitial"
                 @proceed="handleStreamingProceed"
               />
             </div>
@@ -1434,12 +1417,17 @@ onUnmounted(() => {
 }
 
 .workflow-graph-container {
+  flex-shrink: 0;  /* 不压缩 */
+  height: 180px;   /* 固定高度，不随 streaming 区域增长 */
+  min-height: 120px;
+  max-height: 40vh;
   overflow: hidden;
   border-bottom: 1px solid var(--exec-border);
   transition: height var(--any-duration-normal) var(--any-ease-default);
 }
 
 .workflow-graph-container.collapsed {
+  height: 80px;
   min-height: 80px;
 }
 
@@ -1635,7 +1623,9 @@ onUnmounted(() => {
 }
 
 .streaming-info-container {
-  overflow: hidden;
+  flex: 1;  /* 填充剩余空间 */
+  min-height: 200px;
+  overflow: auto;
 }
 
 /* Skeleton loading styles */

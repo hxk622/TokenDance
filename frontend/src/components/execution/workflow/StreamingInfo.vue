@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { Lightbulb, ArrowRight, Loader2 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
@@ -7,17 +7,33 @@ import type { IntentValidationResponse } from '@/api/services/session'
 // Init phase types
 export type InitPhase = 'idle' | 'analyzing' | 'needs-clarification' | 'ready' | 'executing'
 
+// Chat message types
+export type MessageRole = 'user' | 'assistant'
+export type MessageStatus = 'thinking' | 'streaming' | 'complete' | 'error'
+
+export interface ChatMessage {
+  id: string
+  role: MessageRole
+  content: string
+  status: MessageStatus
+  timestamp: number
+  // For tool calls display
+  toolCalls?: { name: string; args?: string }[]
+}
+
 interface Props {
   sessionId: string
   initPhase?: InitPhase
   preflightResult?: IntentValidationResponse | null
   userInput?: string
+  userAvatar?: string  // URL or initial letter
 }
 
 const props = withDefaults(defineProps<Props>(), {
   initPhase: 'executing',
   preflightResult: null,
-  userInput: ''
+  userInput: '',
+  userAvatar: 'U'
 })
 
 // Emits
@@ -59,80 +75,97 @@ watch(() => props.initPhase, () => {
   selectedOptions.value = []
 })
 
-interface LogEntry {
-  id: string
-  nodeId: string
-  timestamp: number
-  type: 'thinking' | 'tool-call' | 'result' | 'error'
-  content: string
-}
+// ========================================
+// Chat Messages (replacing old LogEntry)
+// ========================================
 
-// Mock data for Phase 1
-const logs = ref<LogEntry[]>([
-  { id: '1', nodeId: '1', timestamp: Date.now() - 60000, type: 'thinking', content: '正在搜索市场数据...' },
-  { id: '2', nodeId: '1', timestamp: Date.now() - 55000, type: 'tool-call', content: 'web_search("AI Agent 市场规模")' },
-  { id: '3', nodeId: '1', timestamp: Date.now() - 50000, type: 'result', content: '找到3篇相关报告' },
-  { id: '4', nodeId: '2', timestamp: Date.now() - 40000, type: 'thinking', content: '分析竞品特点...' },
-  { id: '5', nodeId: '2', timestamp: Date.now() - 35000, type: 'tool-call', content: 'analyze_competitors(["Manus", "Coworker"])' },
-  { id: '6', nodeId: '3', timestamp: Date.now() - 10000, type: 'thinking', content: '生成markdown报告...' },
-  { id: '7', nodeId: '3', timestamp: Date.now() - 5000, type: 'tool-call', content: 'coworker.create_file("report.md")' },
-])
-
-const mode = ref<'all' | 'coworker'>('all')
-const logStreamRef = ref<HTMLElement | null>(null)
+const messages = ref<ChatMessage[]>([])
+const chatContainerRef = ref<HTMLElement | null>(null)
 const isScrollLocked = ref(false)
-const focusNodeId = ref<string | null>(null)
-
-// Smart scroll strategy
-const lastClickTime = ref(0)
 const userScrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const isUserScrolling = ref(false)
 
-function formatTime(timestamp: number): string {
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+// Initialize with user message when userInput changes
+watch(() => props.userInput, (newInput) => {
+  if (newInput && messages.value.length === 0) {
+    // Add user's initial query as first message
+    messages.value.push({
+      id: 'user-query',
+      role: 'user',
+      content: newInput,
+      status: 'complete',
+      timestamp: Date.now()
+    })
+  }
+}, { immediate: true })
+
+// Mock: Simulate AI response stream (for demo)
+function simulateAIResponse() {
+  // Add thinking message
+  const thinkingMsg: ChatMessage = {
+    id: 'ai-1',
+    role: 'assistant',
+    content: '',
+    status: 'thinking',
+    timestamp: Date.now(),
+    toolCalls: []
+  }
+  messages.value.push(thinkingMsg)
+  
+  // Simulate streaming content
+  setTimeout(() => {
+    const msg = messages.value.find(m => m.id === 'ai-1')
+    if (msg) {
+      msg.status = 'streaming'
+      msg.content = '正在分析 AI Agent 市场数据...'
+      msg.toolCalls = [{ name: 'web_search', args: '"AI Agent 市场规模"' }]
+    }
+    scrollToBottom()
+  }, 1500)
+  
+  setTimeout(() => {
+    const msg = messages.value.find(m => m.id === 'ai-1')
+    if (msg) {
+      msg.content = '正在分析 AI Agent 市场数据...\n\n找到了 3 篇相关行业报告，正在提取关键信息...'
+      msg.toolCalls?.push({ name: 'analyze_competitors', args: '["Manus", "Coworker"]' })
+    }
+    scrollToBottom()
+  }, 3000)
+  
+  setTimeout(() => {
+    const msg = messages.value.find(m => m.id === 'ai-1')
+    if (msg) {
+      msg.status = 'complete'
+      msg.content = `根据我的分析，AI Agent 市场呈现以下特点：
+
+1. **市场规模**: 2024年全球 AI Agent 市场规模约 50 亿美元
+2. **主要玩家**: Manus、Coworker、AutoGPT 等
+3. **增长趋势**: 预计 2025 年增长 40%+
+
+我已将详细报告保存到 report.md 文件中。`
+    }
+    scrollToBottom()
+  }, 5000)
 }
 
-// SVG path data for icons (Lucide-style)
-const iconPaths = {
-  thinking: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', // message-square
-  'tool-call': 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z', // wrench
-  result: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3', // check-circle
-  error: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z|M15 9l-6 6|M9 9l6 6', // x-circle
-}
+// Start demo when entering executing phase
+watch(() => props.initPhase, (phase) => {
+  if (phase === 'executing' && messages.value.length <= 1) {
+    setTimeout(simulateAIResponse, 500)
+  }
+})
 
-function getLogIconPath(type: LogEntry['type']): string {
-  return iconPaths[type] || iconPaths.thinking
-}
-
-// Scroll-Sync: Scroll to specific node's logs with smart strategy
-function scrollToNode(nodeId: string) {
+// Auto scroll to bottom
+function scrollToBottom() {
   if (isScrollLocked.value || isUserScrolling.value) return
   
-  const now = Date.now()
-  const timeSinceLastClick = now - lastClickTime.value
-  lastClickTime.value = now
-  
-  // 5秒内连续点击 → 只高亮不滚动
-  const onlyHighlight = timeSinceLastClick < 5000
-  
   nextTick(() => {
-    const logStream = logStreamRef.value
-    if (!logStream) return
-    
-    const targetLog = logStream.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement
-    if (targetLog) {
-      // 只高亮或者滚动+高亮
-      if (!onlyHighlight) {
-        targetLog.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-      
-      // Highlight the log entry
-      targetLog.style.background = 'rgba(0, 217, 255, 0.3)'
-      targetLog.style.transition = 'background 120ms ease-out'
-      setTimeout(() => {
-        targetLog.style.background = ''
-      }, 1000)
+    const container = chatContainerRef.value
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
     }
   })
 }
@@ -141,22 +174,43 @@ function toggleScrollLock() {
   isScrollLocked.value = !isScrollLocked.value
 }
 
-// Detect user scroll and pause auto-sync
+// Detect user scroll
 function handleUserScroll() {
   isUserScrolling.value = true
   
-  // Clear previous timeout
   if (userScrollTimeout.value) {
     clearTimeout(userScrollTimeout.value)
   }
   
-  // Resume auto-sync after 3 seconds of no scrolling
   userScrollTimeout.value = setTimeout(() => {
     isUserScrolling.value = false
   }, 3000)
 }
 
-// Focus Mode: Filter logs by specific nodeId
+// Format timestamp
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Get user avatar display (initial or image)
+const userAvatarDisplay = computed(() => {
+  if (props.userAvatar.startsWith('http') || props.userAvatar.startsWith('/')) {
+    return { type: 'image', src: props.userAvatar }
+  }
+  return { type: 'initial', text: props.userAvatar.charAt(0).toUpperCase() }
+})
+
+// ========================================
+// Legacy methods for compatibility
+// ========================================
+const focusNodeId = ref<string | null>(null)
+
+function scrollToNode(nodeId: string) {
+  // Legacy: now just scroll to bottom
+  scrollToBottom()
+}
+
 function enterFocusMode(nodeId: string) {
   focusNodeId.value = nodeId
 }
@@ -165,30 +219,25 @@ function exitFocusMode() {
   focusNodeId.value = null
 }
 
-// Computed filtered logs
-const filteredLogs = computed(() => {
-  let filtered = logs.value
-  
-  // Filter by Focus Mode
-  if (focusNodeId.value) {
-    filtered = filtered.filter(log => log.nodeId === focusNodeId.value)
-  }
-  
-  // Filter by mode (Coworker only)
-  if (mode.value === 'coworker') {
-    filtered = filtered.filter(log => 
-      log.content.includes('coworker') || log.type === 'tool-call'
-    )
-  }
-  
-  return filtered
-})
-
 // Expose methods for parent component
 defineExpose({
   scrollToNode,
   enterFocusMode,
   exitFocusMode,
+  // New method to add messages from parent
+  addMessage: (msg: ChatMessage) => {
+    messages.value.push(msg)
+    scrollToBottom()
+  },
+  // Update the last AI message (for streaming)
+  updateLastAIMessage: (content: string, status?: MessageStatus) => {
+    const lastAI = [...messages.value].reverse().find(m => m.role === 'assistant')
+    if (lastAI) {
+      lastAI.content = content
+      if (status) lastAI.status = status
+      scrollToBottom()
+    }
+  }
 })
 </script>
 
@@ -309,29 +358,17 @@ defineExpose({
       </div>
     </Transition>
 
-    <!-- Mode Tabs (only show when executing) -->
+    <!-- Chat Header (only show when executing) -->
     <div
       v-if="initPhase === 'executing' || initPhase === 'ready'"
-      class="mode-tabs"
+      class="chat-header"
     >
-      <button
-        :class="['tab', { active: mode === 'all' }]"
-        @click="mode = 'all'"
-      >
-        全部日志
-      </button>
-      <button
-        :class="['tab', { active: mode === 'coworker' }]"
-        @click="mode = 'coworker'"
-      >
-        Coworker 文件操作
-      </button>
+      <span class="chat-title">对话</span>
       <button 
         :class="['btn-lock', { locked: isScrollLocked }]"
-        :title="isScrollLocked ? '解锁视图' : '固定视图（暂停Scroll-Sync）'"
+        :title="isScrollLocked ? '解锁自动滚动' : '固定视图'"
         @click="toggleScrollLock"
       >
-        <!-- Lock icon (locked state) -->
         <svg
           v-if="isScrollLocked"
           xmlns="http://www.w3.org/2000/svg"
@@ -341,8 +378,6 @@ defineExpose({
           fill="none"
           stroke="currentColor"
           stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
         >
           <rect
             x="3"
@@ -354,7 +389,6 @@ defineExpose({
           />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
-        <!-- Unlock icon (unlocked state) -->
         <svg
           v-else
           xmlns="http://www.w3.org/2000/svg"
@@ -364,8 +398,6 @@ defineExpose({
           fill="none"
           stroke="currentColor"
           stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
         >
           <rect
             x="3"
@@ -380,69 +412,108 @@ defineExpose({
       </button>
     </div>
 
-    <!-- Focus Mode Indicator -->
-    <div
-      v-if="focusNodeId && (initPhase === 'executing' || initPhase === 'ready')"
-      class="focus-indicator"
-    >
-      <span>🎯 聚焦模式：Node-{{ focusNodeId }}</span>
-      <button
-        class="btn-exit-focus"
-        @click="exitFocusMode"
-      >
-        退出聚焦
-      </button>
-    </div>
-
-    <!-- Log Stream (only show when executing) -->
+    <!-- Chat Messages (Dialog Style) -->
     <div
       v-if="initPhase === 'executing' || initPhase === 'ready'"
-      ref="logStreamRef"
-      class="log-stream"
+      ref="chatContainerRef"
+      class="chat-container"
       @scroll="handleUserScroll"
     >
       <div
-        v-for="log in filteredLogs"
-        :key="log.id"
-        :class="['log-entry', log.type]"
-        :data-node-id="log.nodeId"
+        v-for="msg in messages"
+        :key="msg.id"
+        :class="['chat-message', msg.role]"
       >
-        <div class="log-meta">
-          <span class="log-icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+        <!-- User Message (Right side) -->
+        <template v-if="msg.role === 'user'">
+          <div class="message-content user-message">
+            <div class="message-bubble">
+              {{ msg.content }}
+            </div>
+            <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
+          </div>
+          <div class="avatar user-avatar">
+            <img
+              v-if="userAvatarDisplay.type === 'image'"
+              :src="userAvatarDisplay.src"
+              alt="User"
             >
-              <path
-                v-for="(d, i) in getLogIconPath(log.type).split('|')"
-                :key="i"
-                :d="d"
-              />
-            </svg>
-          </span>
-          <span class="log-time">{{ formatTime(log.timestamp) }}</span>
-          <span class="log-node">Node-{{ log.nodeId }}</span>
-        </div>
-        <div class="log-content">
-          {{ log.content }}
-        </div>
-      </div>
-    </div>
+            <span v-else>{{ userAvatarDisplay.text }}</span>
+          </div>
+        </template>
 
-    <!-- Empty State -->
-    <div
-      v-if="(initPhase === 'executing' || initPhase === 'ready') && filteredLogs.length === 0"
-      class="empty-state"
-    >
-      <span class="empty-icon">📋</span>
-      <p>暂无执行日志</p>
+        <!-- AI Message (Left side) -->
+        <template v-else>
+          <div class="avatar ai-avatar">
+            <img
+              src="/logo.svg"
+              alt="AI"
+            >
+          </div>
+          <div class="message-content ai-message">
+            <!-- Thinking indicator -->
+            <div
+              v-if="msg.status === 'thinking'"
+              class="thinking-indicator"
+            >
+              <Loader2 class="thinking-spinner" />
+              <span>正在思考...</span>
+            </div>
+            
+            <!-- Message bubble with content -->
+            <div
+              v-else
+              class="message-bubble"
+            >
+              <!-- Tool calls badge -->
+              <div
+                v-if="msg.toolCalls && msg.toolCalls.length > 0"
+                class="tool-calls"
+              >
+                <div
+                  v-for="(tool, idx) in msg.toolCalls"
+                  :key="idx"
+                  class="tool-call-badge"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                  </svg>
+                  <span>{{ tool.name }}</span>
+                </div>
+              </div>
+              
+              <!-- Message text (supports markdown-like formatting) -->
+              <div class="message-text">
+                {{ msg.content }}
+              </div>
+              
+              <!-- Streaming indicator -->
+              <span
+                v-if="msg.status === 'streaming'"
+                class="streaming-cursor"
+              />
+            </div>
+            
+            <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
+          </div>
+        </template>
+      </div>
+      
+      <!-- Empty state -->
+      <div
+        v-if="messages.length === 0"
+        class="empty-chat"
+      >
+        <p>等待对话开始...</p>
+      </div>
     </div>
   </div>
 </template>
@@ -454,46 +525,32 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background: var(--any-bg-primary);
-  padding: 16px;
   overflow: hidden;
 }
 
-/* Mode Tabs */
-.mode-tabs {
+/* ========================================
+   Chat Header
+   ======================================== */
+.chat-header {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--any-border);
 }
 
-.tab {
-  padding: 6px 12px;
+.chat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+}
+
+.btn-lock {
+  padding: 6px 10px;
   border: 1px solid var(--any-border);
   border-radius: 6px;
   background: transparent;
   color: var(--any-text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 120ms ease-out;
-}
-
-.tab:hover {
-  background: var(--any-bg-tertiary);
-}
-
-.tab.active {
-  background: var(--td-state-thinking-bg);
-  border-color: var(--td-state-thinking);
-  color: var(--td-state-thinking);
-}
-
-.btn-lock {
-  margin-left: auto;
-  padding: 6px 12px;
-  border: 1px solid var(--any-border);
-  border-radius: 6px;
-  background: transparent;
   cursor: pointer;
   transition: all 120ms ease-out;
 }
@@ -503,152 +560,225 @@ defineExpose({
 }
 
 .btn-lock.locked {
-  background: var(--td-state-waiting-bg);
-  border-color: var(--td-state-waiting);
+  background: var(--td-state-waiting-bg, rgba(255, 184, 0, 0.1));
+  border-color: var(--td-state-waiting, #FFB800);
+  color: var(--td-state-waiting, #FFB800);
 }
 
-/* Focus Mode Indicator */
-.focus-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  background: var(--td-state-thinking-bg);
-  border: 1px solid color-mix(in srgb, var(--td-state-thinking) 30%, transparent);
-  border-radius: 6px;
-  color: var(--td-state-thinking);
-  font-size: 12px;
-}
-
-.btn-exit-focus {
-  padding: 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--td-state-thinking) 50%, transparent);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--td-state-thinking);
-  cursor: pointer;
-  font-size: 11px;
-  transition: all 120ms ease-out;
-}
-
-.btn-exit-focus:hover {
-  background: var(--td-state-thinking-bg);
-}
-
-/* Log Stream */
-.log-stream {
+/* ========================================
+   Chat Container (Dialog Style)
+   ======================================== */
+.chat-container {
   flex: 1;
   overflow-y: auto;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
-.log-stream::-webkit-scrollbar {
+.chat-container::-webkit-scrollbar {
   width: 6px;
 }
 
-.log-stream::-webkit-scrollbar-track {
-  background: var(--any-bg-tertiary);
-  border-radius: 3px;
+.chat-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.log-stream::-webkit-scrollbar-thumb {
+.chat-container::-webkit-scrollbar-thumb {
   background: var(--any-border-hover);
   border-radius: 3px;
 }
 
-.log-stream::-webkit-scrollbar-thumb:hover {
+.chat-container::-webkit-scrollbar-thumb:hover {
   background: var(--any-text-muted);
 }
 
-/* Log Entry */
-.log-entry {
-  padding: 12px;
-  border-radius: 8px;
+/* ========================================
+   Chat Message
+   ======================================== */
+.chat-message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* User message: right aligned */
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+/* Avatar */
+.avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ai-avatar {
+  background: var(--any-bg-tertiary);
+  padding: 6px;
+}
+
+.ai-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Message Content */
+.message-content {
+  max-width: 75%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-message {
+  align-items: flex-end;
+}
+
+.ai-message {
+  align-items: flex-start;
+}
+
+/* Message Bubble */
+.message-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.user-message .message-bubble {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.ai-message .message-bubble {
   background: var(--any-bg-secondary);
-  border-left: 3px solid transparent;
-  transition: all 120ms ease-out;
+  color: var(--any-text-primary);
+  border: 1px solid var(--any-border);
+  border-bottom-left-radius: 4px;
 }
 
-.log-entry:hover {
-  background: var(--any-bg-hover);
+/* Message Time */
+.message-time {
+  font-size: 11px;
+  color: var(--any-text-muted);
+  padding: 0 4px;
 }
 
-.log-entry.thinking {
-  border-left-color: var(--any-text-tertiary);
-}
-
-.log-entry.tool-call {
-  border-left-color: var(--td-state-thinking);
-}
-
-.log-entry.result {
-  border-left-color: var(--td-state-executing);
-}
-
-.log-entry.error {
-  border-left-color: var(--td-state-error);
-}
-
-.log-meta {
+/* ========================================
+   Thinking Indicator
+   ======================================== */
+.thinking-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
-  font-size: 12px;
+  padding: 12px 16px;
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  color: var(--any-text-secondary);
+  font-size: 14px;
 }
 
-.log-icon {
+.thinking-spinner {
+  width: 18px;
+  height: 18px;
+  color: var(--td-state-thinking, #00D9FF);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   Tool Calls Badge
+   ======================================== */
+.tool-calls {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.tool-call-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-}
-
-.log-icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.log-time {
-  color: var(--any-text-secondary);
-}
-
-.log-node {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--any-bg-tertiary);
-  color: var(--any-text-secondary);
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--td-state-thinking-bg, rgba(0, 217, 255, 0.1));
+  border: 1px solid var(--td-state-thinking, #00D9FF);
+  border-radius: 12px;
   font-size: 11px;
+  color: var(--td-state-thinking, #00D9FF);
 }
 
-.log-content {
-  color: var(--any-text-primary);
-  font-size: 13px;
-  line-height: 1.6;
-  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+.tool-call-badge svg {
+  opacity: 0.8;
 }
 
-/* Empty State */
-.empty-state {
+/* ========================================
+   Message Text
+   ======================================== */
+.message-text {
+  white-space: pre-wrap;
+}
+
+/* Streaming Cursor */
+.streaming-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--td-state-thinking, #00D9FF);
+  margin-left: 2px;
+  animation: blink 1s ease-in-out infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Empty Chat State */
+.empty-chat {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--any-text-secondary);
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  margin: 0;
+  color: var(--any-text-muted);
   font-size: 14px;
+}
+
+.empty-chat p {
+  margin: 0;
 }
 
 /* ========================================
