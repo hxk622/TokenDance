@@ -41,6 +41,7 @@ dependencies = [
     # Graph RAG (Deep Research v3.0)
     "neo4j>=5.0.0",
     "minio>=7.2.16",
+    "duckduckgo-search>=8.1.1",
 ]
 
 [project.optional-dependencies]
