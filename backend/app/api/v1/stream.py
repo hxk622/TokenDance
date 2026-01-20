@@ -39,11 +39,12 @@ from app.services.sse_token_service import get_sse_token_service
 try:
     from app.agent import (
         AgentContext,
-        BasicAgent,
         create_working_memory,
     )
+    from app.agent.agents.deep_research import DeepResearchAgent
     from app.agent.llm.router import TaskType, get_free_llm_for_task
     from app.agent.tools import ToolRegistry
+    from app.agent.tools.init_tools import register_builtin_tools
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
     AGENT_ENGINE_AVAILABLE = False
@@ -718,8 +719,9 @@ async def run_agent_stream(
             workspace_id=workspace_id
         )
 
-        # Create Tool Registry (empty for now)
+        # Create Tool Registry and register built-in tools
         tools = ToolRegistry()
+        register_builtin_tools(tools)
 
         # 使用智能路由选择免费 LLM
         llm = get_free_llm_for_task(
@@ -727,8 +729,8 @@ async def run_agent_stream(
             max_tokens=4096
         )
 
-        # Create Agent (using BasicAgent for now)
-        agent = BasicAgent(
+        # Create Agent (using DeepResearchAgent for Timeline events)
+        agent = DeepResearchAgent(
             context=context,
             llm=llm,
             tools=tools,
@@ -881,8 +883,9 @@ async def run_agent_stream_with_store(
             workspace_id=workspace_id
         )
 
-        # Create Tool Registry
+        # Create Tool Registry and register built-in tools
         tools = ToolRegistry()
+        register_builtin_tools(tools)
 
         # Get LLM
         llm = get_free_llm_for_task(
@@ -890,8 +893,8 @@ async def run_agent_stream_with_store(
             max_tokens=4096
         )
 
-        # Create Agent
-        agent = BasicAgent(
+        # Create Agent (using DeepResearchAgent for Timeline events)
+        agent = DeepResearchAgent(
             context=context,
             llm=llm,
             tools=tools,

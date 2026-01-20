@@ -33,45 +33,44 @@ class WebSearchTool(BaseTool):
     风险等级：NONE（纯读取操作，无副作用）
     """
 
+    # 工具定义（类属性）
+    name = "web_search"
+    description = (
+        "Search the web for information using DuckDuckGo. "
+        "Returns a list of search results with titles, links, and snippets. "
+        "Use this tool when you need to find current information, "
+        "research a topic, or verify facts from the internet."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "The search query string. Be specific and concise."
+            },
+            "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return (default: 5)",
+                "default": 5,
+                "minimum": 1,
+                "maximum": 10
+            },
+            "region": {
+                "type": "string",
+                "description": "Region code for search results (e.g., 'cn-zh' for China, 'us-en' for US)",
+                "default": "wt-wt"
+            }
+        },
+        "required": ["query"]
+    }
+
     # 风险配置
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_SEARCH]
     requires_confirmation = False
 
     def __init__(self):
-        super().__init__(
-            name="web_search",
-            description=(
-                "Search the web for information using DuckDuckGo. "
-                "Returns a list of search results with titles, links, and snippets. "
-                "Use this tool when you need to find current information, "
-                "research a topic, or verify facts from the internet."
-            ),
-            parameters_schema={
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The search query string. Be specific and concise."
-                    },
-                    "max_results": {
-                        "type": "integer",
-                        "description": "Maximum number of results to return (default: 5)",
-                        "default": 5,
-                        "minimum": 1,
-                        "maximum": 10
-                    },
-                    "region": {
-                        "type": "string",
-                        "description": "Region code for search results (e.g., 'cn-zh' for China, 'us-en' for US)",
-                        "default": "wt-wt"
-                    }
-                },
-                "required": ["query"]
-            },
-            requires_confirmation=False  # 搜索不需要确认
-        )
-
+        super().__init__()
         if not DDGS_AVAILABLE:
             logger.warning("duckduckgo-search not installed. Web search will not work.")
 

@@ -59,54 +59,53 @@ class ReadUrlTool(BaseTool):
     风险等级：NONE（纯读取操作，无副作用）
     """
 
+    # 工具定义（类属性）
+    name = "read_url"
+    description = (
+        "Fetch and read content from a web page URL. "
+        "Converts HTML to clean, LLM-optimized Markdown text. "
+        "Use this tool when you need to read detailed information from a specific web page. "
+        "Automatically removes ads, navigation, and clutter for token efficiency."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "description": "The URL of the web page to fetch and read"
+            },
+            "max_length": {
+                "type": "integer",
+                "description": "Maximum content length in characters (default: 10000)",
+                "default": 10000,
+                "minimum": 1000,
+                "maximum": 50000
+            },
+            "use_jina": {
+                "type": "boolean",
+                "description": "Use Jina Reader API for better token optimization (default: true)",
+                "default": True
+            },
+            "extract_relevant": {
+                "type": "boolean",
+                "description": "Extract only query-relevant content using LLM (saves 60-80% more tokens)",
+                "default": False
+            },
+            "query": {
+                "type": "string",
+                "description": "The research query - used when extract_relevant=true to filter content"
+            }
+        },
+        "required": ["url"]
+    }
+
     # 风险配置
     risk_level = RiskLevel.NONE
     operation_categories = [OperationCategory.WEB_READ]
     requires_confirmation = False
 
     def __init__(self):
-        super().__init__(
-            name="read_url",
-            description=(
-                "Fetch and read content from a web page URL. "
-                "Converts HTML to clean, LLM-optimized Markdown text. "
-                "Use this tool when you need to read detailed information from a specific web page. "
-                "Automatically removes ads, navigation, and clutter for token efficiency."
-            ),
-            parameters_schema={
-                "type": "object",
-                "properties": {
-                    "url": {
-                        "type": "string",
-                        "description": "The URL of the web page to fetch and read"
-                    },
-                    "max_length": {
-                        "type": "integer",
-                        "description": "Maximum content length in characters (default: 10000)",
-                        "default": 10000,
-                        "minimum": 1000,
-                        "maximum": 50000
-                    },
-                    "use_jina": {
-                        "type": "boolean",
-                        "description": "Use Jina Reader API for better token optimization (default: true)",
-                        "default": True
-                    },
-                    "extract_relevant": {
-                        "type": "boolean",
-                        "description": "Extract only query-relevant content using LLM (saves 60-80% more tokens)",
-                        "default": False
-                    },
-                    "query": {
-                        "type": "string",
-                        "description": "The research query - used when extract_relevant=true to filter content"
-                    }
-                },
-                "required": ["url"]
-            },
-            requires_confirmation=False
-        )
-
+        super().__init__()
         if not HTTPX_AVAILABLE:
             logger.warning("httpx not installed. URL reading will not work.")
         if not BS4_AVAILABLE:
