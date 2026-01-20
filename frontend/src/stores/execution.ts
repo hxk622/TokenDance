@@ -53,8 +53,18 @@ export interface LogEntry {
   id: string
   nodeId: string
   timestamp: number
-  type: 'thinking' | 'tool-call' | 'result' | 'error'
+  type: 'thinking' | 'tool-call' | 'result' | 'error' | 'timeline-search' | 'timeline-read' | 'timeline-screenshot' | 'timeline-finding' | 'timeline-milestone'
   content: string
+  // Timeline 特有字段
+  timelineData?: {
+    title?: string
+    description?: string
+    url?: string
+    query?: string
+    resultsCount?: number
+    screenshotPath?: string
+    sourceUrl?: string
+  }
 }
 
 /**
@@ -595,6 +605,73 @@ export const useExecutionStore = defineStore('execution', () => {
         })
         break
 
+      // Timeline events (时光长廊)
+      case SSEEventType.TIMELINE_SEARCH:
+        addLog({
+          type: 'timeline-search',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.title || `搜索: ${event.data.query}`,
+          timelineData: {
+            title: event.data.title,
+            description: event.data.description,
+            query: event.data.query,
+            resultsCount: event.data.results_count,
+          }
+        })
+        break
+
+      case SSEEventType.TIMELINE_READ:
+        addLog({
+          type: 'timeline-read',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.title || `阅读: ${event.data.url}`,
+          timelineData: {
+            title: event.data.title,
+            description: event.data.description,
+            url: event.data.url,
+          }
+        })
+        break
+
+      case SSEEventType.TIMELINE_SCREENSHOT:
+        addLog({
+          type: 'timeline-screenshot',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.title || '截图',
+          timelineData: {
+            title: event.data.title,
+            description: event.data.description,
+            url: event.data.url,
+            screenshotPath: event.data.path,
+          }
+        })
+        break
+
+      case SSEEventType.TIMELINE_FINDING:
+        addLog({
+          type: 'timeline-finding',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.title || `发现: ${event.data.content?.slice(0, 50)}`,
+          timelineData: {
+            title: event.data.title,
+            description: event.data.description || event.data.content,
+            sourceUrl: event.data.source_url,
+          }
+        })
+        break
+
+      case SSEEventType.TIMELINE_MILESTONE:
+        addLog({
+          type: 'timeline-milestone',
+          nodeId: activeNodeId.value || '0',
+          content: event.data.title,
+          timelineData: {
+            title: event.data.title,
+            description: event.data.description,
+          }
+        })
+        break
+
       // HITL events
       case SSEEventType.HITL_REQUEST:
         pendingHITL.value = {
@@ -673,7 +750,10 @@ export const useExecutionStore = defineStore('execution', () => {
     const newLog: LogEntry = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
-      ...entry,
+      type: entry.type,
+      nodeId: entry.nodeId,
+      content: entry.content,
+      timelineData: entry.timelineData,
     }
 
     logs.value.push(newLog)

@@ -26,6 +26,13 @@ class SSEEventType(str, Enum):
     DONE = "done"
     ERROR = "error"
 
+    # Timeline 事件 (时光长廊)
+    TIMELINE_SEARCH = "timeline_search"
+    TIMELINE_READ = "timeline_read"
+    TIMELINE_SCREENSHOT = "timeline_screenshot"
+    TIMELINE_FINDING = "timeline_finding"
+    TIMELINE_MILESTONE = "timeline_milestone"
+
 
 class ToolStatus(str, Enum):
     """工具执行状态"""

@@ -32,4 +32,10 @@ export type {
   AgentToolResultEvent,
   NodeEvent,
   FileEvent,
+  // Timeline events
+  TimelineSearchEvent,
+  TimelineReadEvent,
+  TimelineScreenshotEvent,
+  TimelineFindingEvent,
+  TimelineMilestoneEvent,
 } from './sse'

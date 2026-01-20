@@ -75,6 +75,13 @@ export enum SSEEventType {
   // P1-3: Replay events (sent on reconnection)
   REPLAY_START = 'replay_start',
   REPLAY_END = 'replay_end',
+
+  // Timeline events (时光长廊)
+  TIMELINE_SEARCH = 'timeline_search',
+  TIMELINE_READ = 'timeline_read',
+  TIMELINE_SCREENSHOT = 'timeline_screenshot',
+  TIMELINE_FINDING = 'timeline_finding',
+  TIMELINE_MILESTONE = 'timeline_milestone',
 }
 
 export interface SSEEvent<T = any> {
@@ -206,6 +213,39 @@ export interface TokenUsageEvent {
   output_tokens: number
   total_tokens: number
   model?: string
+}
+
+// Timeline events (时光长廊)
+export interface TimelineSearchEvent {
+  query: string
+  results_count: number
+  title: string
+  description: string
+}
+
+export interface TimelineReadEvent {
+  url: string
+  title: string
+  description: string
+}
+
+export interface TimelineScreenshotEvent {
+  path: string
+  url?: string
+  title: string
+  description: string
+}
+
+export interface TimelineFindingEvent {
+  content: string
+  source_url?: string
+  title: string
+  description: string
+}
+
+export interface TimelineMilestoneEvent {
+  title: string
+  description: string
 }
 
 /**

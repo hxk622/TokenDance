@@ -111,6 +111,65 @@ class DeepResearchAgent(BaseAgent):
         self._pending_urls: list[str] = []  # 待并发读取的 URL
         self._pending_queries: list[str] = []  # 待并发搜索的查询
 
+    # ==================== Timeline 事件发送 ====================
+
+    def _emit_timeline_search(self, query: str, results_count: int) -> SSEEvent:
+        """发送搜索 Timeline 事件"""
+        return SSEEvent(
+            type=SSEEventType.TIMELINE_SEARCH,
+            data={
+                'query': query,
+                'results_count': results_count,
+                'title': f"搜索: {query[:50]}",
+                'description': f"搜索 '{query}' 返回 {results_count} 条结果"
+            }
+        )
+
+    def _emit_timeline_read(self, url: str, title: str) -> SSEEvent:
+        """发送阅读 Timeline 事件"""
+        return SSEEvent(
+            type=SSEEventType.TIMELINE_READ,
+            data={
+                'url': url,
+                'title': f"阅读: {title[:50]}",
+                'description': f"阅读并提取内容: {url}"
+            }
+        )
+
+    def _emit_timeline_finding(self, finding: str, source_url: str | None = None) -> SSEEvent:
+        """发送发现 Timeline 事件"""
+        return SSEEvent(
+            type=SSEEventType.TIMELINE_FINDING,
+            data={
+                'content': finding,
+                'source_url': source_url,
+                'title': f"发现: {finding[:50]}",
+                'description': finding
+            }
+        )
+
+    def _emit_timeline_milestone(self, milestone: str, description: str = "") -> SSEEvent:
+        """发送里程碑 Timeline 事件"""
+        return SSEEvent(
+            type=SSEEventType.TIMELINE_MILESTONE,
+            data={
+                'title': milestone,
+                'description': description or milestone
+            }
+        )
+
+    def _emit_timeline_screenshot(self, path: str, url: str | None = None, title: str = "") -> SSEEvent:
+        """发送截图 Timeline 事件"""
+        return SSEEvent(
+            type=SSEEventType.TIMELINE_SCREENSHOT,
+            data={
+                'path': path,
+                'url': url,
+                'title': f"截图: {title[:50]}" if title else "截图",
+                'description': f"页面截图: {url or path}"
+            }
+        )
+
     async def _think(self) -> AsyncGenerator[SSEEvent, None]:
         """思考过程 - DeepResearch 版本
 
@@ -688,6 +747,21 @@ Every factual claim MUST have a citation."""
                     }
                 )
 
+                # 发送 Timeline 事件 (时光长廊)
+                if output.get("success", False):
+                    if name == "web_search":
+                        query = tool_input.get("query", "")
+                        results_count = len(output.get("results", []))
+                        yield self._emit_timeline_search(query, results_count)
+                    elif name == "read_url":
+                        url = output.get("url", tool_input.get("url", ""))
+                        title = output.get("title", "Unknown")
+                        yield self._emit_timeline_read(url, title)
+                    elif name == "browser_screenshot":
+                        path = output.get("path", "")
+                        url = output.get("url", "")
+                        yield self._emit_timeline_screenshot(path, url)
+
         yield SSEEvent(
             type=SSEEventType.STATUS,
             data={
@@ -831,6 +905,21 @@ Every factual claim MUST have a citation."""
                         'progress': f"{completed}/{len(tool_calls)}"
                     }
                 )
+
+                # 发送 Timeline 事件 (时光长廊)
+                if isinstance(result, dict) and result.get("success", False):
+                    if tool_name == "web_search":
+                        query = tool_calls[idx][1].get("query", "")
+                        results_count = len(result.get("results", []))
+                        yield self._emit_timeline_search(query, results_count)
+                    elif tool_name == "read_url":
+                        url = result.get("url", tool_calls[idx][1].get("url", ""))
+                        title = result.get("title", "Unknown")
+                        yield self._emit_timeline_read(url, title)
+                    elif tool_name == "browser_screenshot":
+                        path = result.get("path", "")
+                        url = result.get("url", "")
+                        yield self._emit_timeline_screenshot(path, url)
 
             except Exception as e:
                 completed += 1

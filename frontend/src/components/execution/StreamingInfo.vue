@@ -170,7 +170,8 @@
         :class="[
           'log-entry',
           `type-${log.type}`,
-          { expanded: isLogExpanded(log.id) }
+          { expanded: isLogExpanded(log.id) },
+          { 'timeline-entry': isTimelineType(log.type) }
         ]"
         :data-node-id="log.nodeId"
         tabindex="0"
@@ -187,7 +188,61 @@
           :style="{ background: getLogColor(log.type) }"
         />
         
-        <div class="log-card">
+        <!-- Timeline 卡片特殊渲染 -->
+        <div
+          v-if="isTimelineType(log.type)"
+          class="timeline-card"
+          :style="{ '--timeline-color': getLogColor(log.type) }"
+        >
+          <div class="timeline-card-header">
+            <div class="timeline-card-icon-wrapper" :style="{ background: getLogColor(log.type) + '20' }">
+              <component 
+                :is="getLogIcon(log.type)" 
+                class="timeline-card-icon"
+                :style="{ color: getLogColor(log.type) }"
+              />
+            </div>
+            <div class="timeline-card-info">
+              <span class="timeline-card-label" :style="{ color: getLogColor(log.type) }">
+                {{ getTimelineLabel(log.type) }}
+              </span>
+              <span class="timeline-card-time">{{ formatTime(log.timestamp) }}</span>
+            </div>
+          </div>
+          <div class="timeline-card-title">
+            {{ log.timelineData?.title || log.content }}
+          </div>
+          <div v-if="log.timelineData?.description" class="timeline-card-desc">
+            {{ log.timelineData.description.slice(0, 150) }}{{ log.timelineData.description.length > 150 ? '...' : '' }}
+          </div>
+          <!-- 搜索结果数 -->
+          <div v-if="log.type === 'timeline-search' && log.timelineData?.resultsCount" class="timeline-card-meta">
+            <span class="meta-badge">{{ log.timelineData.resultsCount }} 条结果</span>
+          </div>
+          <!-- URL 链接 -->
+          <a 
+            v-if="log.type === 'timeline-read' && log.timelineData?.url" 
+            class="timeline-card-url"
+            :href="log.timelineData.url"
+            target="_blank"
+            rel="noopener"
+            @click.stop
+          >
+            {{ log.timelineData.url }}
+          </a>
+          <!-- 截图预览 -->
+          <div v-if="log.type === 'timeline-screenshot' && log.timelineData?.screenshotPath" class="timeline-card-screenshot">
+            <img 
+              :src="log.timelineData.screenshotPath" 
+              alt="页面截图"
+              class="screenshot-preview"
+              @click.stop="showScreenshot(log.timelineData.screenshotPath)"
+            />
+          </div>
+        </div>
+
+        <!-- 普通日志卡片 -->
+        <div v-else class="log-card">
           <div class="log-header">
             <div class="log-type-wrapper">
               <component 
@@ -332,7 +387,14 @@ import {
   ExclamationTriangleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  ArrowDownIcon
+  ArrowDownIcon,
+  ArrowUpIcon,
+  // Timeline 图标
+  MagnifyingGlassIcon,
+  DocumentTextIcon,
+  CameraIcon,
+  SparklesIcon,
+  FlagIcon,
 } from '@heroicons/vue/24/outline'
 
 interface Props {
@@ -469,6 +531,12 @@ function getLogIcon(type: string) {
     case 'tool-call': return WrenchScrewdriverIcon
     case 'result': return CheckCircleIcon
     case 'error': return ExclamationTriangleIcon
+    // Timeline 类型
+    case 'timeline-search': return MagnifyingGlassIcon
+    case 'timeline-read': return DocumentTextIcon
+    case 'timeline-screenshot': return CameraIcon
+    case 'timeline-finding': return SparklesIcon
+    case 'timeline-milestone': return FlagIcon
     default: return LightBulbIcon
   }
 }
@@ -480,7 +548,30 @@ function getLogColor(type: string): string {
     case 'tool-call': return 'var(--vibe-color-pending)'
     case 'result': return 'var(--vibe-color-success)'
     case 'error': return 'var(--vibe-color-error)'
+    // Timeline 颜色
+    case 'timeline-search': return '#3B82F6'  // 蓝色
+    case 'timeline-read': return '#10B981'    // 绿色
+    case 'timeline-screenshot': return '#8B5CF6'  // 紫色
+    case 'timeline-finding': return '#F59E0B'  // 琥珀色
+    case 'timeline-milestone': return '#EC4899'  // 玫红色
     default: return 'var(--vibe-color-active)'
+  }
+}
+
+// Check if log type is timeline
+function isTimelineType(type: string): boolean {
+  return type.startsWith('timeline-')
+}
+
+// Get timeline type label
+function getTimelineLabel(type: string): string {
+  switch (type) {
+    case 'timeline-search': return '搜索'
+    case 'timeline-read': return '阅读'
+    case 'timeline-screenshot': return '截图'
+    case 'timeline-finding': return '发现'
+    case 'timeline-milestone': return '里程碑'
+    default: return ''
   }
 }
 
@@ -957,6 +1048,133 @@ defineExpose({
 .jump-to-latest:focus-visible {
   outline: 2px solid var(--vibe-color-active);
   outline-offset: 2px;
+}
+
+/* Timeline 卡片样式 */
+.timeline-entry {
+  margin-bottom: 16px;
+}
+
+.timeline-card {
+  padding: 16px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--timeline-color) 8%, var(--any-bg-secondary)),
+    var(--any-bg-secondary)
+  );
+  border: 1px solid color-mix(in srgb, var(--timeline-color) 25%, var(--any-border));
+  border-radius: var(--any-radius-lg);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
+}
+
+.timeline-entry:hover .timeline-card {
+  border-color: var(--timeline-color);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--timeline-color) 15%, transparent);
+}
+
+.timeline-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.timeline-card-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--any-radius-md);
+}
+
+.timeline-card-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.timeline-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.timeline-card-time {
+  font-size: 11px;
+  color: var(--any-text-muted);
+}
+
+.timeline-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--any-text-primary);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.timeline-card-desc {
+  font-size: 13px;
+  color: var(--any-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.timeline-card-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--any-bg-tertiary);
+  border-radius: var(--any-radius-full);
+  color: var(--any-text-secondary);
+}
+
+.timeline-card-url {
+  display: block;
+  font-size: 12px;
+  color: var(--vibe-color-active);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 8px;
+}
+
+.timeline-card-url:hover {
+  text-decoration: underline;
+}
+
+.timeline-card-screenshot {
+  margin-top: 12px;
+  border-radius: var(--any-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--any-border);
+}
+
+.screenshot-preview {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  cursor: zoom-in;
+  transition: opacity var(--any-duration-fast);
+}
+
+.screenshot-preview:hover {
+  opacity: 0.9;
 }
 
 /* Scrollbar */
