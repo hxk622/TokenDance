@@ -244,85 +244,39 @@ function renderGraph() {
       showContextMenu(event, d)
     })
 
-  // Node circles - Different shapes based on type
+  // Node circles - 统一使用圆形，按类型着色
   node.each(function(d: any) {
     const nodeGroup = d3.select(this)
+    const radius = 28  // 缩小尺寸，视觉更舒适
 
-    if (d.type === 'manus') {
-      // Manus: 六边形 (Hexagon) - 代表"智能大脑"
-      const hexagonPath = d3.path()
-      const size = 38
-      for (let i = 0; i < 6; i++) {
-        const angle = (i * 60 - 30) * Math.PI / 180
-        const x = size * Math.cos(angle)
-        const y = size * Math.sin(angle)
-        if (i === 0) hexagonPath.moveTo(x, y)
-        else hexagonPath.lineTo(x, y)
-      }
-      hexagonPath.closePath()
+    // 统一圆形节点
+    nodeGroup.append('circle')
+      .attr('r', radius)
+      .attr('class', `node-shape status-${d.status} type-${d.type}`)
+      .attr('fill', getNodeFillColor(d.type, d.status))
+      .attr('stroke', getNodeStrokeColor(d.type, d.status))
+      .attr('stroke-width', 2)
+      .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
 
-      nodeGroup.append('path')
-        .attr('d', hexagonPath.toString())
-        .attr('class', `node-shape status-${d.status}`)
-        .attr('fill', getNodeColor(d.status))
-        .attr('stroke', getNodeColor(d.status))
-        .attr('stroke-width', 3)
-        .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
-
-      // Manus icon (brain/cpu)
-      nodeGroup.append('text')
-        .attr('class', 'node-icon')
-        .attr('text-anchor', 'middle')
-        .attr('dy', '.35em')
-        .attr('fill', d.status === 'active' ? '#000' : '#fff')
-        .attr('font-size', '18px')
-        .text('⚡')
-
-    } else if (d.type === 'coworker') {
-      // Coworker: 圆角方形 (Rounded Square) - 代表"执行双手"
-      nodeGroup.append('rect')
-        .attr('x', -32)
-        .attr('y', -32)
-        .attr('width', 64)
-        .attr('height', 64)
-        .attr('rx', 12)
-        .attr('ry', 12)
-        .attr('class', `node-shape status-${d.status}`)
-        .attr('fill', getNodeColor(d.status))
-        .attr('stroke', getNodeColor(d.status))
-        .attr('stroke-width', 3)
-        .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
-
-      // Coworker icon (folder/file)
-      nodeGroup.append('text')
-        .attr('class', 'node-icon')
-        .attr('text-anchor', 'middle')
-        .attr('dy', '.35em')
-        .attr('fill', d.status === 'active' ? '#000' : '#fff')
-        .attr('font-size', '18px')
-        .text('📁')
-
-    } else {
-      // Default: 圆形
-      nodeGroup.append('circle')
-        .attr('r', 40)
-        .attr('class', `node-shape status-${d.status}`)
-        .attr('fill', getNodeColor(d.status))
-        .attr('stroke', getNodeColor(d.status))
-        .attr('stroke-width', 3)
-        .attr('filter', d.status === 'active' ? 'url(#glow)' : 'none')
-    }
+    // 根据类型显示图标: web=🌐, local=📁
+    nodeGroup.append('text')
+      .attr('class', 'node-icon')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '.35em')
+      .attr('fill', d.status === 'active' ? '#000' : '#fff')
+      .attr('font-size', '14px')
+      .text(getNodeIcon(d.type))
   })
 
-  // Node labels
+  // Node labels - 放在节点下方
   node.append('text')
     .attr('class', 'node-label')
     .attr('text-anchor', 'middle')
-    .attr('dy', '.35em')
-    .attr('fill', d => d.status === 'inactive' ? '#fff' : '#000')
-    .attr('font-size', '12px')
-    .attr('font-weight', '600')
-    .text(d => d.label)
+    .attr('dy', '45px')  // 放在节点下方
+    .attr('fill', 'var(--exec-text-secondary, #999)')
+    .attr('font-size', '11px')
+    .attr('font-weight', '500')
+    .text(d => d.label.length > 10 ? d.label.slice(0, 10) + '...' : d.label)
 
 
   // Update positions on simulation tick
@@ -337,15 +291,49 @@ function renderGraph() {
   })
 }
 
+/**
+ * 获取节点填充色 - 根据类型和状态
+ */
+function getNodeFillColor(type: string, status: string): string {
+  // 激活状态: cyan
+  if (status === 'active') return '#00D9FF'
+  // 成功状态: green
+  if (status === 'success') return '#00FF88'
+  // 错误状态: red
+  if (status === 'error') return '#FF3B30'
+  
+  // pending 状态按类型区分
+  if (type === 'web') return 'rgba(74, 144, 217, 0.3)'   // 浅蓝色
+  if (type === 'local') return 'rgba(139, 115, 85, 0.3)' // 浅棕色
+  return 'rgba(142, 142, 147, 0.3)'  // 默认灰色
+}
+
+/**
+ * 获取节点边框色 - 根据类型和状态
+ */
+function getNodeStrokeColor(type: string, status: string): string {
+  if (status === 'active') return '#00D9FF'
+  if (status === 'success') return '#00FF88'
+  if (status === 'error') return '#FF3B30'
+  
+  // pending 状态按类型区分
+  if (type === 'web') return '#4A90D9'   // 蓝色
+  if (type === 'local') return '#8B7355' // 棕色
+  return '#8E8E93'  // 默认灰色
+}
+
+/**
+ * 获取节点图标 - 根据类型
+ */
+function getNodeIcon(type: string): string {
+  if (type === 'web') return '🌐'    // 云端/网络
+  if (type === 'local') return '📁'  // 本地文件
+  return '⚡'  // 默认
+}
+
+// 兼容旧代码的函数
 function getNodeColor(status: string): string {
-  const colors: Record<string, string> = {
-    active: '#00D9FF',
-    success: '#00FF88',
-    pending: '#FFB800',
-    error: '#FF3B30',
-    inactive: '#8E8E93',
-  }
-  return colors[status] || colors.inactive
+  return getNodeFillColor('', status)
 }
 
 function handleResize() {
@@ -360,10 +348,10 @@ function updateNodeStyles() {
 
   svg.selectAll('.node-shape')
     .data(nodes.value)
-    .attr('fill', (d: any) => getNodeColor(d.status))
-    .attr('stroke', (d: any) => getNodeColor(d.status))
+    .attr('fill', (d: any) => getNodeFillColor(d.type, d.status))
+    .attr('stroke', (d: any) => getNodeStrokeColor(d.type, d.status))
     .attr('filter', (d: any) => d.status === 'active' ? 'url(#glow)' : 'none')
-    .attr('class', (d: any) => `node-shape status-${d.status}`)
+    .attr('class', (d: any) => `node-shape status-${d.status} type-${d.type}`)
 }
 
 // Tooltip functions

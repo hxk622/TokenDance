@@ -22,11 +22,12 @@ import {
  */
 export interface WorkflowNode {
   id: string
-  type: 'manus' | 'coworker'
-  status: 'active' | 'success' | 'pending' | 'error' | 'inactive'
+  type: 'web' | 'local'  // web=云端数据, local=本地数据
+  status: 'pending' | 'active' | 'success' | 'error'
   label: string
   x: number
   y: number
+  dependsOn?: string[]  // 依赖的节点 ID 列表
   metadata?: {
     startTime?: number
     duration?: number
@@ -234,21 +235,22 @@ export const useExecutionStore = defineStore('execution', () => {
    * Workflow will be dynamically built from SSE events
    */
   function initializeWorkflow() {
-    // Start with a single initial node representing the task
-    // More nodes will be added dynamically as the agent progresses
-    nodes.value = [
-      {
-        id: 'initial',
-        type: 'manus',
-        status: 'active',
-        label: '任务执行中',
-        x: 100,
-        y: 100,
-        metadata: { startTime: Date.now() }
-      },
-    ]
-
+    // 不再创建固定节点，等待 SSE 事件动态构建工作流
+    nodes.value = []
     edges.value = []
+  }
+
+  /**
+   * Calculate node position based on index (horizontal layout)
+   */
+  function calculateNodePosition(index: number): { x: number; y: number } {
+    const baseX = 150
+    const baseY = 100
+    const spacingX = 180
+    return {
+      x: baseX + index * spacingX,
+      y: baseY,
+    }
   }
 
   /**
@@ -419,6 +421,46 @@ export const useExecutionStore = defineStore('execution', () => {
         }
         break
 
+      // Task planning events (dynamic workflow construction)
+      case SSEEventType.PLAN_CREATED:
+        // 清空旧节点，准备接收新规划
+        nodes.value = []
+        edges.value = []
+        break
+
+      case SSEEventType.NODE_CREATED: {
+        // 动态添加节点
+        const pos = calculateNodePosition(nodes.value.length)
+        const newNode: WorkflowNode = {
+          id: event.data.node_id,
+          type: event.data.type as 'web' | 'local',
+          status: 'pending',
+          label: event.data.label,
+          x: pos.x,
+          y: pos.y,
+          dependsOn: event.data.depends_on || [],
+        }
+        nodes.value.push(newNode)
+        break
+      }
+
+      case SSEEventType.EDGE_CREATED:
+        // 动态添加边
+        edges.value.push({
+          id: `e-${event.data.from}-${event.data.to}`,
+          from: event.data.from,
+          to: event.data.to,
+          type: event.data.type === 'data' ? 'result' : 'context',
+          active: false,
+        })
+        break
+
+      case SSEEventType.PLAN_FINALIZED:
+        // 规划完成，D3 会通过 watch 自动重新布局
+        console.log('[ExecutionStore] Plan finalized:', event.data.node_count, 'nodes,', event.data.edge_count, 'edges')
+        break
+
+      // Workflow node execution events
       case SSEEventType.NODE_STARTED:
         updateNodeStatus(event.data.node_id, 'active')
         break

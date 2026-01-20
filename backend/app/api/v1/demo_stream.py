@@ -38,12 +38,13 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
     })
     await asyncio.sleep(0.3)
 
-    # Define demo workflow
+    # Define demo workflow - 使用新的节点类型: web/local
     workflow = [
         {
             "id": "1",
-            "type": "manus",
+            "type": "web",  # web = 云端/网络数据
             "label": "搜索市场数据",
+            "depends_on": [],
             "thoughts": [
                 "用户需要AI Agent市场分析报告...",
                 "我需要先搜索最新的市场数据和趋势...",
@@ -64,8 +65,9 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
         },
         {
             "id": "2",
-            "type": "manus",
+            "type": "web",  # web = 云端/网络数据
             "label": "分析竞品",
+            "depends_on": ["1"],
             "thoughts": [
                 "根据搜索结果，我需要分析主要竞品...",
                 "主要玩家包括：OpenAI、Anthropic、Google...",
@@ -86,8 +88,9 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
         },
         {
             "id": "3",
-            "type": "coworker",
+            "type": "local",  # local = 本地文件操作
             "label": "生成分析摘要",
+            "depends_on": ["1", "2"],
             "thoughts": [
                 "现在我需要整理分析结果...",
                 "先创建一个findings文件保存关键发现...",
@@ -98,8 +101,9 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
         },
         {
             "id": "4",
-            "type": "coworker",
+            "type": "local",  # local = 本地文件操作
             "label": "生成最终报告",
+            "depends_on": ["3"],
             "thoughts": [
                 "让我把所有内容整合成最终报告...",
                 "报告需要包含执行摘要、市场分析、竞品对比...",
@@ -110,6 +114,51 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             ],
         },
     ]
+
+    # ==== Phase 1: 发送任务规划事件 ====
+    # plan_created
+    yield format_sse("plan_created", {
+        "total_nodes": len(workflow),
+        "timestamp": time.time(),
+    })
+    await asyncio.sleep(0.2)
+
+    # node_created - 逐个发送节点创建事件
+    for node in workflow:
+        yield format_sse("node_created", {
+            "node_id": node["id"],
+            "label": node["label"],
+            "type": node["type"],
+            "depends_on": node.get("depends_on", []),
+            "timestamp": time.time(),
+        })
+        await asyncio.sleep(0.1)
+
+    # edge_created - 发送边创建事件
+    edges = [
+        {"from": "1", "to": "2", "type": "dependency"},
+        {"from": "1", "to": "3", "type": "dependency"},
+        {"from": "2", "to": "3", "type": "dependency"},
+        {"from": "3", "to": "4", "type": "data"},
+    ]
+    for edge in edges:
+        yield format_sse("edge_created", {
+            "from": edge["from"],
+            "to": edge["to"],
+            "type": edge["type"],
+            "timestamp": time.time(),
+        })
+        await asyncio.sleep(0.05)
+
+    # plan_finalized
+    yield format_sse("plan_finalized", {
+        "node_count": len(workflow),
+        "edge_count": len(edges),
+        "timestamp": time.time(),
+    })
+    await asyncio.sleep(0.3)
+
+    # ==== Phase 2: 执行节点 ====
 
     for node in workflow:
         # Node started
@@ -131,7 +180,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             })
             await asyncio.sleep(random.uniform(0.3, 0.6))
 
-        # Tool call (for manus type)
+        # Tool call (for web type - cloud data operations)
         if "tool" in node:
             tool = node["tool"]
             yield format_sse("agent_tool_call", {
@@ -151,7 +200,7 @@ async def demo_execution_stream() -> AsyncGenerator[str, None]:
             })
             await asyncio.sleep(0.3)
 
-        # File operations (for coworker type)
+        # File operations (for local type - local file operations)
         if "files" in node:
             for file_op in node["files"]:
                 event_type = f"file_{file_op['action']}"

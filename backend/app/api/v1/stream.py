@@ -74,7 +74,13 @@ class SSEEventType(str, Enum):
     AGENT_MESSAGE = "agent_message"
     AGENT_ERROR = "agent_error"
 
-    # Workflow node events
+    # Workflow planning events (task decomposition)
+    PLAN_CREATED = "plan_created"
+    NODE_CREATED = "node_created"
+    EDGE_CREATED = "edge_created"
+    PLAN_FINALIZED = "plan_finalized"
+
+    # Workflow node execution events
     NODE_STARTED = "node_started"
     NODE_COMPLETED = "node_completed"
     NODE_FAILED = "node_failed"

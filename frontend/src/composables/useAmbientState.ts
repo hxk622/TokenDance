@@ -40,9 +40,9 @@ export function useAmbientState(): AmbientStateResult {
     
     switch (status) {
       case 'running':
-        // 检查是否在思考阶段 - manus 节点通常是思考/决策
+        // 检查是否在思考阶段 - web 节点通常是思考/决策
         const activeNode = executionStore.nodes.find(n => n.status === 'active')
-        if (activeNode?.type === 'manus') {
+        if (activeNode?.type === 'web') {
           return 'thinking'
         }
         return 'executing'

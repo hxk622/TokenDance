@@ -111,8 +111,8 @@ describe('ExecutionStore', () => {
       // Initialize with a node
       store.nodes.push({
         id: '1',
-        type: 'manus',
-        status: 'inactive',
+        type: 'web',
+        status: 'pending',
         label: 'Test Node',
         x: 100,
         y: 100,
@@ -176,7 +176,7 @@ describe('ExecutionStore', () => {
       store.sessionId = 'test-session'
       store.nodes.push({
         id: '1',
-        type: 'manus',
+        type: 'web',
         status: 'active',
         label: 'Test',
         x: 0,
@@ -203,9 +203,9 @@ describe('ExecutionStore', () => {
       const store = useExecutionStore()
       
       store.nodes.push(
-        { id: '1', type: 'manus', status: 'success', label: 'Node 1', x: 0, y: 0 },
-        { id: '2', type: 'manus', status: 'active', label: 'Node 2', x: 0, y: 0 },
-        { id: '3', type: 'coworker', status: 'inactive', label: 'Node 3', x: 0, y: 0 },
+        { id: '1', type: 'web', status: 'success', label: 'Node 1', x: 0, y: 0 },
+        { id: '2', type: 'web', status: 'active', label: 'Node 2', x: 0, y: 0 },
+        { id: '3', type: 'local', status: 'pending', label: 'Node 3', x: 0, y: 0 },
       )
 
       expect(store.activeNodeId).toBe('2')
@@ -215,7 +215,7 @@ describe('ExecutionStore', () => {
       const store = useExecutionStore()
       
       store.nodes.push(
-        { id: '1', type: 'manus', status: 'success', label: 'Node 1', x: 0, y: 0 },
+        { id: '1', type: 'web', status: 'success', label: 'Node 1', x: 0, y: 0 },
       )
 
       expect(store.activeNodeId).toBeUndefined()

@@ -29,7 +29,13 @@ export enum SSEEventType {
   AGENT_MESSAGE = 'agent_message',
   AGENT_ERROR = 'agent_error',
   
-  // Workflow node events
+  // Workflow planning events (task decomposition)
+  PLAN_CREATED = 'plan_created',
+  NODE_CREATED = 'node_created',
+  EDGE_CREATED = 'edge_created',
+  PLAN_FINALIZED = 'plan_finalized',
+
+  // Workflow node execution events
   NODE_STARTED = 'node_started',
   NODE_COMPLETED = 'node_completed',
   NODE_FAILED = 'node_failed',
@@ -98,10 +104,34 @@ export interface AgentToolResultEvent {
 
 export interface NodeEvent {
   node_id: string
-  node_type: 'manus' | 'coworker'
+  node_type: 'web' | 'local'  // web=云端数据, local=本地数据
   label: string
-  status: 'active' | 'success' | 'failed'
+  status: 'pending' | 'active' | 'success' | 'failed'
+  depends_on?: string[]
   metadata?: Record<string, any>
+}
+
+// Task planning events
+export interface PlanCreatedEvent {
+  total_nodes: number
+}
+
+export interface NodeCreatedEvent {
+  node_id: string
+  label: string
+  type: 'web' | 'local'
+  depends_on: string[]
+}
+
+export interface EdgeCreatedEvent {
+  from: string
+  to: string
+  type: 'dependency' | 'data'
+}
+
+export interface PlanFinalizedEvent {
+  node_count: number
+  edge_count: number
 }
 
 export interface FileEvent {
