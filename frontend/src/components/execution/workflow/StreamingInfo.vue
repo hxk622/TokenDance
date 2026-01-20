@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
-import { Lightbulb, ArrowRight, Loader2 } from 'lucide-vue-next'
+import { ref, computed, nextTick, watch } from 'vue'
+import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
+import { ChatInput, ChatFormMessage } from '@/components/execution/chat'
+import type { 
+  ChatMessage, 
+  QuoteInfo, 
+  SendMessagePayload,
+  FormSubmitPayload,
+  FormField,
+  FormGroup,
+  MessageStatus
+} from '@/components/execution/chat/types'
+
+// Re-export types for external use
+export type { ChatMessage, QuoteInfo, FormField, FormGroup }
+export type { MessageRole, MessageStatus, MessageContentType } from '@/components/execution/chat/types'
 
 // Init phase types
 export type InitPhase = 'idle' | 'analyzing' | 'needs-clarification' | 'ready' | 'executing'
-
-// Chat message types
-export type MessageRole = 'user' | 'assistant'
-export type MessageStatus = 'thinking' | 'streaming' | 'complete' | 'error'
-
-export interface ChatMessage {
-  id: string
-  role: MessageRole
-  content: string
-  status: MessageStatus
-  timestamp: number
-  // For tool calls display
-  toolCalls?: { name: string; args?: string }[]
-}
 
 interface Props {
   sessionId: string
@@ -187,10 +187,24 @@ function handleUserScroll() {
   }, 3000)
 }
 
-// Format timestamp
+// Format timestamp (relative time)
 function formatTime(timestamp: number): string {
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  const now = Date.now()
+  const diff = now - timestamp
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  
+  if (seconds < 60) {
+    return '刚刚'
+  } else if (minutes < 60) {
+    return `${minutes}分钟前`
+  } else if (hours < 24) {
+    return `${hours}小时前`
+  } else {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
 }
 
 // Get user avatar display (initial or image)
@@ -199,6 +213,110 @@ const userAvatarDisplay = computed(() => {
     return { type: 'image', src: props.userAvatar }
   }
   return { type: 'initial', text: props.userAvatar.charAt(0).toUpperCase() }
+})
+
+// ========================================
+// Quote & Edit Features
+// ========================================
+const currentQuote = ref<QuoteInfo | null>(null)
+const editingMessageId = ref<string | null>(null)
+const editingContent = ref('')
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
+const hoveredMessageId = ref<string | null>(null)
+
+// Handle quote message
+function handleQuoteMessage(msg: ChatMessage) {
+  currentQuote.value = {
+    messageId: msg.id,
+    content: msg.content.slice(0, 100),
+    role: msg.role
+  }
+  chatInputRef.value?.focus()
+}
+
+// Clear quote
+function handleClearQuote() {
+  currentQuote.value = null
+}
+
+// Handle send message from input
+function handleSendMessage(payload: SendMessagePayload) {
+  const newMsg: ChatMessage = {
+    id: `user-${Date.now()}`,
+    role: 'user',
+    content: payload.content,
+    status: 'complete',
+    timestamp: Date.now(),
+    quotedMessageId: payload.quote?.messageId,
+    quotedContent: payload.quote?.content
+  }
+  messages.value.push(newMsg)
+  scrollToBottom()
+  
+  // Clear quote
+  currentQuote.value = null
+  
+  // TODO: Emit to parent to handle the message
+}
+
+// Start editing a message
+function startEditMessage(msg: ChatMessage) {
+  editingMessageId.value = msg.id
+  editingContent.value = msg.content
+}
+
+// Cancel editing
+function cancelEditMessage() {
+  editingMessageId.value = null
+  editingContent.value = ''
+}
+
+// Save edited message (creates branch)
+function saveEditMessage(msgId: string) {
+  const msgIndex = messages.value.findIndex(m => m.id === msgId)
+  if (msgIndex < 0) return
+  
+  // Mark subsequent messages as deprecated
+  for (let i = msgIndex + 1; i < messages.value.length; i++) {
+    messages.value[i].deprecated = true
+  }
+  
+  // Update the message
+  const msg = messages.value[msgIndex]
+  msg.content = editingContent.value
+  msg.edited = true
+  msg.editedAt = Date.now()
+  
+  // Reset editing state
+  editingMessageId.value = null
+  editingContent.value = ''
+  
+  // TODO: Emit to parent to re-execute from this point
+}
+
+// Handle form submit from ChatFormMessage
+function handleFormSubmit(msgId: string, values: Record<string, unknown>) {
+  const msg = messages.value.find(m => m.id === msgId)
+  if (msg) {
+    msg.formSubmitted = true
+    msg.formValues = values
+    msg.isInteractive = false
+  }
+  // TODO: Emit to parent
+}
+
+// Handle form edit request
+function handleFormEdit(msgId: string) {
+  const msg = messages.value.find(m => m.id === msgId)
+  if (msg) {
+    msg.formSubmitted = false
+    msg.isInteractive = true
+  }
+}
+
+// Filter visible messages (hide deprecated unless expanded)
+const visibleMessages = computed(() => {
+  return messages.value.filter(m => !m.deprecated)
 })
 
 // ========================================
@@ -224,19 +342,37 @@ defineExpose({
   scrollToNode,
   enterFocusMode,
   exitFocusMode,
+  messages,
   // New method to add messages from parent
   addMessage: (msg: ChatMessage) => {
     messages.value.push(msg)
     scrollToBottom()
   },
   // Update the last AI message (for streaming)
-  updateLastAIMessage: (content: string, status?: MessageStatus) => {
+  updateLastAIMessage: (content: string, status?: MessageStatus, statusText?: string) => {
     const lastAI = [...messages.value].reverse().find(m => m.role === 'assistant')
     if (lastAI) {
       lastAI.content = content
       if (status) lastAI.status = status
+      if (statusText) lastAI.statusText = statusText
       scrollToBottom()
     }
+  },
+  // Add form message
+  addFormMessage: (title: string, fields?: FormField[], groups?: FormGroup[]) => {
+    const msg: ChatMessage = {
+      id: `form-${Date.now()}`,
+      role: 'assistant',
+      content: title,
+      status: 'complete',
+      timestamp: Date.now(),
+      contentType: 'form',
+      formFields: fields,
+      formGroups: groups,
+      isInteractive: true
+    }
+    messages.value.push(msg)
+    scrollToBottom()
   }
 })
 </script>
@@ -420,16 +556,84 @@ defineExpose({
       @scroll="handleUserScroll"
     >
       <div
-        v-for="msg in messages"
+        v-for="msg in visibleMessages"
         :key="msg.id"
-        :class="['chat-message', msg.role]"
+        :class="['chat-message', msg.role, { editing: editingMessageId === msg.id }]"
+        @mouseenter="hoveredMessageId = msg.id"
+        @mouseleave="hoveredMessageId = null"
       >
         <!-- User Message (Right side) -->
         <template v-if="msg.role === 'user'">
           <div class="message-content user-message">
-            <div class="message-bubble">
-              {{ msg.content }}
+            <!-- Quoted message preview -->
+            <div
+              v-if="msg.quotedContent"
+              class="quoted-preview"
+            >
+              <span class="quoted-label">回复:</span>
+              <span class="quoted-text">{{ msg.quotedContent }}</span>
             </div>
+            
+            <!-- Editing mode -->
+            <div
+              v-if="editingMessageId === msg.id"
+              class="edit-container"
+            >
+              <textarea
+                v-model="editingContent"
+                class="edit-textarea"
+                rows="3"
+              />
+              <div class="edit-actions">
+                <button
+                  class="edit-btn-cancel"
+                  @click="cancelEditMessage"
+                >
+                  取消
+                </button>
+                <button
+                  class="edit-btn-save"
+                  @click="saveEditMessage(msg.id)"
+                >
+                  <RotateCcw class="w-3.5 h-3.5" />
+                  重新发送
+                </button>
+              </div>
+            </div>
+            
+            <!-- Normal message bubble -->
+            <div
+              v-else
+              class="message-bubble"
+            >
+              {{ msg.content }}
+              <span
+                v-if="msg.edited"
+                class="edited-badge"
+              >(已编辑)</span>
+            </div>
+            
+            <!-- Message actions (hover) -->
+            <div
+              v-if="hoveredMessageId === msg.id && editingMessageId !== msg.id"
+              class="message-actions"
+            >
+              <button
+                class="action-btn"
+                title="编辑"
+                @click="startEditMessage(msg)"
+              >
+                <Edit3 class="w-3.5 h-3.5" />
+              </button>
+              <button
+                class="action-btn"
+                title="引用"
+                @click="handleQuoteMessage(msg)"
+              >
+                <MessageSquareQuote class="w-3.5 h-3.5" />
+              </button>
+            </div>
+            
             <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
           </div>
           <div class="avatar user-avatar">
@@ -451,14 +655,27 @@ defineExpose({
             >
           </div>
           <div class="message-content ai-message">
-            <!-- Thinking indicator -->
+            <!-- Thinking indicator with statusText -->
             <div
               v-if="msg.status === 'thinking'"
               class="thinking-indicator"
             >
               <Loader2 class="thinking-spinner" />
-              <span>正在思考...</span>
+              <span>{{ msg.statusText || '正在思考...' }}</span>
             </div>
+            
+            <!-- Form message -->
+            <ChatFormMessage
+              v-else-if="msg.contentType === 'form'"
+              :title="msg.content"
+              :fields="msg.formFields"
+              :groups="msg.formGroups"
+              :interactive="msg.isInteractive !== false"
+              :submitted="msg.formSubmitted"
+              :submitted-values="msg.formValues"
+              @submit="(values) => handleFormSubmit(msg.id, values)"
+              @edit="handleFormEdit(msg.id)"
+            />
             
             <!-- Message bubble with content -->
             <div
@@ -502,6 +719,20 @@ defineExpose({
               />
             </div>
             
+            <!-- Message actions (hover) -->
+            <div
+              v-if="hoveredMessageId === msg.id && msg.status === 'complete'"
+              class="message-actions ai-actions"
+            >
+              <button
+                class="action-btn"
+                title="引用"
+                @click="handleQuoteMessage(msg)"
+              >
+                <MessageSquareQuote class="w-3.5 h-3.5" />
+              </button>
+            </div>
+            
             <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
           </div>
         </template>
@@ -509,11 +740,25 @@ defineExpose({
       
       <!-- Empty state -->
       <div
-        v-if="messages.length === 0"
+        v-if="visibleMessages.length === 0"
         class="empty-chat"
       >
         <p>等待对话开始...</p>
       </div>
+    </div>
+    
+    <!-- Bottom Chat Input -->
+    <div
+      v-if="initPhase === 'executing' || initPhase === 'ready'"
+      class="chat-input-area"
+    >
+      <ChatInput
+        ref="chatInputRef"
+        :quote="currentQuote"
+        placeholder="输入追加消息..."
+        @send="handleSendMessage"
+        @clear-quote="handleClearQuote"
+      />
     </div>
   </div>
 </template>
@@ -1026,6 +1271,158 @@ defineExpose({
 .init-phase-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* ========================================
+   Bottom Chat Input Area
+   ======================================== */
+.chat-input-area {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--any-border);
+  background: var(--any-bg-primary);
+}
+
+/* ========================================
+   Message Actions (Hover)
+   ======================================== */
+.message-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.message-actions.ai-actions {
+  margin-top: 4px;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
+  border-radius: 6px;
+  color: var(--any-text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-btn:hover {
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+  color: var(--any-text-secondary);
+}
+
+/* ========================================
+   Quoted Preview
+   ======================================== */
+.quoted-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 4px;
+  max-width: 100%;
+}
+
+.quoted-label {
+  color: #6366f1;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.quoted-text {
+  color: var(--any-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========================================
+   Edit Mode
+   ======================================== */
+.chat-message.editing {
+  background: rgba(99, 102, 241, 0.05);
+  padding: 8px;
+  margin: -8px;
+  border-radius: 12px;
+}
+
+.edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.edit-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border-hover);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--any-text-primary);
+  resize: none;
+  outline: none;
+}
+
+.edit-textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.edit-btn-cancel,
+.edit-btn-save {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edit-btn-cancel {
+  background: transparent;
+  border: 1px solid var(--any-border);
+  color: var(--any-text-secondary);
+}
+
+.edit-btn-cancel:hover {
+  background: var(--any-bg-hover);
+}
+
+.edit-btn-save {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  color: white;
+}
+
+.edit-btn-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+/* Edited Badge */
+.edited-badge {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 4px;
 }
 
 </style>
