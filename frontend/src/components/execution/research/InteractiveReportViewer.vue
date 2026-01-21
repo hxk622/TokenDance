@@ -168,7 +168,9 @@ const formatDate = (dateStr: string) => {
       <div class="header-info">
         <FileText class="w-5 h-5 text-[var(--exec-accent)]" />
         <div class="header-text">
-          <h2 class="report-title">{{ report?.title || '研究报告' }}</h2>
+          <h2 class="report-title">
+            {{ report?.title || '研究报告' }}
+          </h2>
           <span class="version-badge">v{{ report?.current_version || 1 }}</span>
         </div>
       </div>
@@ -185,13 +187,19 @@ const formatDate = (dateStr: string) => {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <Loader class="w-6 h-6 animate-spin" />
       <span>加载中...</span>
     </div>
 
     <!-- Content -->
-    <div v-else class="report-content">
+    <div
+      v-else
+      class="report-content"
+    >
       <!-- Sections -->
       <div class="sections-container">
         <div
@@ -218,7 +226,9 @@ const formatDate = (dateStr: string) => {
               />
             </button>
             <span class="section-type">{{ section.type }}</span>
-            <h3 class="section-title">{{ section.title }}</h3>
+            <h3 class="section-title">
+              {{ section.title }}
+            </h3>
             <span class="section-version">v{{ section.version }}</span>
           </div>
 
@@ -227,10 +237,16 @@ const formatDate = (dateStr: string) => {
             v-show="expandedSections.has(section.id)"
             class="section-content"
           >
-            <div class="content-text" v-html="section.content" />
+            <div
+              class="content-text"
+              v-html="section.content"
+            />
             
             <!-- Sources -->
-            <div v-if="section.sources?.length" class="section-sources">
+            <div
+              v-if="section.sources?.length"
+              class="section-sources"
+            >
               <span class="sources-label">来源</span>
               <div class="sources-list">
                 <a 
@@ -262,7 +278,10 @@ const formatDate = (dateStr: string) => {
                   :disabled="isRevising"
                   @click="handleQuickAction(action)"
                 >
-                  <component :is="getActionIcon(action.icon)" class="w-4 h-4" />
+                  <component
+                    :is="getActionIcon(action.icon)"
+                    class="w-4 h-4"
+                  />
                   {{ action.label }}
                 </button>
               </div>
@@ -276,7 +295,7 @@ const formatDate = (dateStr: string) => {
                   class="instruction-input"
                   :disabled="isRevising"
                   @keyup.enter="handleQuickAction(QUICK_ACTIONS[3])"
-                />
+                >
               </div>
             </div>
           </Transition>
@@ -285,7 +304,10 @@ const formatDate = (dateStr: string) => {
 
       <!-- Version History Panel -->
       <Transition name="slide-panel">
-        <div v-if="showVersionHistory" class="version-panel">
+        <div
+          v-if="showVersionHistory"
+          class="version-panel"
+        >
           <div class="panel-header">
             <span>版本历史</span>
             <button @click="showVersionHistory = false">
@@ -327,7 +349,10 @@ const formatDate = (dateStr: string) => {
 
     <!-- Revision Loading Overlay -->
     <Transition name="fade">
-      <div v-if="isRevising" class="revision-overlay">
+      <div
+        v-if="isRevising"
+        class="revision-overlay"
+      >
         <Loader class="w-6 h-6 animate-spin" />
         <span>正在修订...</span>
       </div>

@@ -222,13 +222,19 @@ const removeExpertiseDomain = (domain: string) => {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <div class="spinner" />
       <span>加载中...</span>
     </div>
 
     <!-- Content -->
-    <div v-else class="panel-content">
+    <div
+      v-else
+      class="panel-content"
+    >
       <!-- Expertise Level -->
       <section class="section">
         <h4 class="section-title">
@@ -256,7 +262,10 @@ const removeExpertiseDomain = (domain: string) => {
             class="domain-tag"
           >
             {{ domain }}
-            <button class="tag-remove" @click="removeExpertiseDomain(domain)">
+            <button
+              class="tag-remove"
+              @click="removeExpertiseDomain(domain)"
+            >
               <X class="w-3 h-3" />
             </button>
           </span>
@@ -267,7 +276,7 @@ const removeExpertiseDomain = (domain: string) => {
               placeholder="添加领域"
               class="domain-input"
               @keyup.enter="addExpertiseDomain"
-            />
+            >
             <button 
               class="add-btn"
               :disabled="!newExpertiseDomain.trim()"
@@ -293,7 +302,10 @@ const removeExpertiseDomain = (domain: string) => {
             :class="{ 'source-btn--active': currentPreference.preferred_source_types?.includes(source.id) }"
             @click="toggleSourceType(source.id)"
           >
-            <component :is="source.icon" class="w-4 h-4" />
+            <component
+              :is="source.icon"
+              class="w-4 h-4"
+            />
             <span>{{ source.label }}</span>
             <Check 
               v-if="currentPreference.preferred_source_types?.includes(source.id)"
@@ -326,7 +338,7 @@ const removeExpertiseDomain = (domain: string) => {
                 placeholder="添加域名"
                 class="domain-input"
                 @keyup.enter="addTrustedDomain"
-              />
+              >
               <button 
                 class="add-btn"
                 :disabled="!newTrustedDomain.trim()"
@@ -362,7 +374,7 @@ const removeExpertiseDomain = (domain: string) => {
                 placeholder="添加域名"
                 class="domain-input"
                 @keyup.enter="addBlockedDomain"
-              />
+              >
               <button 
                 class="add-btn"
                 :disabled="!newBlockedDomain.trim()"
@@ -444,7 +456,7 @@ const removeExpertiseDomain = (domain: string) => {
               type="checkbox"
               :checked="currentPreference.include_charts"
               @change="toggleCharts"
-            />
+            >
             <span>包含图表</span>
           </label>
           <label class="toggle-item">
@@ -452,7 +464,7 @@ const removeExpertiseDomain = (domain: string) => {
               type="checkbox"
               :checked="currentPreference.include_citations"
               @change="toggleCitations"
-            />
+            >
             <span>包含引用</span>
           </label>
         </div>

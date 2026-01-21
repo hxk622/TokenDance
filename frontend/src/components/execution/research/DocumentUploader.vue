@@ -216,7 +216,7 @@ const getFileIcon = (type: string) => {
         multiple
         class="file-input"
         @change="handleFileSelect"
-      />
+      >
     </div>
 
     <!-- Upload Info -->
@@ -226,14 +226,20 @@ const getFileIcon = (type: string) => {
     </div>
 
     <!-- File List -->
-    <div v-if="files.length" class="file-list">
+    <div
+      v-if="files.length"
+      class="file-list"
+    >
       <div
         v-for="file in files"
         :key="file.id"
         class="file-item"
         :class="`file-item--${file.status}`"
       >
-        <component :is="getFileIcon(file.type)" class="file-icon" />
+        <component
+          :is="getFileIcon(file.type)"
+          class="file-icon"
+        />
         
         <div class="file-info">
           <span class="file-name">{{ file.name }}</span>
@@ -244,7 +250,10 @@ const getFileIcon = (type: string) => {
         <div class="file-status">
           <template v-if="file.status === 'uploading'">
             <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: `${file.progress}%` }" />
+              <div
+                class="progress-fill"
+                :style="{ width: `${file.progress}%` }"
+              />
             </div>
             <span class="progress-text">{{ file.progress }}%</span>
           </template>
@@ -274,9 +283,15 @@ const getFileIcon = (type: string) => {
     </div>
 
     <!-- Summary -->
-    <div v-if="files.length" class="upload-summary">
+    <div
+      v-if="files.length"
+      class="upload-summary"
+    >
       <span>{{ uploadingSummary.completed }}/{{ uploadingSummary.total }} 已完成</span>
-      <span v-if="uploadingSummary.failed" class="failed-count">
+      <span
+        v-if="uploadingSummary.failed"
+        class="failed-count"
+      >
         {{ uploadingSummary.failed }} 个失败
       </span>
     </div>

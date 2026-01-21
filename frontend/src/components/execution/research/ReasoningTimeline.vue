@@ -172,8 +172,14 @@ const getConfidenceColor = (confidence: number) => {
       </div>
       
       <button class="collapse-btn">
-        <ChevronUp v-if="!isCollapsed" class="w-4 h-4" />
-        <ChevronDown v-else class="w-4 h-4" />
+        <ChevronUp
+          v-if="!isCollapsed"
+          class="w-4 h-4"
+        />
+        <ChevronDown
+          v-else
+          class="w-4 h-4"
+        />
       </button>
     </div>
 
@@ -220,10 +226,15 @@ const getConfidenceColor = (confidence: number) => {
                 <span class="trace-phase">{{ getPhaseLabel(trace.phase) }}</span>
                 <span class="trace-action">{{ getActionLabel(trace.action) }}</span>
               </div>
-              <p class="trace-reasoning">{{ trace.reasoning }}</p>
+              <p class="trace-reasoning">
+                {{ trace.reasoning }}
+              </p>
             </div>
 
-            <div class="trace-confidence" :class="getConfidenceColor(trace.confidence)">
+            <div
+              class="trace-confidence"
+              :class="getConfidenceColor(trace.confidence)"
+            >
               {{ Math.round(trace.confidence * 100) }}%
             </div>
           </div>

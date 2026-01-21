@@ -102,7 +102,10 @@ const openFullSettings = () => {
               <Settings class="w-4 h-4 text-[var(--exec-accent)]" />
               <span class="header-title">研究设置</span>
             </div>
-            <button class="close-btn" @click="close">
+            <button
+              class="close-btn"
+              @click="close"
+            >
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -150,7 +153,10 @@ const openFullSettings = () => {
             </div>
 
             <!-- Style Selection (Advanced) -->
-            <div class="advanced-toggle" @click="showAdvanced = !showAdvanced">
+            <div
+              class="advanced-toggle"
+              @click="showAdvanced = !showAdvanced"
+            >
               <span>更多设置</span>
               <component 
                 :is="showAdvanced ? ChevronUp : ChevronDown" 
@@ -159,7 +165,10 @@ const openFullSettings = () => {
             </div>
 
             <Transition name="slide">
-              <div v-if="showAdvanced" class="setting-section">
+              <div
+                v-if="showAdvanced"
+                class="setting-section"
+              >
                 <div class="setting-label">
                   <FileText class="w-4 h-4" />
                   报告风格
@@ -182,14 +191,23 @@ const openFullSettings = () => {
 
           <!-- Footer -->
           <div class="popup-footer">
-            <button class="text-btn" @click="openFullSettings">
+            <button
+              class="text-btn"
+              @click="openFullSettings"
+            >
               完整设置
             </button>
             <div class="footer-actions">
-              <button class="cancel-btn" @click="close">
+              <button
+                class="cancel-btn"
+                @click="close"
+              >
                 取消
               </button>
-              <button class="confirm-btn" @click="confirm">
+              <button
+                class="confirm-btn"
+                @click="confirm"
+              >
                 开始研究
               </button>
             </div>

@@ -9,10 +9,12 @@ import PreviewArea from '@/components/execution/PreviewArea.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
 import BrowserPip from '@/components/execution/BrowserPip.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
+import ProjectSidebar from '@/components/project/ProjectSidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
 import AnyButton from '@/components/common/AnyButton.vue'
 import { useExecutionStore } from '@/stores/execution'
 import { useAuthStore } from '@/stores/auth'
+import { useProjectStore } from '@/stores/project'
 import { sessionService } from '@/api/services/session'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { researchService } from '@/api/services/research'
@@ -26,7 +28,11 @@ import {
 
 const route = useRoute()
 const router = useRouter()
-const sessionId = ref(route.params.id as string)
+
+// Determine mode: project-first or session (legacy)
+const isProjectMode = computed(() => route.name === 'Project')
+const projectId = computed(() => route.params.projectId as string | undefined)
+const sessionId = ref(route.params.id as string || '')
 const initialTask = ref(route.query.task as string | null)
 
 // Task title - AI summary or first 30 chars of query
@@ -78,6 +84,26 @@ const handleNewClick = () => {
 // Pinia Store
 const executionStore = useExecutionStore()
 const authStore = useAuthStore()
+const projectStore = useProjectStore()
+
+// Load project when in project mode
+watch(projectId, async (newProjectId) => {
+  if (newProjectId && isProjectMode.value) {
+    try {
+      // Check if already loaded
+      if (projectStore.currentProject?.id === newProjectId) {
+        return
+      }
+      // Load project via API and set as current
+      const { projectApi } = await import('@/api/project')
+      const project = await projectApi.getProject(newProjectId)
+      await projectStore.setCurrentProject(project)
+    } catch (error) {
+      console.error('[ExecutionPage] Failed to load project:', error)
+      executionStore.error = 'Failed to load project'
+    }
+  }
+}, { immediate: true })
 
 // User initial for avatar
 const userInitial = computed(() => {
@@ -630,7 +656,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="execution-page">
+  <div :class="['execution-page', { 'project-mode': isProjectMode }]">
     <!-- Fixed Header (always visible) -->
     <AnyHeader />
     
@@ -643,8 +669,10 @@ onUnmounted(() => {
 
     <!-- Main Execution UI (always visible - In-Place principle) -->
     <template v-if="true">
-      <!-- Sidebar -->
+      <!-- Sidebar: ProjectSidebar for project mode, AnySidebar for session mode -->
+      <ProjectSidebar v-if="isProjectMode" />
       <AnySidebar
+        v-else
         :sections="sidebarSections"
         @nav-click="handleNavClick"
         @new-click="handleNewClick"
@@ -1063,6 +1091,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   margin-left: 56px;
+}
+
+/* Project mode: wider sidebar */
+.execution-page.project-mode .execution-main {
+  margin-left: 280px;
 }
 
 /* Sidebar footer button */

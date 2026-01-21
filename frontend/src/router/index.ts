@@ -89,6 +89,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/project/:projectId',
+    name: 'Project',
+    component: () => import('@/views/ExecutionPage.vue'),
+    props: true,
+    meta: {
+      title: 'Project - TokenDance'
+    }
+  },
+  {
     path: '/history',
     name: 'TaskHistory',
     component: () => import('@/views/TaskHistoryView.vue'),

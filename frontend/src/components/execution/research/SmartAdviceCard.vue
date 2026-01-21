@@ -171,19 +171,28 @@ const formatPercent = (value: number) => {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <div class="spinner" />
       <span>分析中...</span>
     </div>
 
     <!-- No Advice -->
-    <div v-else-if="!advice" class="empty-state">
+    <div
+      v-else-if="!advice"
+      class="empty-state"
+    >
       <AlertCircle class="w-5 h-5" />
       <span>数据不足，暂无建议</span>
     </div>
 
     <!-- Advice Content -->
-    <div v-else class="card-content">
+    <div
+      v-else
+      class="card-content"
+    >
       <!-- Action Header -->
       <div 
         class="action-header"
@@ -194,13 +203,18 @@ const formatPercent = (value: number) => {
           class="w-5 h-5"
           :class="actionConfig?.color"
         />
-        <span class="action-title" :class="actionConfig?.color">
+        <span
+          class="action-title"
+          :class="actionConfig?.color"
+        >
           {{ actionConfig?.title }}
         </span>
       </div>
 
       <!-- Reason -->
-      <p class="advice-reason">{{ advice.reason }}</p>
+      <p class="advice-reason">
+        {{ advice.reason }}
+      </p>
 
       <!-- Saturation Progress -->
       <div class="saturation-section">
@@ -221,7 +235,10 @@ const formatPercent = (value: number) => {
       </div>
 
       <!-- Metrics (collapsed in compact mode) -->
-      <div v-if="!compact" class="metrics-grid">
+      <div
+        v-if="!compact"
+        class="metrics-grid"
+      >
         <div class="metric-item">
           <span class="metric-label">新信息率</span>
           <span class="metric-value">{{ formatPercent(advice.saturation.new_info_rate) }}</span>
@@ -263,17 +280,26 @@ const formatPercent = (value: number) => {
       <!-- Actions -->
       <div class="card-actions">
         <template v-if="advice.action === 'stop'">
-          <button class="primary-btn" @click="handleStop">
+          <button
+            class="primary-btn"
+            @click="handleStop"
+          >
             <CheckCircle class="w-4 h-4" />
             完成研究
           </button>
         </template>
 
         <template v-else-if="advice.action === 'consider_stop'">
-          <button class="secondary-btn" @click="handleContinue">
+          <button
+            class="secondary-btn"
+            @click="handleContinue"
+          >
             继续研究
           </button>
-          <button class="primary-btn" @click="handleStop">
+          <button
+            class="primary-btn"
+            @click="handleStop"
+          >
             结束研究
           </button>
         </template>
@@ -287,7 +313,10 @@ const formatPercent = (value: number) => {
             <TrendingUp class="w-4 h-4" />
             调整至 {{ advice.suggested_depth }} 条
           </button>
-          <button class="secondary-btn" @click="handleContinue">
+          <button
+            class="secondary-btn"
+            @click="handleContinue"
+          >
             保持当前设置
           </button>
         </template>

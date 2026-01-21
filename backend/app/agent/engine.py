@@ -1504,7 +1504,10 @@ class AgentEngine:
         tasks: list[Task]
     ) -> AsyncGenerator[SSEEvent, None]:
         """
-        并行执行多个任务
+        并行执行多个任务 (流式版本)
+
+        使用 asyncio.Queue 合并多个任务的事件流，实现真正的并行流式执行。
+        每个事件都带有 taskId 以便前端区分。
 
         Args:
             tasks: 可并行执行的任务列表
@@ -1512,57 +1515,99 @@ class AgentEngine:
         Yields:
             SSEEvent: 任务执行事件
         """
-        logger.info(f"Executing {len(tasks)} tasks in parallel")
+        logger.info(f"Executing {len(tasks)} tasks in parallel (streaming)")
 
         # 标记所有任务开始
         for task in tasks:
             self.scheduler.start_task(task.id)
             yield self.plan_event_emitter.task_start(task)
 
-        # 并行执行
-        results = await asyncio.gather(
-            *[self._execute_task_core(task) for task in tasks],
-            return_exceptions=True
+        # 创建事件队列用于合并多个流
+        event_queue: asyncio.Queue[tuple[Task, SSEEvent | None, Exception | None]] = (
+            asyncio.Queue()
         )
 
-        # 处理结果
-        for task, result in zip(tasks, results, strict=False):
-            if isinstance(result, Exception):
-                # 任务失败
-                error_msg = str(result)
-                failed_task, decision = self.scheduler.fail_task(task.id, error_msg)
-                yield self.plan_event_emitter.task_failed(task)
+        async def execute_task_streaming(task: Task) -> None:
+            """执行单个任务并将事件放入队列"""
+            context = self._create_task_context(task)
+            try:
+                async for event in self.task_executor.execute_stream(task, context):
+                    # 添加 taskId 到事件数据
+                    if event.data is None:
+                        event.data = {}
+                    event.data["taskId"] = task.id
+                    await event_queue.put((task, event, None))
+                # 标记此任务流结束
+                await event_queue.put((task, None, None))
+            except Exception as e:
+                logger.error(f"Task {task.id} execution error: {e}")
+                await event_queue.put((task, None, e))
+
+        # 启动所有任务
+        async_tasks = [asyncio.create_task(execute_task_streaming(t)) for t in tasks]
+
+        # 跟踪每个任务的状态
+        task_outputs: dict[str, str] = {}
+        completed_count = 0
+        total_tasks = len(tasks)
+
+        # 处理事件队列直到所有任务完成
+        while completed_count < total_tasks:
+            task_obj, event, error = await event_queue.get()
+
+            if error is not None:
+                # 任务执行出错
+                error_msg = str(error)
+                _, decision = self.scheduler.fail_task(task_obj.id, error_msg)
+                yield self.plan_event_emitter.task_failed(task_obj)
 
                 yield SSEEvent(
                     type=SSEEventType.ERROR,
                     data={
-                        "message": f"任务 '{task.title}' 执行失败: {error_msg}",
-                        "taskId": task.id,
+                        "message": f"任务 '{task_obj.title}' 执行失败: {error_msg}",
+                        "taskId": task_obj.id,
                         "decision": decision.value
                     }
                 )
 
-                # 处理重规划
                 if decision == ReplanDecision.REPLAN:
-                    async for event in self._handle_replan(task, error_msg):
-                        yield event
-            else:
-                # 任务成功
-                output = result if isinstance(result, str) else str(result)
-                self.scheduler.complete_task(task.id, output[:500])
-                yield self.plan_event_emitter.task_complete(task)
+                    async for replan_event in self._handle_replan(task_obj, error_msg):
+                        yield replan_event
+
+                completed_count += 1
+
+            elif event is None:
+                # 任务流正常结束
+                output = task_outputs.get(task_obj.id, "")
+                self.scheduler.complete_task(task_obj.id, output[:500])
+                yield self.plan_event_emitter.task_complete(task_obj)
 
                 yield SSEEvent(
                     type=SSEEventType.CONTENT,
-                    data={"content": f"\n✅ {task.title} 完成\n"}
+                    data={"content": f"\n✅ {task_obj.title} 完成\n", "taskId": task_obj.id}
                 )
+                completed_count += 1
+
+            else:
+                # 中间事件，直接 yield
+                yield event
+
+                # 收集 DONE 事件中的输出
+                if event.type == SSEEventType.DONE and event.data:
+                    task_outputs[task_obj.id] = event.data.get("output", "")
+
+        # 确保所有协程完成
+        await asyncio.gather(*async_tasks, return_exceptions=True)
 
     async def _execute_single_task(
         self,
         task: Task
     ) -> AsyncGenerator[SSEEvent, None]:
         """
-        执行单个任务
+        执行单个任务 (流式版本)
+
+        使用 TaskExecutor.execute_stream() 实现流式执行，
+        转发所有中间事件 (TOOL_CALL, TOOL_RESULT 等) 给前端。
 
         Args:
             task: 要执行的任务
@@ -1577,13 +1622,21 @@ class AgentEngine:
         yield self.plan_event_emitter.task_start(task)
 
         try:
-            # 执行任务
-            yield SSEEvent(
-                type=SSEEventType.THINKING,
-                data={"content": f"正在执行: {task.title}...\n"}
-            )
+            # 创建执行上下文
+            context = self._create_task_context(task)
 
-            output = await self._execute_task_core(task)
+            # 流式执行任务，转发所有中间事件
+            output = ""
+            async for event in self.task_executor.execute_stream(task, context):
+                # 添加 taskId 到事件数据以便前端区分
+                if event.data is None:
+                    event.data = {}
+                event.data["taskId"] = task.id
+                yield event
+
+                # 收集 DONE 事件中的输出
+                if event.type == SSEEventType.DONE and event.data:
+                    output = event.data.get("output", "")
 
             # 标记任务完成
             self.scheduler.complete_task(task.id, output[:500] if output else "")
@@ -1591,14 +1644,14 @@ class AgentEngine:
 
             yield SSEEvent(
                 type=SSEEventType.CONTENT,
-                data={"content": f"\n✅ {task.title} 完成\n"}
+                data={"content": f"\n✅ {task.title} 完成\n", "taskId": task.id}
             )
 
         except Exception as e:
             logger.error(f"Task execution failed: {e}")
 
             # 标记任务失败
-            failed_task, decision = self.scheduler.fail_task(task.id, str(e))
+            _, decision = self.scheduler.fail_task(task.id, str(e))
             yield self.plan_event_emitter.task_failed(task)
 
             yield SSEEvent(
@@ -1615,19 +1668,19 @@ class AgentEngine:
                 async for event in self._handle_replan(task, str(e)):
                     yield event
 
-    async def _execute_task_core(self, task: Task) -> str:
+    def _create_task_context(self, task: Task) -> ExecutionContext:
         """
-        任务执行核心逻辑 - 使用 TaskExecutor
+        创建任务执行上下文
 
-        改进: 不再只调用一次 LLM，而是通过 TaskExecutor 执行完整的工具调用循环
+        提取公共逻辑，供 _execute_single_task、_execute_tasks_parallel、
+        _execute_task_core 共用。
 
         Args:
             task: 要执行的任务
 
         Returns:
-            str: 任务执行输出
+            ExecutionContext: 执行上下文
         """
-        # 创建执行上下文
         context = ExecutionContext(
             session_id=self.session_id,
             workspace_id=self.workspace_id,
@@ -1638,6 +1691,22 @@ class AgentEngine:
         if self._current_plan:
             recitation = self.plan_reciter.generate(self._current_plan, self.scheduler)
             context.add_system_message(f"Current Plan Status:\n{recitation}")
+
+        return context
+
+    async def _execute_task_core(self, task: Task) -> str:
+        """
+        任务执行核心逻辑 - 使用 TaskExecutor (非流式版本)
+
+        保留此方法作为备用，主流程已改用流式版本。
+
+        Args:
+            task: 要执行的任务
+
+        Returns:
+            str: 任务执行输出
+        """
+        context = self._create_task_context(task)
 
         # 使用 TaskExecutor 执行任务 (包含完整的工具调用循环)
         result = await self.task_executor.execute(task, context)

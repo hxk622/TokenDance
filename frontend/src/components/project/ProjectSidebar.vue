@@ -81,8 +81,8 @@ function formatTime(dateStr: string) {
 // Actions
 async function handleSelectProject(project: Project) {
   await projectStore.setCurrentProject(project)
-  // Navigate to execution page with project
-  router.push(`/execute/${project.id}`)
+  // Navigate to project page
+  router.push(`/project/${project.id}`)
 }
 
 function handleNewProject() {
