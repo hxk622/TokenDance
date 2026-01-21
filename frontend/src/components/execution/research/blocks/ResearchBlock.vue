@@ -70,7 +70,10 @@ function handleOpenUrl(url: string) {
     
     <!-- Expandable Content -->
     <Transition name="expand">
-      <div v-if="block.isExpanded" class="block-body">
+      <div
+        v-if="block.isExpanded"
+        class="block-body"
+      >
         <BlockContent 
           :block="block"
           @source-click="handleSourceClick"

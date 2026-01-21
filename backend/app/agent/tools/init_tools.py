@@ -60,8 +60,8 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
         logger.error(f"Failed to register create_document tool: {e}")
 
     try:
-        from app.agent.tools.builtin.image_generation import ImageGenerationTool
-        image_gen = ImageGenerationTool()
+        from app.agent.tools.builtin.image_generation import GenerateImageTool
+        image_gen = GenerateImageTool()
         registry.register(image_gen)
         tools.append(image_gen)
         logger.info(f"Registered tool: {image_gen.name}")
@@ -69,8 +69,8 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
         logger.error(f"Failed to register image_generation tool: {e}")
 
     try:
-        from app.agent.tools.builtin.ppt_generator import PPTGeneratorTool
-        ppt_gen = PPTGeneratorTool()
+        from app.agent.tools.builtin.ppt_generator import GeneratePPTTool
+        ppt_gen = GeneratePPTTool()
         registry.register(ppt_gen)
         tools.append(ppt_gen)
         logger.info(f"Registered tool: {ppt_gen.name}")
@@ -115,6 +115,16 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register wechat_article tool: {e}")
 
+    # Diagram Tool - draw.io 图表生成
+    try:
+        from app.agent.tools.builtin.diagram import DiagramTool
+        diagram = DiagramTool()
+        registry.register(diagram)
+        tools.append(diagram)
+        logger.info(f"Registered tool: {diagram.name}")
+    except Exception as e:
+        logger.error(f"Failed to register diagram tool: {e}")
+
     # Financial Data Tools - 金融数据工具集
     try:
         from app.agent.tools.builtin.financial import get_financial_tools
@@ -136,7 +146,7 @@ def get_tool_categories() -> dict:
         "Web & Research": ["web_search", "read_url", "wechat_article"],
         "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
-        "Content Generation": ["image_generation", "ppt_generator", "report_generator"],
+        "Content Generation": ["image_generation", "ppt_generator", "report_generator", "generate_diagram"],
         "Financial Data": [
             "get_stock_quote",
             "get_financial_statements",
@@ -163,6 +173,7 @@ def get_tool_descriptions() -> dict:
         "image_generation": "Generate images using AI",
         "ppt_generator": "Generate PowerPoint presentations",
         "report_generator": "Generate reports from data",
+        "generate_diagram": "Generate professional diagrams (flowchart, architecture, sequence, ER, cloud) using draw.io format",
         "exit": "Exit the current task",
         # Financial Data Tools
         "get_stock_quote": "Get real-time/delayed stock quote (US, A-share, HK)",

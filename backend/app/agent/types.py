@@ -69,6 +69,9 @@ class SSEEventType(str, Enum):
     RESEARCH_PROGRESS_UPDATE = "research.progress.update" # 进度更新
     RESEARCH_REPORT_READY = "research.report.ready"      # 报告生成完成(带引用)
 
+    # Diagram 事件 (draw.io 图表生成)
+    DIAGRAM_GENERATED = "diagram.generated"              # 图表生成完成
+
 
 class ToolStatus(str, Enum):
     """工具执行状态"""

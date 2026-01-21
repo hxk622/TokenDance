@@ -46,7 +46,10 @@ const progressColor = computed(() => {
         }"
       />
     </div>
-    <span v-if="showPercentage" class="progress-text">
+    <span
+      v-if="showPercentage"
+      class="progress-text"
+    >
       {{ progress }}%
     </span>
   </div>

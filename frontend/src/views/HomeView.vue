@@ -504,7 +504,9 @@ onUnmounted(() => {
         class="projects-section"
       >
         <div class="section-header">
-          <h2 class="section-title">进行中的项目</h2>
+          <h2 class="section-title">
+            进行中的项目
+          </h2>
           <button
             class="see-all-btn"
             @click="router.push('/history')"

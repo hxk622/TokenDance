@@ -89,7 +89,10 @@ defineExpose({
     />
     
     <!-- Toolbar -->
-    <div v-if="session && session.blocks.length > 0" class="list-toolbar">
+    <div
+      v-if="session && session.blocks.length > 0"
+      class="list-toolbar"
+    >
       <button 
         v-if="hasExpandedBlocks && !allExpanded"
         class="toolbar-btn"
@@ -111,7 +114,10 @@ defineExpose({
     </div>
     
     <!-- Blocks List -->
-    <div v-if="session" class="blocks-container">
+    <div
+      v-if="session"
+      class="blocks-container"
+    >
       <TransitionGroup name="block-list">
         <ResearchBlock
           v-for="block in session.blocks"
@@ -125,7 +131,10 @@ defineExpose({
     </div>
     
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <p>研究尚未开始</p>
     </div>
   </div>

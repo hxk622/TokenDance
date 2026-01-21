@@ -107,15 +107,24 @@ const durationText = computed(() => {
       </div>
       
       <!-- Phase Icon -->
-      <div class="phase-icon-wrapper" :class="`phase-icon--${block.status}`">
-        <component :is="PhaseIcon" class="phase-icon" />
+      <div
+        class="phase-icon-wrapper"
+        :class="`phase-icon--${block.status}`"
+      >
+        <component
+          :is="PhaseIcon"
+          class="phase-icon"
+        />
       </div>
       
       <!-- Phase Name -->
       <span class="phase-name">{{ phaseConfig?.name || '未知阶段' }}</span>
       
       <!-- Summary (collapsed state) -->
-      <span v-if="summaryText" class="summary-text">
+      <span
+        v-if="summaryText"
+        class="summary-text"
+      >
         {{ summaryText }}
       </span>
     </div>
@@ -123,12 +132,18 @@ const durationText = computed(() => {
     <!-- Right: Status + Duration -->
     <div class="header-right">
       <!-- Duration -->
-      <span v-if="durationText" class="duration-text">
+      <span
+        v-if="durationText"
+        class="duration-text"
+      >
         {{ durationText }}
       </span>
       
       <!-- Status Indicator -->
-      <div class="status-indicator" :class="`status--${block.status}`">
+      <div
+        class="status-indicator"
+        :class="`status--${block.status}`"
+      >
         <template v-if="block.status === 'running'">
           <Loader2 class="status-icon status-icon--spinning" />
         </template>

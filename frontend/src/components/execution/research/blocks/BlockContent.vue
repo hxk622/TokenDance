@@ -60,7 +60,10 @@ function handleOpenUrl(url: string) {
 <template>
   <div class="block-content">
     <!-- Planning Phase: Notes -->
-    <div v-if="block.phase === 'planning'" class="planning-content">
+    <div
+      v-if="block.phase === 'planning'"
+      class="planning-content"
+    >
       <div 
         v-if="block.planningNotes && block.planningNotes.length > 0"
         class="notes-list"
@@ -74,25 +77,37 @@ function handleOpenUrl(url: string) {
           <span class="note-text">{{ note }}</span>
         </div>
       </div>
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <span>正在分析主题并制定研究策略...</span>
       </div>
     </div>
     
     <!-- Searching Phase: Queries -->
-    <div v-else-if="block.phase === 'searching'" class="searching-content">
+    <div
+      v-else-if="block.phase === 'searching'"
+      class="searching-content"
+    >
       <SearchQueryList 
         v-if="block.queries.length > 0"
         :queries="block.queries"
         :max-visible="8"
       />
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <span>正在生成搜索查询...</span>
       </div>
     </div>
     
     <!-- Reading/Analyzing Phase: Sources -->
-    <div v-else-if="block.phase === 'reading' || block.phase === 'analyzing'" class="sources-content">
+    <div
+      v-else-if="block.phase === 'reading' || block.phase === 'analyzing'"
+      class="sources-content"
+    >
       <template v-if="block.sources.length > 0">
         <div class="sources-header">
           <span class="sources-count">
@@ -116,13 +131,19 @@ function handleOpenUrl(url: string) {
           </div>
         </div>
       </template>
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <span>{{ block.phase === 'reading' ? '正在阅读来源内容...' : '正在分析信息...' }}</span>
       </div>
     </div>
     
     <!-- Writing Phase: Outline -->
-    <div v-else-if="block.phase === 'writing'" class="writing-content">
+    <div
+      v-else-if="block.phase === 'writing'"
+      class="writing-content"
+    >
       <div 
         v-if="block.writingOutline && block.writingOutline.length > 0"
         class="outline-list"
@@ -136,13 +157,19 @@ function handleOpenUrl(url: string) {
           <span class="outline-text">{{ section }}</span>
         </div>
       </div>
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <span>正在生成研究报告...</span>
       </div>
     </div>
     
     <!-- Default Empty -->
-    <div v-else-if="!hasContent" class="empty-state">
+    <div
+      v-else-if="!hasContent"
+      class="empty-state"
+    >
       <span>等待开始...</span>
     </div>
   </div>

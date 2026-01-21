@@ -95,6 +95,9 @@ export enum SSEEventType {
 
   // Research events (深度研究)
   RESEARCH_REPORT_READY = 'research.report.ready',
+
+  // Diagram events (draw.io 图表生成)
+  DIAGRAM_GENERATED = 'diagram.generated',
 }
 
 export interface SSEEvent<T = any> {

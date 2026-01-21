@@ -80,11 +80,17 @@ const statusColor = computed(() => {
     <!-- Left: Topic + Status -->
     <div class="summary-left">
       <div class="topic-row">
-        <Sparkles v-if="session.status === 'completed'" class="topic-icon topic-icon--success" />
+        <Sparkles
+          v-if="session.status === 'completed'"
+          class="topic-icon topic-icon--success"
+        />
         <span class="topic-text">{{ session.topic }}</span>
       </div>
       <div class="status-row">
-        <span class="status-badge" :style="{ color: statusColor }">
+        <span
+          class="status-badge"
+          :style="{ color: statusColor }"
+        >
           {{ statusText }}
         </span>
         <span class="status-divider">·</span>
@@ -98,7 +104,10 @@ const statusColor = computed(() => {
     <div class="summary-right">
       <!-- Progress Ring -->
       <div class="progress-ring">
-        <svg viewBox="0 0 36 36" class="ring-svg">
+        <svg
+          viewBox="0 0 36 36"
+          class="ring-svg"
+        >
           <circle
             cx="18"
             cy="18"

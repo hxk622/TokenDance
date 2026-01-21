@@ -5,6 +5,8 @@ import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { ChatInput, ChatFormMessage } from '@/components/execution/chat'
 import { ResearchProgress, InterventionPanel } from '@/components/execution/research'
+import ResearchBlockList from '@/components/execution/research/blocks/ResearchBlockList.vue'
+import type { BlockEvent } from '@/composables/useResearchBlocks'
 import type { 
   ResearchProgress as ResearchProgressType,
   SearchQuery,
@@ -37,6 +39,8 @@ interface Props {
   userInput?: string
   userAvatar?: string  // URL or initial letter
   isDeepResearch?: boolean  // 是否为深度研究模式
+  /** 是否使用 Block 模式展示研究进度 (v2.0) */
+  useBlockMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -44,7 +48,8 @@ const props = withDefaults(defineProps<Props>(), {
   preflightResult: null,
   userInput: '',
   userAvatar: 'U',
-  isDeepResearch: false
+  isDeepResearch: false,
+  useBlockMode: true,  // 默认启用 Block 模式
 })
 
 // Emits
@@ -95,6 +100,9 @@ const researchProgress = ref<ResearchProgressType | null>(null)
 const isResearchProgressCollapsed = ref(false)
 const isInterventionPanelCollapsed = ref(false)
 const isInterventionSending = ref(false)
+
+// Block 模式相关 ref
+const researchBlockListRef = ref<InstanceType<typeof ResearchBlockList> | null>(null)
 
 // Initialize research progress when in deep research mode
 function initResearchProgress() {
@@ -189,6 +197,15 @@ function updateResearchProgressState(
   if (estimatedTime !== undefined) {
     researchProgress.value!.estimatedTimeRemaining = estimatedTime
   }
+}
+
+// ========================================
+// Block 模式方法
+// ========================================
+
+/** 发送事件到 Block 列表 (用于 Block 模式) */
+function sendBlockEvent(event: BlockEvent) {
+  researchBlockListRef.value?.handleEvent(event)
 }
 
 // Open URL in new tab
@@ -505,7 +522,7 @@ defineExpose({
     messages.value.push(msg)
     scrollToBottom()
   },
-  // Research progress methods (深度研究进度透明化)
+  // Research progress methods - Legacy Mode (深度研究进度透明化 - 旧版)
   researchProgress,
   initResearchProgress,
   updateResearchPhase,
@@ -514,6 +531,9 @@ defineExpose({
   addResearchSource,
   updateResearchSource,
   updateResearchProgressState,
+  // Research progress methods - Block Mode (Block 模式 v2.0)
+  sendBlockEvent,
+  researchBlockListRef,
   // Research intervention methods (研究干预)
   setInterventionSending,
 })
@@ -690,9 +710,25 @@ defineExpose({
       </button>
     </div>
 
-    <!-- Research Progress Panel (深度研究进度面板) -->
+    <!-- Research Progress - Block Mode (v2.0 Block 化进度面板) -->
     <div
-      v-if="(initPhase === 'executing' || initPhase === 'ready') && isDeepResearch && researchProgress"
+      v-if="(initPhase === 'executing' || initPhase === 'ready') && isDeepResearch && useBlockMode"
+      class="research-blocks-container"
+    >
+      <ResearchBlockList
+        ref="researchBlockListRef"
+        :topic="userInput"
+        :show-summary="true"
+        @block-expand="(blockId) => console.log('Block expanded:', blockId)"
+        @source-click="(source) => console.log('Source clicked:', source)"
+        @open-url="openUrl"
+        @intervention="handleResearchIntervene"
+      />
+    </div>
+
+    <!-- Research Progress Panel - Legacy Mode (旧版深度研究进度面板) -->
+    <div
+      v-if="(initPhase === 'executing' || initPhase === 'ready') && isDeepResearch && !useBlockMode && researchProgress"
       class="research-progress-container"
     >
       <ResearchProgress
@@ -704,9 +740,9 @@ defineExpose({
       />
     </div>
 
-    <!-- Research Intervention Panel (研究干预面板) -->
+    <!-- Research Intervention Panel (研究干预面板 - 两种模式共用) -->
     <InterventionPanel
-      v-if="initPhase === 'executing' && isDeepResearch && researchProgress"
+      v-if="initPhase === 'executing' && isDeepResearch && (researchProgress || useBlockMode)"
       :progress="researchProgress"
       :collapsed="isInterventionPanelCollapsed"
       :sending="isInterventionSending"
@@ -977,11 +1013,31 @@ defineExpose({
 }
 
 /* ========================================
-   Research Progress Container
+   Research Progress Container (Legacy & Block)
    ======================================== */
 .research-progress-container {
   flex-shrink: 0;
   padding: 12px 16px 0;
+}
+
+.research-blocks-container {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.research-blocks-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.research-blocks-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.research-blocks-container::-webkit-scrollbar-thumb {
+  background: var(--any-border-hover);
+  border-radius: 3px;
 }
 
 /* ========================================
