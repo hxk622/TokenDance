@@ -33,6 +33,16 @@ class SSEEventType(str, Enum):
     TIMELINE_FINDING = "timeline_finding"
     TIMELINE_MILESTONE = "timeline_milestone"
 
+    # Research Progress 事件 (研究进度透明化)
+    RESEARCH_PHASE_CHANGE = "research.phase.change"      # 阶段切换
+    RESEARCH_QUERY_START = "research.query.start"        # 搜索开始
+    RESEARCH_QUERY_RESULT = "research.query.result"      # 搜索结果
+    RESEARCH_SOURCE_START = "research.source.start"      # 来源阅读开始
+    RESEARCH_SOURCE_DONE = "research.source.done"        # 来源阅读完成
+    RESEARCH_SOURCE_SKIP = "research.source.skip"        # 来源跳过
+    RESEARCH_FACT_EXTRACTED = "research.fact.extracted"  # 事实提取
+    RESEARCH_PROGRESS_UPDATE = "research.progress.update" # 进度更新
+
 
 class ToolStatus(str, Enum):
     """工具执行状态"""

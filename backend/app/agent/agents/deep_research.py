@@ -223,6 +223,107 @@ class DeepResearchAgent(BaseAgent):
             }
         )
 
+    # ==================== Research Progress 事件发送 ====================
+
+    def _emit_phase_change(self, phase: str, phase_progress: int = 0) -> SSEEvent:
+        """发送阶段切换事件"""
+        phase_names = {
+            "planning": "规划",
+            "searching": "搜索",
+            "reading": "阅读",
+            "analyzing": "分析",
+            "writing": "撰写",
+        }
+        return SSEEvent(
+            type=SSEEventType.RESEARCH_PHASE_CHANGE,
+            data={
+                'phase': phase,
+                'phase_name': phase_names.get(phase, phase),
+                'phase_progress': phase_progress,
+            }
+        )
+
+    def _emit_query_start(self, query_id: str, query_text: str) -> SSEEvent:
+        """发送搜索开始事件"""
+        return SSEEvent(
+            type=SSEEventType.RESEARCH_QUERY_START,
+            data={
+                'query_id': query_id,
+                'text': query_text,
+                'status': 'running',
+            }
+        )
+
+    def _emit_query_result(self, query_id: str, query_text: str, result_count: int) -> SSEEvent:
+        """发送搜索结果事件"""
+        return SSEEvent(
+            type=SSEEventType.RESEARCH_QUERY_RESULT,
+            data={
+                'query_id': query_id,
+                'text': query_text,
+                'status': 'done',
+                'result_count': result_count,
+            }
+        )
+
+    def _emit_source_start(self, source_id: str, url: str, domain: str, title: str = "") -> SSEEvent:
+        """发送来源阅读开始事件"""
+        return SSEEvent(
+            type=SSEEventType.RESEARCH_SOURCE_START,
+            data={
+                'source_id': source_id,
+                'url': url,
+                'domain': domain,
+                'title': title,
+                'status': 'reading',
+            }
+        )
+
+    def _emit_source_done(
+        self,
+        source_id: str,
+        url: str,
+        domain: str,
+        title: str,
+        credibility: int,
+        source_type: str = "unknown",
+        extracted_facts: list[str] | None = None
+    ) -> SSEEvent:
+        """发送来源阅读完成事件"""
+        return SSEEvent(
+            type=SSEEventType.RESEARCH_SOURCE_DONE,
+            data={
+                'source_id': source_id,
+                'url': url,
+                'domain': domain,
+                'title': title,
+                'credibility': credibility,
+                'type': source_type,
+                'status': 'done',
+                'extracted_facts': extracted_facts or [],
+            }
+        )
+
+    def _emit_progress_update(
+        self,
+        phase: str,
+        phase_progress: int,
+        overall_progress: int,
+        current_action: str = "",
+        estimated_time: int | None = None
+    ) -> SSEEvent:
+        """发送进度更新事件"""
+        return SSEEvent(
+            type=SSEEventType.RESEARCH_PROGRESS_UPDATE,
+            data={
+                'phase': phase,
+                'phase_progress': phase_progress,
+                'overall_progress': overall_progress,
+                'current_action': current_action,
+                'estimated_time_remaining': estimated_time,
+            }
+        )
+
     async def _think(self) -> AsyncGenerator[SSEEvent, None]:
         """思考过程 - DeepResearch 版本
 

@@ -4,6 +4,14 @@ import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw } 
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { ChatInput, ChatFormMessage } from '@/components/execution/chat'
+import { ResearchProgress } from '@/components/execution/research'
+import type { 
+  ResearchProgress as ResearchProgressType,
+  SearchQuery,
+  ResearchSource,
+  ResearchPhase,
+} from '@/components/execution/research/types'
+import { getCredibilityLevel } from '@/components/execution/research/types'
 import type { 
   ChatMessage, 
   QuoteInfo, 
@@ -27,13 +35,15 @@ interface Props {
   preflightResult?: IntentValidationResponse | null
   userInput?: string
   userAvatar?: string  // URL or initial letter
+  isDeepResearch?: boolean  // 是否为深度研究模式
 }
 
 const props = withDefaults(defineProps<Props>(), {
   initPhase: 'executing',
   preflightResult: null,
   userInput: '',
-  userAvatar: 'U'
+  userAvatar: 'U',
+  isDeepResearch: false
 })
 
 // Emits
@@ -74,6 +84,112 @@ function toggleOption(option: string) {
 watch(() => props.initPhase, () => {
   selectedOptions.value = []
 })
+
+// ========================================
+// Research Progress State (深度研究进度)
+// ========================================
+const researchProgress = ref<ResearchProgressType | null>(null)
+const isResearchProgressCollapsed = ref(false)
+
+// Initialize research progress when in deep research mode
+function initResearchProgress() {
+  researchProgress.value = {
+    phase: 'planning',
+    phaseProgress: 0,
+    overallProgress: 0,
+    queries: [],
+    sources: [],
+    currentAction: '正在分析研究主题...',
+  }
+}
+
+// Update research progress from SSE events
+function updateResearchPhase(phase: ResearchPhase, phaseProgress: number = 0) {
+  if (!researchProgress.value) initResearchProgress()
+  researchProgress.value!.phase = phase
+  researchProgress.value!.phaseProgress = phaseProgress
+}
+
+function addResearchQuery(queryId: string, text: string, status: 'pending' | 'running' | 'done' | 'failed' = 'running') {
+  if (!researchProgress.value) initResearchProgress()
+  const existing = researchProgress.value!.queries.find(q => q.id === queryId)
+  if (existing) {
+    existing.status = status
+  } else {
+    researchProgress.value!.queries.push({ id: queryId, text, status })
+  }
+}
+
+function updateResearchQuery(queryId: string, resultCount: number) {
+  if (!researchProgress.value) return
+  const query = researchProgress.value.queries.find(q => q.id === queryId)
+  if (query) {
+    query.status = 'done'
+    query.resultCount = resultCount
+  }
+}
+
+function addResearchSource(
+  sourceId: string,
+  url: string,
+  domain: string,
+  title: string,
+  status: 'pending' | 'reading' | 'done' | 'skipped' | 'failed' = 'reading'
+) {
+  if (!researchProgress.value) initResearchProgress()
+  const existing = researchProgress.value!.sources.find(s => s.id === sourceId)
+  if (existing) {
+    existing.status = status
+  } else {
+    researchProgress.value!.sources.push({
+      id: sourceId,
+      url,
+      domain,
+      title,
+      type: 'unknown',
+      credibility: 50,
+      credibilityLevel: 'moderate',
+      status,
+    })
+  }
+}
+
+function updateResearchSource(
+  sourceId: string,
+  credibility: number,
+  sourceType: string = 'unknown',
+  extractedFacts: string[] = []
+) {
+  if (!researchProgress.value) return
+  const source = researchProgress.value.sources.find(s => s.id === sourceId)
+  if (source) {
+    source.status = 'done'
+    source.credibility = credibility
+    source.credibilityLevel = getCredibilityLevel(credibility)
+    source.type = sourceType as ResearchSource['type']
+    source.extractedFacts = extractedFacts
+  }
+}
+
+function updateResearchProgressState(
+  currentAction: string,
+  overallProgress?: number,
+  estimatedTime?: number
+) {
+  if (!researchProgress.value) initResearchProgress()
+  researchProgress.value!.currentAction = currentAction
+  if (overallProgress !== undefined) {
+    researchProgress.value!.overallProgress = overallProgress
+  }
+  if (estimatedTime !== undefined) {
+    researchProgress.value!.estimatedTimeRemaining = estimatedTime
+  }
+}
+
+// Open URL in new tab
+function openUrl(url: string) {
+  window.open(url, '_blank')
+}
 
 // ========================================
 // Chat Messages (replacing old LogEntry)
@@ -373,7 +489,16 @@ defineExpose({
     }
     messages.value.push(msg)
     scrollToBottom()
-  }
+  },
+  // Research progress methods (深度研究进度透明化)
+  researchProgress,
+  initResearchProgress,
+  updateResearchPhase,
+  addResearchQuery,
+  updateResearchQuery,
+  addResearchSource,
+  updateResearchSource,
+  updateResearchProgressState,
 })
 </script>
 
@@ -546,6 +671,20 @@ defineExpose({
           <path d="M7 11V7a5 5 0 0 1 9.9-1" />
         </svg>
       </button>
+    </div>
+
+    <!-- Research Progress Panel (深度研究进度面板) -->
+    <div
+      v-if="(initPhase === 'executing' || initPhase === 'ready') && isDeepResearch && researchProgress"
+      class="research-progress-container"
+    >
+      <ResearchProgress
+        :progress="researchProgress"
+        :collapsed="isResearchProgressCollapsed"
+        @toggle-collapse="isResearchProgressCollapsed = !isResearchProgressCollapsed"
+        @source-click="(source) => console.log('Source clicked:', source)"
+        @open-url="openUrl"
+      />
     </div>
 
     <!-- Chat Messages (Dialog Style) -->
@@ -808,6 +947,14 @@ defineExpose({
   background: var(--td-state-waiting-bg, rgba(255, 184, 0, 0.1));
   border-color: var(--td-state-waiting, #FFB800);
   color: var(--td-state-waiting, #FFB800);
+}
+
+/* ========================================
+   Research Progress Container
+   ======================================== */
+.research-progress-container {
+  flex-shrink: 0;
+  padding: 12px 16px 0;
 }
 
 /* ========================================
