@@ -12,9 +12,8 @@ Return a structured result that can be logged or surfaced in UI.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
-from typing import List, Optional
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -28,7 +27,7 @@ class QualityIssue:
 class QualityResult:
     passed: bool
     score: float
-    issues: List[QualityIssue] = field(default_factory=list)
+    issues: list[QualityIssue] = field(default_factory=list)
 
 
 class OutputQualityChecker:
@@ -49,8 +48,8 @@ class OutputQualityChecker:
         "does NOT constitute investment advice",
     ]
 
-    def check(self, *, report: str, symbol: Optional[str] = None, topic: Optional[str] = None) -> QualityResult:
-        issues: List[QualityIssue] = []
+    def check(self, *, report: str, symbol: str | None = None, topic: str | None = None) -> QualityResult:
+        issues: list[QualityIssue] = []
 
         # 1) Data completeness: required headings
         present = 0

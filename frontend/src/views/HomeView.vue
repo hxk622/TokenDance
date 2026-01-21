@@ -2,20 +2,23 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
+import { useProjectStore } from '@/stores/project'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
-  Languages, FolderOpen,
-  History, Settings, LayoutGrid, Plus
+  Languages, FolderOpen, MoreHorizontal, Code2, Zap,
+  History, Settings, LayoutGrid, Plus, ChevronRight
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
 import type { NavItem } from '@/components/common/AnySidebar.vue'
+import type { Project, ProjectType } from '@/types/project'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
+const projectStore = useProjectStore()
 const { requireAuth } = useAuthGuard()
 
 const inputValue = ref('')
@@ -31,6 +34,43 @@ const showError = (msg: string) => {
   setTimeout(() => {
     errorMessage.value = ''
   }, 4000)
+}
+
+// Project list
+const recentProjects = computed(() => projectStore.activeProjects.slice(0, 6))
+const hasProjects = computed(() => recentProjects.value.length > 0)
+
+// Project type icons
+const projectTypeIcons: Record<ProjectType, typeof FileText> = {
+  research: Search,
+  document: FileText,
+  slides: Presentation,
+  code: Code2,
+  data_analysis: BarChart3,
+  quick_task: Zap,
+}
+
+function getProjectIcon(type: ProjectType) {
+  return projectTypeIcons[type] || FolderOpen
+}
+
+// Handle project click
+function handleProjectClick(project: Project) {
+  router.push(`/project/${project.id}`)
+}
+
+// Format time
+function formatProjectTime(dateStr: string) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (hours < 1) return '刚刚'
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return date.toLocaleDateString('zh-CN')
 }
 
 // 快捷操作芯片 - AnyGen 风格
@@ -297,8 +337,17 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown)
+  
+  // Load recent projects
+  const workspaceId = sessionStore.currentWorkspaceId || 'default'
+  projectStore.setCurrentWorkspace(workspaceId)
+  try {
+    await projectStore.loadProjects(workspaceId)
+  } catch (e) {
+    console.error('Failed to load projects:', e)
+  }
 })
 
 onUnmounted(() => {
@@ -445,6 +494,43 @@ onUnmounted(() => {
           <button class="chip chip-more">
             <MoreHorizontal class="w-4 h-4" />
             <span>更多</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 进行中的项目 -->
+      <section
+        v-if="hasProjects"
+        class="projects-section"
+      >
+        <div class="section-header">
+          <h2 class="section-title">进行中的项目</h2>
+          <button
+            class="see-all-btn"
+            @click="router.push('/history')"
+          >
+            查看全部
+            <ChevronRight class="w-4 h-4" />
+          </button>
+        </div>
+        <div class="projects-grid">
+          <button
+            v-for="project in recentProjects"
+            :key="project.id"
+            class="project-card"
+            @click="handleProjectClick(project)"
+          >
+            <div class="project-icon-wrapper">
+              <component
+                :is="getProjectIcon(project.project_type)"
+                class="project-icon"
+              />
+            </div>
+            <div class="project-info">
+              <span class="project-title">{{ project.title }}</span>
+              <span class="project-meta">{{ formatProjectTime(project.updated_at) }}</span>
+            </div>
+            <ChevronRight class="project-chevron" />
           </button>
         </div>
       </section>
@@ -686,6 +772,104 @@ onUnmounted(() => {
 .submit-btn:disabled {
   @apply cursor-not-allowed;
   opacity: 0.7;  /* 提高 disabled 状态可见度 */
+}
+
+/* ============================================
+   Projects Section
+   ============================================ */
+.projects-section {
+  @apply mb-10;
+  width: 100%;
+  max-width: 720px;
+}
+
+.section-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.section-title {
+  @apply text-lg font-medium;
+  color: var(--any-text-primary);
+}
+
+.see-all-btn {
+  @apply flex items-center gap-1 px-3 py-1.5
+         text-sm rounded-lg cursor-pointer;
+  color: var(--any-text-secondary);
+  background: transparent;
+  border: none;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.see-all-btn:hover {
+  color: var(--any-text-primary);
+  background: var(--any-bg-tertiary);
+}
+
+.projects-grid {
+  @apply grid gap-3;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+@media (min-width: 640px) {
+  .projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .projects-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.project-card {
+  @apply flex items-center gap-3 p-3
+         rounded-xl cursor-pointer text-left;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.project-card:hover {
+  border-color: var(--any-border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.project-icon-wrapper {
+  @apply flex items-center justify-center w-10 h-10
+         rounded-lg flex-shrink-0;
+  background: var(--any-bg-tertiary);
+}
+
+.project-icon {
+  @apply w-5 h-5;
+  color: var(--any-text-secondary);
+}
+
+.project-info {
+  @apply flex-1 min-w-0;
+}
+
+.project-title {
+  @apply block text-sm font-medium truncate;
+  color: var(--any-text-primary);
+}
+
+.project-meta {
+  @apply block text-xs mt-0.5;
+  color: var(--any-text-tertiary);
+}
+
+.project-chevron {
+  @apply w-4 h-4 flex-shrink-0;
+  color: var(--any-text-tertiary);
+  opacity: 0;
+  transition: opacity var(--any-duration-fast) var(--any-ease-default);
+}
+
+.project-card:hover .project-chevron {
+  opacity: 1;
 }
 
 /* ============================================

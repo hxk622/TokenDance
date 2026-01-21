@@ -747,15 +747,16 @@ Use markdown formatting. Every factual claim MUST have a citation."""
                 report += f"Quality Score: {qr.score:.1f}/100\n\n"
                 if qr.issues:
                     report += "### Issues\n"
-                    for i in qr.issues:
-                        report += f"- [{i.severity}] {i.code}: {i.message}\n"
+                    for issue in qr.issues:
+                        report += f"- [{issue.severity}] {issue.code}: {issue.message}\n"
         except Exception as e:
             logger.debug(f"Output quality check skipped: {e}")
 
         # 记录到 findings.md
         try:
+            title_suffix = self.financial_state.symbol or (self.financial_state.topic[:30] if self.financial_state.topic else "Unknown")
             await self.memory.write_findings(
-                f"Financial Research Report - {self.financial_state.symbol or self.financial_state.topic[:30]}",
+                f"Financial Research Report - {title_suffix}",
                 report[:3000]  # 摘要
             )
         except Exception as e:
