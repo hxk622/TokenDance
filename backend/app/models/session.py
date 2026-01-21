@@ -119,12 +119,14 @@ class Session(Base):
         "Message",
         back_populates="session",
         cascade="all, delete-orphan",
-        order_by="Message.created_at"
+        order_by="Message.created_at",
+        foreign_keys="Message.session_id"
     )
     artifacts: Mapped[list["Artifact"]] = relationship(
         "Artifact",
         back_populates="session",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        foreign_keys="Artifact.session_id"
     )
 
     def __repr__(self) -> str:

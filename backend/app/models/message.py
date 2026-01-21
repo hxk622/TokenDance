@@ -1,5 +1,8 @@
 """
-Message model - represents a single message in a session.
+Message model - represents a single message in a session or conversation.
+
+Supports both legacy Session-based messages and new Conversation-based messages
+for backward compatibility during migration.
 """
 import uuid
 from datetime import datetime
@@ -12,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.conversation import Conversation
     from app.models.session import Session
 
 
@@ -42,10 +46,16 @@ class Message(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
 
-    # Session relationship
-    session_id: Mapped[str] = mapped_column(
+    # Session relationship (kept for backward compatibility)
+    session_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("sessions.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        nullable=True, index=True  # Changed to nullable for migration
+    )
+
+    # Conversation relationship (new in Project-First architecture)
+    conversation_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=True, index=True
     )
 
     # Message content
@@ -88,7 +98,16 @@ class Message(Base):
     )
 
     # Relationships
-    session: Mapped["Session"] = relationship("Session", back_populates="messages")
+    session: Mapped["Session"] = relationship(
+        "Session",
+        back_populates="messages",
+        foreign_keys=[session_id]
+    )
+    conversation: Mapped["Conversation"] = relationship(
+        "Conversation",
+        back_populates="messages",
+        foreign_keys=[conversation_id]
+    )
 
     def __repr__(self) -> str:
         content_preview = (self.content[:50] + "...") if self.content and len(self.content) > 50 else self.content

@@ -14,6 +14,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.agent_config import AgentConfig
+    from app.models.project import Project
     from app.models.research_task import ResearchTask
     from app.models.session import Session
     from app.models.user import User
@@ -102,6 +103,14 @@ class Workspace(Base):
 
     # Relationships
     owner: Mapped["User"] = relationship("User", back_populates="personal_workspaces")
+    # Project-First architecture
+    projects: Mapped[list["Project"]] = relationship(
+        "Project",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+        order_by="Project.updated_at.desc()"
+    )
+    # Legacy sessions (kept for backward compatibility)
     sessions: Mapped[list["Session"]] = relationship(
         "Session",
         back_populates="workspace",
