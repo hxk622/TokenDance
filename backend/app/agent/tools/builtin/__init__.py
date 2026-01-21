@@ -51,6 +51,7 @@ from .shell import ShellTool
 from .web_search import WebSearchTool, create_web_search_tool
 from .wechat_article import WeChatArticleTool, wechat_article_tool
 from .diagram import DiagramTool, create_diagram_tool, diagram_tool
+from .knowledge_graph import KnowledgeGraphTool, create_knowledge_graph_tool, knowledge_graph_tool
 
 __all__ = [
     # Core tools (4+2 model) - 铁律三
@@ -96,4 +97,8 @@ __all__ = [
     "DiagramTool",
     "create_diagram_tool",
     "diagram_tool",
+    # Knowledge graph generation
+    "KnowledgeGraphTool",
+    "create_knowledge_graph_tool",
+    "knowledge_graph_tool",
 ]

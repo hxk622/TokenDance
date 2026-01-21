@@ -111,7 +111,7 @@ class Conversation(Base):
     # Extra data for migration tracking and extensibility
     extra_data: Mapped[dict] = mapped_column(
         JSON,
-        default={},
+        default=dict,  # Use callable to avoid mutable default bug
         nullable=False
     )
 

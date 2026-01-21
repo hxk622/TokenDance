@@ -77,6 +77,9 @@ class SSEEventType(str, Enum):
     # Diagram 事件 (draw.io 图表生成)
     DIAGRAM_GENERATED = "diagram.generated"              # 图表生成完成
 
+    # Knowledge Graph 事件 (知识图谱生成)
+    KNOWLEDGE_GRAPH_GENERATED = "knowledge_graph.generated"  # 知识图谱生成完成
+
 
 class ToolStatus(str, Enum):
     """工具执行状态"""

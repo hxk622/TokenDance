@@ -20,31 +20,38 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..types import ActionType, AgentAction, SSEEvent, SSEEventType
 from .deep_research import DeepResearchAgent, ResearchState
 
 # 导入金融分析服务（懒加载）
-_financial_analyzer = None
-_valuation_analyzer = None
-_technical_indicators = None
 
-def _get_financial_analyzer():
+if TYPE_CHECKING:
+    from app.services.financial import FinancialAnalyzer, TechnicalIndicators, ValuationAnalyzer
+
+_financial_analyzer: "FinancialAnalyzer | None" = None
+_valuation_analyzer: "ValuationAnalyzer | None" = None
+_technical_indicators: "TechnicalIndicators | None" = None
+
+
+def _get_financial_analyzer() -> "FinancialAnalyzer":
     global _financial_analyzer
     if _financial_analyzer is None:
         from app.services.financial import get_financial_analyzer
         _financial_analyzer = get_financial_analyzer()
     return _financial_analyzer
 
-def _get_valuation_analyzer():
+
+def _get_valuation_analyzer() -> "ValuationAnalyzer":
     global _valuation_analyzer
     if _valuation_analyzer is None:
         from app.services.financial import get_valuation_analyzer
         _valuation_analyzer = get_valuation_analyzer()
     return _valuation_analyzer
 
-def _get_technical_indicators():
+
+def _get_technical_indicators() -> "TechnicalIndicators":
     global _technical_indicators
     if _technical_indicators is None:
         from app.services.financial import get_technical_indicators
@@ -754,7 +761,12 @@ Use markdown formatting. Every factual claim MUST have a citation."""
 
         # 记录到 findings.md
         try:
-            title_suffix = self.financial_state.symbol or (self.financial_state.topic[:30] if self.financial_state.topic else "Unknown")
+            if self.financial_state:
+                title_suffix = self.financial_state.symbol or (
+                    self.financial_state.topic[:30] if self.financial_state.topic else "Unknown"
+                )
+            else:
+                title_suffix = "Unknown"
             await self.memory.write_findings(
                 f"Financial Research Report - {title_suffix}",
                 report[:3000]  # 摘要
@@ -762,8 +774,9 @@ Use markdown formatting. Every factual claim MUST have a citation."""
         except Exception as e:
             logger.warning(f"Failed to record findings: {e}")
 
-        self.financial_state.phase = FinancialResearchPhase.REPORTING.value
-        self.financial_state.disclaimer_added = True
+        if self.financial_state:
+            self.financial_state.phase = FinancialResearchPhase.REPORTING.value
+            self.financial_state.disclaimer_added = True
 
         return AgentAction(
             type=ActionType.ANSWER,
@@ -1092,7 +1105,7 @@ This report is for informational purposes only and does NOT constitute investmen
         Returns:
             包含所有分析结果的字典
         """
-        results = {
+        results: dict[str, Any] = {
             "symbol": self.financial_state.symbol if self.financial_state else None,
             "market": self.financial_state.market.value if self.financial_state else None,
             "financial": None,

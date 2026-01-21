@@ -125,6 +125,16 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register diagram tool: {e}")
 
+    # Knowledge Graph Tool - 知识图谱生成
+    try:
+        from app.agent.tools.builtin.knowledge_graph import KnowledgeGraphTool
+        knowledge_graph = KnowledgeGraphTool()
+        registry.register(knowledge_graph)
+        tools.append(knowledge_graph)
+        logger.info(f"Registered tool: {knowledge_graph.name}")
+    except Exception as e:
+        logger.error(f"Failed to register knowledge_graph tool: {e}")
+
     # Financial Data Tools - 金融数据工具集
     try:
         from app.agent.tools.builtin.financial import get_financial_tools
@@ -146,7 +156,7 @@ def get_tool_categories() -> dict:
         "Web & Research": ["web_search", "read_url", "wechat_article"],
         "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
-        "Content Generation": ["image_generation", "ppt_generator", "report_generator", "generate_diagram"],
+        "Content Generation": ["image_generation", "ppt_generator", "report_generator", "generate_diagram", "generate_knowledge_graph"],
         "Financial Data": [
             "get_stock_quote",
             "get_financial_statements",
@@ -174,6 +184,7 @@ def get_tool_descriptions() -> dict:
         "ppt_generator": "Generate PowerPoint presentations",
         "report_generator": "Generate reports from data",
         "generate_diagram": "Generate professional diagrams (flowchart, architecture, sequence, ER, cloud) using draw.io format",
+        "generate_knowledge_graph": "Generate knowledge graph from text content (concepts, citations, findings, timeline)",
         "exit": "Exit the current task",
         # Financial Data Tools
         "get_stock_quote": "Get real-time/delayed stock quote (US, A-share, HK)",

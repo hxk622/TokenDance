@@ -212,6 +212,26 @@ const taskType = ref<'deep-research' | 'ppt-generation' | 'code-refactor' | 'fil
 
 // 是否为深度研究模式
 const isDeepResearch = computed(() => taskType.value === 'deep-research')
+
+// Layout Mode: chat (单栏聊天) vs execution (两栏执行)
+type LayoutMode = 'chat' | 'execution'
+const layoutMode = ref<LayoutMode>('chat')
+
+// 是否应该显示执行模式（自动切换触发条件）
+const shouldShowExecution = computed(() => {
+  return (
+    executionStore.nodes.length > 0 ||
+    (executionStore.artifacts && executionStore.artifacts.length > 0) ||
+    isDeepResearch.value
+  )
+})
+
+// 监听切换条件，自动从 chat 切换到 execution
+watch(shouldShowExecution, (show) => {
+  if (show && layoutMode.value === 'chat') {
+    layoutMode.value = 'execution'
+  }
+}, { immediate: true })
 const layoutRatios = {
   'deep-research': { left: 35, right: 65 },
   'ppt-generation': { left: 30, right: 70 },
@@ -689,8 +709,11 @@ onUnmounted(() => {
 
       <!-- Main execution area -->
       <div class="execution-main">
-        <!-- Header with status and progress -->
-        <header class="execution-header">
+        <!-- Header with status and progress (hidden in chat mode) -->
+        <header
+          v-if="layoutMode !== 'chat'"
+          class="execution-header"
+        >
           <!-- Status indicator -->
           <div class="status-indicator">
             <span :class="['status-badge', sessionStatus]">
@@ -803,10 +826,10 @@ onUnmounted(() => {
           </div>
         </header>
 
-        <!-- Error Banner -->
+        <!-- Error Banner (execution mode only) -->
         <Transition name="slide-down">
           <div
-            v-if="sessionStatus === 'error' || sseError"
+            v-if="layoutMode !== 'chat' && (sessionStatus === 'error' || sseError)"
             class="error-banner"
             role="alert"
             aria-live="assertive"
@@ -845,10 +868,10 @@ onUnmounted(() => {
           </div>
         </Transition>
 
-        <!-- Focus Mode Banner with Breadcrumb -->
+        <!-- Focus Mode Banner with Breadcrumb (execution mode only) -->
         <Transition name="slide-down">
           <div
-            v-if="isFocusMode"
+            v-if="layoutMode !== 'chat' && isFocusMode"
             class="focus-mode-banner"
             role="status"
             aria-live="polite"
@@ -896,9 +919,9 @@ onUnmounted(() => {
           </div>
         </Transition>
       
-        <!-- Panel Toggle (Compact Mode) -->
+        <!-- Panel Toggle (Compact Mode, execution mode only) -->
         <div
-          v-if="isCompactMode"
+          v-if="layoutMode !== 'chat' && isCompactMode"
           class="panel-toggle"
         >
           <button 
@@ -933,88 +956,114 @@ onUnmounted(() => {
         </Transition>
 
         <!-- Main Content -->
-        <main :class="['execution-content', { 'compact-mode': isCompactMode }]">
-          <!-- Left Panel: Execution Area -->
+        <main
+          :class="['execution-content', { 
+            'compact-mode': isCompactMode,
+            'chat-mode': layoutMode === 'chat'
+          }]"
+        >
+          <!-- Chat Mode: Only StreamingInfo (centered, single column) -->
           <div
-            class="left-panel"
-            :class="{ hidden: isCompactMode && activePanel !== 'left' }"
-            :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
+            v-if="layoutMode === 'chat'"
+            class="chat-panel"
           >
-            <!-- Collapse Toggle Button -->
-            <button
-              class="collapse-toggle"
-              :class="{ collapsed: isCollapsed }"
-              :title="isCollapsed ? '展开工作流' : '折叠工作流'"
-              :aria-label="isCollapsed ? '展开工作流图' : '折叠工作流图'"
-              :aria-expanded="!isCollapsed"
-              @click="toggleCollapse"
-            >
-              <component
-                :is="isCollapsed ? ChevronDown : ChevronUp"
-                class="w-4 h-4"
-                aria-hidden="true"
-              />
-            </button>
-
-            <!-- Top: Workflow Graph - 高度自适应，不随 streaming 区域增长 -->
-            <div 
-              class="workflow-graph-container" 
-              :class="{ collapsed: isCollapsed }"
-            >
-              <WorkflowGraph 
-                :session-id="sessionId" 
-                :mini-mode="isCollapsed || isCompactMode"
-                @node-click="handleNodeClick"
-                @node-double-click="handleNodeDoubleClick"
-              />
-            </div>
-
-            <!-- Bottom: Streaming Info - 填充剩余空间 -->
-            <div 
-              class="streaming-info-container"
-            >
-              <StreamingInfo 
-                ref="streamingInfoRef"
-                :session-id="sessionId"
-                :init-phase="initPhase"
-                :preflight-result="preflightResult"
-                :user-input="initialTask || ''"
-                :user-avatar="userInitial"
-                :is-deep-research="isDeepResearch"
-                @proceed="handleStreamingProceed"
-                @research-intervene="handleResearchIntervene"
-              />
-            </div>
-          </div>
-
-          <!-- Horizontal Divider (hidden in compact mode) -->
-          <ResizableDivider
-            v-if="!isCompactMode"
-            direction="horizontal"
-            @resize="handleHorizontalDrag"
-            @reset="resetHorizontalRatio"
-          />
-
-          <!-- Right Panel: Preview Area -->
-          <div 
-            class="right-panel" 
-            :class="{ hidden: isCompactMode && activePanel !== 'right' }"
-            :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
-          >
-            <ArtifactTabs 
-              v-model:current-tab="currentTab" 
+            <StreamingInfo 
+              ref="streamingInfoRef"
               :session-id="sessionId"
-              :task-type="taskType"
-              @tab-change="handleTabChange"
-            />
-            <PreviewArea 
-              :session-id="sessionId" 
-              :current-tab="currentTab"
-              :is-executing="isRunning"
-              :report-content="executionStore.reportContent"
-              :citations="executionStore.citations"
+              :init-phase="initPhase"
+              :preflight-result="preflightResult"
+              :user-input="initialTask || ''"
+              :user-avatar="userInitial"
+              :is-deep-research="isDeepResearch"
+              @proceed="handleStreamingProceed"
+              @research-intervene="handleResearchIntervene"
             />
           </div>
+
+          <!-- Execution Mode: Full two-column layout -->
+          <template v-else>
+            <!-- Left Panel: Execution Area -->
+            <div
+              class="left-panel"
+              :class="{ hidden: isCompactMode && activePanel !== 'left' }"
+              :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
+            >
+              <!-- Collapse Toggle Button -->
+              <button
+                class="collapse-toggle"
+                :class="{ collapsed: isCollapsed }"
+                :title="isCollapsed ? '展开工作流' : '折叠工作流'"
+                :aria-label="isCollapsed ? '展开工作流图' : '折叠工作流图'"
+                :aria-expanded="!isCollapsed"
+                @click="toggleCollapse"
+              >
+                <component
+                  :is="isCollapsed ? ChevronDown : ChevronUp"
+                  class="w-4 h-4"
+                  aria-hidden="true"
+                />
+              </button>
+
+              <!-- Top: Workflow Graph - 高度自适应，不随 streaming 区域增长 -->
+              <div 
+                class="workflow-graph-container" 
+                :class="{ collapsed: isCollapsed }"
+              >
+                <WorkflowGraph 
+                  :session-id="sessionId" 
+                  :mini-mode="isCollapsed || isCompactMode"
+                  @node-click="handleNodeClick"
+                  @node-double-click="handleNodeDoubleClick"
+                />
+              </div>
+
+              <!-- Bottom: Streaming Info - 填充剩余空间 -->
+              <div 
+                class="streaming-info-container"
+              >
+                <StreamingInfo 
+                  ref="streamingInfoRef"
+                  :session-id="sessionId"
+                  :init-phase="initPhase"
+                  :preflight-result="preflightResult"
+                  :user-input="initialTask || ''"
+                  :user-avatar="userInitial"
+                  :is-deep-research="isDeepResearch"
+                  @proceed="handleStreamingProceed"
+                  @research-intervene="handleResearchIntervene"
+                />
+              </div>
+            </div>
+
+            <!-- Horizontal Divider (hidden in compact mode) -->
+            <ResizableDivider
+              v-if="!isCompactMode"
+              direction="horizontal"
+              @resize="handleHorizontalDrag"
+              @reset="resetHorizontalRatio"
+            />
+
+            <!-- Right Panel: Preview Area -->
+            <div 
+              class="right-panel" 
+              :class="{ hidden: isCompactMode && activePanel !== 'right' }"
+              :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
+            >
+              <ArtifactTabs 
+                v-model:current-tab="currentTab" 
+                :session-id="sessionId"
+                :task-type="taskType"
+                @tab-change="handleTabChange"
+              />
+              <PreviewArea 
+                :session-id="sessionId" 
+                :current-tab="currentTab"
+                :is-executing="isRunning"
+                :report-content="executionStore.reportContent"
+                :citations="executionStore.citations"
+              />
+            </div>
+          </template>
         </main>
       
         <!-- HITL 干预弹窗 -->
@@ -1460,8 +1509,34 @@ onUnmounted(() => {
   display: flex;
   overflow: hidden;
   position: relative;
+  transition: all 300ms ease-out;
 }
 
+/* ========== Chat Mode Layout ========== */
+.execution-content.chat-mode {
+  justify-content: center;
+  align-items: stretch;
+}
+
+.chat-panel {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+}
+
+/* Chat mode responsive */
+@media (max-width: 768px) {
+  .chat-panel {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+}
+
+/* ========== Execution Mode (Two-Column) ========== */
 /* Left Panel */
 .left-panel {
   display: flex;

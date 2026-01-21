@@ -102,9 +102,10 @@ class Project(Base):
     intent: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Core: Bound context (persists across all conversations)
+    # NOTE: Using default_factory pattern to avoid mutable default bug
     context: Mapped[dict] = mapped_column(
         JSON,
-        default={
+        default=lambda: {
             "decisions": [],      # Decision history
             "failures": [],       # Failure records (Keep the Failures)
             "key_findings": [],   # Key discoveries
@@ -116,7 +117,7 @@ class Project(Base):
     # Settings
     settings: Mapped[dict] = mapped_column(
         JSON,
-        default={
+        default=lambda: {
             "llm_model": "claude-3-5-sonnet-20241022",
             "skill_id": None,
         },

@@ -63,7 +63,7 @@ class ProjectVersion(Base):
     # Snapshot content
     snapshot: Mapped[dict] = mapped_column(
         JSON,
-        default={
+        default=lambda: {
             "artifacts": [],      # List of artifact snapshots
             "context": {},        # Context state at this version
         },
