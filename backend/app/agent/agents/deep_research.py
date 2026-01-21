@@ -110,6 +110,90 @@ class DeepResearchAgent(BaseAgent):
         self._semaphore = asyncio.Semaphore(max_concurrent)  # 并发控制
         self._pending_urls: list[str] = []  # 待并发读取的 URL
         self._pending_queries: list[str] = []  # 待并发搜索的查询
+        self._user_interventions: list[dict] = []  # 用户干预指令
+        self._skip_domains: list[str] = []  # 跳过的域名
+
+    # ==================== 用户干预处理 ====================
+
+    async def check_interventions(self) -> AsyncGenerator[SSEEvent, None]:
+        """检查用户干预指令
+
+        在每次工具调用前检查是否有用户干预，并调整研究行为。
+        """
+        from ...api.v1.research import get_interventions_for_session, mark_intervention_processed
+
+        session_id = self.context.session_id
+        interventions = get_interventions_for_session(session_id)
+
+        for intervention in interventions:
+            intervention_id = intervention.get('id')
+            intervention_type = intervention.get('type')
+            content = intervention.get('content', '')
+
+            logger.info(f"Processing intervention: {intervention_type} - {content[:50]}")
+
+            # 发送干预处理事件
+            yield SSEEvent(
+                type=SSEEventType.STATUS,
+                data={'content': f'\U0001f4a1 用户干预: {content[:50]}...\n'}
+            )
+
+            # 根据干预类型调整行为
+            if intervention_type == 'add_focus':
+                # 追加关注方向：添加到知识空白中
+                if self.research_state:
+                    self.research_state.knowledge_gaps.append(content)
+                    # 添加新的搜索查询
+                    self._pending_queries.append(content)
+
+            elif intervention_type == 'skip_source':
+                # 跳过某类来源：添加到跳过列表
+                self._skip_domains.append(content.lower())
+
+            elif intervention_type == 'add_query':
+                # 追加搜索词
+                self._pending_queries.append(content)
+
+            elif intervention_type == 'change_depth':
+                # 调整研究深度
+                if self.research_state and '浅' in content or 'shallow' in content.lower():
+                    self.research_state.max_sources = max(3, self.research_state.max_sources - 3)
+                elif self.research_state and '深' in content or 'deep' in content.lower():
+                    self.research_state.max_sources = min(20, self.research_state.max_sources + 5)
+
+            elif intervention_type == 'stop_reading':
+                # 停止阅读当前来源：清空待读 URL
+                self._pending_urls.clear()
+
+            elif intervention_type == 'custom':
+                # 自定义指令：存储到上下文供 LLM 参考
+                self._user_interventions.append({
+                    'type': 'custom',
+                    'content': content,
+                    'timestamp': intervention.get('timestamp')
+                })
+
+            # 标记干预已处理
+            mark_intervention_processed(session_id, intervention_id, 'applied')
+
+    def _should_skip_url(self, url: str) -> bool:
+        """检查 URL 是否应该被跳过"""
+        url_lower = url.lower()
+        for domain in self._skip_domains:
+            if domain in url_lower:
+                return True
+        return False
+
+    def get_user_intervention_context(self) -> str:
+        """获取用户干预上下文（供 LLM 参考）"""
+        if not self._user_interventions:
+            return ""
+
+        context_parts = ["\n[User Interventions during research:"]
+        for i, intervention in enumerate(self._user_interventions, 1):
+            context_parts.append(f"{i}. {intervention['content']}")
+        context_parts.append("]\n")
+        return "\n".join(context_parts)
 
     # ==================== 覆写工具执行以发送 Timeline 事件 ====================
 
@@ -117,9 +201,22 @@ class DeepResearchAgent(BaseAgent):
         self,
         action: AgentAction
     ) -> AsyncGenerator[SSEEvent, None]:
-        """覆写 BaseAgent._execute_tool 以在工具执行后发送 Timeline 事件"""
+        """覆写 BaseAgent._execute_tool 以在工具执行前检查干预，工具执行后发送 Timeline 事件"""
+        # 工具执行前检查用户干预
+        async for event in self.check_interventions():
+            yield event
+
         tool_name = action.tool_name
         tool_args = action.tool_args or {}
+
+        # 检查是否应该跳过该 URL
+        if tool_name == 'read_url' and self._should_skip_url(tool_args.get('url', '')):
+            logger.info(f"Skipping URL due to user intervention: {tool_args.get('url', '')}")
+            yield SSEEvent(
+                type=SSEEventType.STATUS,
+                data={'content': f'\u23e9 根据用户指令跳过: {tool_args.get("url", "")[:50]}...\n'}
+            )
+            return
 
         # 调用父类的工具执行逻辑
         tool_result = None

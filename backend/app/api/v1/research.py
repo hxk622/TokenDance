@@ -134,9 +134,43 @@ class FindingsResponse(BaseModel):
     can_generate_ppt: bool
 
 
+class InterventionType(str, Enum):
+    """干预类型"""
+    ADD_FOCUS = "add_focus"        # 追加关注方向
+    SKIP_SOURCE = "skip_source"   # 跳过某类来源
+    CHANGE_DEPTH = "change_depth" # 调整研究深度
+    ADD_QUERY = "add_query"       # 追加搜索词
+    STOP_READING = "stop_reading" # 停止阅读当前来源
+    CUSTOM = "custom"             # 自定义指令
+
+
+class ResearchIntervention(BaseModel):
+    """研究干预请求"""
+    type: InterventionType = Field(..., description="干预类型")
+    content: str = Field(..., description="干预内容")
+    timestamp: str | None = Field(default=None, description="时间戳")
+
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "type": "add_focus",
+            "content": "更多关注技术实现细节",
+            "timestamp": "2024-01-15T10:30:00Z"
+        }
+    })
+
+
+class InterventionResponse(BaseModel):
+    """干预响应"""
+    session_id: str
+    intervention_id: str
+    status: str  # "queued", "processing", "applied", "rejected"
+    message: str
+
+
 # ==================== 内存存储（开发用）====================
 
 _research_tasks = {}
+_research_interventions: dict[str, list[dict]] = {}  # session_id -> interventions queue
 
 
 # ==================== API 端点 ====================
@@ -430,6 +464,94 @@ async def list_research_tasks(
         )
         for t in tasks[:limit]
     ]
+
+
+# ==================== 研究干预 API ====================
+
+@router.post("/sessions/{session_id}/intervene", response_model=InterventionResponse)
+async def intervene_research(
+    session_id: str,
+    intervention: ResearchIntervention
+):
+    """发送研究干预指令
+
+    在深度研究进行中，用户可以发送干预指令来：
+    - 追加关注方向
+    - 跳过某类来源
+    - 调整研究深度
+    - 追加搜索词
+    - 发送自定义指令
+
+    干预会被加入队列，Agent 会在下一个检查点处理。
+    """
+    from datetime import datetime
+
+    # 初始化干预队列
+    if session_id not in _research_interventions:
+        _research_interventions[session_id] = []
+
+    # 创建干预记录
+    intervention_id = f"int_{uuid.uuid4().hex[:8]}"
+    intervention_record = {
+        "id": intervention_id,
+        "type": intervention.type.value,
+        "content": intervention.content,
+        "timestamp": intervention.timestamp or datetime.now().isoformat(),
+        "status": "queued",
+    }
+
+    # 加入队列
+    _research_interventions[session_id].append(intervention_record)
+
+    logger.info(f"Research intervention queued: {session_id} - {intervention.type.value}: {intervention.content[:50]}")
+
+    return InterventionResponse(
+        session_id=session_id,
+        intervention_id=intervention_id,
+        status="queued",
+        message=f"干预指令已加入队列，将在下一个检查点处理"
+    )
+
+
+@router.get("/sessions/{session_id}/interventions")
+async def get_pending_interventions(session_id: str):
+    """获取待处理的干预指令（供 Agent 内部调用）"""
+    interventions = _research_interventions.get(session_id, [])
+    pending = [i for i in interventions if i["status"] == "queued"]
+    return {"session_id": session_id, "pending": pending}
+
+
+@router.post("/sessions/{session_id}/interventions/{intervention_id}/ack")
+async def acknowledge_intervention(
+    session_id: str,
+    intervention_id: str,
+    status: str = "applied"  # "applied" or "rejected"
+):
+    """确认干预已处理（供 Agent 内部调用）"""
+    interventions = _research_interventions.get(session_id, [])
+    for i in interventions:
+        if i["id"] == intervention_id:
+            i["status"] = status
+            logger.info(f"Intervention {intervention_id} marked as {status}")
+            return {"status": "ok", "intervention_id": intervention_id}
+
+    raise HTTPException(status_code=404, detail="Intervention not found")
+
+
+def get_interventions_for_session(session_id: str) -> list[dict]:
+    """获取 session 的待处理干预（供 DeepResearchAgent 调用）"""
+    interventions = _research_interventions.get(session_id, [])
+    return [i for i in interventions if i["status"] == "queued"]
+
+
+def mark_intervention_processed(session_id: str, intervention_id: str, status: str = "applied"):
+    """标记干预已处理（供 DeepResearchAgent 调用）"""
+    interventions = _research_interventions.get(session_id, [])
+    for i in interventions:
+        if i["id"] == intervention_id:
+            i["status"] = status
+            return True
+    return False
 
 
 # ==================== 后台任务 ====================

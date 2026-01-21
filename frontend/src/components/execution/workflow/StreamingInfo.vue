@@ -4,12 +4,13 @@ import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw } 
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { ChatInput, ChatFormMessage } from '@/components/execution/chat'
-import { ResearchProgress } from '@/components/execution/research'
+import { ResearchProgress, InterventionPanel } from '@/components/execution/research'
 import type { 
   ResearchProgress as ResearchProgressType,
   SearchQuery,
   ResearchSource,
   ResearchPhase,
+  ResearchIntervention,
 } from '@/components/execution/research/types'
 import { getCredibilityLevel } from '@/components/execution/research/types'
 import type { 
@@ -50,6 +51,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   proceed: [updatedInput?: string]
   'update-input': [input: string]
+  /** 研究干预事件 */
+  'research-intervene': [intervention: ResearchIntervention]
 }>()
 
 // Selected clarification options
@@ -90,6 +93,8 @@ watch(() => props.initPhase, () => {
 // ========================================
 const researchProgress = ref<ResearchProgressType | null>(null)
 const isResearchProgressCollapsed = ref(false)
+const isInterventionPanelCollapsed = ref(false)
+const isInterventionSending = ref(false)
 
 // Initialize research progress when in deep research mode
 function initResearchProgress() {
@@ -189,6 +194,16 @@ function updateResearchProgressState(
 // Open URL in new tab
 function openUrl(url: string) {
   window.open(url, '_blank')
+}
+
+// 研究干预处理
+function handleResearchIntervene(intervention: ResearchIntervention) {
+  emit('research-intervene', intervention)
+}
+
+// 设置干预发送状态（供父组件调用）
+function setInterventionSending(sending: boolean) {
+  isInterventionSending.value = sending
 }
 
 // ========================================
@@ -499,6 +514,8 @@ defineExpose({
   addResearchSource,
   updateResearchSource,
   updateResearchProgressState,
+  // Research intervention methods (研究干预)
+  setInterventionSending,
 })
 </script>
 
@@ -686,6 +703,16 @@ defineExpose({
         @open-url="openUrl"
       />
     </div>
+
+    <!-- Research Intervention Panel (研究干预面板) -->
+    <InterventionPanel
+      v-if="initPhase === 'executing' && isDeepResearch && researchProgress"
+      :progress="researchProgress"
+      :collapsed="isInterventionPanelCollapsed"
+      :sending="isInterventionSending"
+      @intervene="handleResearchIntervene"
+      @toggle-collapse="isInterventionPanelCollapsed = !isInterventionPanelCollapsed"
+    />
 
     <!-- Chat Messages (Dialog Style) -->
     <div

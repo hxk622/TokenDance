@@ -17,6 +17,13 @@ export type {
 } from './session'
 export { SessionStatus } from './session'
 
+// Research API
+export { researchService } from './research'
+export type {
+  InterventionResponse,
+  PendingInterventionsResponse,
+} from './research'
+
 // SSE (Server-Sent Events)
 export {
   SSEConnection,

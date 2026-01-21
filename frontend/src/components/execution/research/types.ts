@@ -150,3 +150,111 @@ export function getCredibilityLevel(score: number): CredibilityLevel {
 export function getFaviconUrl(domain: string): string {
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
 }
+
+// ========================================
+// 干预类型定义 (Intervention Types)
+// ========================================
+
+/** 干预类型 */
+export type InterventionType =
+  | 'add_focus'      // 追加关注点: "多关注企业应用案例"
+  | 'skip_source'    // 跳过来源: "不要看 medium.com"
+  | 'change_depth'   // 调整深度: "快速出结果就行"
+  | 'add_query'      // 追加关键词: "也搜一下 CrewAI"
+  | 'stop_reading'   // 停止阅读: "已经够了，开始写报告"
+  | 'custom'         // 自定义指令
+
+/** 干预指令 */
+export interface ResearchIntervention {
+  type: InterventionType
+  content: string  // 具体内容
+  timestamp?: string
+}
+
+/** 快捷干预按钮配置 */
+export interface QuickInterventionButton {
+  id: string
+  type: InterventionType
+  label: string
+  content: string
+  icon?: string
+  /** 根据研究状态动态显示 */
+  showWhen?: (progress: ResearchProgress) => boolean
+}
+
+/** 预定义的快捷干预按钮 */
+export const QUICK_INTERVENTION_BUTTONS: QuickInterventionButton[] = [
+  {
+    id: 'focus_china',
+    type: 'add_focus',
+    label: '更关注中国市场',
+    content: '请更多关注中国市场的数据和案例',
+    showWhen: (p) => p.phase === 'searching' || p.phase === 'reading',
+  },
+  {
+    id: 'less_blog',
+    type: 'skip_source',
+    label: '减少博客来源',
+    content: '请减少博客文章来源，更多使用权威资料',
+    showWhen: (p) => p.sources.filter(s => s.type === 'blog').length >= 2,
+  },
+  {
+    id: 'speed_up',
+    type: 'change_depth',
+    label: '加快速度',
+    content: '请加快研究速度，快速出结果即可',
+    showWhen: (p) => p.phase !== 'writing',
+  },
+  {
+    id: 'go_deeper',
+    type: 'change_depth',
+    label: '更深入研究',
+    content: '请更深入研究，查找更多来源',
+    showWhen: (p) => p.phase === 'searching' && p.sources.length < 5,
+  },
+  {
+    id: 'start_writing',
+    type: 'stop_reading',
+    label: '开始写报告',
+    content: '已经收集足够信息，请开始撰写报告',
+    showWhen: (p) => p.phase === 'reading' && p.sources.filter(s => s.status === 'done').length >= 5,
+  },
+]
+
+/** 干预类型配置 */
+export const INTERVENTION_TYPE_CONFIG: Record<InterventionType, {
+  label: string
+  placeholder: string
+  icon: string
+}> = {
+  add_focus: {
+    label: '追加关注点',
+    placeholder: '例如：请多关注企业应用案例',
+    icon: 'Target',
+  },
+  skip_source: {
+    label: '跳过来源',
+    placeholder: '例如：不要看 medium.com',
+    icon: 'EyeOff',
+  },
+  change_depth: {
+    label: '调整深度',
+    placeholder: '例如：快速出结果 / 更深入研究',
+    icon: 'Sliders',
+  },
+  add_query: {
+    label: '追加关键词',
+    placeholder: '例如：也搜一下 CrewAI',
+    icon: 'Search',
+  },
+  stop_reading: {
+    label: '停止阅读',
+    placeholder: '开始撰写报告',
+    icon: 'FileText',
+  },
+  custom: {
+    label: '自定义指令',
+    placeholder: '输入您的指令...',
+    icon: 'MessageSquare',
+  },
+}
