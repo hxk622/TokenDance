@@ -11,13 +11,11 @@ Diagram Generation Tool - AI 流程图/架构图生成工具
 输出格式：draw.io XML，可在前端用 viewer.diagrams.net 渲染
 """
 
-import json
 import os
 from typing import Any
 
 from ..base import BaseTool, ToolResult
 from ..risk import OperationCategory, RiskLevel
-
 
 # draw.io XML 模板示例（用于 LLM prompt）
 DRAWIO_EXAMPLES = {
@@ -225,7 +223,8 @@ class DiagramTool(BaseTool):
             )
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["message"]["content"]
+            content: str = data["choices"][0]["message"]["content"]
+            return content
 
     def _extract_xml(self, content: str) -> str:
         """从 LLM 输出中提取 XML"""

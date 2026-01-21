@@ -14,6 +14,7 @@ export { default as DynamicRenderer } from './engine/DynamicRenderer.vue'
 
 // Charts
 export { default as KLineChart } from './charts/KLineChart.vue'
+export { default as DrawioViewer } from './charts/DrawioViewer.vue'
 
 // Widgets
 export { default as MetricCard } from './widgets/MetricCard.vue'
@@ -28,6 +29,7 @@ export { default as ScrollyProgress } from './scrolly/ScrollyProgress.vue'
 // Component Registration Helper
 import { registerComponent } from './engine/ComponentRegistry'
 import KLineChart from './charts/KLineChart.vue'
+import DrawioViewer from './charts/DrawioViewer.vue'
 import MetricCard from './widgets/MetricCard.vue'
 import ValuationTable from './widgets/ValuationTable.vue'
 import SourceCitation from './widgets/SourceCitation.vue'
@@ -42,7 +44,12 @@ export function registerBuiltInComponents(): void {
     description: '专业K线图表' 
   })
   
-  registerComponent('MetricCard', MetricCard, { 
+  registerComponent('DrawioViewer', DrawioViewer, { 
+    category: 'chart', 
+    description: 'draw.io 图表查看器 - 流程图/架构图' 
+  })
+  
+  registerComponent('MetricCard', MetricCard, {
     category: 'widget', 
     description: '指标卡片' 
   })

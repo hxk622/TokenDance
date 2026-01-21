@@ -56,7 +56,7 @@ class BaseTool(ABC):
     operation_categories: list[OperationCategory] = []  # 操作类别
     requires_confirmation: bool = False  # 向后兼容：强制需要确认
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not self.name:
             raise ValueError(f"{self.__class__.__name__} must define 'name'")
         if not self.description:
