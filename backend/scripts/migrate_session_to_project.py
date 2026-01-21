@@ -19,24 +19,22 @@ import asyncio
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from contextlib import asynccontextmanager
 
-from sqlalchemy import select, func, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import async_session_maker
-from app.models.session import Session, SessionStatus
-from app.models.project import Project, ProjectType, ProjectStatus
-from app.models.conversation import Conversation, ConversationStatus, ConversationPurpose
-from app.models.message import Message
 from app.models.artifact import Artifact
-
+from app.models.conversation import Conversation, ConversationPurpose, ConversationStatus
+from app.models.message import Message
+from app.models.project import Project, ProjectStatus, ProjectType
+from app.models.session import Session, SessionStatus
 
 # Mapping from SessionStatus to ProjectStatus
 STATUS_MAP = {
@@ -52,7 +50,7 @@ STATUS_MAP = {
 
 class MigrationStats:
     """Track migration statistics."""
-    
+
     def __init__(self):
         self.total_sessions = 0
         self.migrated_sessions = 0
@@ -61,7 +59,7 @@ class MigrationStats:
         self.total_messages = 0
         self.total_artifacts = 0
         self.errors: list[str] = []
-        
+
     def report(self) -> str:
         return f"""
 Migration Statistics:
@@ -122,10 +120,9 @@ async def migrate_session(
     session: Session,
     stats: MigrationStats,
     dry_run: bool = False
-) -> Optional[str]:
-    """
-    Migrate a single session to Project-First architecture.
-    
+) -> str | None:
+    """Migrate a single session to Project-First architecture.
+
     Returns the new project ID if successful, None otherwise.
     """
     try:
@@ -133,10 +130,10 @@ async def migrate_session(
         if await check_already_migrated(db, session.id):
             stats.skipped_sessions += 1
             return None
-        
+
         # Infer project type from session data
         project_type = infer_project_type(session)
-        
+
         # Create Project
         project = Project(
             workspace_id=session.workspace_id,
@@ -162,22 +159,22 @@ async def migrate_session(
             updated_at=session.updated_at,
             last_accessed_at=session.updated_at,
         )
-        
+
         if not dry_run:
             db.add(project)
             await db.flush()  # Get project.id
-        
+
         # Create Conversation
         conversation = Conversation(
             project_id=project.id if not dry_run else "dry-run-id",
             title=session.title or "Initial conversation",
             purpose=ConversationPurpose.GENERAL,
-            status=(ConversationStatus.COMPLETED 
+            status=(ConversationStatus.COMPLETED
                     if session.status in (SessionStatus.COMPLETED, SessionStatus.ARCHIVED)
                     else ConversationStatus.ACTIVE),
             selection_context=None,
             tokens_used=session.total_tokens_used,
-            message_count=len(session.messages) if session.messages else 0,
+            # Note: message_count is a calculated @property, not stored
             created_at=session.created_at,
             updated_at=session.updated_at,
             completed_at=session.completed_at,
@@ -186,11 +183,11 @@ async def migrate_session(
                 "migration_timestamp": datetime.utcnow().isoformat(),
             },
         )
-        
+
         if not dry_run:
             db.add(conversation)
             await db.flush()  # Get conversation.id
-        
+
         # Update Messages to link to Conversation
         if session.messages and not dry_run:
             message_count = len(session.messages)
@@ -200,7 +197,7 @@ async def migrate_session(
                 .values(conversation_id=conversation.id)
             )
             stats.total_messages += message_count
-        
+
         # Update Artifacts to link to Project
         if session.artifacts and not dry_run:
             artifact_count = len(session.artifacts)
@@ -210,10 +207,10 @@ async def migrate_session(
                 .values(project_id=project.id)
             )
             stats.total_artifacts += artifact_count
-        
+
         stats.migrated_sessions += 1
         return project.id if not dry_run else "dry-run-id"
-        
+
     except Exception as e:
         stats.failed_sessions += 1
         stats.errors.append(f"Session {session.id}: {str(e)}")
@@ -224,7 +221,7 @@ def infer_project_type(session: Session) -> ProjectType:
     """Infer project type from session metadata."""
     skill_id = session.skill_id or ""
     title = (session.title or "").lower()
-    
+
     # Check skill ID
     if "research" in skill_id or "deep_research" in skill_id:
         return ProjectType.RESEARCH
@@ -236,7 +233,7 @@ def infer_project_type(session: Session) -> ProjectType:
         return ProjectType.DATA_ANALYSIS
     if "doc" in skill_id or "document" in skill_id:
         return ProjectType.DOCUMENT
-    
+
     # Check title keywords
     if any(kw in title for kw in ["research", "调研", "分析"]):
         return ProjectType.RESEARCH
@@ -244,7 +241,7 @@ def infer_project_type(session: Session) -> ProjectType:
         return ProjectType.SLIDES
     if any(kw in title for kw in ["code", "代码", "编程"]):
         return ProjectType.CODE
-    
+
     # Default to quick task
     return ProjectType.QUICK_TASK
 
@@ -257,7 +254,7 @@ def extract_intent(session: Session) -> str:
             if msg.role.value == "user" and msg.content:
                 # Use first user message as intent
                 return msg.content[:500]  # Truncate if too long
-    
+
     # Fallback to title
     return session.title or "No intent recorded"
 
@@ -265,10 +262,10 @@ def extract_intent(session: Session) -> str:
 def extract_failures(session: Session) -> list[dict]:
     """Extract failures from session messages (tool call errors)."""
     failures = []
-    
+
     if not session.messages:
         return failures
-    
+
     for msg in session.messages:
         if msg.tool_calls:
             for tc in msg.tool_calls:
@@ -279,7 +276,7 @@ def extract_failures(session: Session) -> list[dict]:
                         "learning": None,
                         "timestamp": msg.created_at.isoformat() if msg.created_at else datetime.utcnow().isoformat(),
                     })
-    
+
     return failures[:10]  # Limit to 10 most recent failures
 
 
@@ -300,32 +297,32 @@ async def run_migration(
 ) -> MigrationStats:
     """Run the full migration process."""
     stats = MigrationStats()
-    
+
     async with get_session() as db:
         # Get total count
         stats.total_sessions = await get_session_count(db)
         print(f"Found {stats.total_sessions} sessions to migrate")
-        
+
         if stats.total_sessions == 0:
             print("No sessions to migrate.")
             return stats
-        
+
         # Process in batches
         offset = 0
         while offset < stats.total_sessions:
             print(f"Processing batch {offset // batch_size + 1} "
                   f"(sessions {offset + 1} to {min(offset + batch_size, stats.total_sessions)})")
-            
+
             sessions = await get_sessions_batch(db, offset, batch_size)
-            
+
             for session in sessions:
                 await migrate_session(db, session, stats, dry_run)
-            
+
             if not dry_run:
                 await db.commit()
-            
+
             offset += batch_size
-        
+
     return stats
 
 
@@ -345,27 +342,27 @@ def main():
         help="Number of sessions to process at a time"
     )
     args = parser.parse_args()
-    
+
     print("=" * 60)
     print("Session to Project Migration")
     print("=" * 60)
     print(f"Mode: {'DRY RUN' if args.dry_run else 'LIVE MIGRATION'}")
     print(f"Batch size: {args.batch_size}")
     print()
-    
+
     if not args.dry_run:
         confirm = input("This will modify the database. Continue? [y/N] ")
         if confirm.lower() != "y":
             print("Aborted.")
             return
-    
+
     stats = asyncio.run(run_migration(
         dry_run=args.dry_run,
         batch_size=args.batch_size
     ))
-    
+
     print(stats.report())
-    
+
     if args.dry_run:
         print("\nThis was a DRY RUN. No changes were made.")
     else:
