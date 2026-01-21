@@ -407,7 +407,7 @@ Follow presentation best practices."""
             self.ppt_state = PPTState()
 
         # 获取工具
-        tool_definitions = self.tools.get_llm_tool_definitions()
+        tool_definitions = self.tools.to_llm_format()
 
         if not tool_definitions:
             logger.warning("No tools available")

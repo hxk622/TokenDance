@@ -25,6 +25,7 @@ from app.agent.failure import FailureObserver, FailureSignal
 from app.agent.llm.base import BaseLLM, LLMMessage
 from app.agent.planning.task import Task
 from app.agent.types import SSEEvent, SSEEventType
+from app.agent.validator import TaskValidator, ValidationLevel, ValidationResult
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -65,6 +66,8 @@ class TaskExecutorConfig:
     max_retries_per_tool: int = 3  # 单个工具最大重试次数
     enable_tool_calls: bool = True  # 是否启用工具调用
     stream_events: bool = True  # 是否流式输出事件
+    enable_validation: bool = True  # 是否启用任务验证
+    max_validation_retries: int = 1  # 验证失败后最大重试次数
 
 
 # ========== Prompts ==========
@@ -190,10 +193,14 @@ class TaskExecutor:
         self.failure_observer = failure_observer or FailureObserver()
         self.config = config or TaskExecutorConfig()
 
+        # 初始化验证器
+        self.validator = TaskValidator(llm)
+
         # 执行状态
         self._current_task: Task | None = None
         self._iteration_count: int = 0
         self._tool_calls_count: int = 0
+        self._validation_retries: int = 0
         self._start_time: float = 0
 
     # ========== 同步执行 ==========
@@ -294,6 +301,19 @@ class TaskExecutor:
                 if self._is_task_complete(response.content):
                     output = self._extract_completion(response.content)
                     logger.info(f"Task completed: {task.title}")
+
+                    # ========== 执行验证 ==========
+                    if self.config.enable_validation:
+                        async for event in self._validate_and_maybe_retry(
+                            task, output, context
+                        ):
+                            if event.type == SSEEventType.DONE:
+                                yield event
+                                return
+                            yield event
+                        # 如果验证流程没有 yield DONE，继续执行循环进行重试
+                        continue
+
                     yield self._make_done_event("success", output=output)
                     return
 
@@ -368,6 +388,116 @@ class TaskExecutor:
             self._current_task = None
 
     # ========== 辅助方法 ==========
+
+    async def _validate_and_maybe_retry(
+        self,
+        task: Task,
+        output: str,
+        context: ExecutionContext,
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        验证任务结果，失败时触发重试
+
+        Yields:
+            SSEEvent: 验证事件，如果验证通过或达到最大重试次数，yield DONE 事件
+        """
+        # 解析验证级别
+        try:
+            level = ValidationLevel(task.validation_level)
+        except ValueError:
+            level = ValidationLevel.LIGHT
+
+        # Level NONE/QUICK 跳过 LLM 验证
+        if level in (ValidationLevel.NONE, ValidationLevel.QUICK):
+            logger.debug(f"Skipping validation for task: {task.title} (level={level})")
+            yield self._make_done_event("success", output=output)
+            return
+
+        # 发送验证开始事件
+        yield SSEEvent(
+            type=SSEEventType.VALIDATION_START,
+            data={
+                "task_id": task.id,
+                "level": level.value,
+            }
+        )
+
+        # 执行验证
+        result = await self.validator.validate(
+            task_title=task.title,
+            task_description=task.description,
+            acceptance_criteria=task.acceptance_criteria or "Complete the task as described",
+            output=output,
+            level=level,
+        )
+
+        # 发送验证结果事件
+        yield SSEEvent(
+            type=SSEEventType.VALIDATION_RESULT,
+            data={
+                "task_id": task.id,
+                "passed": result.passed,
+                "confidence": result.confidence,
+                "reason": result.reason,
+                "issues": result.issues,
+            }
+        )
+
+        if result.passed:
+            logger.info(f"Task validation passed: {task.title}")
+            yield self._make_done_event("success", output=output)
+            return
+
+        # 验证失败
+        logger.warning(f"Task validation failed: {task.title} - {result.issues}")
+
+        # 检查是否还有重试次数
+        if self._validation_retries >= self.config.max_validation_retries:
+            logger.error(f"Task validation failed after {self._validation_retries} retries")
+            yield self._make_done_event(
+                "failed",
+                output=output,
+                error=f"Validation failed: {', '.join(result.issues)}"
+            )
+            return
+
+        # 触发重试
+        self._validation_retries += 1
+        yield SSEEvent(
+            type=SSEEventType.VALIDATION_RETRY,
+            data={
+                "task_id": task.id,
+                "retry_count": self._validation_retries,
+                "max_retries": self.config.max_validation_retries,
+                "issues": result.issues,
+            }
+        )
+
+        # 将验证反馈注入上下文，让 LLM 重新执行
+        feedback = self._format_validation_feedback(result)
+        context.add_user_message(feedback)
+        # 不 yield DONE，让外层循环继续执行
+
+    def _format_validation_feedback(self, result: ValidationResult) -> str:
+        """格式化验证反馈"""
+        lines = [
+            "## Validation Failed",
+            "",
+            "Your previous output did not pass validation. Please address the following issues:",
+            "",
+        ]
+
+        for i, issue in enumerate(result.issues, 1):
+            lines.append(f"{i}. {issue}")
+
+        if result.reason:
+            lines.append("")
+            lines.append(f"**Reason:** {result.reason}")
+
+        lines.append("")
+        lines.append("Please revise your approach and try again.")
+
+        return "\n".join(lines)
 
     def _is_task_complete(self, response: str) -> bool:
         """检查任务是否完成"""

@@ -79,7 +79,7 @@ Be concise in your thinking."""
         logger.debug("ResearchAgent making decision...")
 
         # 获取可用工具列表
-        tool_definitions = self.tools.get_llm_tool_definitions()
+        tool_definitions = self.tools.to_llm_format()
 
         if not tool_definitions:
             # 没有工具，直接回答

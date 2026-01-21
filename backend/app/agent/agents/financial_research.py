@@ -431,7 +431,7 @@ IMPORTANT: Include the compliance disclaimer at the end."""
             logger.info(f"Financial research initialized for topic: {topic}")
 
         # 获取可用工具
-        tool_definitions = self.tools.get_llm_tool_definitions()
+        tool_definitions = self.tools.to_llm_format()
 
         if not tool_definitions:
             logger.warning("No tools available, generating report directly")

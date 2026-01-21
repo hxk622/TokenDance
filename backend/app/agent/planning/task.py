@@ -10,7 +10,10 @@ Task 数据结构 - Planning Layer 核心数据模型
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    pass
 
 
 class TaskStatus(str, Enum):
@@ -61,6 +64,10 @@ class Task:
 
     # 是否可选 (失败时可跳过)
     is_optional: bool = False
+
+    # 验证级别: none/quick/light/adversarial
+    # 金融等严谨场景使用 adversarial
+    validation_level: str = "light"
 
     def can_start(self, completed_task_ids: set[str]) -> bool:
         """检查任务是否可以开始执行"""
