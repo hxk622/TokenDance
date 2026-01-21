@@ -17,7 +17,6 @@ from app.schemas.reasoning_trace import (
     ReasoningAlternative,
     ReasoningEvidence,
     ReasoningTrace,
-    ReasoningTraceCreate,
     ReasoningTraceFeedback,
     ResearchPhase,
 )
@@ -27,16 +26,16 @@ logger = logging.getLogger(__name__)
 
 class ReasoningTraceService:
     """推理轨迹服务
-    
+
     负责记录、存储和检索 AI 的推理过程。
     支持流式推送和用户反馈收集。
     """
-    
+
     def __init__(self, session_id: str):
         self.session_id = session_id
         self._traces: list[ReasoningTrace] = []
         self._feedback: dict[str, ReasoningTraceFeedback] = {}
-    
+
     def record_decision(
         self,
         phase: ResearchPhase,
@@ -48,7 +47,7 @@ class ReasoningTraceService:
         metadata: dict | None = None,
     ) -> ReasoningTrace:
         """记录一个决策点
-        
+
         Args:
             phase: 当前研究阶段
             action: 决策动作类型
@@ -57,12 +56,12 @@ class ReasoningTraceService:
             alternatives: 被放弃的备选方案列表
             evidence: 支撑决策的证据列表
             metadata: 额外元数据
-            
+
         Returns:
             创建的 ReasoningTrace 对象
         """
         trace_id = str(uuid.uuid4())[:8]
-        
+
         # 转换备选方案
         alt_list = []
         if alternatives:
@@ -71,7 +70,7 @@ class ReasoningTraceService:
                     description=alt.get("description", ""),
                     reason_rejected=alt.get("reason_rejected", alt.get("reason", ""))
                 ))
-        
+
         # 转换证据
         ev_list = []
         if evidence:
@@ -81,7 +80,7 @@ class ReasoningTraceService:
                     content=ev.get("content", ""),
                     relevance=ev.get("relevance", 0.8)
                 ))
-        
+
         trace = ReasoningTrace(
             id=trace_id,
             timestamp=datetime.now(),
@@ -93,12 +92,12 @@ class ReasoningTraceService:
             evidence=ev_list,
             metadata=metadata or {}
         )
-        
+
         self._traces.append(trace)
         logger.info(f"[ReasoningTrace] {phase.value}/{action.value}: {reasoning[:50]}...")
-        
+
         return trace
-    
+
     def record_query_expansion(
         self,
         original_query: str,
@@ -107,7 +106,7 @@ class ReasoningTraceService:
         confidence: float = 0.85
     ) -> ReasoningTrace:
         """记录查询扩展决策
-        
+
         便捷方法，专门用于记录搜索词扩展的决策。
         """
         return self.record_decision(
@@ -120,7 +119,7 @@ class ReasoningTraceService:
                 "expanded_queries": expanded_queries
             }
         )
-    
+
     def record_source_selection(
         self,
         selected_url: str,
@@ -129,7 +128,7 @@ class ReasoningTraceService:
         confidence: float = 0.8
     ) -> ReasoningTrace:
         """记录来源选择决策
-        
+
         Args:
             selected_url: 选中的来源 URL
             selected_reason: 选择原因
@@ -142,7 +141,7 @@ class ReasoningTraceService:
                     "description": src.get("url", ""),
                     "reason_rejected": src.get("reason", "内容不相关")
                 })
-        
+
         return self.record_decision(
             phase=ResearchPhase.READING,
             action=ReasoningAction.SELECT_SOURCE,
@@ -155,7 +154,7 @@ class ReasoningTraceService:
                 "relevance": 0.9
             }]
         )
-    
+
     def record_contradiction_detection(
         self,
         claim: str,
@@ -163,7 +162,7 @@ class ReasoningTraceService:
         confidence: float = 0.7
     ) -> ReasoningTrace:
         """记录矛盾检测决策
-        
+
         Args:
             claim: 存在矛盾的声明
             conflicting_sources: 冲突的来源列表 [{"source": ..., "value": ...}]
@@ -175,7 +174,7 @@ class ReasoningTraceService:
                 "content": f"声称: {src.get('value', '')}",
                 "relevance": 0.9
             })
-        
+
         return self.record_decision(
             phase=ResearchPhase.VERIFYING,
             action=ReasoningAction.DETECT_CONTRADICTION,
@@ -184,7 +183,7 @@ class ReasoningTraceService:
             evidence=evidence,
             metadata={"claim": claim, "sources_count": len(conflicting_sources)}
         )
-    
+
     def record_depth_adjustment(
         self,
         new_depth: str,
@@ -199,7 +198,7 @@ class ReasoningTraceService:
             confidence=confidence,
             metadata={"new_depth": new_depth}
         )
-    
+
     def to_sse_event(self, trace: ReasoningTrace) -> SSEEvent:
         """将推理轨迹转换为 SSE 事件"""
         return SSEEvent(
@@ -222,7 +221,7 @@ class ReasoningTraceService:
                 "metadata": trace.metadata
             }
         )
-    
+
     async def stream_decision(
         self,
         phase: ResearchPhase,
@@ -231,42 +230,42 @@ class ReasoningTraceService:
         **kwargs
     ) -> AsyncGenerator[SSEEvent, None]:
         """记录决策并立即流式推送
-        
+
         用于在研究过程中实时向前端推送推理信息。
         """
         trace = self.record_decision(phase, action, reasoning, **kwargs)
         yield self.to_sse_event(trace)
-    
+
     def add_feedback(self, feedback: ReasoningTraceFeedback) -> bool:
         """添加用户对某条推理的反馈
-        
+
         用于收集用户反馈以改进 AI 决策。
         """
         if not any(t.id == feedback.trace_id for t in self._traces):
             return False
-        
+
         self._feedback[feedback.trace_id] = feedback
         logger.info(
             f"[ReasoningTrace] Feedback received: {feedback.trace_id} "
             f"= {feedback.feedback}"
         )
         return True
-    
+
     def get_all_traces(self) -> list[ReasoningTrace]:
         """获取所有推理轨迹"""
         return self._traces
-    
+
     def get_recent_traces(self, limit: int = 5) -> list[ReasoningTrace]:
         """获取最近的推理轨迹"""
         return self._traces[-limit:] if self._traces else []
-    
+
     def get_trace_by_id(self, trace_id: str) -> ReasoningTrace | None:
         """根据 ID 获取推理轨迹"""
         for trace in self._traces:
             if trace.id == trace_id:
                 return trace
         return None
-    
+
     def clear(self):
         """清空所有轨迹 (用于新研究会话)"""
         self._traces = []

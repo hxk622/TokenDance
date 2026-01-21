@@ -15,22 +15,22 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.reasoning_trace import (
-    ReasoningTrace,
-    ReasoningTraceFeedback,
-    ReasoningTraceList,
-)
 from app.schemas.interactive_report import (
+    QUICK_ACTIONS,
     InteractiveReport,
     QuickAction,
-    QUICK_ACTIONS,
     ReportSection,
     RevisionRequest,
     RevisionResult,
     RevisionType,
     SectionType,
 )
-from app.services.preference_learner import PreferenceLearner, get_preference_learner
+from app.schemas.reasoning_trace import (
+    ReasoningTrace,
+    ReasoningTraceFeedback,
+    ReasoningTraceList,
+)
+from app.services.preference_learner import get_preference_learner
 from app.services.reasoning_trace import get_reasoning_service
 from app.services.report_iterator import get_report_iterator
 
@@ -112,7 +112,7 @@ async def get_reasoning_traces(
     """获取指定会话的 AI 推理轨迹列表"""
     service = get_reasoning_service(session_id)
     traces = service.get_recent_traces(limit)
-    
+
     return ReasoningTraceList(
         traces=traces,
         total=len(service.get_all_traces()),
@@ -132,10 +132,10 @@ async def get_reasoning_trace_detail(
     """获取指定推理轨迹的详细信息"""
     service = get_reasoning_service(session_id)
     trace = service.get_trace_by_id(trace_id)
-    
+
     if not trace:
         raise HTTPException(status_code=404, detail="Reasoning trace not found")
-    
+
     return trace
 
 
@@ -150,10 +150,10 @@ async def submit_reasoning_feedback(
     """用户对某条推理的反馈 (点赞/点踩)"""
     service = get_reasoning_service(session_id)
     success = service.add_feedback(feedback)
-    
+
     if not success:
         raise HTTPException(status_code=404, detail="Reasoning trace not found")
-    
+
     return {"status": "ok", "message": "Feedback recorded"}
 
 
@@ -171,7 +171,7 @@ async def get_user_preferences(
     """获取用户的研究偏好设置"""
     learner = await get_preference_learner(db, user_id)
     preference = await learner.get_or_create_preference()
-    
+
     return PreferenceResponse(**preference.to_dict())
 
 
@@ -187,13 +187,13 @@ async def update_user_preferences(
 ):
     """更新用户的研究偏好设置"""
     learner = await get_preference_learner(db, user_id)
-    
+
     # 过滤掉 None 值
     update_dict = {k: v for k, v in updates.model_dump().items() if v is not None}
-    
+
     if not update_dict:
         raise HTTPException(status_code=400, detail="No valid updates provided")
-    
+
     preference = await learner.update_explicit_preference(update_dict)
     return PreferenceResponse(**preference.to_dict())
 
@@ -210,7 +210,7 @@ async def learn_from_interaction(
     """记录用户交互事件，用于隐式学习偏好"""
     learner = await get_preference_learner(db, user_id)
     await learner.learn_from_interaction(event.event_type, event.context)
-    
+
     return {"status": "ok", "message": "Interaction recorded for learning"}
 
 
@@ -226,7 +226,7 @@ async def get_research_config(
     """获取基于用户偏好的研究配置参数"""
     learner = await get_preference_learner(db, user_id)
     config = await learner.get_research_config()
-    
+
     return ResearchConfigResponse(**config)
 
 
@@ -242,12 +242,12 @@ async def add_trusted_domain(
     """添加域名到信任列表"""
     learner = await get_preference_learner(db, user_id)
     preference = await learner.get_or_create_preference()
-    
+
     trusted = list(preference.trusted_domains or [])
     if domain not in trusted:
         trusted.append(domain)
         await learner.update_explicit_preference({"trusted_domains": trusted})
-    
+
     return {"status": "ok", "trusted_domains": trusted}
 
 
@@ -263,7 +263,7 @@ async def add_blocked_domain(
     """添加域名到屏蔽列表"""
     learner = await get_preference_learner(db, user_id)
     await learner.learn_from_interaction("block_domain", {"domain": domain})
-    
+
     preference = await learner.get_or_create_preference()
     return {"status": "ok", "blocked_domains": preference.blocked_domains}
 
@@ -280,12 +280,12 @@ async def remove_trusted_domain(
     """从信任列表移除域名"""
     learner = await get_preference_learner(db, user_id)
     preference = await learner.get_or_create_preference()
-    
+
     trusted = list(preference.trusted_domains or [])
     if domain in trusted:
         trusted.remove(domain)
         await learner.update_explicit_preference({"trusted_domains": trusted})
-    
+
     return {"status": "ok", "trusted_domains": trusted}
 
 
@@ -301,12 +301,12 @@ async def remove_blocked_domain(
     """从屏蔽列表移除域名"""
     learner = await get_preference_learner(db, user_id)
     preference = await learner.get_or_create_preference()
-    
+
     blocked = list(preference.blocked_domains or [])
     if domain in blocked:
         blocked.remove(domain)
         await learner.update_explicit_preference({"blocked_domains": blocked})
-    
+
     return {"status": "ok", "blocked_domains": blocked}
 
 
@@ -351,7 +351,7 @@ async def get_quick_actions():
 async def create_report(request: CreateReportRequest):
     """创建新的可交互报告"""
     iterator = get_report_iterator()
-    
+
     sections = []
     for idx, s in enumerate(request.sections):
         section = ReportSection(
@@ -362,14 +362,14 @@ async def create_report(request: CreateReportRequest):
             sources=s.get("sources", []),
         )
         sections.append(section)
-    
+
     report = iterator.create_report(
         session_id=request.session_id,
         title=request.title,
         query=request.query,
         sections=sections,
     )
-    
+
     return report
 
 
@@ -382,10 +382,10 @@ async def get_report(report_id: str):
     """获取指定报告"""
     iterator = get_report_iterator()
     report = iterator.get_report(report_id)
-    
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
-    
+
     return report
 
 
@@ -398,10 +398,10 @@ async def get_report_sections(report_id: str):
     """获取报告当前版本的所有章节"""
     iterator = get_report_iterator()
     sections = iterator.get_current_sections(report_id)
-    
+
     if not sections:
         raise HTTPException(status_code=404, detail="Report not found or has no sections")
-    
+
     return sections
 
 
@@ -413,7 +413,7 @@ async def get_report_sections(report_id: str):
 async def revise_section(report_id: str, request: ReviseRequest):
     """修订报告的单个章节"""
     iterator = get_report_iterator()
-    
+
     try:
         revision = RevisionRequest(
             section_id=request.section_id,
@@ -423,7 +423,7 @@ async def revise_section(report_id: str, request: ReviseRequest):
         result = await iterator.revise_section(report_id, revision)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from None
 
 
 @router.post(
@@ -434,7 +434,7 @@ async def revise_section(report_id: str, request: ReviseRequest):
 async def apply_revisions(report_id: str, request: ApplyRevisionsRequest):
     """应用修订结果，创建报告新版本"""
     iterator = get_report_iterator()
-    
+
     try:
         results = []
         for r in request.revisions:
@@ -447,13 +447,13 @@ async def apply_revisions(report_id: str, request: ApplyRevisionsRequest):
                 new_sources=r.get("new_sources", []),
             )
             results.append(result)
-        
+
         report = await iterator.apply_revisions(
             report_id, results, request.user_note
         )
         return report
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from None
 
 
 @router.post(
@@ -464,12 +464,12 @@ async def apply_revisions(report_id: str, request: ApplyRevisionsRequest):
 async def rollback_report(report_id: str, version: int):
     """回滚报告到指定版本"""
     iterator = get_report_iterator()
-    
+
     try:
         report = iterator.rollback_version(report_id, version)
         return report
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from None
 
 
 @router.get(
@@ -483,9 +483,9 @@ async def get_version_diff(
 ):
     """获取两个版本之间的差异"""
     iterator = get_report_iterator()
-    
+
     try:
         diff = iterator.get_version_diff(report_id, version_a, version_b)
         return diff
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from None
