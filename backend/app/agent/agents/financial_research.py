@@ -730,6 +730,28 @@ Use markdown formatting. Every factual claim MUST have a citation."""
         if "Disclaimer" not in report and "免责声明" not in report:
             report += self._get_disclaimer()
 
+        # 质量校验（轻量版本）
+        try:
+            from app.agent.quality.output_checker import OutputQualityChecker
+
+            checker = OutputQualityChecker()
+            qr = checker.check(
+                report=report,
+                symbol=self.financial_state.symbol if self.financial_state else None,
+                topic=self.financial_state.topic if self.financial_state else None,
+            )
+
+            # 将质检结果追加到报告末尾（仅当未通过或分数较低）
+            if not qr.passed or qr.score < 80:
+                report += "\n\n---\n\n## Validation Report\n"
+                report += f"Quality Score: {qr.score:.1f}/100\n\n"
+                if qr.issues:
+                    report += "### Issues\n"
+                    for i in qr.issues:
+                        report += f"- [{i.severity}] {i.code}: {i.message}\n"
+        except Exception as e:
+            logger.debug(f"Output quality check skipped: {e}")
+
         # 记录到 findings.md
         try:
             await self.memory.write_findings(

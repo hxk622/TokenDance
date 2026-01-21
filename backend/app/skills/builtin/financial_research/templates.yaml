@@ -1,0 +1,59 @@
+templates:
+  - id: fin_research_stock
+    name: 个股研究（标准版）
+    description: 针对单一股票的完整投研流程（财务+估值+情绪+风险）
+    icon: "banknotes"
+    category: research
+    tags: [finance, stock, research]
+    prompt_template: |
+      研究对象：{symbol}
+      市场：{market}
+      重点关注：{focus}
+
+      目标：生成带引用与免责声明的金融研究报告。
+    variables:
+      - name: symbol
+        label: 股票代码
+        type: text
+        required: true
+        placeholder: "例如：AAPL / 600519"
+      - name: market
+        label: 市场
+        type: select
+        required: false
+        options:
+          - { label: 自动, value: "auto" }
+          - { label: 美股, value: "us" }
+          - { label: A股, value: "cn" }
+          - { label: 港股, value: "hk" }
+        default: "auto"
+      - name: focus
+        label: 关注点
+        type: textarea
+        required: false
+        placeholder: "例如：估值是否高估、现金流质量、行业对比"
+    example_input: "600519"
+
+  - id: fin_research_industry
+    name: 行业研究（概览）
+    description: 行业规模、主要玩家、估值区间与关键风险
+    icon: "building-office"
+    category: research
+    tags: [finance, industry]
+    prompt_template: |
+      研究行业：{industry}
+      关注点：{focus}
+
+      目标：输出带引用的行业研究报告（包含估值区间与风险）。
+    variables:
+      - name: industry
+        label: 行业名称
+        type: text
+        required: true
+        placeholder: "例如：白酒、半导体、SaaS"
+      - name: focus
+        label: 关注点
+        type: textarea
+        required: false
+        placeholder: "例如：龙头公司对比、估值方法、政策影响"
+    example_input: "白酒行业"
