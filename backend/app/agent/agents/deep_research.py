@@ -23,7 +23,7 @@ from enum import Enum
 from typing import Any
 
 from ..base import BaseAgent
-from ..types import ActionType, AgentAction, SSEEvent, SSEEventType
+from ..types import ActionType, AgentAction, Citation, CitationSource, SSEEvent, SSEEventType
 
 logger = logging.getLogger(__name__)
 
@@ -768,10 +768,13 @@ Every factual claim MUST have a citation."""
         report = response.content.strip()
 
         # 添加引用部分
+        citations: list[Citation] = []
         if self.research_state and self.research_state.sources_collected:
             report += "\n\n---\n\n## References\n\n"
             for i, source in enumerate(self.research_state.sources_collected, 1):
                 report += source.to_citation(i) + "\n"
+                # 构建 Citation 对象
+                citations.append(self._build_citation(i, source))
 
         # 记录到 findings.md
         await self.memory.write_findings(
@@ -783,8 +786,62 @@ Every factual claim MUST have a citation."""
 
         return AgentAction(
             type=ActionType.ANSWER,
-            answer=report
+            answer=report,
+            data={
+                "report_type": "research",
+                "citations": [c.to_dict() for c in citations],
+            }
         )
+
+    def _build_citation(self, index: int, source: ResearchSource) -> Citation:
+        """从 ResearchSource 构建 Citation"""
+        # 将 SourceCredibility 转换为数值
+        credibility_map = {
+            SourceCredibility.AUTHORITATIVE: 95,
+            SourceCredibility.RELIABLE: 75,
+            SourceCredibility.MODERATE: 50,
+            SourceCredibility.QUESTIONABLE: 30,
+            SourceCredibility.UNRELIABLE: 10,
+        }
+        credibility_score = credibility_map.get(source.credibility, 50)
+
+        # 提取域名
+        from urllib.parse import urlparse
+        domain = urlparse(source.url).netloc or source.url[:50]
+
+        citation_source = CitationSource(
+            url=source.url,
+            title=source.title,
+            domain=domain,
+            publish_date=source.timestamp.strftime("%Y-%m-%d") if source.timestamp else None,
+            credibility=credibility_score,
+            source_type=self._infer_source_type(source.url, source.credibility),
+        )
+
+        return Citation(
+            id=index,
+            source=citation_source,
+            excerpt=source.snippet[:300] if source.snippet else "",
+            excerpt_context=source.content[:500] if source.content else "",
+            claim_text="",  # 可后续从报告中提取
+        )
+
+    def _infer_source_type(self, url: str, credibility: SourceCredibility) -> str:
+        """推断来源类型"""
+        url_lower = url.lower()
+
+        if "arxiv.org" in url_lower or ".edu" in url_lower or "ieee.org" in url_lower:
+            return "academic"
+        if "gartner.com" in url_lower or "mckinsey.com" in url_lower or "report" in url_lower:
+            return "report"
+        if any(site in url_lower for site in ["nytimes", "bbc", "reuters", "techcrunch", "wired"]):
+            return "news"
+        if any(site in url_lower for site in ["medium.com", "dev.to", "blog"]):
+            return "blog"
+        if ".gov" in url_lower or "docs." in url_lower or "developer." in url_lower:
+            return "official"
+
+        return "unknown"
 
     def _format_sources_for_report(self) -> str:
         """格式化来源信息用于报告生成"""

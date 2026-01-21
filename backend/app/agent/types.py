@@ -52,6 +52,7 @@ class SSEEventType(str, Enum):
     RESEARCH_SOURCE_SKIP = "research.source.skip"        # 来源跳过
     RESEARCH_FACT_EXTRACTED = "research.fact.extracted"  # 事实提取
     RESEARCH_PROGRESS_UPDATE = "research.progress.update" # 进度更新
+    RESEARCH_REPORT_READY = "research.report.ready"      # 报告生成完成(带引用)
 
 
 class ToolStatus(str, Enum):
@@ -117,3 +118,52 @@ class ToolCallRecord:
     error: str | None = None
     started_at: datetime = field(default_factory=datetime.now)
     completed_at: datetime | None = None
+
+
+@dataclass
+class CitationSource:
+    """引用来源"""
+    url: str
+    title: str
+    domain: str
+    publish_date: str | None = None
+    credibility: int = 50  # 0-100
+    source_type: str = "unknown"  # academic, report, news, blog, official
+
+
+@dataclass
+class Citation:
+    """引用详情"""
+    id: int  # 引用序号 (1, 2, 3...)
+    source: CitationSource
+    excerpt: str  # 原文摘录
+    excerpt_context: str = ""  # 更大范围的上下文
+    claim_text: str = ""  # 报告中引用此来源的文本
+
+    def to_dict(self) -> dict[str, Any]:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "source": {
+                "url": self.source.url,
+                "title": self.source.title,
+                "domain": self.source.domain,
+                "publishDate": self.source.publish_date,
+                "credibility": self.source.credibility,
+                "credibilityLevel": self._get_credibility_level(),
+                "type": self.source.source_type,
+            },
+            "excerpt": self.excerpt,
+            "excerptContext": self.excerpt_context,
+            "claimText": self.claim_text,
+        }
+
+    def _get_credibility_level(self) -> str:
+        """获取可信度等级"""
+        if self.source.credibility >= 95:
+            return "authoritative"
+        if self.source.credibility >= 70:
+            return "reliable"
+        if self.source.credibility >= 40:
+            return "moderate"
+        return "questionable"
