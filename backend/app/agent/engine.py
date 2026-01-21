@@ -35,10 +35,22 @@ from app.agent.feedback.loop import FeedbackLoop
 from app.agent.hybrid_execution_prompts import (
     HYBRID_EXECUTION_SYSTEM_PROMPT,
 )
-from app.agent.llm.base import BaseLLM, LLMResponse
+from app.agent.llm.base import BaseLLM, LLMMessage, LLMResponse
 
 # Distributed memory & feedback
 from app.agent.long_memory.distributed import DistributedMemory, Lesson
+
+# Planning System (Unified Architecture)
+from app.agent.planning import (
+    AtomicPlanner,
+    Plan,
+    PlanEventEmitter,
+    PlanReciter,
+    ReplanDecision,
+    Task,
+    TaskScheduler,
+    TaskStatus,
+)
 
 # Policies (Dynamic iteration, compression, token budget)
 from app.agent.policies import (

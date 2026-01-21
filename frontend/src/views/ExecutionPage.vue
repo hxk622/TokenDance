@@ -15,6 +15,8 @@ import { useExecutionStore } from '@/stores/execution'
 import { useAuthStore } from '@/stores/auth'
 import { sessionService } from '@/api/services/session'
 import type { IntentValidationResponse } from '@/api/services/session'
+import { researchService } from '@/api/services/research'
+import type { ResearchIntervention } from '@/components/execution/research/types'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
 import {
   Home, History, FolderOpen, Settings, Search, LayoutGrid,
@@ -181,6 +183,9 @@ function handleHITLConfirmed(approved: boolean) {
 
 // Layout ratios - 根据任务类型动态调整
 const taskType = ref<'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'>('default')
+
+// 是否为深度研究模式
+const isDeepResearch = computed(() => taskType.value === 'deep-research')
 const layoutRatios = {
   'deep-research': { left: 35, right: 65 },
   'ppt-generation': { left: 30, right: 70 },
@@ -310,6 +315,19 @@ function handleStreamingProceed(updatedInput?: string) {
   const taskInput = updatedInput || initialTask.value || ''
   initPhase.value = 'executing'
   startActualExecution(taskInput)
+}
+
+// 处理研究干预
+async function handleResearchIntervene(intervention: ResearchIntervention) {
+  try {
+    streamingInfoRef.value?.setInterventionSending(true)
+    await researchService.sendIntervention(sessionId.value, intervention)
+    console.log('[ExecutionPage] Research intervention sent:', intervention.type)
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to send research intervention:', error)
+  } finally {
+    streamingInfoRef.value?.setInterventionSending(false)
+  }
 }
 
 // Start the actual agent execution
@@ -934,7 +952,9 @@ onUnmounted(() => {
                 :preflight-result="preflightResult"
                 :user-input="initialTask || ''"
                 :user-avatar="userInitial"
+                :is-deep-research="isDeepResearch"
                 @proceed="handleStreamingProceed"
+                @research-intervene="handleResearchIntervene"
               />
             </div>
           </div>

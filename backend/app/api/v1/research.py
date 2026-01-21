@@ -509,7 +509,7 @@ async def intervene_research(
         session_id=session_id,
         intervention_id=intervention_id,
         status="queued",
-        message=f"干预指令已加入队列，将在下一个检查点处理"
+        message="干预指令已加入队列，将在下一个检查点处理"
     )
 
 
