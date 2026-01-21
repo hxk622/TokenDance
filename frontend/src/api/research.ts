@@ -47,21 +47,6 @@ export interface ResearchReport {
   generated_at: string
 }
 
-export interface TimelineEntry {
-  timestamp: string
-  event_type: string
-  title: string
-  description: string
-  url?: string
-  screenshot_path?: string
-}
-
-export interface ResearchTimeline {
-  task_id: string
-  topic: string
-  entries: TimelineEntry[]
-}
-
 export interface ResearchFinding {
   title: string
   content: string
@@ -149,14 +134,6 @@ export const researchApi = {
    */
   async getReport(taskId: string): Promise<ResearchReport> {
     const response = await axios.get(`${API_BASE}/${taskId}/report`)
-    return response.data
-  },
-
-  /**
-   * 获取研究时间轴
-   */
-  async getTimeline(taskId: string): Promise<ResearchTimeline> {
-    const response = await axios.get(`${API_BASE}/${taskId}/timeline`)
     return response.data
   },
 

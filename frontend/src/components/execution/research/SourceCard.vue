@@ -94,7 +94,7 @@ const handleOpenUrl = (e: Event) => {
           :alt="source.domain"
           class="w-4 h-4 rounded flex-shrink-0"
           @error="($event.target as HTMLImageElement).style.display = 'none'"
-        />
+        >
         <span class="text-xs text-[var(--any-text-secondary)] truncate">
           {{ source.domain }}
         </span>

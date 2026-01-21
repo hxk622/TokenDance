@@ -1,22 +1,8 @@
 <template>
   <div class="preview-area">
-    <!-- Timeline View (for Deep Research) - 合并了实时进展和时间轴 -->
-    <div
-      v-if="currentTab === 'timeline'"
-      class="timeline-container"
-    >
-      <ResearchTimeline
-        :session-id="sessionId"
-        :auto-refresh="isExecuting"
-        :refresh-interval="3000"
-        @entry-click="handleEntryClick"
-        @screenshot-click="handleScreenshotClick"
-      />
-    </div>
-
     <!-- Working Memory Tab -->
     <div
-      v-else-if="currentTab === 'working-memory'"
+      v-if="currentTab === 'working-memory'"
       class="working-memory-container"
     >
       <div
@@ -151,9 +137,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import ResearchTimeline from './ResearchTimeline.vue'
 import WorkingMemory from './WorkingMemory.vue'
-import { timelineApi, type TimelineEntry } from '@/api/timeline'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
 import {
   DocumentTextIcon,
@@ -203,24 +187,10 @@ onMounted(() => {
   }
 })
 
-// Screenshot lightbox state
+// Screenshot lightbox state (保留用于其他用途)
 const showScreenshotLightbox = ref(false)
 const lightboxImageUrl = ref('')
 const lightboxTitle = ref('')
-
-const handleEntryClick = (entry: TimelineEntry) => {
-  console.log('Entry clicked:', entry)
-  // Could navigate to URL or show more details
-  if (entry.url) {
-    window.open(entry.url, '_blank')
-  }
-}
-
-const handleScreenshotClick = (index: number, entry: TimelineEntry) => {
-  lightboxImageUrl.value = timelineApi.getScreenshotUrl(props.sessionId, index)
-  lightboxTitle.value = entry.title
-  showScreenshotLightbox.value = true
-}
 
 const closeLightbox = () => {
   showScreenshotLightbox.value = false
@@ -234,11 +204,6 @@ const closeLightbox = () => {
   background: rgba(18, 18, 18, 0.9);
   display: flex;
   flex-direction: column;
-}
-
-.timeline-container {
-  flex: 1;
-  overflow: hidden;
 }
 
 .preview-content {

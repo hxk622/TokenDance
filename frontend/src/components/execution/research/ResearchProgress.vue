@@ -117,7 +117,10 @@ const getPhaseStatus = (index: number) => {
       <div class="flex items-center gap-3">
         <!-- Progress Ring -->
         <div class="progress-ring">
-          <svg viewBox="0 0 36 36" class="w-9 h-9">
+          <svg
+            viewBox="0 0 36 36"
+            class="w-9 h-9"
+          >
             <!-- Background circle -->
             <circle
               cx="18"
@@ -169,14 +172,23 @@ const getPhaseStatus = (index: number) => {
 
         <!-- Collapse toggle -->
         <button class="collapse-btn">
-          <ChevronUpIcon v-if="!isCollapsed" class="w-4 h-4" />
-          <ChevronDownIcon v-else class="w-4 h-4" />
+          <ChevronUpIcon
+            v-if="!isCollapsed"
+            class="w-4 h-4"
+          />
+          <ChevronDownIcon
+            v-else
+            class="w-4 h-4"
+          />
         </button>
       </div>
     </div>
 
     <!-- Content (collapsible) -->
-    <div v-show="!isCollapsed" class="progress-content">
+    <div
+      v-show="!isCollapsed"
+      class="progress-content"
+    >
       <!-- Phase Indicator -->
       <div class="phase-indicator">
         <div
@@ -210,7 +222,10 @@ const getPhaseStatus = (index: number) => {
         </div>
 
         <!-- Right: Sources -->
-        <div v-if="progress && progress.sources.length > 0" class="sources-section">
+        <div
+          v-if="progress && progress.sources.length > 0"
+          class="sources-section"
+        >
           <div class="flex items-center justify-between mb-3">
             <span class="text-sm font-medium text-[var(--any-text-primary)]">
               信息来源

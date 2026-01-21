@@ -22,10 +22,9 @@ import {
   PresentationChartBarIcon,
   DocumentDuplicateIcon,
   CircleStackIcon,
-  SparklesIcon,
 } from '@heroicons/vue/24/outline'
 
-export type TabType = 'report' | 'ppt' | 'file-diff' | 'timeline' | 'working-memory'
+export type TabType = 'report' | 'ppt' | 'file-diff' | 'working-memory'
 
 interface Props {
   sessionId: string
@@ -42,8 +41,6 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const allTabs = [
-  // 实时进展 - 合并了时间轴和中间产出
-  { id: '0', type: 'timeline' as const, title: '实时进展', icon: SparklesIcon, showFor: ['deep-research', 'ppt-generation', 'default'] },
   // 最终成果
   { id: '1', type: 'report' as const, title: '研究报告', icon: DocumentTextIcon, showFor: ['deep-research', 'default'] },
   { id: '2', type: 'ppt' as const, title: 'PPT', icon: PresentationChartBarIcon, showFor: ['ppt-generation', 'default'] },

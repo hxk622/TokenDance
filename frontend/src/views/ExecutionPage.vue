@@ -201,7 +201,7 @@ const bottomHeight = ref(60)
 const streamingInfoRef = ref<InstanceType<typeof StreamingInfo> | null>(null)
 
 // Artifact tab state - defaults based on task type
-const currentTab = ref<TabType>('timeline')
+const currentTab = ref<TabType>('report')
 
 // Focus Mode state
 const isFocusMode = ref(false)
@@ -520,7 +520,7 @@ function handleTabChange(tab: TabType) {
 // Set default tab based on task type
 watch(taskType, (newType) => {
   const defaults: Record<string, TabType> = {
-    'deep-research': 'timeline',
+    'deep-research': 'report',
     'ppt-generation': 'ppt',
     'code-refactor': 'file-diff',
     'file-operations': 'file-diff',
