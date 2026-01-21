@@ -501,10 +501,8 @@
    - 引用管理
    - 摘要生成
 
-3. ✅ 创建 `backend/app/services/research_timeline.py` (352行)
-   - 截图存储 (MinIO/本地)
-   - 时间线索引
-   - Markdown 导出
+3. ~~创建 `backend/app/services/research_timeline.py` (352行)~~ **已移除 (2026-01-21)**
+   > WorkflowGraph 天然承载回顾功能，时光长廊服务已删除
 
 **Commit**: 45fe77b
 
@@ -545,7 +543,7 @@
    - POST /research/start - 启动研究
    - GET /research/{task_id} - 查询状态
    - GET /research/{task_id}/report - 获取报告
-   - GET /research/{task_id}/timeline - 获取时间线
+   - ~~GET /research/{task_id}/timeline~~ - 已移除
 
 3. ✅ 创建 `backend/app/api/v1/files.py` (329行)
    - POST /files/index - 索引目录
@@ -569,7 +567,7 @@
 |------|------|------|
 | deep_research.py | 617 | DeepResearchAgent 核心 |
 | report_generator.py | 228 | 报告生成工具 |
-| research_timeline.py | 352 | 时光长廊服务 |
+| ~~research_timeline.py~~ | ~~352~~ | ~~时光长廊服务~~ (已移除) |
 | file_indexer.py | 518 | 文件索引服务 |
 | code_analyzer.py | 553 | 代码分析服务 |
 | vector_indexer.py | 712 | 向量化索引 |

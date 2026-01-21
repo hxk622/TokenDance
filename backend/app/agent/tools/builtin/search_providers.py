@@ -24,21 +24,20 @@ logger = logging.getLogger(__name__)
 
 
 def get_proxy_url() -> str | None:
-    """获取代理 URL
+    """获取搜索代理 URL
 
-    优先级: HTTPS_PROXY > HTTP_PROXY > ALL_PROXY > 默认值
+    优先级: SEARCH_HTTP_PROXY > HTTPS_PROXY > HTTP_PROXY > 默认值
+
+    使用专用的 SEARCH_HTTP_PROXY 避免和 Shell 环境变量冲突
+    （如 Warp 终端的 HTTP_PROXY=7667）
     """
-    proxy = (
-        os.getenv("HTTPS_PROXY") or
-        os.getenv("https_proxy") or
-        os.getenv("HTTP_PROXY") or
-        os.getenv("http_proxy") or
-        os.getenv("ALL_PROXY") or
-        os.getenv("all_proxy")
-    )
+    # 专用搜索代理变量（最高优先级）
+    proxy = os.getenv("SEARCH_HTTP_PROXY")
     if proxy:
         return proxy
-    # 默认值 (ClashX)
+
+    # 默认使用 ClashX 端口 (7890)
+    # 不使用通用 HTTP_PROXY，因为可能被 Warp 终端设置为 7667
     return "http://127.0.0.1:7890"
 
 

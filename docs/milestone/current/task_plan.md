@@ -147,12 +147,12 @@
 - [x] 摘要生成 (Executive Summary)
 - [x] 关键发现提取
 
-#### 3. 时光长廊 (Timeline) ✅
-文件: `backend/app/services/research_timeline.py`
-- [x] 截图存储 (MinIO/本地)
-- [x] 时间戳索引
-- [x] 页面元数据记录
-- [ ] 前端 Timeline 组件集成
+#### 3. 时光长廊 (Timeline) ❌ 已移除
+~~文件: `backend/app/services/research_timeline.py`~~
+> **更新 (2026-01-21)**: 时光长廊功能已移除。
+> - WorkflowGraph 天然承载"回顾"功能
+> - 实时进度通过 SSE Timeline 事件推送
+> - 来源追溯通过报告内嵌引用实现
 
 ### 本地文件索引 (Option B)
 
@@ -178,7 +178,7 @@
 
 #### 7. API 端点 ✅
 文件: `backend/app/api/v1/research.py` + `backend/app/api/v1/files.py`
-- [x] Deep Research API (启动/状态/报告/时间线)
+- [x] Deep Research API (启动/状态/报告/findings)
 - [x] Files API (索引/搜索/目录树/符号分析)
 - [x] 路由注册到 api.py
 
