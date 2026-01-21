@@ -134,7 +134,8 @@ class BraveSearchProvider(BaseSearchProvider):
 
         import httpx
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        # 使用系统代理 (trust_env=True), 开发环境禁用 SSL 验证
+        async with httpx.AsyncClient(timeout=30.0, trust_env=True, verify=False) as client:
             response = await client.get(
                 "https://api.search.brave.com/res/v1/web/search",
                 params={
@@ -162,7 +163,13 @@ class BraveSearchProvider(BaseSearchProvider):
 
 
 class SerperProvider(BaseSearchProvider):
-    """Serper (Google) 搜索提供者"""
+    """Serper (Google) 搜索提供者 - 推荐首选
+
+    优点:
+    - 使用 Google 搜索结果，质量最高
+    - API 服务稳定，不受网络限制
+    - 免费额度 2500 次/月
+    """
 
     provider_type = SearchProviderType.SERPER
 
@@ -170,7 +177,9 @@ class SerperProvider(BaseSearchProvider):
         self.api_key = os.getenv("SERPER_API_KEY")
         self._available = bool(self.api_key)
 
-        if not self._available:
+        if self._available:
+            logger.info("Serper provider enabled (SERPER_API_KEY configured)")
+        else:
             logger.debug("Serper API key not configured")
 
     def is_available(self) -> bool:
@@ -182,7 +191,8 @@ class SerperProvider(BaseSearchProvider):
 
         import httpx
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        # 使用系统代理 (trust_env=True), 开发环境禁用 SSL 验证
+        async with httpx.AsyncClient(timeout=30.0, trust_env=True, verify=False) as client:
             response = await client.post(
                 "https://google.serper.dev/search",
                 json={
@@ -229,10 +239,11 @@ class MultiSourceSearcher:
             parallel: 是否并行搜索所有源
         """
         if providers is None:
+            # 优先级: Serper (最稳定) > Brave > DuckDuckGo (可能被阻断)
             providers = [
-                DuckDuckGoProvider(),
-                BraveSearchProvider(),
-                SerperProvider()
+                SerperProvider(),       # 1st: Google 结果，API 服务稳定
+                BraveSearchProvider(),  # 2nd: 独立搜索引擎
+                DuckDuckGoProvider()    # 3rd: 免费但可能被网络阻断
             ]
 
         self.providers = [p for p in providers if p.is_available()]
