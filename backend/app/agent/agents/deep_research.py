@@ -14,6 +14,7 @@ DeepResearchAgent - 深度研究 Agent
 """
 import asyncio
 import logging
+import os
 import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
@@ -26,8 +27,8 @@ from ..types import ActionType, AgentAction, SSEEvent, SSEEventType
 
 logger = logging.getLogger(__name__)
 
-# 并发配置
-MAX_CONCURRENT_TOOLS = 10  # 最大并发工具执行数
+# 并发配置: 从环境变量读取，默认 15
+MAX_CONCURRENT_TOOLS = int(os.getenv("MAX_CONCURRENT_TOOLS", "15"))
 
 
 # ==================== 数据模型 ====================
