@@ -258,3 +258,40 @@ export const INTERVENTION_TYPE_CONFIG: Record<InterventionType, {
     icon: 'MessageSquare',
   },
 }
+
+// ========================================
+// 引用类型定义 (Citation Types)
+// ========================================
+
+/** 引用来源信息 */
+export interface CitationSource {
+  url: string
+  title: string
+  domain: string
+  publishDate?: string
+  credibility: number  // 0-100
+  credibilityLevel: CredibilityLevel
+  type?: SourceType
+}
+
+/** 引用详情 */
+export interface Citation {
+  /** 引用序号 (如 1, 2, 3) */
+  id: number
+  /** 来源信息 */
+  source: CitationSource
+  /** 原文摘录 (短) */
+  excerpt: string
+  /** 更大范围的上下文 */
+  excerptContext?: string
+  /** 报告中引用此来源的文本 */
+  claimText?: string
+}
+
+/** 带引用的报告 */
+export interface ReportWithCitations {
+  /** Markdown 内容 (带 [1] [2] 等引用标记) */
+  markdown: string
+  /** 引用列表 */
+  citations: Citation[]
+}

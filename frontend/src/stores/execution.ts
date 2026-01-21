@@ -16,6 +16,7 @@ import {
   type Message,
   type Artifact,
 } from '@/api/services'
+import { useWorkflowStore } from './workflow'
 
 /**
  * Workflow Node for UI
@@ -438,11 +439,12 @@ export const useExecutionStore = defineStore('execution', () => {
         edges.value = []
         break
       
-      // ========== NEW: Plan events (与后端 PlanningLayer 对齐) ==========
-      // 注: 这些事件应该由 workflowStore 处理，这里仅作为备用
-      case SSEEventType.PLAN_DAG_CREATED:
+      // ========== Plan events (与后端 PlanningLayer 对齐) ==========
+      // 这些事件由 workflowStore 处理，更新 WorkflowGraph
+      case SSEEventType.PLAN_DAG_CREATED: {
         // Plan 创建，推送整个 Task DAG
-        // workflowStore.handlePlanCreated(event.data)
+        const workflowStore = useWorkflowStore()
+        workflowStore.handlePlanCreated(event.data)
         console.log('[ExecutionStore] Plan DAG created:', event.data.planId)
         addLog({
           type: 'thinking',
@@ -450,10 +452,12 @@ export const useExecutionStore = defineStore('execution', () => {
           content: `📝 任务规划完成，共 ${event.data.tasks?.length || 0} 个步骤`,
         })
         break
+      }
       
-      case SSEEventType.PLAN_DAG_REVISED:
+      case SSEEventType.PLAN_DAG_REVISED: {
         // Plan 重规划
-        // workflowStore.handlePlanRevised(event.data)
+        const workflowStore = useWorkflowStore()
+        workflowStore.handlePlanRevised(event.data)
         console.log('[ExecutionStore] Plan DAG revised:', event.data.planId, 'reason:', event.data.reason)
         addLog({
           type: 'thinking',
@@ -461,10 +465,12 @@ export const useExecutionStore = defineStore('execution', () => {
           content: `🔄 任务重新规划：${event.data.reason || '调整执行策略'}`,
         })
         break
+      }
       
-      case SSEEventType.TASK_START:
+      case SSEEventType.TASK_START: {
         // Task 开始执行
-        // workflowStore.handleTaskStart(event.data)
+        const workflowStore = useWorkflowStore()
+        workflowStore.handleTaskStart(event.data)
         console.log('[ExecutionStore] Task started:', event.data.taskId)
         addLog({
           type: 'thinking',
@@ -472,10 +478,12 @@ export const useExecutionStore = defineStore('execution', () => {
           content: `▶️ 开始执行任务: ${event.data.taskId}`,
         })
         break
+      }
       
-      case SSEEventType.TASK_COMPLETE:
+      case SSEEventType.TASK_COMPLETE: {
         // Task 执行完成
-        // workflowStore.handleTaskComplete(event.data)
+        const workflowStore = useWorkflowStore()
+        workflowStore.handleTaskComplete(event.data)
         console.log('[ExecutionStore] Task completed:', event.data.taskId)
         addLog({
           type: 'result',
@@ -483,10 +491,12 @@ export const useExecutionStore = defineStore('execution', () => {
           content: `✅ 任务完成: ${event.data.taskId}`,
         })
         break
+      }
       
-      case SSEEventType.TASK_FAILED:
+      case SSEEventType.TASK_FAILED: {
         // Task 执行失败
-        // workflowStore.handleTaskFailed(event.data)
+        const workflowStore = useWorkflowStore()
+        workflowStore.handleTaskFailed(event.data)
         console.log('[ExecutionStore] Task failed:', event.data.taskId, event.data.errorMessage)
         addLog({
           type: 'error',
@@ -494,12 +504,15 @@ export const useExecutionStore = defineStore('execution', () => {
           content: `❌ 任务失败: ${event.data.taskId} - ${event.data.errorMessage || 'Unknown error'}`,
         })
         break
+      }
       
-      case SSEEventType.TASK_UPDATE:
+      case SSEEventType.TASK_UPDATE: {
         // Task 通用更新
-        // workflowStore.handleTaskUpdate(event.data)
+        const workflowStore = useWorkflowStore()
+        workflowStore.handleTaskUpdate(event.data)
         console.log('[ExecutionStore] Task updated:', event.data.id, event.data.status)
         break
+      }
 
       case SSEEventType.NODE_CREATED: {
         // 动态添加节点

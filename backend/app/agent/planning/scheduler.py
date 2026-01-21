@@ -239,8 +239,6 @@ class TaskScheduler:
         if not self._plan:
             return []
 
-        self._plan.get_completed_task_ids()
-        {t.id for t in self._plan.get_running_tasks()}
         ready_ids = {t.id for t in self.get_ready_tasks()}
 
         return [

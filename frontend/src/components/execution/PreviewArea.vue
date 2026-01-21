@@ -38,27 +38,48 @@
       v-else
       class="preview-content"
     >
+      <!-- 报告 Tab -->
       <div
         v-if="currentTab === 'report'"
-        class="preview-placeholder"
+        class="report-container"
       >
-        <div class="empty-icon-wrapper">
-          <DocumentTextIcon class="icon-svg" />
-        </div>
-        <h3>研究报告生成中</h3>
-        <p v-if="isExecuting">
-          AI 正在深度调研并撰写报告,请稍候...
-        </p>
-        <p v-else>
-          任务完成后,研究报告将在这里显示
-        </p>
+        <!-- 有报告内容时显示引用渲染器 -->
         <div
-          v-if="isExecuting"
-          class="progress-dots"
+          v-if="reportContent"
+          class="report-content"
         >
-          <span class="dot" />
-          <span class="dot" />
-          <span class="dot" />
+          <CitationRenderer
+            :content="reportContent"
+            :citations="citations"
+            :is-html="isReportHtml"
+            @open-url="handleOpenCitationUrl"
+            @copy-citation="handleCopyCitation"
+          />
+        </div>
+        
+        <!-- 无报告内容时显示占位符 -->
+        <div
+          v-else
+          class="preview-placeholder"
+        >
+          <div class="empty-icon-wrapper">
+            <DocumentTextIcon class="icon-svg" />
+          </div>
+          <h3>研究报告生成中</h3>
+          <p v-if="isExecuting">
+            AI 正在深度调研并撰写报告,请稍候...
+          </p>
+          <p v-else>
+            任务完成后,研究报告将在这里显示
+          </p>
+          <div
+            v-if="isExecuting"
+            class="progress-dots"
+          >
+            <span class="dot" />
+            <span class="dot" />
+            <span class="dot" />
+          </div>
         </div>
       </div>
 
@@ -138,6 +159,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import WorkingMemory from './WorkingMemory.vue'
+import { CitationRenderer } from './research'
+import type { Citation, ReportWithCitations } from './research/types'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
 import {
   DocumentTextIcon,
@@ -152,9 +175,19 @@ interface Props {
   sessionId: string
   currentTab: TabType
   isExecuting?: boolean
+  /** 报告内容 (带引用标记的 Markdown/HTML) */
+  reportContent?: string
+  /** 引用列表 */
+  citations?: Citation[]
+  /** 报告内容是否为 HTML */
+  isReportHtml?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  reportContent: '',
+  citations: () => [],
+  isReportHtml: true,
+})
 
 // Working Memory 状态
 const workingMemoryData = ref<WorkingMemoryResponse | null>(null)
@@ -194,6 +227,16 @@ const lightboxTitle = ref('')
 
 const closeLightbox = () => {
   showScreenshotLightbox.value = false
+}
+
+// 引用链接处理
+function handleOpenCitationUrl(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function handleCopyCitation(citation: Citation) {
+  console.log('Citation copied:', citation)
+  // TODO: 显示 Toast 提示
 }
 </script>
 
@@ -315,6 +358,23 @@ p {
 .diff-line.added {
   background: var(--td-state-executing-bg);
   color: var(--td-state-executing);
+}
+
+/* Report Container */
+.report-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Working Memory */

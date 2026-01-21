@@ -5,7 +5,7 @@ import { ClockIcon, CheckCircleIcon, ExclamationCircleIcon, PauseCircleIcon } fr
 interface Props {
   visible: boolean
   nodeId: string
-  status: 'pending' | 'running' | 'success' | 'error'
+  status: 'pending' | 'running' | 'success' | 'error' | 'skipped'
   label: string
   x: number
   y: number
@@ -22,31 +22,34 @@ interface Props {
 const props = defineProps<Props>()
 
 const statusText = computed(() => {
-  const statusMap = {
+  const statusMap: Record<Props['status'], string> = {
     pending: '未执行',
     running: '执行中',
     success: '已完成',
     error: '出错',
+    skipped: '已跳过',
   }
   return statusMap[props.status]
 })
 
 const statusColor = computed(() => {
-  const colorMap = {
+  const colorMap: Record<Props['status'], string> = {
     pending: '#8E8E93',   // 灰色
     running: '#FFB800',   // 黄色
     success: '#00FF88',   // 绿色
     error: '#FF3B30',     // 红色
+    skipped: '#636366',   // 深灰
   }
   return colorMap[props.status]
 })
 
 // 状态图标组件映射
-const statusIconMap = {
+const statusIconMap: Record<Props['status'], typeof ClockIcon> = {
   pending: PauseCircleIcon,
   running: ClockIcon,
   success: CheckCircleIcon,
   error: ExclamationCircleIcon,
+  skipped: PauseCircleIcon,  // 跳过也使用暂停图标
 }
 
 const duration = computed(() => {

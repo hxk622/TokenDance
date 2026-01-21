@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import NodeTooltip from './NodeTooltip.vue'
+import { useWorkflowStore } from '@/stores/workflow'
+import { storeToRefs } from 'pinia'
 
 interface Props {
   sessionId: string
@@ -18,10 +20,14 @@ const emit = defineEmits<{
   'edge-disconnect': [edgeId: string]
 }>()
 
+// 使用 workflowStore 获取真实数据
+const workflowStore = useWorkflowStore()
+const { nodes: storeNodes, edges: storeEdges, isLoaded } = storeToRefs(workflowStore)
+
 // Node interface - 节点只区分状态，不区分类型
 interface Node {
   id: string
-  status: 'pending' | 'running' | 'success' | 'error'  // 灰/黄/绿/红
+  status: 'pending' | 'running' | 'success' | 'error' | 'skipped'
   label: string  // 任务名称
   x: number
   y: number
@@ -42,73 +48,37 @@ interface Edge {
   to: string    // 下游节点 ID
 }
 
-// Mock data for Phase 1 - 模拟后端推送的工作流数据
-const nodes = ref<Node[]>([
-  { 
-    id: '1', 
-    status: 'success', 
-    label: '搜索市场数据', 
-    x: 100, 
-    y: 150,
-    dependencies: [],
-    metadata: {
-      startTime: Date.now() - 120000,
-      endTime: Date.now() - 75000,
-      duration: 45000,
-      output: 'Found 3 relevant reports on AI Agent market size and growth trends'
-    }
-  },
-  { 
-    id: '2', 
-    status: 'success', 
-    label: '分析竞品', 
-    x: 300, 
-    y: 150,
-    dependencies: ['1'],
-    metadata: {
-      startTime: Date.now() - 75000,
-      endTime: Date.now() - 37000,
-      duration: 38000,
-      output: 'Analyzed Manus, Coworker, GenSpark competitive landscape'
-    }
-  },
-  { 
-    id: '3', 
-    status: 'running', 
-    label: '生成报告', 
-    x: 500, 
-    y: 150,
-    dependencies: ['2'],
-    metadata: {
-      startTime: Date.now() - 15000,
-      output: 'Generating markdown report...'
-    }
-  },
-  { 
-    id: '4', 
-    status: 'pending', 
-    label: '创建PPT', 
-    x: 700, 
-    y: 150,
-    dependencies: ['3']
-  },
-])
+// 从 workflowStore 获取数据，如果没有数据则显示空状态
+const nodes = computed<Node[]>(() => {
+  if (storeNodes.value.length > 0) {
+    return storeNodes.value.map(n => ({
+      id: n.id,
+      status: n.status,
+      label: n.label,
+      x: n.x,
+      y: n.y,
+      dependencies: n.dependencies,
+      metadata: n.metadata,
+    }))
+  }
+  // 没有 Plan 时返回空数组，显示空状态
+  return []
+})
 
-// 边从依赖关系自动生成
-const edges = ref<Edge[]>([
-  { id: 'e1', from: '1', to: '2' },
-  { id: 'e2', from: '2', to: '3' },
-  { id: 'e3', from: '3', to: '4' },
-])
+// 边从 workflowStore 获取
+const edges = computed<Edge[]>(() => {
+  return storeEdges.value.map(e => ({
+    id: e.id,
+    from: e.from,
+    to: e.to,
+  }))
+})
 
 const selectedNodeId = ref<string | null>(null)
 const isCollapsed = ref(false)
-const isLoading = ref(true)
 
-// Simulate loading
-setTimeout(() => {
-  isLoading.value = false
-}, 800)
+// Loading 状态基于 workflowStore
+const isLoading = computed(() => !isLoaded.value && nodes.value.length === 0)
 
 // Tooltip state
 const tooltipVisible = ref(false)
@@ -245,11 +215,12 @@ function handleCanvasClick() {
 
 // 根据状态返回节点颜色
 function getNodeColor(status: Node['status']): string {
-  const colors = {
+  const colors: Record<Node['status'], string> = {
     pending: '#8E8E93',     // 灰色 - 未执行
     running: '#FFB800',     // 黄色 - 执行中
     success: '#00FF88',     // 绿色 - 已完成
     error: '#FF3B30',       // 红色 - 出错
+    skipped: '#636366',     // 深灰 - 已跳过
   }
   return colors[status]
 }
