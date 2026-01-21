@@ -50,6 +50,7 @@ from .report_generator import ReportGeneratorTool, create_report_generator_tool
 from .shell import ShellTool
 from .web_search import WebSearchTool, create_web_search_tool
 from .wechat_article import WeChatArticleTool, wechat_article_tool
+from .diagram import DiagramTool, create_diagram_tool, diagram_tool
 
 __all__ = [
     # Core tools (4+2 model) - 铁律三
@@ -91,4 +92,8 @@ __all__ = [
     # WeChat article extraction
     "WeChatArticleTool",
     "wechat_article_tool",
+    # Diagram generation
+    "DiagramTool",
+    "create_diagram_tool",
+    "diagram_tool",
 ]

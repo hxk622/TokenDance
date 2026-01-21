@@ -1546,8 +1546,8 @@ class AgentEngine:
         # 启动所有任务
         async_tasks = [asyncio.create_task(execute_task_streaming(t)) for t in tasks]
 
-        # 跟踪每个任务的状态
-        task_outputs: dict[str, str] = {}
+        # 跟踪每个任务的状态和结果
+        task_results: dict[str, dict[str, Any]] = {}  # {task_id: {status, output, error}}
         completed_count = 0
         total_tasks = len(tasks)
 
@@ -1577,24 +1577,49 @@ class AgentEngine:
                 completed_count += 1
 
             elif event is None:
-                # 任务流正常结束
-                output = task_outputs.get(task_obj.id, "")
-                self.scheduler.complete_task(task_obj.id, output[:500])
-                yield self.plan_event_emitter.task_complete(task_obj)
+                # 任务流正常结束 - 根据之前收集的状态决定如何处理
+                result_info = task_results.get(task_obj.id, {})
+                task_status = result_info.get("status", "success")
+                output = result_info.get("output", "")
+                task_error = result_info.get("error")
 
-                yield SSEEvent(
-                    type=SSEEventType.CONTENT,
-                    data={"content": f"\n✅ {task_obj.title} 完成\n", "taskId": task_obj.id}
-                )
+                if task_status == "success":
+                    self.scheduler.complete_task(task_obj.id, output[:500])
+                    yield self.plan_event_emitter.task_complete(task_obj)
+                    yield SSEEvent(
+                        type=SSEEventType.CONTENT,
+                        data={"content": f"\n✅ {task_obj.title} 完成\n", "taskId": task_obj.id}
+                    )
+                else:
+                    # 任务失败 (failed/timeout/skipped)
+                    error_msg = task_error or f"Task {task_status}"
+                    _, decision = self.scheduler.fail_task(task_obj.id, error_msg)
+                    yield self.plan_event_emitter.task_failed(task_obj)
+                    yield SSEEvent(
+                        type=SSEEventType.ERROR,
+                        data={
+                            "message": f"任务 '{task_obj.title}' 执行失败: {error_msg}",
+                            "taskId": task_obj.id,
+                            "decision": decision.value
+                        }
+                    )
+                    if decision == ReplanDecision.REPLAN:
+                        async for replan_event in self._handle_replan(task_obj, error_msg):
+                            yield replan_event
+
                 completed_count += 1
 
             else:
                 # 中间事件，直接 yield
                 yield event
 
-                # 收集 DONE 事件中的输出
+                # 收集 DONE 事件中的状态和输出
                 if event.type == SSEEventType.DONE and event.data:
-                    task_outputs[task_obj.id] = event.data.get("output", "")
+                    task_results[task_obj.id] = {
+                        "status": event.data.get("status", "success"),
+                        "output": event.data.get("output", ""),
+                        "error": event.data.get("error"),
+                    }
 
         # 确保所有协程完成
         await asyncio.gather(*async_tasks, return_exceptions=True)
@@ -1627,6 +1652,9 @@ class AgentEngine:
 
             # 流式执行任务，转发所有中间事件
             output = ""
+            task_status = "success"
+            task_error: str | None = None
+
             async for event in self.task_executor.execute_stream(task, context):
                 # 添加 taskId 到事件数据以便前端区分
                 if event.data is None:
@@ -1634,18 +1662,38 @@ class AgentEngine:
                 event.data["taskId"] = task.id
                 yield event
 
-                # 收集 DONE 事件中的输出
+                # 收集 DONE 事件中的状态和输出
                 if event.type == SSEEventType.DONE and event.data:
+                    task_status = event.data.get("status", "success")
                     output = event.data.get("output", "")
+                    task_error = event.data.get("error")
 
-            # 标记任务完成
-            self.scheduler.complete_task(task.id, output[:500] if output else "")
-            yield self.plan_event_emitter.task_complete(task)
+            # 根据任务状态更新调度器
+            if task_status == "success":
+                self.scheduler.complete_task(task.id, output[:500] if output else "")
+                yield self.plan_event_emitter.task_complete(task)
+                yield SSEEvent(
+                    type=SSEEventType.CONTENT,
+                    data={"content": f"\n✅ {task.title} 完成\n", "taskId": task.id}
+                )
+            else:
+                # 任务失败 (failed/timeout/skipped)
+                error_msg = task_error or f"Task {task_status}"
+                _, decision = self.scheduler.fail_task(task.id, error_msg)
+                yield self.plan_event_emitter.task_failed(task)
 
-            yield SSEEvent(
-                type=SSEEventType.CONTENT,
-                data={"content": f"\n✅ {task.title} 完成\n", "taskId": task.id}
-            )
+                yield SSEEvent(
+                    type=SSEEventType.ERROR,
+                    data={
+                        "message": f"任务 '{task.title}' 执行失败: {error_msg}",
+                        "taskId": task.id,
+                        "decision": decision.value
+                    }
+                )
+
+                if decision == ReplanDecision.REPLAN:
+                    async for replan_event in self._handle_replan(task, error_msg):
+                        yield replan_event
 
         except Exception as e:
             logger.error(f"Task execution failed: {e}")
