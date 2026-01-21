@@ -91,7 +91,9 @@ async function handleCopy() {
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         >
         <div class="source-text">
-          <div class="citation-badge">[{{ citation.id }}]</div>
+          <div class="citation-badge">
+            [{{ citation.id }}]
+          </div>
           <span class="source-title">{{ citation.source.title }}</span>
         </div>
       </div>
@@ -127,7 +129,9 @@ async function handleCopy() {
       class="card-excerpt"
     >
       <Quote class="quote-icon" />
-      <p class="excerpt-text">{{ citation.excerpt }}</p>
+      <p class="excerpt-text">
+        {{ citation.excerpt }}
+      </p>
     </div>
 
     <!-- Actions -->

@@ -17,6 +17,7 @@ import {
   type Artifact,
 } from '@/api/services'
 import { useWorkflowStore } from './workflow'
+import type { Citation } from '@/components/execution/research/types'
 
 /**
  * Workflow Node for UI
@@ -184,6 +185,10 @@ export const useExecutionStore = defineStore('execution', () => {
   // Messages & Artifacts
   const messages = ref<Message[]>([])
   const artifacts = ref<Artifact[]>([])
+
+  // Research report state (for citation tracking)
+  const reportContent = ref<string>('')
+  const citations = ref<Citation[]>([])
 
   // SSE connection
   let sseConnection: SSEConnection | null = null
@@ -418,11 +423,21 @@ export const useExecutionStore = defineStore('execution', () => {
       
       // Content streaming (from backend)
       case SSEEventType.CONTENT:
+        // 累积报告内容
+        reportContent.value += event.data.content || ''
         addLog({
           type: 'result',
           nodeId: activeNodeId.value || '0',
           content: event.data.content,
         })
+        break
+
+      // Research report ready (with citations)
+      case SSEEventType.RESEARCH_REPORT_READY:
+        if (event.data.citations && Array.isArray(event.data.citations)) {
+          citations.value = event.data.citations
+          console.log('[ExecutionStore] Citations received:', citations.value.length)
+        }
         break
       
       // Agent done
@@ -966,6 +981,9 @@ export const useExecutionStore = defineStore('execution', () => {
     messages.value = []
     artifacts.value = []
     error.value = null
+    // Reset research report state
+    reportContent.value = ''
+    citations.value = []
   }
 
   return {
@@ -991,6 +1009,8 @@ export const useExecutionStore = defineStore('execution', () => {
     pendingHITL,
     messages,
     artifacts,
+    reportContent,
+    citations,
 
     // Computed
     isRunning,

@@ -476,6 +476,16 @@ class BaseAgent(ABC):
                 data={'content': chunk}
             )
 
+        # 如果是研究报告，发送 RESEARCH_REPORT_READY 事件携带 citations
+        if action.data and action.data.get("report_type") == "research":
+            yield SSEEvent(
+                type=SSEEventType.RESEARCH_REPORT_READY,
+                data={
+                    'report_type': 'research',
+                    'citations': action.data.get('citations', []),
+                }
+            )
+
     # ==================== 5-Question Reboot Test ====================
 
     async def _reboot_test(self) -> AsyncGenerator[SSEEvent, None]:

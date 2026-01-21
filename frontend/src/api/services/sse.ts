@@ -92,6 +92,9 @@ export enum SSEEventType {
   TIMELINE_SCREENSHOT = 'timeline_screenshot',
   TIMELINE_FINDING = 'timeline_finding',
   TIMELINE_MILESTONE = 'timeline_milestone',
+
+  // Research events (深度研究)
+  RESEARCH_REPORT_READY = 'research.report.ready',
 }
 
 export interface SSEEvent<T = any> {

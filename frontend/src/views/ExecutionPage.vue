@@ -983,6 +983,8 @@ onUnmounted(() => {
               :session-id="sessionId" 
               :current-tab="currentTab"
               :is-executing="isRunning"
+              :report-content="executionStore.reportContent"
+              :citations="executionStore.citations"
             />
           </div>
         </main>
