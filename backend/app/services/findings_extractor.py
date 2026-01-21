@@ -2,13 +2,14 @@
 Findings Extractor Service - 研究发现提取服务
 
 从 Deep Research 的输出中提取结构化的研究发现：
-- 从 Timeline 提取搜索、阅读、发现记录
 - 从研究报告提取关键段落
 - 识别数据点（数字、百分比、对比）
 - 提取可引用语句
+- 从报告中提取来源链接
 """
 import logging
 import re
+from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -21,7 +22,6 @@ from ..models.research_findings import (
     ResearchFindings,
     Source,
 )
-from .research_timeline import ResearchTimeline, TimelineEntry
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +29,12 @@ logger = logging.getLogger(__name__)
 class FindingsExtractor:
     """研究发现提取器
 
-    从 Deep Research 的各种输出中提取结构化的研究发现，
+    从 Deep Research 的报告输出中提取结构化的研究发现，
     用于生成 PPT、报告等。
 
     使用示例:
         extractor = FindingsExtractor(session_id="research_123")
         findings = await extractor.extract_all(
-            timeline=timeline,
             report_markdown=report_content
         )
     """
@@ -46,15 +45,15 @@ class FindingsExtractor:
 
     async def extract_all(
         self,
-        timeline: ResearchTimeline | None = None,
         report_markdown: str | None = None,
+        sources_list: list[dict] | None = None,
         llm=None  # 可选：使用 LLM 增强提取
     ) -> ResearchFindings:
         """提取所有研究发现
 
         Args:
-            timeline: 研究时间轴
             report_markdown: 研究报告 Markdown
+            sources_list: 来源列表 [{'url': ..., 'title': ..., 'domain': ...}]
             llm: 可选的 LLM 实例，用于增强提取
 
         Returns:
@@ -62,20 +61,20 @@ class FindingsExtractor:
         """
         findings = ResearchFindings(
             session_id=self.session_id,
-            topic=self.topic or self._extract_topic(timeline, report_markdown),
+            topic=self.topic or self._extract_topic(report_markdown),
             summary=""
         )
-
-        # 从 Timeline 提取
-        if timeline:
-            self._extract_from_timeline(timeline, findings)
 
         # 从报告提取
         if report_markdown:
             self._extract_from_report(report_markdown, findings)
 
+        # 从来源列表提取
+        if sources_list:
+            self._extract_from_sources_list(sources_list, findings)
+
         # 使用 LLM 增强（如果可用）
-        if llm and (timeline or report_markdown):
+        if llm and report_markdown:
             await self._enhance_with_llm(findings, llm, report_markdown)
 
         # 去重和排序
@@ -83,15 +82,8 @@ class FindingsExtractor:
 
         return findings
 
-    def _extract_topic(
-        self,
-        timeline: ResearchTimeline | None,
-        report: str | None
-    ) -> str:
+    def _extract_topic(self, report: str | None) -> str:
         """提取研究主题"""
-        if timeline and timeline.topic:
-            return timeline.topic
-
         if report:
             # 尝试从报告标题提取
             lines = report.strip().split('\n')
@@ -101,41 +93,33 @@ class FindingsExtractor:
 
         return "研究报告"
 
-    def _extract_from_timeline(
+    def _extract_from_sources_list(
         self,
-        timeline: ResearchTimeline,
+        sources_list: list[dict],
         findings: ResearchFindings
     ) -> None:
-        """从时间轴提取发现"""
-        for entry in timeline.entries:
-            # 提取来源
-            if entry.url:
-                source = self._create_source_from_entry(entry)
-                if source and not self._source_exists(findings.sources, source.url):
-                    findings.sources.append(source)
+        """从来源列表提取"""
+        for src in sources_list:
+            url = src.get('url', '')
+            if not url:
+                continue
 
-            # 提取发现类型的条目
-            if entry.event_type == "finding":
-                finding = ResearchFinding(
-                    title=entry.title.replace("Finding: ", ""),
-                    content=entry.description,
-                    importance=self._determine_importance(entry),
-                    source_urls=[entry.url] if entry.url else []
+            try:
+                parsed = urlparse(url)
+                domain = src.get('domain') or parsed.netloc
+                title = src.get('title', domain)
+
+                source = Source(
+                    url=url,
+                    title=title,
+                    domain=domain,
+                    accessed_at=datetime.now()
                 )
-                findings.key_findings.append(finding)
-
-            # 从搜索结果中提取数据点
-            if entry.event_type == "search":
-                metadata = entry.metadata or {}
-                if "results_count" in metadata:
-                    # 记录搜索统计
-                    findings.total_sources_consulted += metadata.get("results_count", 0)
-
-        # 计算研究时长
-        if timeline.entries:
-            first = timeline.entries[0].timestamp
-            last = timeline.entries[-1].timestamp
-            findings.research_duration_seconds = int((last - first).total_seconds())
+                if not self._source_exists(findings.sources, url):
+                    findings.sources.append(source)
+                    findings.total_sources_consulted += 1
+            except Exception as e:
+                logger.warning(f"Failed to parse source: {e}")
 
     def _extract_from_report(
         self,
@@ -344,45 +328,51 @@ class FindingsExtractor:
 
         return recommendations[:5]
 
-    def _create_source_from_entry(self, entry: TimelineEntry) -> Source | None:
-        """从时间轴条目创建来源"""
-        if not entry.url:
-            return None
-
-        try:
-            parsed = urlparse(entry.url)
-            domain = parsed.netloc
-            title = entry.metadata.get("title", entry.title) if entry.metadata else entry.title
-
-            return Source(
-                url=entry.url,
-                title=title.replace("Read: ", ""),
-                domain=domain,
-                accessed_at=entry.timestamp
-            )
-        except Exception as e:
-            logger.warning(f"Failed to create source: {e}")
-            return None
-
     def _source_exists(self, sources: list[Source], url: str) -> bool:
         """检查来源是否已存在"""
         return any(s.url == url for s in sources)
 
-    def _determine_importance(self, entry: TimelineEntry) -> FindingImportance:
-        """根据条目内容判断重要性"""
-        text = f"{entry.title} {entry.description}".lower()
+    def _extract_sources_from_report(self, report: str, findings: ResearchFindings) -> None:
+        """从报告中提取来源链接"""
+        # 匹配 Markdown 链接 [text](url)
+        link_pattern = r'\[([^\]]+)\]\((https?://[^\)]+)\)'
+        for match in re.finditer(link_pattern, report):
+            title = match.group(1)
+            url = match.group(2)
+            try:
+                parsed = urlparse(url)
+                domain = parsed.netloc
+                source = Source(
+                    url=url,
+                    title=title,
+                    domain=domain,
+                    accessed_at=datetime.now()
+                )
+                if not self._source_exists(findings.sources, url):
+                    findings.sources.append(source)
+                    findings.total_sources_consulted += 1
+            except Exception as e:
+                logger.warning(f"Failed to parse link: {e}")
 
-        # 高重要性关键词
-        high_keywords = ['关键', '重要', '核心', 'key', 'important', 'critical', '突破', '首次']
-        if any(kw in text for kw in high_keywords):
-            return FindingImportance.HIGH
-
-        # 低重要性关键词
-        low_keywords = ['补充', '参考', 'note', 'minor', '次要']
-        if any(kw in text for kw in low_keywords):
-            return FindingImportance.LOW
-
-        return FindingImportance.MEDIUM
+        # 匹配引用标记 [1], [2] 等
+        # 并在报告末尾查找引用列表
+        ref_pattern = r'^\[\d+\]:\s*(https?://\S+)'
+        for match in re.finditer(ref_pattern, report, re.MULTILINE):
+            url = match.group(1)
+            try:
+                parsed = urlparse(url)
+                domain = parsed.netloc
+                source = Source(
+                    url=url,
+                    title=domain,
+                    domain=domain,
+                    accessed_at=datetime.now()
+                )
+                if not self._source_exists(findings.sources, url):
+                    findings.sources.append(source)
+                    findings.total_sources_consulted += 1
+            except Exception as e:
+                logger.warning(f"Failed to parse ref: {e}")
 
     async def _enhance_with_llm(
         self,

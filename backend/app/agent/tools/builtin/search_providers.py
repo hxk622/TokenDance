@@ -13,12 +13,18 @@
 import asyncio
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+from urllib.parse import quote_plus, unquote, parse_qs, urlparse
 
 logger = logging.getLogger(__name__)
+
+# 代理配置: 优先从环境变量读取，否则使用 ClashX 默认端口
+# 这不会影响 Warp 终端（它有自己的环境变量）
+SEARCH_PROXY_URL = os.getenv("SEARCH_PROXY_URL", "http://127.0.0.1:7890")
 
 
 class SearchProviderType(Enum):
@@ -63,19 +69,33 @@ class BaseSearchProvider(ABC):
 
 
 class DuckDuckGoProvider(BaseSearchProvider):
-    """DuckDuckGo 搜索提供者"""
+    """DuckDuckGo 搜索提供者 - 免费
+
+    优点:
+    - 完全免费，无需 API Key
+    - 隐私友好
+
+    注意:
+    - 需要代理才能访问（国内网络）
+    - 使用 httpx 直接请求 HTML API，避免 duckduckgo-search 库的 SSL 问题
+    """
 
     provider_type = SearchProviderType.DUCKDUCKGO
 
     def __init__(self):
+        # 使用 httpx 实现，不依赖 duckduckgo-search 库
         try:
-            from duckduckgo_search import DDGS
-            self._ddgs_class = DDGS
-            self._available = True
+            import httpx
+            self._httpx_available = True
         except ImportError:
-            self._ddgs_class = None
-            self._available = False
-            logger.warning("duckduckgo-search not installed")
+            self._httpx_available = False
+            logger.warning("httpx not installed, DuckDuckGo provider unavailable")
+
+        self._available = self._httpx_available
+        self._proxy_url = SEARCH_PROXY_URL
+
+        if self._available:
+            logger.info(f"DuckDuckGo provider enabled (proxy: {self._proxy_url})")
 
     def is_available(self) -> bool:
         return self._available
@@ -84,33 +104,95 @@ class DuckDuckGoProvider(BaseSearchProvider):
         if not self._available:
             raise RuntimeError("DuckDuckGo provider not available")
 
-        loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(
-            None,
-            self._search_sync,
-            query,
-            max_results
-        )
+        import httpx
+
+        url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        }
+
+        # 使用配置的代理
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            proxy=self._proxy_url,
+            verify=False,
+            follow_redirects=True
+        ) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            html = response.text
+
+        # 解析 HTML 结果
+        results = self._parse_html_results(html, max_results)
+        logger.info(f"DuckDuckGo found {len(results)} results for: {query}")
         return results
 
-    def _search_sync(self, query: str, max_results: int) -> list[SearchResult]:
-        with self._ddgs_class() as ddgs:
-            raw_results = ddgs.text(
-                keywords=query,
-                region="wt-wt",
-                safesearch="moderate",
-                max_results=max_results
-            )
+    def _parse_html_results(self, html: str, max_results: int) -> list[SearchResult]:
+        """Parse DuckDuckGo HTML search results"""
+        results = []
 
-            return [
-                SearchResult(
-                    title=r.get("title", ""),
-                    link=r.get("href", ""),
-                    snippet=r.get("body", ""),
+        # 匹配搜索结果块
+        # DuckDuckGo HTML 结果格式: <a class="result__a" href="...">title</a>
+        link_pattern = re.compile(
+            r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([^<]+)</a>',
+            re.IGNORECASE
+        )
+        snippet_pattern = re.compile(
+            r'<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([^<]*)</a>',
+            re.IGNORECASE
+        )
+
+        links = link_pattern.findall(html)
+        snippets = snippet_pattern.findall(html)
+
+        for i, (link, title) in enumerate(links[:max_results]):
+            snippet = snippets[i] if i < len(snippets) else ""
+            # 清理 HTML 实体
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            snippet = re.sub(r'<[^>]+>', '', snippet).strip()
+
+            # 提取真实 URL (DuckDuckGo 使用跳转链接)
+            real_url = self._extract_real_url(link)
+
+            if real_url and title:
+                results.append(SearchResult(
+                    title=title,
+                    link=real_url,
+                    snippet=snippet,
                     source=self.provider_type
-                )
-                for r in raw_results
-            ]
+                ))
+
+        return results
+
+    def _extract_real_url(self, ddg_url: str) -> str:
+        """Extract real URL from DuckDuckGo redirect link
+
+        DuckDuckGo links look like: //duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com&rut=...
+        """
+        if not ddg_url:
+            return ""
+
+        # 如果已经是直接 URL
+        if ddg_url.startswith("http"):
+            return ddg_url
+
+        # 解析 DuckDuckGo 跳转链接
+        try:
+            # 添加 https: 如果缺少
+            if ddg_url.startswith("//"):
+                ddg_url = "https:" + ddg_url
+
+            parsed = urlparse(ddg_url)
+            query_params = parse_qs(parsed.query)
+
+            # 提取 uddg 参数（真实 URL）
+            if "uddg" in query_params:
+                real_url = unquote(query_params["uddg"][0])
+                return real_url
+        except Exception:
+            pass
+
+        return ddg_url
 
 
 class TavilyProvider(BaseSearchProvider):

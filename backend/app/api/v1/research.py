@@ -5,7 +5,6 @@ Research API - 深度研究 API 端点
 - POST /research/start - 启动研究任务
 - GET /research/{task_id} - 获取研究状态
 - GET /research/{task_id}/report - 获取研究报告
-- GET /research/{task_id}/timeline - 获取研究时间轴
 - POST /research/{task_id}/generate-ppt - 一键生成 PPT
 - GET /research/{task_id}/findings - 获取结构化发现
 """
@@ -71,23 +70,6 @@ class ResearchReport(BaseModel):
     report_markdown: str
     sources: list[ResearchSource]
     generated_at: str
-
-
-class TimelineEntry(BaseModel):
-    """时间轴条目"""
-    timestamp: str
-    event_type: str
-    title: str
-    description: str
-    url: str | None = None
-    screenshot_path: str | None = None
-
-
-class ResearchTimeline(BaseModel):
-    """研究时间轴"""
-    task_id: str
-    topic: str
-    entries: list[TimelineEntry]
 
 
 class PPTStyleEnum(str, Enum):
@@ -182,7 +164,7 @@ async def start_research(
         "max_sources": request.max_sources,
         "include_screenshots": request.include_screenshots,
         "report": None,
-        "timeline": []
+        "sources": []  # 来源列表
     }
 
     # 启动后台任务
@@ -244,23 +226,6 @@ async def get_research_report(task_id: str):
         raise HTTPException(status_code=404, detail="Report not generated")
 
     return task["report"]
-
-
-@router.get("/{task_id}/timeline", response_model=ResearchTimeline)
-async def get_research_timeline(task_id: str):
-    """获取研究时间轴"""
-    if task_id not in _research_tasks:
-        raise HTTPException(status_code=404, detail="Research task not found")
-
-    task = _research_tasks[task_id]
-
-    return ResearchTimeline(
-        task_id=task_id,
-        topic=task["topic"],
-        entries=[
-            TimelineEntry(**entry) for entry in task.get("timeline", [])
-        ]
-    )
 
 
 @router.delete("/{task_id}")
