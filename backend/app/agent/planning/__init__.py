@@ -17,8 +17,9 @@ Planning模块 - 统一任务规划层
 # SSE 事件
 from .events import PlanEventEmitter
 
-# 旧接口兼容 (deprecated)
-from .plan_manager import PlanManager
+# 旧接口兼容 (deprecated - 将在2026-03移除)
+# 请使用上方的新组件代替
+from .plan_manager import PlanManager  # noqa: F401 (deprecated)
 
 # 规划器
 from .planner import AtomicPlanner, SimplePlanBuilder

@@ -1,6 +1,23 @@
 """
 PlanManager - 计划管理器
 
+.. deprecated:: 2026-01
+    此模块已废弃，请使用新的 Planning 组件代替：
+
+    新架构组件：
+    - Task, Plan, TaskStatus from `app.agent.planning.task`
+    - TaskScheduler from `app.agent.planning.scheduler`
+    - AtomicPlanner from `app.agent.planning.planner`
+    - PlanReciter from `app.agent.planning.reciter`
+
+    迁移指南：
+    1. Task 数据结构已统一，使用新的 `app.agent.planning.task.Task`
+    2. Plan 调度用 TaskScheduler 代替 get_next_tasks()
+    3. 三文件工作法由 AgentEngine 直接管理
+
+    在 AgentEngine 中使用：
+    - engine.run_stream_with_planning() 已集成完整的 Planning 流程
+
 核心功能：
 1. 原子化任务拆分
 2. Plan生成和更新

@@ -1,10 +1,23 @@
 """
 Agent 抽象基类
 
+.. deprecated:: 2026-01
+    BaseAgent 已废弃，请使用 AgentEngine 代替。
+
+    统一架构设计：
+    - 使用 AgentEngine.run_stream_with_planning() 获得带 Planning 的执行
+    - 使用 AgentEngine.run() 获得传统状态机驱动的执行
+
+    迁移指南：
+    1. 替换 `class MyAgent(BaseAgent)` 为直接使用 `AgentEngine`
+    2. 将 `_think()` 和 `_decide()` 逻辑移入 Skill 系统
+    3. 使用 TaskScheduler + AtomicPlanner 进行任务编排
+
 定义 Agent 的核心决策循环、思考链、工具调用等基础框架
 """
 import logging
 import uuid
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -30,6 +43,14 @@ logger = logging.getLogger(__name__)
 
 class BaseAgent(ABC):
     """Agent 抽象基类
+
+    .. deprecated:: 2026-01
+        此类已废弃，请使用 AgentEngine 代替。
+        AgentEngine 提供了统一的 Planning 架构，包括：
+        - TaskScheduler: DAG 任务调度
+        - AtomicPlanner: LLM 任务规划
+        - 并行执行支持
+        - 自动重规划
 
     定义 Agent 的核心决策循环框架，包括：
     - 思考链（Chain of Thought）
@@ -71,6 +92,14 @@ class BaseAgent(ABC):
 
         self.stopped = False
         self.current_message_id: str | None = None
+
+        # Deprecation warning
+        warnings.warn(
+            "BaseAgent is deprecated and will be removed in a future version. "
+            "Use AgentEngine.run_stream_with_planning() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
 
         logger.info(f"Agent initialized: {self.__class__.__name__}")
 

@@ -13,6 +13,7 @@ Agent Engine - 核心执行循环 (状态机驱动)
 参考文档：docs/architecture/Agent-Runtime-Design.md
 """
 
+import asyncio
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
@@ -49,7 +50,6 @@ from app.agent.planning import (
     ReplanDecision,
     Task,
     TaskScheduler,
-    TaskStatus,
 )
 
 # Policies (Dynamic iteration, compression, token budget)
@@ -70,6 +70,7 @@ from app.agent.state import (
 # Strategy adaptation
 from app.agent.strategy.adaptation import StrategyAdaptation
 from app.agent.tools.registry import ToolRegistry
+from app.agent.types import SSEEvent, SSEEventType
 from app.agent.working_memory.three_files import ThreeFilesManager
 from app.context.unified_context import (
     ExecutionStatus,
@@ -221,6 +222,17 @@ class AgentEngine:
         self.iteration_count = 0
         self._current_skill_match: SkillMatch | None = None
         self._last_exit_code: int | None = None  # 铁律四: 记录最后退出码
+
+        # =================================================================
+        # Planning System (统一架构)
+        # 流程控制权归代码（TaskScheduler）
+        # 内容生成权归模型（LLM）
+        # =================================================================
+        self.planner = AtomicPlanner(llm)
+        self.scheduler = TaskScheduler()
+        self.plan_reciter = PlanReciter()
+        self.plan_event_emitter = PlanEventEmitter()
+        self._current_plan: Plan | None = None
 
         # -----------------------------------------------------------------
         # Policies: 动态迭代 / Context 压缩 / Token 预算
@@ -1171,3 +1183,345 @@ class AgentEngine:
             parts.append(f"*Token 使用：{tokens_used}*")
 
         return "\n".join(parts)
+
+    # =========================================================================
+    # Planning-Based Execution (统一架构)
+    # =========================================================================
+
+    async def run_stream_with_planning(
+        self,
+        user_message: str,
+        enable_parallel: bool = True
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        带 Planning 的流式执行（统一架构）
+
+        核心设计：
+        - 流程控制权归代码（TaskScheduler）
+        - 内容生成权归模型（LLM）
+        - 每步可验证、可重试、可恢复
+
+        Args:
+            user_message: 用户目标
+            enable_parallel: 是否启用并行执行
+
+        Yields:
+            SSEEvent: SSE 事件流
+        """
+        logger.info("=== Planning-Based Agent Run Started ===")
+        logger.info(f"Goal: {user_message}")
+
+        # 重置状态
+        self.scheduler = TaskScheduler()
+        self._current_plan = None
+        self.iteration_count = 0
+
+        try:
+            # Phase 1: Planning
+            yield SSEEvent(
+                type=SSEEventType.STATUS,
+                data={"phase": "planning", "message": "正在分析任务并制定计划..."}
+            )
+
+            # 生成 Plan
+            self._current_plan = await self.planner.plan(user_message)
+            self.scheduler.load_plan(self._current_plan)
+
+            # 推送 Plan 创建事件
+            yield self.plan_event_emitter.plan_created(self._current_plan)
+
+            logger.info(
+                f"Plan created: {self._current_plan.id} "
+                f"with {len(self._current_plan.tasks)} tasks"
+            )
+
+            # Phase 2: Execution Loop
+            yield SSEEvent(
+                type=SSEEventType.STATUS,
+                data={"phase": "executing", "message": "开始执行任务..."}
+            )
+
+            while not self.scheduler.is_complete():
+                self.iteration_count += 1
+
+                if self.iteration_count > self.max_iterations:
+                    logger.warning(f"Max iterations reached: {self.max_iterations}")
+                    break
+
+                # 获取可执行任务
+                ready_tasks = self.scheduler.get_ready_tasks()
+
+                if not ready_tasks:
+                    if self.scheduler.is_blocked():
+                        logger.error("Plan is blocked")
+                        yield SSEEvent(
+                            type=SSEEventType.ERROR,
+                            data={"message": "任务执行被阻塞，可能需要人工介入"}
+                        )
+                        break
+                    continue
+
+                # 并行执行多个独立任务
+                if enable_parallel and len(ready_tasks) > 1:
+                    # 并行执行
+                    async for event in self._execute_tasks_parallel(ready_tasks):
+                        yield event
+                else:
+                    # 串行执行第一个
+                    async for event in self._execute_single_task(ready_tasks[0]):
+                        yield event
+
+                # 发送进度更新
+                yield self.plan_event_emitter.progress_update(self._current_plan)
+
+            # Phase 3: Completion
+            if self._current_plan.is_complete():
+                yield SSEEvent(
+                    type=SSEEventType.DONE,
+                    data={
+                        "status": "success",
+                        "message": "所有任务执行完成",
+                        "iterations": self.iteration_count,
+                        "progress": self._current_plan.get_progress()
+                    }
+                )
+            else:
+                yield SSEEvent(
+                    type=SSEEventType.DONE,
+                    data={
+                        "status": "incomplete",
+                        "message": "任务未完全完成",
+                        "iterations": self.iteration_count,
+                        "progress": self._current_plan.get_progress()
+                    }
+                )
+
+        except Exception as e:
+            logger.error(f"Planning agent error: {e}", exc_info=True)
+            yield SSEEvent(
+                type=SSEEventType.ERROR,
+                data={"message": str(e), "type": e.__class__.__name__}
+            )
+
+    async def _execute_tasks_parallel(
+        self,
+        tasks: list[Task]
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        并行执行多个任务
+
+        Args:
+            tasks: 可并行执行的任务列表
+
+        Yields:
+            SSEEvent: 任务执行事件
+        """
+        logger.info(f"Executing {len(tasks)} tasks in parallel")
+
+        # 标记所有任务开始
+        for task in tasks:
+            self.scheduler.start_task(task.id)
+            yield self.plan_event_emitter.task_start(task)
+
+        # 并行执行
+        results = await asyncio.gather(
+            *[self._execute_task_core(task) for task in tasks],
+            return_exceptions=True
+        )
+
+        # 处理结果
+        for task, result in zip(tasks, results, strict=False):
+            if isinstance(result, Exception):
+                # 任务失败
+                error_msg = str(result)
+                failed_task, decision = self.scheduler.fail_task(task.id, error_msg)
+                yield self.plan_event_emitter.task_failed(task)
+
+                yield SSEEvent(
+                    type=SSEEventType.ERROR,
+                    data={
+                        "message": f"任务 '{task.title}' 执行失败: {error_msg}",
+                        "taskId": task.id,
+                        "decision": decision.value
+                    }
+                )
+
+                # 处理重规划
+                if decision == ReplanDecision.REPLAN:
+                    async for event in self._handle_replan(task, error_msg):
+                        yield event
+            else:
+                # 任务成功
+                output = result if isinstance(result, str) else str(result)
+                self.scheduler.complete_task(task.id, output[:500])
+                yield self.plan_event_emitter.task_complete(task)
+
+                yield SSEEvent(
+                    type=SSEEventType.CONTENT,
+                    data={"content": f"\n✅ {task.title} 完成\n"}
+                )
+
+    async def _execute_single_task(
+        self,
+        task: Task
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        执行单个任务
+
+        Args:
+            task: 要执行的任务
+
+        Yields:
+            SSEEvent: 任务执行事件
+        """
+        logger.info(f"Executing task: {task.title} ({task.id})")
+
+        # 标记任务开始
+        self.scheduler.start_task(task.id)
+        yield self.plan_event_emitter.task_start(task)
+
+        try:
+            # 执行任务
+            yield SSEEvent(
+                type=SSEEventType.THINKING,
+                data={"content": f"正在执行: {task.title}...\n"}
+            )
+
+            output = await self._execute_task_core(task)
+
+            # 标记任务完成
+            self.scheduler.complete_task(task.id, output[:500] if output else "")
+            yield self.plan_event_emitter.task_complete(task)
+
+            yield SSEEvent(
+                type=SSEEventType.CONTENT,
+                data={"content": f"\n✅ {task.title} 完成\n"}
+            )
+
+        except Exception as e:
+            logger.error(f"Task execution failed: {e}")
+
+            # 标记任务失败
+            failed_task, decision = self.scheduler.fail_task(task.id, str(e))
+            yield self.plan_event_emitter.task_failed(task)
+
+            yield SSEEvent(
+                type=SSEEventType.ERROR,
+                data={
+                    "message": f"任务 '{task.title}' 执行失败: {e}",
+                    "taskId": task.id,
+                    "decision": decision.value
+                }
+            )
+
+            # 处理重规划
+            if decision == ReplanDecision.REPLAN:
+                async for event in self._handle_replan(task, str(e)):
+                    yield event
+
+    async def _execute_task_core(self, task: Task) -> str:
+        """
+        任务执行核心逻辑
+
+        这是"LLM 只负责如何完成这个原子任务"的体现
+
+        Args:
+            task: 要执行的任务
+
+        Returns:
+            str: 任务执行输出
+        """
+        # 生成 Plan Recitation
+        assert self._current_plan is not None, "Plan must be initialized"
+        recitation = self.plan_reciter.generate(self._current_plan, self.scheduler)
+
+        # 构建任务执行 Prompt
+        prompt = f"""Please complete the following task:
+
+## Task: {task.title}
+
+{task.description}
+
+## Acceptance Criteria:
+{task.acceptance_criteria or "Complete the task as described."}
+
+## Suggested Tools:
+{', '.join(task.tools_hint) if task.tools_hint else "Use your best judgment."}
+
+---
+{recitation}
+---
+
+Please complete this task now. Focus ONLY on this specific task."""
+
+        system_prompt = f"""You are an AI assistant executing a specific task within a larger plan.
+
+Your current task is: {task.title}
+
+Rules:
+1. Focus ONLY on completing this specific task
+2. Do NOT try to do other tasks or plan ahead
+3. Use the suggested tools if available
+4. Complete the task according to the acceptance criteria
+5. Be concise and efficient
+
+If you cannot complete the task, explain why clearly."""
+
+        # 调用 LLM
+        response = await self.llm.complete(
+            messages=[LLMMessage(role="user", content=prompt)],
+            system=system_prompt,
+        )
+
+        return response.content
+
+    async def _handle_replan(
+        self,
+        failed_task: Task,
+        error: str
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        处理重规划
+
+        Args:
+            failed_task: 失败的任务
+            error: 错误信息
+
+        Yields:
+            SSEEvent: 重规划相关事件
+        """
+        yield SSEEvent(
+            type=SSEEventType.THINKING,
+            data={"content": "正在重新规划...\n"}
+        )
+
+        assert self._current_plan is not None, "Plan must exist to replan"
+
+        # 调用 AtomicPlanner 重规划
+        new_plan = await self.planner.replan(
+            self._current_plan,
+            failed_task,
+            error
+        )
+
+        # 更新调度器
+        self.scheduler.replace_plan(new_plan)
+        self._current_plan = new_plan
+
+        # 推送重规划事件
+        yield self.plan_event_emitter.plan_revised(new_plan, error)
+
+        yield SSEEvent(
+            type=SSEEventType.CONTENT,
+            data={"content": f"\n🔄 计划已重新调整，新版本: v{new_plan.version}\n"}
+        )
+
+    def get_current_plan(self) -> Plan | None:
+        """获取当前 Plan"""
+        return self._current_plan
+
+    def get_plan_progress(self) -> dict[str, Any]:
+        """获取当前进度"""
+        if self._current_plan:
+            return self._current_plan.get_progress()
+        return {"total": 0, "completed": 0, "percentage": 0}
