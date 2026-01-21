@@ -8,8 +8,8 @@
  * - 已完成/进行中阶段数
  * - 总耗时
  */
-import { computed } from 'vue'
-import { CheckCircle2, Clock, Sparkles } from 'lucide-vue-next'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { Clock, Sparkles } from 'lucide-vue-next'
 import type { ResearchSession } from './types'
 
 const props = defineProps<{
@@ -25,10 +25,12 @@ const stats = computed(() => {
   return { completed, running, total }
 })
 
-// 总耗时
-const totalDuration = computed(() => {
-  const now = Date.now()
-  const seconds = Math.floor((now - props.session.startedAt) / 1000)
+// 总耗时 - 使用 ref 实现实时更新
+const currentTime = ref(Date.now())
+let durationInterval: ReturnType<typeof setInterval> | null = null
+
+function formatDuration(startedAt: number): string {
+  const seconds = Math.floor((currentTime.value - startedAt) / 1000)
   
   if (seconds < 60) return `${seconds}s`
   const minutes = Math.floor(seconds / 60)
@@ -39,6 +41,41 @@ const totalDuration = computed(() => {
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
   return `${hours}h ${remainingMinutes}m`
+}
+
+const totalDuration = computed(() => formatDuration(props.session.startedAt))
+
+// 只在 running 状态时启用定时器
+function startTimer() {
+  if (durationInterval) return
+  durationInterval = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 1000)
+}
+
+function stopTimer() {
+  if (durationInterval) {
+    clearInterval(durationInterval)
+    durationInterval = null
+  }
+}
+
+watch(() => props.session.status, (status) => {
+  if (status === 'running') {
+    startTimer()
+  } else {
+    stopTimer()
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  if (props.session.status === 'running') {
+    startTimer()
+  }
+})
+
+onUnmounted(() => {
+  stopTimer()
 })
 
 // 状态文本

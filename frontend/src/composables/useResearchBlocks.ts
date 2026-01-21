@@ -355,6 +355,14 @@ export function useResearchBlocks(topic: Ref<string> | string) {
             : 'searching'
           addSource(targetPhase, payload.source)
         }
+        // 处理 planningNote
+        if (payload.planningNote) {
+          addPlanningNote(payload.planningNote)
+        }
+        // 处理 outlineSection
+        if (payload.outlineSection) {
+          addOutlineSection(payload.outlineSection)
+        }
         break
       }
       

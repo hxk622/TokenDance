@@ -108,6 +108,13 @@ class Conversation(Base):
     # Token tracking
     tokens_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # Extra data for migration tracking and extensibility
+    extra_data: Mapped[dict] = mapped_column(
+        JSON,
+        default={},
+        nullable=False
+    )
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False

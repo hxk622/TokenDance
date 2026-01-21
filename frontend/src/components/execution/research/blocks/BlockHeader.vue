@@ -234,7 +234,7 @@ const durationText = computed(() => {
   background: rgba(0, 217, 255, 0.15);
 }
 
-.phase-icon--running .phase-icon {
+.phase-icon--running :deep(.phase-icon) {
   color: var(--exec-accent);
 }
 
@@ -242,7 +242,7 @@ const durationText = computed(() => {
   background: rgba(0, 200, 83, 0.1);
 }
 
-.phase-icon--completed .phase-icon {
+.phase-icon--completed :deep(.phase-icon) {
   color: var(--exec-success);
 }
 
@@ -250,7 +250,7 @@ const durationText = computed(() => {
   background: rgba(255, 59, 48, 0.1);
 }
 
-.phase-icon--failed .phase-icon {
+.phase-icon--failed :deep(.phase-icon) {
   color: var(--exec-error);
 }
 
