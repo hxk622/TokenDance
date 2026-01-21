@@ -16,6 +16,12 @@ from app.models.project import Project, ProjectStatus, ProjectType  # noqa: F401
 from app.models.project_version import ProjectVersion, VersionChangeType  # noqa: F401
 from app.models.research_task import ResearchTask, ResearchTaskStatus  # noqa: F401
 from app.models.session import Session, SessionStatus  # noqa: F401
+from app.models.user_preference import (  # noqa: F401
+    ExpertiseLevel,
+    ReportStyle,
+    ResearchDepth,
+    UserResearchPreference,
+)
 from app.models.skill import Skill  # noqa: F401
 from app.models.team import MemberRole, Team, TeamMember  # noqa: F401
 from app.models.trust_config import TrustAuditLog, TrustConfig  # noqa: F401
@@ -61,4 +67,9 @@ __all__ = [
     # Research
     "ResearchTask",
     "ResearchTaskStatus",
+    # User Preference
+    "UserResearchPreference",
+    "ExpertiseLevel",
+    "ResearchDepth",
+    "ReportStyle",
 ]

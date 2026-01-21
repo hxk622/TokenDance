@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.engine import AgentEngine
 from app.agent.llm.router import TaskType, get_free_llm_for_task
+from app.agent.types import ExecutionMode
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
@@ -32,6 +33,7 @@ class MessageRequest(BaseModel):
     """发送消息请求"""
     content: str
     stream: bool = True  # 是否流式输出
+    mode: str = "auto"   # 执行模式: auto/direct/planning
 
 
 class MessageResponse(BaseModel):
@@ -129,10 +131,18 @@ async def send_message(
             detail=f"Failed to initialize Agent: {str(e)}"
         ) from e
 
-    # 流式模式
+    # 流式模式 - 使用新的统一入口 execute()
     if request.stream:
+        # 解析执行模式
+        mode_map = {
+            "auto": ExecutionMode.AUTO,
+            "direct": ExecutionMode.DIRECT,
+            "planning": ExecutionMode.PLANNING,
+        }
+        exec_mode = mode_map.get(request.mode.lower(), ExecutionMode.AUTO)
+
         return StreamingResponse(
-            stream_agent_response(agent, request.content, session_id),
+            stream_agent_execute(agent, request.content, session_id, exec_mode),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -317,6 +327,63 @@ async def stream_agent_response(
             "type": type(e).__name__
         })
 
+        yield format_sse("done", {
+            "error": True
+        })
+
+
+async def stream_agent_execute(
+    agent: AgentEngine,
+    user_message: str,
+    session_id: str,
+    mode: ExecutionMode = ExecutionMode.AUTO,
+) -> AsyncGenerator[str, None]:
+    """
+    使用统一入口 execute() 流式输出 Agent 响应
+
+    这是新的推荐方式，支持:
+    - 自动模式选择 (AUTO)
+    - 直接执行 (DIRECT)
+    - 计划执行 (PLANNING)
+
+    Args:
+        agent: Agent 引擎实例
+        user_message: 用户消息
+        session_id: Session ID
+        mode: 执行模式
+
+    Yields:
+        str: SSE 格式的事件流
+    """
+    try:
+        # 发送开始事件
+        yield format_sse("start", {
+            "session_id": session_id,
+            "mode": mode.value,
+            "message": "Agent started processing..."
+        })
+
+        # 使用统一入口执行
+        async for event in agent.execute(user_message, mode=mode):
+            # 转换 SSEEvent 为 SSE 字符串
+            event_type = event.type.value
+            event_data = event.data or {}
+
+            # 添加 session_id 到数据中
+            event_data["session_id"] = session_id
+
+            yield format_sse(event_type, event_data)
+
+            # 如果是完成事件，结束
+            if event.type.value == "done":
+                break
+
+    except Exception as e:
+        logger.error(f"Error in Agent execute streaming: {e}", exc_info=True)
+        yield format_sse("error", {
+            "message": str(e),
+            "type": type(e).__name__
+        })
         yield format_sse("done", {
             "error": True
         })

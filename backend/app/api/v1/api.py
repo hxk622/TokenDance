@@ -13,7 +13,9 @@ from app.api.v1 import (
     mcp,
     messages,
     ppt,
+    project,
     research,
+    research_v4,
     session,
     skills,
     stream,
@@ -28,6 +30,7 @@ api_router = APIRouter()
 # Include all route modules
 api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(workspace.router, prefix="/workspaces", tags=["workspaces"])
+api_router.include_router(project.router, tags=["projects"])  # Project-First architecture
 api_router.include_router(session.router, prefix="/sessions", tags=["sessions"])
 api_router.include_router(messages.router, prefix="/sessions", tags=["messages"])  # New Agent Engine integration
 api_router.include_router(stream.router, prefix="/sessions", tags=["stream"])  # SSE streaming
@@ -37,6 +40,7 @@ api_router.include_router(hitl.router, tags=["hitl"])  # Human-in-the-Loop
 api_router.include_router(trust.router, prefix="/trust", tags=["trust"])  # Trust configuration
 api_router.include_router(skills.router, prefix="/skills", tags=["skills"])  # Skill discovery and templates
 api_router.include_router(research.router, tags=["research"])  # Deep Research API
+api_router.include_router(research_v4.router, tags=["research-v4"])  # Research v4 API
 api_router.include_router(files.router, tags=["files"])  # File indexing & search
 api_router.include_router(browser.router, tags=["browser"])  # Browser automation
 api_router.include_router(ppt.router, tags=["ppt"])  # PPT Generation (Phase 1 & 2)

@@ -16,6 +16,16 @@ class ActionType(str, Enum):
     CONFIRM_REQUIRED = "confirm_required"
 
 
+class ExecutionMode(str, Enum):
+    """执行模式
+
+    用于统一入口 execute() 方法选择执行策略
+    """
+    AUTO = "auto"          # 自动选择 (根据任务复杂度)
+    DIRECT = "direct"      # 直接执行 (单 Task，无 Planning)
+    PLANNING = "planning"  # 计划执行 (多 Task DAG)
+
+
 class SSEEventType(str, Enum):
     """SSE 事件类型"""
     THINKING = "thinking"
@@ -42,6 +52,11 @@ class SSEEventType(str, Enum):
     TIMELINE_SCREENSHOT = "timeline_screenshot"
     TIMELINE_FINDING = "timeline_finding"
     TIMELINE_MILESTONE = "timeline_milestone"
+
+    # Reasoning Trace 事件 (推理可视化)
+    REASONING_DECISION = "reasoning.decision"            # AI 决策点
+    REASONING_ALTERNATIVE = "reasoning.alternative"      # 备选方案
+    REASONING_EVIDENCE = "reasoning.evidence"            # 支撑证据
 
     # Research Progress 事件 (研究进度透明化)
     RESEARCH_PHASE_CHANGE = "research.phase.change"      # 阶段切换

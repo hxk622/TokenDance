@@ -22,6 +22,9 @@ from typing import Any
 
 from app.agent.context_manager import ContextManager
 from app.agent.context_manager import Message as CtxMessage
+
+# Unified Execution Architecture
+from app.agent.execution_context import ExecutionContext
 from app.agent.executor import ToolCallExecutor
 from app.agent.failure import (
     ExitCode,
@@ -36,7 +39,7 @@ from app.agent.feedback.loop import FeedbackLoop
 from app.agent.hybrid_execution_prompts import (
     HYBRID_EXECUTION_SYSTEM_PROMPT,
 )
-from app.agent.llm.base import BaseLLM, LLMMessage, LLMResponse
+from app.agent.llm.base import BaseLLM, LLMResponse
 
 # Distributed memory & feedback
 from app.agent.long_memory.distributed import DistributedMemory, Lesson
@@ -69,8 +72,9 @@ from app.agent.state import (
 
 # Strategy adaptation
 from app.agent.strategy.adaptation import StrategyAdaptation
+from app.agent.task_executor import TaskExecutor, TaskExecutorConfig
 from app.agent.tools.registry import ToolRegistry
-from app.agent.types import SSEEvent, SSEEventType
+from app.agent.types import ExecutionMode, SSEEvent, SSEEventType
 from app.agent.working_memory.three_files import ThreeFilesManager
 from app.context.unified_context import (
     ExecutionStatus,
@@ -233,6 +237,20 @@ class AgentEngine:
         self.plan_reciter = PlanReciter()
         self.plan_event_emitter = PlanEventEmitter()
         self._current_plan: Plan | None = None
+
+        # =================================================================
+        # 统一执行架构: TaskExecutor
+        # 所有执行模式 (Direct/Planning) 都通过 TaskExecutor 执行单个 Task
+        # =================================================================
+        self.task_executor = TaskExecutor(
+            llm=llm,
+            tool_executor=self.executor,
+            failure_observer=self.failure_observer,
+            config=TaskExecutorConfig(
+                max_iterations=10,
+                timeout_seconds=300.0,
+            ),
+        )
 
         # -----------------------------------------------------------------
         # Policies: 动态迭代 / Context 压缩 / Token 预算
@@ -1185,6 +1203,184 @@ class AgentEngine:
         return "\n".join(parts)
 
     # =========================================================================
+    # 统一执行入口 (Unified Execution Architecture)
+    # =========================================================================
+
+    async def execute(
+        self,
+        query: str,
+        mode: ExecutionMode = ExecutionMode.AUTO,
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        统一执行入口
+
+        这是推荐的调用方式，内部根据任务特征自动选择执行模式。
+
+        Args:
+            query: 用户输入
+            mode: 执行模式 (AUTO/DIRECT/PLANNING)
+
+        Yields:
+            SSEEvent: SSE 事件流
+
+        Example:
+            ```python
+            async for event in engine.execute("Search for Python tutorials"):
+                print(event.type, event.data)
+            ```
+        """
+        logger.info(f"=== Unified Execute Started (mode={mode.value}) ===")
+        logger.info(f"Query: {query}")
+
+        try:
+            # Step 1: 路由决策 - Skill / MCP / Agent
+            if self.enable_skills and self.execution_router:
+                routing = await self.execution_router.route(query)
+                logger.info(f"Routing decision: {routing.path.value} (confidence={routing.confidence:.2f})")
+
+                if routing.path == ExecutionPath.SKILL:
+                    # Path A: Skill 执行
+                    async for event in self._execute_skill_unified(query, routing):
+                        yield event
+                    return
+
+                if routing.path == ExecutionPath.MCP_CODE:
+                    # Path B: MCP 代码执行 (待实现)
+                    logger.warning("MCP code execution not yet implemented, falling back to Agent")
+
+            # Step 2: 选择 Agent 执行模式
+            if mode == ExecutionMode.AUTO:
+                mode = self._decide_execution_mode(query)
+                logger.info(f"Auto-selected mode: {mode.value}")
+
+            # Step 3: 执行
+            if mode == ExecutionMode.PLANNING:
+                async for event in self._execute_with_planning(query):
+                    yield event
+            else:
+                async for event in self._execute_direct(query):
+                    yield event
+
+        except Exception as e:
+            logger.error(f"Execute error: {e}", exc_info=True)
+            yield SSEEvent(
+                type=SSEEventType.ERROR,
+                data={"message": str(e), "type": e.__class__.__name__}
+            )
+
+    def _decide_execution_mode(self, query: str) -> ExecutionMode:
+        """
+        自动决定执行模式
+
+        规则:
+        1. 包含调研/分析/研究/报告等关键词 → PLANNING
+        2. 简单问答或单步操作 → DIRECT
+        """
+        planning_keywords = [
+            "分析", "研究", "报告", "对比", "调研", "总结",
+            "整理", "策划", "设计", "开发",
+            "analyze", "research", "report", "compare", "summarize",
+            "plan", "design", "develop", "build"
+        ]
+        if any(kw in query.lower() for kw in planning_keywords):
+            return ExecutionMode.PLANNING
+
+        # 如果查询较长，可能是复杂任务
+        if len(query) > 200:
+            return ExecutionMode.PLANNING
+
+        return ExecutionMode.DIRECT
+
+    async def _execute_direct(self, query: str) -> AsyncGenerator[SSEEvent, None]:
+        """
+        直接执行模式 (单 Task，无 Planning)
+
+        适用于简单、单步任务。
+        内部创建一个隐式 Task，使用 TaskExecutor 执行。
+
+        Args:
+            query: 用户查询
+
+        Yields:
+            SSEEvent: 执行事件
+        """
+        logger.info("=== Direct Execution Mode ===")
+
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={"phase": "direct", "message": "开始执行..."}
+        )
+
+        # 创建一个隐式 Task
+        task = Task(
+            id="direct_task",
+            title="Execute user request",
+            description=query,
+            acceptance_criteria="User's question is answered or request is fulfilled",
+        )
+
+        # 创建执行上下文
+        context = ExecutionContext(
+            session_id=self.session_id,
+            workspace_id=self.workspace_id,
+        )
+        context.add_user_message(query)
+
+        # 使用 TaskExecutor 流式执行
+        async for event in self.task_executor.execute_stream(task, context):
+            # 转发事件
+            yield event
+
+            # 处理完成事件
+            if event.type == SSEEventType.DONE:
+                data = event.data or {}
+                if data.get("status") == "success":
+                    logger.info("Direct execution completed successfully")
+                else:
+                    logger.warning(f"Direct execution ended: {data.get('status')}")
+
+    async def _execute_skill_unified(
+        self,
+        query: str,
+        routing: Any,
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """统一的 Skill 执行路径"""
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={"phase": "skill", "message": "正在执行 Skill..."}
+        )
+
+        try:
+            result = await self._execute_skill_path(query)
+            if result and result.get("status") == "success":
+                yield SSEEvent(
+                    type=SSEEventType.CONTENT,
+                    data={"content": result.get("instructions", "")}
+                )
+                yield SSEEvent(
+                    type=SSEEventType.DONE,
+                    data={"status": "success", "path": "skill"}
+                )
+            else:
+                # Skill 失败，回退到 Direct 模式
+                logger.warning("Skill execution failed, falling back to Direct mode")
+                async for event in self._execute_direct(query):
+                    yield event
+        except Exception as e:
+            logger.error(f"Skill execution error: {e}")
+            async for event in self._execute_direct(query):
+                yield event
+
+    async def _execute_with_planning(self, query: str) -> AsyncGenerator[SSEEvent, None]:
+        """
+        Planning 执行模式 (多 Task DAG)
+
+        等同于 run_stream_with_planning，但作为内部方法。
+        """
+        async for event in self.run_stream_with_planning(query):
+            yield event
+
+    # =========================================================================
     # Planning-Based Execution (统一架构)
     # =========================================================================
 
@@ -1421,9 +1617,9 @@ class AgentEngine:
 
     async def _execute_task_core(self, task: Task) -> str:
         """
-        任务执行核心逻辑
+        任务执行核心逻辑 - 使用 TaskExecutor
 
-        这是"LLM 只负责如何完成这个原子任务"的体现
+        改进: 不再只调用一次 LLM，而是通过 TaskExecutor 执行完整的工具调用循环
 
         Args:
             task: 要执行的任务
@@ -1431,49 +1627,26 @@ class AgentEngine:
         Returns:
             str: 任务执行输出
         """
-        # 生成 Plan Recitation
-        assert self._current_plan is not None, "Plan must be initialized"
-        recitation = self.plan_reciter.generate(self._current_plan, self.scheduler)
-
-        # 构建任务执行 Prompt
-        prompt = f"""Please complete the following task:
-
-## Task: {task.title}
-
-{task.description}
-
-## Acceptance Criteria:
-{task.acceptance_criteria or "Complete the task as described."}
-
-## Suggested Tools:
-{', '.join(task.tools_hint) if task.tools_hint else "Use your best judgment."}
-
----
-{recitation}
----
-
-Please complete this task now. Focus ONLY on this specific task."""
-
-        system_prompt = f"""You are an AI assistant executing a specific task within a larger plan.
-
-Your current task is: {task.title}
-
-Rules:
-1. Focus ONLY on completing this specific task
-2. Do NOT try to do other tasks or plan ahead
-3. Use the suggested tools if available
-4. Complete the task according to the acceptance criteria
-5. Be concise and efficient
-
-If you cannot complete the task, explain why clearly."""
-
-        # 调用 LLM
-        response = await self.llm.complete(
-            messages=[LLMMessage(role="user", content=prompt)],
-            system=system_prompt,
+        # 创建执行上下文
+        context = ExecutionContext(
+            session_id=self.session_id,
+            workspace_id=self.workspace_id,
+            current_plan=self._current_plan,
         )
 
-        return response.content
+        # 注入 Plan Recitation 到上下文
+        if self._current_plan:
+            recitation = self.plan_reciter.generate(self._current_plan, self.scheduler)
+            context.add_system_message(f"Current Plan Status:\n{recitation}")
+
+        # 使用 TaskExecutor 执行任务 (包含完整的工具调用循环)
+        result = await self.task_executor.execute(task, context)
+
+        if result.is_success():
+            return result.output
+        else:
+            # 任务失败，抛出异常以触发重规划逻辑
+            raise RuntimeError(result.error or "Task execution failed")
 
     async def _handle_replan(
         self,
