@@ -1,8 +1,12 @@
 """
 Session API endpoints.
+
+DEPRECATED: This API will be replaced by Project API in a future version.
+Please migrate to /api/v1/projects for new development.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -25,26 +29,46 @@ from app.services.session_service import SessionService
 
 router = APIRouter()
 
+# Deprecation warning header for all session endpoints
+DEPRECATION_WARNING = (
+    "This API is deprecated and will be removed in v2.0. "
+    "Please migrate to /api/v1/projects. "
+    "See docs/migration/session-to-project.md for details."
+)
+
+
+def add_deprecation_header(response: Response) -> None:
+    """Add deprecation warning header to response."""
+    response.headers["Deprecation"] = "true"
+    response.headers["X-Deprecation-Notice"] = DEPRECATION_WARNING
+    response.headers["Link"] = '</api/v1/projects>; rel="successor-version"'
+
 
 def get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:
     """Dependency to get SessionService instance."""
     return SessionService(db)
 
 
-@router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SessionResponse, status_code=http_status.HTTP_201_CREATED)
 async def create_session(
     data: SessionCreate,
+    response: Response,
     current_user: User = Depends(get_current_user),
     permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
-    """Create a new session."""
+    """Create a new session.
+    
+    DEPRECATED: Use POST /api/v1/projects instead.
+    """
+    add_deprecation_header(response)
+    
     # Check if user can create session in this workspace
     try:
         await permission_service.can_create_session(current_user, data.workspace_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -53,6 +77,7 @@ async def create_session(
 
 @router.get("", response_model=SessionList)
 async def list_sessions(
+    response: Response,
     workspace_id: str = Query(..., description="Workspace ID"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -61,13 +86,17 @@ async def list_sessions(
     permission_service: PermissionService = Depends(get_permission_service),
     service: SessionService = Depends(get_session_service),
 ):
-    """List sessions for a workspace with pagination."""
+    """List sessions for a workspace with pagination.
+    
+    DEPRECATED: Use GET /api/v1/projects instead.
+    """
+    add_deprecation_header(response)
     # Check workspace access
     try:
         await permission_service.check_workspace_access(current_user, workspace_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -93,7 +122,7 @@ async def get_session(
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -101,7 +130,7 @@ async def get_session(
 
     if not session:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
@@ -122,7 +151,7 @@ async def update_session(
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -130,14 +159,14 @@ async def update_session(
 
     if not session:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
     return session
 
 
-@router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{session_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 async def delete_session(
     session_id: str,
     current_user: User = Depends(get_current_user),
@@ -150,7 +179,7 @@ async def delete_session(
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -158,7 +187,7 @@ async def delete_session(
 
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
@@ -176,7 +205,7 @@ async def complete_session(
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -184,7 +213,7 @@ async def complete_session(
 
     if not session:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
@@ -205,7 +234,7 @@ async def get_session_messages(
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -213,7 +242,7 @@ async def get_session_messages(
     session = await service.get_session(session_id)
     if not session:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
@@ -233,7 +262,7 @@ async def get_session_artifacts(
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from e
 
@@ -241,7 +270,7 @@ async def get_session_artifacts(
     session = await service.get_session(session_id)
     if not session:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
@@ -270,7 +299,7 @@ async def preflight_check(
     except ValueError as e:
         # No LLM API key configured
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e),
         ) from e
     except Exception as e:
