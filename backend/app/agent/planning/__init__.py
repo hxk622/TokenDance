@@ -1,22 +1,50 @@
 """
-Planning模块 - 计划管理
+Planning模块 - 统一任务规划层
 
-核心功能：
-- 原子化任务拆分（大任务→小任务）
-- Plan验证和修订
-- 与三文件工作法集成
-- Plan Recitation（目标背诵）
+核心组件：
+- Task, Plan: 数据结构 (与前端 WorkflowGraph 对齐)
+- TaskScheduler: DAG 调度器 (流程控制权归代码)
+- AtomicPlanner: LLM 生成 Plan (内容生成权归模型)
+- PlanReciter: Plan Recitation 防止遗忘
 
 设计原则：
 - 大模型在"宏观逻辑"上60%成功率，在"微观动作"上99.9%成功率
 - 工程核心：把1个60%成功率的大任务切碎成100个99.9%成功率的小任务
+- 流程控制权归代码，内容生成权归模型
 """
 
-from .plan_manager import Plan, PlanManager, Task, TaskStatus
+# 核心数据结构
+# SSE 事件
+from .events import PlanEventEmitter
+
+# 旧接口兼容 (deprecated)
+from .plan_manager import PlanManager
+
+# 规划器
+from .planner import AtomicPlanner, SimplePlanBuilder
+
+# Plan Recitation
+from .reciter import PlanReciter
+
+# 调度器
+from .scheduler import TaskScheduler
+from .task import Plan, ReplanDecision, Task, TaskStatus
 
 __all__ = [
-    "PlanManager",
+    # 核心数据结构
     "Task",
-    "Plan",
     "TaskStatus",
+    "Plan",
+    "ReplanDecision",
+    # 调度器
+    "TaskScheduler",
+    # Recitation
+    "PlanReciter",
+    # 规划器
+    "AtomicPlanner",
+    "SimplePlanBuilder",
+    # SSE 事件
+    "PlanEventEmitter",
+    # 旧接口
+    "PlanManager",
 ]

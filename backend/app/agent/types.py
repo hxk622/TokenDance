@@ -28,6 +28,14 @@ class SSEEventType(str, Enum):
     DONE = "done"
     ERROR = "error"
 
+    # ========== Plan 事件 (与前端 WorkflowGraph 同步) ==========
+    PLAN_CREATED = "plan.created"          # Plan 创建，推送整个 DAG
+    PLAN_REVISED = "plan.revised"          # Plan 重规划，推送新 DAG
+    TASK_UPDATE = "task.update"            # 单个 Task 状态变更
+    TASK_START = "task.start"              # Task 开始执行
+    TASK_COMPLETE = "task.complete"        # Task 执行完成
+    TASK_FAILED = "task.failed"            # Task 执行失败
+
     # Timeline 事件 (时光长廊)
     TIMELINE_SEARCH = "timeline_search"
     TIMELINE_READ = "timeline_read"

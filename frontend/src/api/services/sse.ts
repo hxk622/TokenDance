@@ -29,16 +29,26 @@ export enum SSEEventType {
   AGENT_MESSAGE = 'agent_message',
   AGENT_ERROR = 'agent_error',
   
-  // Workflow planning events (task decomposition)
+  // Workflow planning events (task decomposition) - Legacy
   PLAN_CREATED = 'plan_created',
   NODE_CREATED = 'node_created',
   EDGE_CREATED = 'edge_created',
   PLAN_FINALIZED = 'plan_finalized',
 
-  // Workflow node execution events
+  // Workflow node execution events - Legacy
   NODE_STARTED = 'node_started',
   NODE_COMPLETED = 'node_completed',
   NODE_FAILED = 'node_failed',
+  
+  // ========== NEW: Plan events (与后端 PlanningLayer 对齐) ==========
+  // Plan 创建/修订
+  PLAN_DAG_CREATED = 'plan.created',      // 推送整个 Task DAG
+  PLAN_DAG_REVISED = 'plan.revised',      // 重规划，推送新 DAG
+  // Task 状态变更
+  TASK_UPDATE = 'task.update',            // 通用更新
+  TASK_START = 'task.start',              // 开始执行
+  TASK_COMPLETE = 'task.complete',        // 执行完成
+  TASK_FAILED = 'task.failed',            // 执行失败
   
   // File events
   FILE_CREATED = 'file_created',
