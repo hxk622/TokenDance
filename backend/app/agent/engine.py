@@ -73,6 +73,7 @@ from app.agent.state import (
 # Strategy adaptation
 from app.agent.strategy.adaptation import StrategyAdaptation
 from app.agent.task_executor import TaskExecutor, TaskExecutorConfig
+from app.agent.tools.init_tools import register_builtin_tools
 from app.agent.tools.registry import ToolRegistry
 from app.agent.types import ExecutionMode, SSEEvent, SSEEventType
 from app.agent.working_memory.three_files import ThreeFilesManager
@@ -161,8 +162,9 @@ class AgentEngine:
         self.max_iterations = max_iterations
         self.enable_skills = enable_skills
 
-        # 初始化工具注册表
+        # 初始化工具注册表并注册内置工具
         self.tool_registry = ToolRegistry()
+        self._register_tools(filesystem)
 
         # 初始化三文件管理器
         self.three_files = ThreeFilesManager(filesystem=filesystem, session_id=session_id)
@@ -274,6 +276,14 @@ class AgentEngine:
             f"Agent Engine initialized for session {session_id} "
             f"(skills={enable_skills}, state_machine=enabled, dynamic_policies=on)"
         )
+
+    def _register_tools(self, filesystem: AgentFileSystem) -> None:
+        """注册所有内置工具"""
+        try:
+            registered_tools = register_builtin_tools(self.tool_registry)
+            logger.info(f"Registered {len(registered_tools)} builtin tools")
+        except Exception as e:
+            logger.error(f"Failed to register builtin tools: {e}")
 
     def _init_skill_system(self) -> None:
         """初始化 Skill 系统组件"""

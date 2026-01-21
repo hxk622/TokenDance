@@ -51,7 +51,7 @@ export interface SlideContent {
   notes?: string
   chart_type?: ChartType
   chart_data?: ChartData
-  mermaid_code?: string
+  drawio_xml?: string  // draw.io XML 格式图表 (替代 mermaid)
   image_url?: string
   image_caption?: string
   layout?: string

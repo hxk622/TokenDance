@@ -198,6 +198,67 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         return response
 
 
+async def check_unmigrated_sessions() -> None:
+    """Check for Sessions that haven't been migrated to Project-First architecture.
+
+    This is a warning-only check - it won't block startup or auto-migrate.
+    Operators should manually run the migration script when ready.
+    """
+    from sqlalchemy import func, select
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.core.database import async_session_maker
+    from app.models.conversation import Conversation
+    from app.models.session import Session
+
+    try:
+        async with async_session_maker() as session:
+            session: AsyncSession
+
+            # Count total Sessions
+            total_sessions_result = await session.execute(
+                select(func.count(Session.id))
+            )
+            total_sessions = total_sessions_result.scalar() or 0
+
+            if total_sessions == 0:
+                return  # No Sessions, nothing to migrate
+
+            # Count Conversations that were migrated from Sessions
+            # (they have migrated_from_session_id in extra_data)
+            migrated_result = await session.execute(
+                select(func.count(Conversation.id)).where(
+                    Conversation.extra_data["migrated_from_session_id"].isnot(None)
+                )
+            )
+            migrated_count = migrated_result.scalar() or 0
+
+            unmigrated_count = total_sessions - migrated_count
+
+            if unmigrated_count > 0:
+                logger.warning(
+                    "unmigrated_sessions_detected",
+                    total_sessions=total_sessions,
+                    migrated_sessions=migrated_count,
+                    unmigrated_sessions=unmigrated_count,
+                    action_required="Run migration script: python scripts/migrate_session_to_project.py",
+                    docs="See docs/migration/session-to-project.md for details",
+                )
+            else:
+                logger.info(
+                    "session_migration_complete",
+                    total_sessions=total_sessions,
+                    all_migrated=True,
+                )
+    except Exception as e:
+        # Don't fail startup if check fails - just log and continue
+        logger.warning(
+            "migration_check_failed",
+            error=str(e),
+            message="Could not check for unmigrated Sessions. This is non-blocking.",
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan events."""
@@ -259,6 +320,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.core.redis import close_redis, init_redis
     await init_redis()
     logger.info("redis_connection_pool_initialized")
+
+    # Check for unmigrated Sessions (Project-First migration)
+    await check_unmigrated_sessions()
 
     yield
 

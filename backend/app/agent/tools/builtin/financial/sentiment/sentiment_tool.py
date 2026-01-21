@@ -96,14 +96,17 @@ class SentimentTool:
         "guba": GubaCrawler,
     }
 
-    def __init__(self, anthropic_api_key: str | None = None):
+    def __init__(self, model: str | None = None):
         """
         Initialize sentiment tool.
 
         Args:
-            anthropic_api_key: API key for Claude. If None, uses keyword analysis.
+            model: OpenRouter model to use. If None, uses default model.
         """
-        self.analyzer = SentimentAnalyzer(api_key=anthropic_api_key)
+        if model:
+            self.analyzer = SentimentAnalyzer(model=model)
+        else:
+            self.analyzer = SentimentAnalyzer()
         self.compliance = get_compliance_checker()
         self._crawlers: dict[str, Any] = {}
 

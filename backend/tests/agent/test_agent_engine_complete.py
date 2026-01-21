@@ -36,20 +36,20 @@ def session_id():
 @pytest.fixture
 def filesystem(workspace_id):
     """初始化文件系统"""
-    base_dir = Path("/tmp/tokendance_test")
-    base_dir.mkdir(exist_ok=True, parents=True)
+    workspace_root = Path("/tmp/tokendance_test")
+    workspace_root.mkdir(exist_ok=True, parents=True)
 
     fs = AgentFileSystem(
+        workspace_root=str(workspace_root),
         workspace_id=workspace_id,
-        base_dir=str(base_dir)
     )
 
     yield fs
 
     # 清理测试文件
     import shutil
-    if base_dir.exists():
-        shutil.rmtree(base_dir)
+    if workspace_root.exists():
+        shutil.rmtree(workspace_root)
 
 
 @pytest.fixture
@@ -263,13 +263,13 @@ if __name__ == "__main__":
     # 创建临时环境
     workspace_id = "manual_test_workspace"
     session_id = "manual_test_session"
-    base_dir = Path("/tmp/tokendance_manual_test")
-    base_dir.mkdir(exist_ok=True, parents=True)
+    workspace_root = Path("/tmp/tokendance_manual_test")
+    workspace_root.mkdir(exist_ok=True, parents=True)
 
     # 初始化组件
     filesystem = AgentFileSystem(
+        workspace_root=str(workspace_root),
         workspace_id=workspace_id,
-        base_dir=str(base_dir)
     )
 
     llm = OpenRouterLLM(
@@ -304,4 +304,4 @@ if __name__ == "__main__":
     # 运行交互式循环
     asyncio.run(interactive_test())
 
-    print("\n测试完成！文件位于:", base_dir)
+    print("\n测试完成！文件位于:", workspace_root)

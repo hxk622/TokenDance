@@ -203,6 +203,19 @@ For complex tasks, use these files in `docs/milestone/current/`:
 - ✅ Transitions: 200-300ms ease
 - ✅ Reference: Linear, Notion, Vercel
 
+## Diagram/Chart Constraints (图表规范)
+
+**禁止 (DO NOT):**
+- ❌ **Mermaid** - 禁止使用 Mermaid 语法生成图表，太丑、太 AI、审美疲劳
+- ❌ ASCII 流程图 - 不专业
+
+**要求 (DO):**
+- ✅ **draw.io** - 使用 draw.io (mxGraph) XML 格式生成专业图表
+- ✅ **DiagramTool** - 后端调用 `generate_diagram` 工具
+- ✅ **DrawioViewer** - 前端使用 `DrawioViewer.vue` 组件渲染
+- ✅ 支持类型: 流程图、架构图、时序图、ER图、云架构图
+- ✅ 数据图表用 **ECharts** (KLineChart, CombinedChart)
+
 ## Key Documents (必读)
 
 | Document | Content |

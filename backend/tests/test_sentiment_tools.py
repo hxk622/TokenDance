@@ -195,7 +195,7 @@ class TestSentimentAnalyzer:
 
     def test_keyword_analysis(self):
         """Test keyword-based sentiment analysis."""
-        analyzer = SentimentAnalyzer(api_key=None)  # No API key = keyword mode
+        analyzer = SentimentAnalyzer()  # No API key in env = keyword mode
 
         posts = [
             SentimentPost(
@@ -224,7 +224,7 @@ class TestSentimentAnalyzer:
 
     def test_keyword_weights(self):
         """Test that keyword matching works."""
-        analyzer = SentimentAnalyzer(api_key=None)
+        analyzer = SentimentAnalyzer()  # No API key in env = keyword mode
 
         # Strong bullish
         posts_bullish = [

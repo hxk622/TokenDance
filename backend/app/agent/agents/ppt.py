@@ -80,8 +80,8 @@ class SlideContent:
     chart_type: ChartType | None = None
     chart_data: dict[str, Any] | None = None
 
-    # Mermaid 图表
-    mermaid_code: str | None = None
+    # draw.io 图表 (专业流程图/架构图)
+    drawio_xml: str | None = None
 
     # 图片相关
     image_url: str | None = None
@@ -122,10 +122,10 @@ class SlideContent:
         elif self.type == SlideType.DATA:
             lines.append(f"## {self.title}")
             lines.append("")
-            if self.mermaid_code:
-                lines.append("```mermaid")
-                lines.append(self.mermaid_code)
-                lines.append("```")
+            if self.drawio_xml:
+                # draw.io 图表通过前端 DrawioViewer 组件渲染
+                lines.append(f"<!-- drawio:{self.id} -->")
+                lines.append(f"<!-- drawio_xml: {self.drawio_xml[:100]}... -->")
             elif self.chart_data:
                 # 简化的表格展示
                 lines.append(self._render_chart_as_table())
@@ -545,7 +545,7 @@ Include:
 Use --- to separate slides.
 Keep each slide concise with 3-5 bullet points max.
 Use headers (##) for slide titles.
-Include Mermaid diagrams for processes or relationships.
+Use draw.io format for professional diagrams (flowcharts, architecture).
 
 Output ONLY the Markdown content."""
 
