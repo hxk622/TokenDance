@@ -205,18 +205,15 @@ async def check_unmigrated_sessions() -> None:
     Operators should manually run the migration script when ready.
     """
     from sqlalchemy import func, select
-    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.core.database import async_session_maker
     from app.models.conversation import Conversation
     from app.models.session import Session
 
     try:
-        async with async_session_maker() as session:
-            session: AsyncSession
-
+        async with async_session_maker() as db:
             # Count total Sessions
-            total_sessions_result = await session.execute(
+            total_sessions_result = await db.execute(
                 select(func.count(Session.id))
             )
             total_sessions = total_sessions_result.scalar() or 0
@@ -226,7 +223,7 @@ async def check_unmigrated_sessions() -> None:
 
             # Count Conversations that were migrated from Sessions
             # (they have migrated_from_session_id in extra_data)
-            migrated_result = await session.execute(
+            migrated_result = await db.execute(
                 select(func.count(Conversation.id)).where(
                     Conversation.extra_data["migrated_from_session_id"].isnot(None)
                 )
