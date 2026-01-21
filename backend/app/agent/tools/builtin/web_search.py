@@ -2,16 +2,27 @@
 Web Search 工具
 
 使用 DuckDuckGo 进行网页搜索（免费、无需 API Key）
+支持两种实现:
+1. duckduckgo-search 库 (默认)
+2. httpx + DuckDuckGo HTML API (备选, 解决 SSL 问题)
 """
 import asyncio
 import logging
+import re
 from typing import Any
+from urllib.parse import quote_plus
 
 try:
     from duckduckgo_search import DDGS
     DDGS_AVAILABLE = True
 except ImportError:
     DDGS_AVAILABLE = False
+
+try:
+    import httpx
+    HTTPX_AVAILABLE = True
+except ImportError:
+    HTTPX_AVAILABLE = False
 
 from ..base import BaseTool
 from ..risk import OperationCategory, RiskLevel
@@ -152,29 +163,121 @@ class WebSearchTool(BaseTool):
         Returns:
             List[Dict]: 搜索结果列表
         """
-        try:
-            with DDGS() as ddgs:
-                # 执行搜索
-                raw_results = ddgs.text(
-                    keywords=query,
-                    region=region,
-                    safesearch='moderate',
-                    max_results=max_results
-                )
+        # 尝试使用 DDGS
+        if DDGS_AVAILABLE:
+            try:
+                with DDGS() as ddgs:
+                    raw_results = ddgs.text(
+                        keywords=query,
+                        region=region,
+                        safesearch='moderate',
+                        max_results=max_results
+                    )
 
-                # 格式化结果
-                formatted_results = []
-                for result in raw_results:
-                    formatted_results.append({
-                        "title": result.get("title", ""),
-                        "link": result.get("href", ""),
-                        "snippet": result.get("body", "")
+                    formatted_results = []
+                    for result in raw_results:
+                        formatted_results.append({
+                            "title": result.get("title", ""),
+                            "link": result.get("href", ""),
+                            "snippet": result.get("body", "")
+                        })
+
+                    return formatted_results
+
+            except Exception as e:
+                logger.warning(f"DDGS search failed, trying httpx fallback: {e}")
+
+        # 备选: 使用 httpx 直接请求 DuckDuckGo HTML API
+        if HTTPX_AVAILABLE:
+            return self._search_with_httpx(query, max_results)
+
+        raise RuntimeError("No search backend available. Install duckduckgo-search or httpx.")
+
+    def _search_with_httpx(self, query: str, max_results: int) -> list:
+        """使用 httpx 搜索 DuckDuckGo HTML API
+
+        这是 DDGS 失败时的备选方案，绕过 primp 的 SSL 问题
+        """
+        try:
+            # DuckDuckGo HTML 搜索 URL
+            url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+
+            # 禁用 SSL 验证以解决某些环境的证书问题 (开发环境)
+            # 增加超时时间以处理慢速网络
+            timeout = httpx.Timeout(60.0, connect=30.0, read=60.0)
+            with httpx.Client(timeout=timeout, follow_redirects=True, verify=False) as client:
+                response = client.get(url, headers=headers)
+                response.raise_for_status()
+                html = response.text
+
+            # 解析 HTML 结果
+            results = []
+
+            # 匹配搜索结果块
+            result_pattern = re.compile(
+                r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([^<]+)</a>'
+                r'.*?<a[^>]+class="result__snippet"[^>]*>([^<]*)</a>',
+                re.DOTALL
+            )
+
+            # 备用模式: 更宽松的匹配
+            alt_pattern = re.compile(
+                r'<a[^>]+href="(https?://[^"]+)"[^>]*class="[^"]*result[^"]*"[^>]*>\s*'
+                r'<[^>]*>([^<]+)</[^>]*>',
+                re.DOTALL | re.IGNORECASE
+            )
+
+            # 尝试主模式
+            for match in result_pattern.finditer(html):
+                if len(results) >= max_results:
+                    break
+                link, title, snippet = match.groups()
+                # 清理 HTML 实体
+                title = re.sub(r'<[^>]+>', '', title).strip()
+                snippet = re.sub(r'<[^>]+>', '', snippet).strip()
+                if link and title:
+                    results.append({
+                        "title": title,
+                        "link": link,
+                        "snippet": snippet
                     })
 
-                return formatted_results
+            # 如果主模式没有结果，尝试备用模式
+            if not results:
+                # 更简单的模式: 提取所有链接
+                link_pattern = re.compile(
+                    r'<a[^>]+class="[^"]*result__url[^"]*"[^>]+href="([^"]+)"[^>]*>',
+                    re.IGNORECASE
+                )
+                title_pattern = re.compile(
+                    r'<a[^>]+class="[^"]*result__a[^"]*"[^>]*>([^<]+)</a>',
+                    re.IGNORECASE
+                )
+                snippet_pattern = re.compile(
+                    r'<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([^<]+)</a>',
+                    re.IGNORECASE
+                )
+
+                links = link_pattern.findall(html)
+                titles = title_pattern.findall(html)
+                snippets = snippet_pattern.findall(html)
+
+                for i in range(min(len(titles), max_results)):
+                    results.append({
+                        "title": titles[i] if i < len(titles) else "",
+                        "link": links[i] if i < len(links) else "",
+                        "snippet": snippets[i] if i < len(snippets) else ""
+                    })
+
+            logger.info(f"httpx fallback found {len(results)} results")
+            return results
 
         except Exception as e:
-            logger.error(f"DuckDuckGo search error: {e}")
+            logger.error(f"httpx search failed: {e}")
             raise
 
     def format_result(self, result: dict[str, Any]) -> str:

@@ -230,7 +230,8 @@ class ReadUrlTool(BaseTool):
             headers["Authorization"] = f"Bearer {JINA_API_KEY}"
 
         try:
-            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+            # 禁用 SSL 验证以解决开发环境证书问题
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True, verify=False) as client:
                 response = await client.get(jina_url, headers=headers)
                 response.raise_for_status()
 
@@ -465,7 +466,8 @@ class ReadUrlTool(BaseTool):
         Returns:
             str: HTML 内容
         """
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        # 禁用 SSL 验证以解决开发环境证书问题
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             response = await client.get(
                 url,
                 headers={
