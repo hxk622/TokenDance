@@ -234,6 +234,15 @@ TODO: Define your task goal here (1-2 sentences)
 
         return False
 
+    async def write_findings(self, title: str, content: str) -> None:
+        """Write research findings (alias for append_finding)
+
+        Args:
+            title: Finding title
+            content: Finding content
+        """
+        await self.append_finding(title, content)
+
     def reset_action_counter(self) -> None:
         """重置动作计数器"""
         self.action_counter = 0

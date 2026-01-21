@@ -21,8 +21,10 @@ class SSEEventType(str, Enum):
     THINKING = "thinking"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
+    TOOL_ERROR = "tool_error"      # 工具执行错误
     CONTENT = "content"
     CONFIRM_REQUIRED = "confirm_required"
+    STATUS = "status"              # 状态信息
     DONE = "done"
     ERROR = "error"
 
