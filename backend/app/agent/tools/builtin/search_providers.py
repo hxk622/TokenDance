@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class SearchProviderType(Enum):
     """搜索提供者类型"""
     DUCKDUCKGO = "duckduckgo"
-    BRAVE = "brave"
+    TAVILY = "tavily"
     SERPER = "serper"
     BING = "bing"
 
@@ -113,49 +113,56 @@ class DuckDuckGoProvider(BaseSearchProvider):
             ]
 
 
-class BraveSearchProvider(BaseSearchProvider):
-    """Brave Search 提供者"""
+class TavilyProvider(BaseSearchProvider):
+    """Tavily 搜索提供者 - 专为 AI 设计
 
-    provider_type = SearchProviderType.BRAVE
+    优点:
+    - 专为 AI/LLM 应用设计，结果质量高
+    - 提供摘要和答案提取
+    - 免费额度 1000 次/月
+    """
+
+    provider_type = SearchProviderType.TAVILY
 
     def __init__(self):
-        self.api_key = os.getenv("BRAVE_SEARCH_API_KEY")
+        self.api_key = os.getenv("TAVILY_API_KEY")
         self._available = bool(self.api_key)
 
-        if not self._available:
-            logger.debug("Brave Search API key not configured")
+        if self._available:
+            logger.info("Tavily provider enabled (TAVILY_API_KEY configured)")
+        else:
+            logger.debug("Tavily API key not configured")
 
     def is_available(self) -> bool:
         return self._available
 
     async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
         if not self._available:
-            raise RuntimeError("Brave Search provider not available")
+            raise RuntimeError("Tavily provider not available")
 
         import httpx
 
         # 使用系统代理 (trust_env=True), 开发环境禁用 SSL 验证
         async with httpx.AsyncClient(timeout=30.0, trust_env=True, verify=False) as client:
-            response = await client.get(
-                "https://api.search.brave.com/res/v1/web/search",
-                params={
-                    "q": query,
-                    "count": max_results
-                },
-                headers={
-                    "Accept": "application/json",
-                    "X-Subscription-Token": self.api_key
+            response = await client.post(
+                "https://api.tavily.com/search",
+                json={
+                    "api_key": self.api_key,
+                    "query": query,
+                    "max_results": max_results,
+                    "include_answer": False,
+                    "include_raw_content": False
                 }
             )
             response.raise_for_status()
             data = response.json()
 
             results = []
-            for item in data.get("web", {}).get("results", [])[:max_results]:
+            for item in data.get("results", [])[:max_results]:
                 results.append(SearchResult(
                     title=item.get("title", ""),
                     link=item.get("url", ""),
-                    snippet=item.get("description", ""),
+                    snippet=item.get("content", ""),
                     source=self.provider_type
                 ))
 
@@ -239,10 +246,10 @@ class MultiSourceSearcher:
             parallel: 是否并行搜索所有源
         """
         if providers is None:
-            # 优先级: Serper (最稳定) > Brave > DuckDuckGo (可能被阻断)
+            # 优先级: Serper (最稳定) > Tavily (AI专用) > DuckDuckGo (可能被阻断)
             providers = [
                 SerperProvider(),       # 1st: Google 结果，API 服务稳定
-                BraveSearchProvider(),  # 2nd: 独立搜索引擎
+                TavilyProvider(),       # 2nd: 专为 AI 设计，质量高
                 DuckDuckGoProvider()    # 3rd: 免费但可能被网络阻断
             ]
 
