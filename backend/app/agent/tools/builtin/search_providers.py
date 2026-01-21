@@ -22,9 +22,24 @@ from urllib.parse import quote_plus, unquote, parse_qs, urlparse
 
 logger = logging.getLogger(__name__)
 
-# 代理配置: 优先从环境变量读取，否则使用 ClashX 默认端口
-# 这不会影响 Warp 终端（它有自己的环境变量）
-SEARCH_PROXY_URL = os.getenv("SEARCH_PROXY_URL", "http://127.0.0.1:7890")
+
+def get_proxy_url() -> str | None:
+    """获取代理 URL
+
+    优先级: HTTPS_PROXY > HTTP_PROXY > ALL_PROXY > 默认值
+    """
+    proxy = (
+        os.getenv("HTTPS_PROXY") or
+        os.getenv("https_proxy") or
+        os.getenv("HTTP_PROXY") or
+        os.getenv("http_proxy") or
+        os.getenv("ALL_PROXY") or
+        os.getenv("all_proxy")
+    )
+    if proxy:
+        return proxy
+    # 默认值 (ClashX)
+    return "http://127.0.0.1:7890"
 
 
 class SearchProviderType(Enum):
@@ -92,7 +107,7 @@ class DuckDuckGoProvider(BaseSearchProvider):
             logger.warning("httpx not installed, DuckDuckGo provider unavailable")
 
         self._available = self._httpx_available
-        self._proxy_url = SEARCH_PROXY_URL
+        self._proxy_url = get_proxy_url()
 
         if self._available:
             logger.info(f"DuckDuckGo provider enabled (proxy: {self._proxy_url})")
@@ -134,12 +149,13 @@ class DuckDuckGoProvider(BaseSearchProvider):
         # 匹配搜索结果块
         # DuckDuckGo HTML 结果格式: <a class="result__a" href="...">title</a>
         link_pattern = re.compile(
-            r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([^<]+)</a>',
-            re.IGNORECASE
+            r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>(.+?)</a>',
+            re.IGNORECASE | re.DOTALL
         )
+        # BUG FIX: 使用 .+? 而不是 [^<]*，因为 snippet 可能包含 <b> 等高亮标签
         snippet_pattern = re.compile(
-            r'<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([^<]*)</a>',
-            re.IGNORECASE
+            r'<a[^>]+class="result__snippet"[^>]*>(.+?)</a>',
+            re.IGNORECASE | re.DOTALL
         )
 
         links = link_pattern.findall(html)
@@ -147,7 +163,7 @@ class DuckDuckGoProvider(BaseSearchProvider):
 
         for i, (link, title) in enumerate(links[:max_results]):
             snippet = snippets[i] if i < len(snippets) else ""
-            # 清理 HTML 实体
+            # 清理 HTML 标签
             title = re.sub(r'<[^>]+>', '', title).strip()
             snippet = re.sub(r'<[^>]+>', '', snippet).strip()
 
@@ -328,11 +344,11 @@ class MultiSourceSearcher:
             parallel: 是否并行搜索所有源
         """
         if providers is None:
-            # 优先级: Serper (最稳定) > Tavily (AI专用) > DuckDuckGo (可能被阻断)
+            # 优先级: DuckDuckGo (免费) > Serper (Google) > Tavily (AI专用)
             providers = [
-                SerperProvider(),       # 1st: Google 结果，API 服务稳定
-                TavilyProvider(),       # 2nd: 专为 AI 设计，质量高
-                DuckDuckGoProvider()    # 3rd: 免费但可能被网络阻断
+                DuckDuckGoProvider(),   # 1st: 免费，通过代理访问
+                SerperProvider(),       # 2nd: Google 结果，API 服务稳定
+                TavilyProvider()        # 3rd: 专为 AI 设计，质量高
             ]
 
         self.providers = [p for p in providers if p.is_available()]

@@ -59,28 +59,6 @@ class ResearchService:
             return None
 
     @staticmethod
-    def load_timeline_from_storage(task_id: str) -> dict | None:
-        """Load research timeline from MinIO.
-
-        Args:
-            task_id: Research task ID
-
-        Returns:
-            Timeline dict or None if failed
-        """
-        storage = get_object_storage()
-        if not storage:
-            return None
-
-        try:
-            bucket = settings.MINIO_BUCKET_REPORTS
-            timeline_json = storage.get_text(bucket, f"{task_id}/timeline.json")
-            return json.loads(timeline_json)
-        except Exception as e:
-            logger.error(f"Failed to load timeline from MinIO for {task_id}: {e}")
-            return None
-
-    @staticmethod
     def load_findings_from_storage(task_id: str) -> dict | None:
         """Load research findings from MinIO.
 
