@@ -1255,8 +1255,10 @@ class AgentEngine:
                     return
 
                 if routing.path == ExecutionPath.MCP_CODE:
-                    # Path B: MCP 代码执行 (待实现)
-                    logger.warning("MCP code execution not yet implemented, falling back to Agent")
+                    # Path B: MCP 代码执行
+                    async for event in self._execute_mcp_code(query, routing):
+                        yield event
+                    return
 
             # Step 2: 选择 Agent 执行模式
             if mode == ExecutionMode.AUTO:
@@ -1380,6 +1382,160 @@ class AgentEngine:
             logger.error(f"Skill execution error: {e}")
             async for event in self._execute_direct(query):
                 yield event
+
+    async def _execute_mcp_code(
+        self,
+        query: str,
+        routing: Any,
+    ) -> AsyncGenerator[SSEEvent, None]:
+        """
+        MCP 代码执行路径
+
+        流程:
+        1. 让 LLM 生成代码
+        2. 使用 MCPCodeExecutor 在沙箱中执行
+        3. 返回结果
+
+        Args:
+            query: 用户查询
+            routing: 路由决策信息
+
+        Yields:
+            SSEEvent: 执行事件
+        """
+        from app.agent.llm.base import LLMMessage
+        from app.mcp.executor import ExecutionLanguage, ExecutionRequest
+
+        logger.info("=== MCP Code Execution Mode ===")
+
+        yield SSEEvent(
+            type=SSEEventType.STATUS,
+            data={"phase": "mcp_code", "message": "正在生成代码..."}
+        )
+
+        try:
+            # Step 1: 让 LLM 生成代码
+            code_gen_prompt = f"""You are a code generator. Generate Python code to accomplish the following task.
+
+Task: {query}
+
+Rules:
+1. Output ONLY the Python code, no explanation
+2. The code should print the final result to stdout
+3. Use only standard library and these packages: pandas, numpy, requests, bs4, json, csv
+4. Do NOT use: os, subprocess, sys, eval, exec, open (for security)
+5. Make the code self-contained and executable
+
+Output the code wrapped in ```python and ``` markers."""
+
+            yield SSEEvent(
+                type=SSEEventType.THINKING,
+                data={"content": "正在生成代码...\n"}
+            )
+
+            response = await self.llm.complete(
+                messages=[LLMMessage(role="user", content=code_gen_prompt)],
+                system="You are a code generator. Output only executable Python code.",
+            )
+
+            # 提取代码
+            code = self._extract_code_from_response(response.content)
+
+            if not code:
+                logger.warning("Failed to extract code from LLM response, falling back to Direct mode")
+                async for event in self._execute_direct(query):
+                    yield event
+                return
+
+            yield SSEEvent(
+                type=SSEEventType.TOOL_CALL,
+                data={
+                    "tool_name": "mcp_code_execute",
+                    "parameters": {"language": "python", "code_preview": code[:200] + "..." if len(code) > 200 else code}
+                }
+            )
+
+            # Step 2: 执行代码
+            yield SSEEvent(
+                type=SSEEventType.STATUS,
+                data={"phase": "mcp_code", "message": "正在执行代码..."}
+            )
+
+            request = ExecutionRequest(
+                code=code,
+                language=ExecutionLanguage.PYTHON,
+                timeout=30,
+                max_memory=512,
+            )
+
+            result = await self.mcp_executor.execute(request)
+
+            # Step 3: 返回结果
+            yield SSEEvent(
+                type=SSEEventType.TOOL_RESULT,
+                data={
+                    "tool_name": "mcp_code_execute",
+                    "success": result.status.value == "success",
+                    "result": result.output if result.status.value == "success" else None,
+                    "error": result.error if result.status.value != "success" else None,
+                    "execution_time": result.execution_time,
+                }
+            )
+
+            if result.status.value == "success":
+                yield SSEEvent(
+                    type=SSEEventType.CONTENT,
+                    data={"content": f"代码执行结果:\n```\n{result.output}\n```"}
+                )
+                yield SSEEvent(
+                    type=SSEEventType.DONE,
+                    data={"status": "success", "path": "mcp_code", "output": result.output}
+                )
+            else:
+                # 代码执行失败，回退到 Direct 模式
+                logger.warning(f"MCP code execution failed: {result.error}, falling back to Direct mode")
+                yield SSEEvent(
+                    type=SSEEventType.ERROR,
+                    data={"message": f"代码执行失败: {result.error}", "recoverable": True}
+                )
+                async for event in self._execute_direct(query):
+                    yield event
+
+        except Exception as e:
+            logger.error(f"MCP code execution error: {e}")
+            # 异常时回退到 Direct 模式
+            async for event in self._execute_direct(query):
+                yield event
+
+    def _extract_code_from_response(self, response: str) -> str | None:
+        """
+        从 LLM 响应中提取代码
+
+        Args:
+            response: LLM 响应文本
+
+        Returns:
+            提取的代码，如果未找到则返回 None
+        """
+        import re
+
+        # 尝试匹配 ```python ... ``` 格式
+        python_pattern = r"```python\s*\n(.*?)\n```"
+        match = re.search(python_pattern, response, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+
+        # 尝试匹配 ``` ... ``` 格式
+        generic_pattern = r"```\s*\n(.*?)\n```"
+        match = re.search(generic_pattern, response, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+
+        # 如果整个响应看起来像代码，直接返回
+        if response.strip().startswith(("import ", "from ", "def ", "class ", "#")):
+            return response.strip()
+
+        return None
 
     async def _execute_with_planning(self, query: str) -> AsyncGenerator[SSEEvent, None]:
         """
