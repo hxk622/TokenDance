@@ -14,14 +14,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_async_db
+from app.core.database import get_db
 from app.schemas.reasoning_trace import (
     ReasoningTrace,
     ReasoningTraceFeedback,
     ReasoningTraceList,
 )
+from app.schemas.interactive_report import (
+    InteractiveReport,
+    QuickAction,
+    QUICK_ACTIONS,
+    ReportSection,
+    RevisionRequest,
+    RevisionResult,
+    RevisionType,
+    SectionType,
+)
 from app.services.preference_learner import PreferenceLearner, get_preference_learner
 from app.services.reasoning_trace import get_reasoning_service
+from app.services.report_iterator import get_report_iterator
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +166,7 @@ async def submit_reasoning_feedback(
 )
 async def get_user_preferences(
     user_id: str,
-    db: Annotated[AsyncSession, Depends(get_async_db)]
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """获取用户的研究偏好设置"""
     learner = await get_preference_learner(db, user_id)
@@ -172,7 +183,7 @@ async def get_user_preferences(
 async def update_user_preferences(
     user_id: str,
     updates: PreferenceUpdateRequest,
-    db: Annotated[AsyncSession, Depends(get_async_db)]
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """更新用户的研究偏好设置"""
     learner = await get_preference_learner(db, user_id)
@@ -194,7 +205,7 @@ async def update_user_preferences(
 async def learn_from_interaction(
     user_id: str,
     event: InteractionEvent,
-    db: Annotated[AsyncSession, Depends(get_async_db)]
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """记录用户交互事件，用于隐式学习偏好"""
     learner = await get_preference_learner(db, user_id)
@@ -210,7 +221,7 @@ async def learn_from_interaction(
 )
 async def get_research_config(
     user_id: str,
-    db: Annotated[AsyncSession, Depends(get_async_db)]
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """获取基于用户偏好的研究配置参数"""
     learner = await get_preference_learner(db, user_id)
@@ -225,8 +236,8 @@ async def get_research_config(
 )
 async def add_trusted_domain(
     user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
     domain: str = Query(..., description="要信任的域名"),
-    db: Annotated[AsyncSession, Depends(get_async_db)]
 ):
     """添加域名到信任列表"""
     learner = await get_preference_learner(db, user_id)
@@ -246,8 +257,8 @@ async def add_trusted_domain(
 )
 async def add_blocked_domain(
     user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
     domain: str = Query(..., description="要屏蔽的域名"),
-    db: Annotated[AsyncSession, Depends(get_async_db)]
 ):
     """添加域名到屏蔽列表"""
     learner = await get_preference_learner(db, user_id)
@@ -263,8 +274,8 @@ async def add_blocked_domain(
 )
 async def remove_trusted_domain(
     user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
     domain: str = Query(..., description="要移除的域名"),
-    db: Annotated[AsyncSession, Depends(get_async_db)]
 ):
     """从信任列表移除域名"""
     learner = await get_preference_learner(db, user_id)
@@ -284,8 +295,8 @@ async def remove_trusted_domain(
 )
 async def remove_blocked_domain(
     user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
     domain: str = Query(..., description="要移除的域名"),
-    db: Annotated[AsyncSession, Depends(get_async_db)]
 ):
     """从屏蔽列表移除域名"""
     learner = await get_preference_learner(db, user_id)
@@ -297,3 +308,184 @@ async def remove_blocked_domain(
         await learner.update_explicit_preference({"blocked_domains": blocked})
     
     return {"status": "ok", "blocked_domains": blocked}
+
+
+# ==================== Interactive Report Endpoints ====================
+
+class CreateReportRequest(BaseModel):
+    """创建报告请求"""
+    session_id: str
+    title: str
+    query: str
+    sections: list[dict] = Field(default_factory=list)
+
+
+class ReviseRequest(BaseModel):
+    """修订请求"""
+    section_id: str
+    revision_type: str  # expand, simplify, evidence, rewrite
+    instruction: str | None = None
+
+
+class ApplyRevisionsRequest(BaseModel):
+    """应用修订请求"""
+    revisions: list[dict]
+    user_note: str | None = None
+
+
+@router.get(
+    "/reports/actions",
+    response_model=list[QuickAction],
+    summary="获取快速操作列表"
+)
+async def get_quick_actions():
+    """获取可用的报告快速操作"""
+    return QUICK_ACTIONS
+
+
+@router.post(
+    "/reports",
+    response_model=InteractiveReport,
+    summary="创建可交互报告"
+)
+async def create_report(request: CreateReportRequest):
+    """创建新的可交互报告"""
+    iterator = get_report_iterator()
+    
+    sections = []
+    for idx, s in enumerate(request.sections):
+        section = ReportSection(
+            id=s.get("id", f"section-{idx}"),
+            type=SectionType(s.get("type", "analysis")),
+            title=s.get("title", f"章节 {idx + 1}"),
+            content=s.get("content", ""),
+            sources=s.get("sources", []),
+        )
+        sections.append(section)
+    
+    report = iterator.create_report(
+        session_id=request.session_id,
+        title=request.title,
+        query=request.query,
+        sections=sections,
+    )
+    
+    return report
+
+
+@router.get(
+    "/reports/{report_id}",
+    response_model=InteractiveReport,
+    summary="获取报告"
+)
+async def get_report(report_id: str):
+    """获取指定报告"""
+    iterator = get_report_iterator()
+    report = iterator.get_report(report_id)
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    return report
+
+
+@router.get(
+    "/reports/{report_id}/sections",
+    response_model=list[ReportSection],
+    summary="获取报告当前版本章节"
+)
+async def get_report_sections(report_id: str):
+    """获取报告当前版本的所有章节"""
+    iterator = get_report_iterator()
+    sections = iterator.get_current_sections(report_id)
+    
+    if not sections:
+        raise HTTPException(status_code=404, detail="Report not found or has no sections")
+    
+    return sections
+
+
+@router.post(
+    "/reports/{report_id}/revise",
+    response_model=RevisionResult,
+    summary="修订章节"
+)
+async def revise_section(report_id: str, request: ReviseRequest):
+    """修订报告的单个章节"""
+    iterator = get_report_iterator()
+    
+    try:
+        revision = RevisionRequest(
+            section_id=request.section_id,
+            revision_type=RevisionType(request.revision_type),
+            instruction=request.instruction,
+        )
+        result = await iterator.revise_section(report_id, revision)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post(
+    "/reports/{report_id}/apply",
+    response_model=InteractiveReport,
+    summary="应用修订创建新版本"
+)
+async def apply_revisions(report_id: str, request: ApplyRevisionsRequest):
+    """应用修订结果，创建报告新版本"""
+    iterator = get_report_iterator()
+    
+    try:
+        results = []
+        for r in request.revisions:
+            result = RevisionResult(
+                section_id=r["section_id"],
+                original_content=r.get("original_content", ""),
+                revised_content=r["revised_content"],
+                revision_type=RevisionType(r["revision_type"]),
+                changes_summary=r.get("changes_summary", ""),
+                new_sources=r.get("new_sources", []),
+            )
+            results.append(result)
+        
+        report = await iterator.apply_revisions(
+            report_id, results, request.user_note
+        )
+        return report
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post(
+    "/reports/{report_id}/rollback/{version}",
+    response_model=InteractiveReport,
+    summary="回滚到指定版本"
+)
+async def rollback_report(report_id: str, version: int):
+    """回滚报告到指定版本"""
+    iterator = get_report_iterator()
+    
+    try:
+        report = iterator.rollback_version(report_id, version)
+        return report
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get(
+    "/reports/{report_id}/diff",
+    summary="获取版本差异"
+)
+async def get_version_diff(
+    report_id: str,
+    version_a: int = Query(..., ge=1, description="版本 A"),
+    version_b: int = Query(..., ge=1, description="版本 B"),
+):
+    """获取两个版本之间的差异"""
+    iterator = get_report_iterator()
+    
+    try:
+        diff = iterator.get_version_diff(report_id, version_a, version_b)
+        return diff
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

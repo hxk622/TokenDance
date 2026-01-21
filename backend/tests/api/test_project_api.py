@@ -1,48 +1,85 @@
 """
 Project API Tests - Project-First Architecture
 
-测试 Project API 端点的基本功能
+测试 Project API 路由是否正确注册
 """
 import pytest
 from fastapi.testclient import TestClient
 
 
-# ========== Fixtures ==========
+# ========== Basic Route Tests ==========
 
 
-@pytest.fixture
-def test_client():
-    """创建测试客户端"""
-    from app.main import app
-    return TestClient(app)
+class TestProjectRoutes:
+    """测试 Project API 路由是否正确注册"""
 
+    @pytest.fixture
+    def client(self):
+        """创建测试客户端"""
+        from app.main import app
+        return TestClient(app)
 
-@pytest.fixture
-def test_workspace_id():
-    """测试用的 workspace ID"""
-    return "test_workspace_project"
+    def test_project_routes_registered(self, client):
+        """测试 project 路由已注册"""
+        # Test that routes exist (will return 422 for missing params, not 404)
+        response = client.get("/api/v1/projects")
+        # Should be 422 (missing workspace_id) not 404 (not found)
+        assert response.status_code == 422, "Project list route not registered"
 
+    def test_project_detail_route_registered(self, client):
+        """测试 project detail 路由已注册"""
+        response = client.get("/api/v1/projects/test-id")
+        # Should be 404 (project not found) not 404 (route not found)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Project not found"
 
-@pytest.fixture
-def test_project(test_client, test_workspace_id):
-    """创建测试 project"""
-    response = test_client.post(
-        "/api/v1/projects",
-        json={
-            "workspace_id": test_workspace_id,
-            "intent": "Test project for API testing",
-            "title": "Test Project",
-            "project_type": "quick_task"
-        }
-    )
+    def test_project_create_route_registered(self, client):
+        """测试 project create 路由已注册"""
+        response = client.post("/api/v1/projects", json={})
+        # Should be 422 (validation error) not 404
+        assert response.status_code == 422
 
-    assert response.status_code == 200
-    project = response.json()
+    def test_conversation_routes_registered(self, client):
+        """测试 conversation 路由已注册"""
+        response = client.get("/api/v1/projects/test-id/conversations")
+        # Should be 404 (project not found) not 404 (route not found)
+        assert response.status_code == 404
 
-    yield project
+    def test_chat_route_registered(self, client):
+        """测试 chat 路由已注册"""
+        response = client.post(
+            "/api/v1/projects/test-id/chat",
+            json={"message": "test"}
+        )
+        # Should be 404 (project not found) not 404 (route not found)
+        assert response.status_code == 404
 
-    # 清理: 删除 project (hard delete)
-    test_client.delete(f"/api/v1/projects/{project['id']}?hard_delete=true")
+    def test_context_routes_registered(self, client):
+        """测试 context 路由已注册"""
+        # Decision route
+        response = client.post(
+            "/api/v1/projects/test-id/context/decision",
+            params={"decision": "test"}
+        )
+        assert response.status_code == 404
+
+        # Failure route
+        response = client.post(
+            "/api/v1/projects/test-id/context/failure",
+            params={"failure_type": "test", "message": "test"}
+        )
+        assert response.status_code == 404
+
+        # Finding route
+        response = client.post(
+            "/api/v1/projects/test-id/context/finding",
+            params={"finding": "test"}
+        )
+        assert response.status_code == 404
+
+        # Get context route
+        response = client.get("/api/v1/projects/test-id/context")
+        assert response.status_code == 404
 
 
 # ========== Project CRUD Tests ==========

@@ -12,7 +12,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db
+from app.core.database import get_db
 from app.models.project import ProjectStatus, ProjectType
 from app.schemas.conversation import (
     ChatMessage,
