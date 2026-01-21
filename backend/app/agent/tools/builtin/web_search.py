@@ -1,10 +1,11 @@
 """
 Web Search 工具
 
-使用 DuckDuckGo 进行网页搜索（免费、无需 API Key）
-支持两种实现:
-1. duckduckgo-search 库 (默认)
-2. httpx + DuckDuckGo HTML API (备选, 解决 SSL 问题)
+支持多搜索源自动降级:
+1. Serper (Google 结果, 需 API Key, 最稳定)
+2. Brave Search (需 API Key)
+3. DuckDuckGo (免费, 无需 API Key)
+4. httpx 备选 (解决 SSL 问题)
 """
 import asyncio
 import logging
@@ -23,6 +24,13 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
+
+# 导入多源搜索器
+try:
+    from .search_providers import MultiSourceSearcher, get_multi_source_searcher
+    MULTI_SOURCE_AVAILABLE = True
+except ImportError:
+    MULTI_SOURCE_AVAILABLE = False
 
 from ..base import BaseTool
 from ..risk import OperationCategory, RiskLevel
@@ -123,8 +131,31 @@ class WebSearchTool(BaseTool):
 
         logger.info(f"Searching web: '{query}' (max_results={max_results}, region={region})")
 
+        # 优先使用多源搜索器 (Serper/Brave/DuckDuckGo 自动降级)
+        if MULTI_SOURCE_AVAILABLE:
+            try:
+                searcher = get_multi_source_searcher()
+                result = await searcher.search(query, max_results)
+
+                if result.get("success"):
+                    logger.info(
+                        f"Found {len(result.get('results', []))} results via {result.get('provider')} "
+                        f"(fallback: {result.get('fallback_used')})"
+                    )
+                    return {
+                        "success": True,
+                        "query": query,
+                        "count": len(result.get("results", [])),
+                        "results": result.get("results", []),
+                        "provider": result.get("provider")
+                    }
+                else:
+                    logger.warning(f"MultiSourceSearcher failed: {result.get('errors')}")
+            except Exception as e:
+                logger.warning(f"MultiSourceSearcher error: {e}")
+
+        # 备选: 直接使用 DuckDuckGo 或 httpx
         try:
-            # DuckDuckGo 搜索（同步调用，需要在线程池中运行）
             loop = asyncio.get_event_loop()
             results = await loop.run_in_executor(
                 None,
