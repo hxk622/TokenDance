@@ -512,7 +512,7 @@ Ensure all claims have citations."""
             return AgentAction(
                 type=ActionType.TOOL_CALL,
                 tool_name=tool_call["name"],
-                tool_input=tool_call["input"],
+                tool_args=tool_call["input"],
                 tool_call_id=tool_call["id"]
             )
 

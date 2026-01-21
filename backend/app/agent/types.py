@@ -73,6 +73,7 @@ class AgentAction:
     type: ActionType
     tool_name: str | None = None
     tool_args: dict[str, Any] | None = None
+    tool_call_id: str | None = None  # LLM 返回的工具调用 ID
     answer: str | None = None
     data: dict[str, Any] | None = None
 
