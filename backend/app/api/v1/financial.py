@@ -719,6 +719,59 @@ async def get_historical_event_impact(request: HistoricalImpactRequest):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+# ==================== 情绪脉冲 API ====================
+
+class SentimentPulseRequest(BaseModel):
+    """情绪脉冲请求"""
+    symbol: str = Field(..., description="股票代码")
+    days: int = Field(7, description="分析天数", ge=1, le=30)
+
+
+def _get_sentiment_timeseries_service():
+    """懒加载 SentimentTimeSeriesService"""
+    from app.services.financial.sentiment import get_sentiment_timeseries_service
+    return get_sentiment_timeseries_service()
+
+
+@router.post("/sentiment/pulse")
+async def get_sentiment_pulse(request: SentimentPulseRequest):
+    """
+    获取情绪脉冲数据。
+
+    返回：
+    - current_score: 当前情绪分数 (-1 到 1)
+    - current_level: 情绪级别 (very_bearish/bearish/neutral/bullish/very_bullish)
+    - score_change_24h: 24小时变化
+    - daily_moods: 每日情绪数据
+        - date: 日期
+        - score: 情绪分数
+        - level: 情绪级别
+        - post_count: 帖子数
+        - bullish_ratio: 看多比例
+        - bearish_ratio: 看空比例
+    - trending_topics: 热门话题
+    - top_bullish_opinions: Top 看多观点
+    - top_bearish_opinions: Top 看空观点
+    - heat_index: 热度指数 (0-100)
+    """
+    try:
+        service = _get_sentiment_timeseries_service()
+
+        result = await service.get_sentiment_pulse(
+            symbol=request.symbol,
+            days=request.days,
+        )
+
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "disclaimer": "情绪分析基于社交媒体数据，仅供参考。"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 def _detect_market(symbol: str) -> str:
     """根据股票代码识别市场"""
     import re
