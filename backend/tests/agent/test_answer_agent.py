@@ -61,9 +61,11 @@ class TestCitation:
         )
         result = citation.to_dict()
         assert result["id"] == 1
-        assert result["url"] == "https://example.com/article"
-        assert result["title"] == "Example Article"
-        assert result["domain"] == "example.com"
+        # Check nested source structure (matches frontend interface)
+        assert result["source"]["url"] == "https://example.com/article"
+        assert result["source"]["title"] == "Example Article"
+        assert result["source"]["domain"] == "example.com"
+        assert result["source"]["credibility"] == 50
         assert result["excerpt"] == "This is an excerpt."
 
 

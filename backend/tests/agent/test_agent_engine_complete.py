@@ -59,9 +59,12 @@ def llm():
     if not api_key:
         pytest.skip("OPENROUTER_API_KEY not set")
 
+    # 优先从环境变量获取模型，否则使用默认列表
+    model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct")
+
     return OpenRouterLLM(
         api_key=api_key,
-        model="anthropic/claude-3.5-sonnet",
+        model=model,
         max_tokens=4096
     )
 

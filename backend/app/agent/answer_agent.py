@@ -54,11 +54,16 @@ class Citation:
     excerpt: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """Convert to dict matching frontend Citation interface"""
         return {
             "id": self.id,
-            "url": self.url,
-            "title": self.title,
-            "domain": self.domain,
+            "source": {
+                "url": self.url,
+                "title": self.title,
+                "domain": self.domain,
+                "credibility": 50,  # Default credibility
+                "credibilityLevel": "moderate",
+            },
             "excerpt": self.excerpt,
         }
 
