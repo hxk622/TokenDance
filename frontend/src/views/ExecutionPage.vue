@@ -208,10 +208,50 @@ function handleHITLConfirmed(approved: boolean) {
 }
 
 // Layout ratios - 根据任务类型动态调整
-const taskType = ref<'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'>('default')
+type TaskType = 'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'
+const taskType = ref<TaskType>('default')
+
+// 从 session 数据同步 taskType
+function syncTaskTypeFromSession() {
+  const sessionTaskType = executionStore.session?.task_type
+  if (sessionTaskType) {
+    // 映射后端 task_type 到前端枚举
+    const typeMap: Record<string, TaskType> = {
+      'deep_research': 'deep-research',
+      'deep-research': 'deep-research',
+      'ppt_generation': 'ppt-generation',
+      'ppt-generation': 'ppt-generation',
+      'code_refactor': 'code-refactor',
+      'code-refactor': 'code-refactor',
+      'file_operations': 'file-operations',
+      'file-operations': 'file-operations',
+    }
+    taskType.value = typeMap[sessionTaskType] || 'default'
+    console.log('[ExecutionPage] taskType synced from session:', taskType.value)
+  }
+}
+
+// 监听 session 变化，动态同步 taskType
+watch(() => executionStore.session?.task_type, (newTaskType) => {
+  if (newTaskType) {
+    syncTaskTypeFromSession()
+  }
+})
 
 // 是否为深度研究模式
 const isDeepResearch = computed(() => taskType.value === 'deep-research')
+
+// 当 taskType 变化时更新布局比例（仅当用户没有自定义过时）
+watch(taskType, (newType) => {
+  // 检查用户是否有保存的自定义比例
+  const hasCustomRatio = localStorage.getItem('execution-horizontal-ratio')
+  if (!hasCustomRatio) {
+    const ratio = layoutRatios[newType]
+    leftWidth.value = ratio.left
+    rightWidth.value = ratio.right
+    console.log('[ExecutionPage] Layout ratio updated for taskType:', newType, ratio)
+  }
+})
 
 // Layout Mode: chat (单栏聊天) vs execution (两栏执行)
 type LayoutMode = 'chat' | 'execution'
@@ -404,6 +444,9 @@ async function initializeExecution() {
 
     // Load real session
     await executionStore.loadSession(sessionId.value)
+
+    // Sync taskType from session data
+    syncTaskTypeFromSession()
 
     // Check for fatal errors (session not found)
     if (executionStore.sseConnectionState === 'fatal_error') {
