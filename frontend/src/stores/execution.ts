@@ -818,16 +818,6 @@ export const useExecutionStore = defineStore('execution', () => {
         }
         break
 
-      // System events
-      case SSEEventType.ERROR:
-        error.value = event.data.message
-        addLog({
-          type: 'error',
-          nodeId: activeNodeId.value || '0',
-          content: event.data.message,
-        })
-        break
-
       case SSEEventType.PING:
         // Keepalive, no action needed
         break
