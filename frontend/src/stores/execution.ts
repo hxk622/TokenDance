@@ -529,6 +529,47 @@ export const useExecutionStore = defineStore('execution', () => {
         break
       }
 
+      // ========== Validation events (LLM-as-a-Judge) ==========
+      case SSEEventType.VALIDATION_START: {
+        const taskId = event.data.taskId || event.data.task_id || '0'
+        const level = event.data.level || 'light'
+        console.log('[ExecutionStore] Validation started:', taskId, 'level:', level)
+        addLog({
+          type: 'thinking',
+          nodeId: taskId,
+          content: `🔍 开始验证任务结果 (${level === 'adversarial' ? '对抗验证' : '轻量验证'})...`,
+        })
+        break
+      }
+
+      case SSEEventType.VALIDATION_RESULT: {
+        const taskId = event.data.taskId || event.data.task_id || '0'
+        const passed = event.data.passed
+        const reason = event.data.reason || ''
+        console.log('[ExecutionStore] Validation result:', taskId, 'passed:', passed)
+        addLog({
+          type: passed ? 'result' : 'error',
+          nodeId: taskId,
+          content: passed
+            ? `✅ 验证通过${reason ? ': ' + reason : ''}`
+            : `⚠️ 验证未通过${reason ? ': ' + reason : ''}`,
+        })
+        break
+      }
+
+      case SSEEventType.VALIDATION_RETRY: {
+        const taskId = event.data.taskId || event.data.task_id || '0'
+        const retryCount = event.data.retry_count || event.data.retryCount || 1
+        const issues = event.data.issues || []
+        console.log('[ExecutionStore] Validation retry:', taskId, 'attempt:', retryCount)
+        addLog({
+          type: 'thinking',
+          nodeId: taskId,
+          content: `🔄 验证失败，尝试重新执行 (第 ${retryCount} 次)${issues.length > 0 ? '\n问题: ' + issues.join(', ') : ''}`,
+        })
+        break
+      }
+
       case SSEEventType.NODE_CREATED: {
         // 动态添加节点
         const pos = calculateNodePosition(nodes.value.length)

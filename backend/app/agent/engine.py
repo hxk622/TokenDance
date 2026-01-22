@@ -1316,6 +1316,8 @@ class AgentEngine:
         Yields:
             SSEEvent: 执行事件
         """
+        from app.agent.validator import get_validation_level_for_domain
+
         logger.info("=== Direct Execution Mode ===")
 
         yield SSEEvent(
@@ -1323,12 +1325,17 @@ class AgentEngine:
             data={"phase": "direct", "message": "开始执行..."}
         )
 
+        # 根据 query 内容检测验证级别
+        validation_level = get_validation_level_for_domain(query)
+        logger.debug(f"Direct mode validation level: {validation_level.value}")
+
         # 创建一个隐式 Task
         task = Task(
             id="direct_task",
             title="Execute user request",
             description=query,
             acceptance_criteria="User's question is answered or request is fulfilled",
+            validation_level=validation_level.value,
         )
 
         # 创建执行上下文

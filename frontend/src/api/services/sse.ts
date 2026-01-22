@@ -49,6 +49,11 @@ export enum SSEEventType {
   TASK_START = 'task.start',              // 开始执行
   TASK_COMPLETE = 'task.complete',        // 执行完成
   TASK_FAILED = 'task.failed',            // 执行失败
+
+  // ========== Validation events (LLM-as-a-Judge) ==========
+  VALIDATION_START = 'validation.start',    // 验证开始
+  VALIDATION_RESULT = 'validation.result',  // 验证结果
+  VALIDATION_RETRY = 'validation.retry',    // 验证失败触发重试
   
   // File events
   FILE_CREATED = 'file_created',

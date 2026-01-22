@@ -17,6 +17,7 @@ import uuid
 from typing import Any, cast
 
 from app.agent.llm.base import BaseLLM, LLMMessage
+from app.agent.validator import get_validation_level_for_domain
 from app.core.logging import get_logger
 
 from .task import Plan, Task, TaskStatus
@@ -212,9 +213,20 @@ class AtomicPlanner:
     def _build_plan(self, data: dict[str, Any]) -> Plan:
         """从解析后的数据构建 Plan 对象"""
         plan_id = f"plan_{uuid.uuid4().hex[:8]}"
+        goal = data.get("goal", "")
+
+        # 根据 goal 内容检测 validation_level
+        default_validation_level = get_validation_level_for_domain(goal)
+        logger.debug(f"Default validation level for plan: {default_validation_level.value}")
 
         tasks: list[Task] = []
         for task_data in data.get("tasks", []):
+            # 支持从 JSON 中读取 validation_level，否则使用默认值
+            validation_level = task_data.get(
+                "validation_level",
+                default_validation_level.value
+            )
+
             task = Task(
                 id=task_data.get("id", f"t{len(tasks)+1}"),
                 title=task_data.get("title", "Untitled Task"),
@@ -223,12 +235,13 @@ class AtomicPlanner:
                 depends_on=task_data.get("depends_on", []),
                 tools_hint=task_data.get("tools_hint", []),
                 status=TaskStatus.PENDING,
+                validation_level=validation_level,
             )
             tasks.append(task)
 
         return Plan(
             id=plan_id,
-            goal=data.get("goal", ""),
+            goal=goal,
             tasks=tasks,
         )
 
