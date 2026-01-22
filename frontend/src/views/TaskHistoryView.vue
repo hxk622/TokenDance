@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { sessionService } from '@/api/services'
+import { useSessionStore } from '@/stores/session'
 import { Clock, Search, Filter, ChevronRight } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 
 const router = useRouter()
+const sessionStore = useSessionStore()
 
 // 任务历史数据
 const tasks = ref<any[]>([])
@@ -13,14 +15,28 @@ const isLoading = ref(true)
 const searchQuery = ref('')
 const filterStatus = ref<'all' | 'completed' | 'running' | 'error'>('all')
 
+// 获取 workspace_id: 优先从 store，其次从 localStorage，最后使用默认值
+function getWorkspaceId(): string {
+  // 1. 从 session store 获取
+  if (sessionStore.currentWorkspaceId) {
+    return sessionStore.currentWorkspaceId
+  }
+  // 2. 从 localStorage 获取
+  const stored = localStorage.getItem('current_workspace_id')
+  if (stored) {
+    return stored
+  }
+  // 3. 使用默认 workspace（新用户或首次访问）
+  return 'default'
+}
+
 // 加载任务历史
 async function loadTaskHistory() {
   isLoading.value = true
   try {
-    // TODO: 需要从某处获取 workspace_id
-    // 暂时使用空字符串，实际应该从用户状态或路由参数获取
+    const workspaceId = getWorkspaceId()
     const response = await sessionService.listSessions({
-      workspace_id: '', // TODO: 从用户状态获取实际的 workspace_id
+      workspace_id: workspaceId,
       limit: 100
     })
     tasks.value = response.sessions || []
@@ -31,6 +47,11 @@ async function loadTaskHistory() {
     isLoading.value = false
   }
 }
+
+// 监听 workspace 变化，重新加载任务
+watch(() => sessionStore.currentWorkspaceId, () => {
+  loadTaskHistory()
+})
 
 // 过滤后的任务列表
 const filteredTasks = computed(() => {

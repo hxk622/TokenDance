@@ -3,6 +3,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     agent_config,
+    artifact,
     auth,
     browser,
     chat,
@@ -34,6 +35,7 @@ api_router.include_router(project.router, tags=["projects"])  # Project-First ar
 api_router.include_router(session.router, prefix="/sessions", tags=["sessions"])
 api_router.include_router(messages.router, prefix="/sessions", tags=["messages"])  # New Agent Engine integration
 api_router.include_router(stream.router, prefix="/sessions", tags=["stream"])  # SSE streaming
+api_router.include_router(artifact.router, prefix="/artifacts", tags=["artifacts"])  # Artifact download & preview
 api_router.include_router(mcp.router, prefix="/mcp", tags=["mcp"])  # MCP tools management
 api_router.include_router(demo_stream.router, tags=["demo"])  # Demo endpoints (no auth)
 api_router.include_router(hitl.router, tags=["hitl"])  # Human-in-the-Loop

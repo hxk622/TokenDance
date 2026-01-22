@@ -26,10 +26,13 @@ from app.core.dependencies import (
 )
 from app.core.logging import get_logger
 from app.core.redis import get_redis
+from app.models.artifact import ArtifactType
 from app.models.user import User
+from app.repositories.artifact_repository import ArtifactRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.services.agent_stop_service import get_agent_stop_service
+from app.services.object_storage import get_object_storage
 from app.services.permission_service import PermissionError, PermissionService
 from app.services.session_service import SessionService
 from app.services.sse_event_store import SSEEventStore, get_sse_event_store
@@ -1008,6 +1011,76 @@ async def run_agent_stream_with_store(
                 tool_calls=assistant_tool_calls if assistant_tool_calls else None,
                 tokens_used=total_tokens,
             )
+
+        # P2: Save artifacts to MinIO and create artifact records
+        artifact_repo = ArtifactRepository(db)
+        storage = get_object_storage()
+
+        # Read findings.md as the research report
+        try:
+            findings_data = memory.read_findings()
+            findings_content = findings_data.get('content', '') if isinstance(findings_data, dict) else str(findings_data)
+
+            if findings_content and len(findings_content.strip()) > 100:  # Only save if has meaningful content
+                # Generate artifact name from task
+                artifact_name = f"Research Report - {task[:50]}" if len(task) > 50 else f"Research Report - {task}"
+
+                # Upload to MinIO if configured
+                if storage:
+                    object_key = f"sessions/{session_id}/findings.md"
+                    try:
+                        storage.ensure_bucket("tokendance-artifacts")
+                        storage.put_text("tokendance-artifacts", object_key, findings_content, "text/markdown; charset=utf-8")
+                        file_path = f"minio://tokendance-artifacts/{object_key}"
+                        logger.info(f"Uploaded artifact to MinIO: {object_key}")
+                    except Exception as minio_err:
+                        logger.warning(f"MinIO upload failed, using local path: {minio_err}")
+                        file_path = f"local://{workspace_path}/findings.md"
+                else:
+                    # Use local file path if MinIO not configured
+                    file_path = f"local://{workspace_path}/findings.md"
+
+                # Create artifact record in database
+                artifact = await artifact_repo.create(
+                    session_id=session_id,
+                    name=artifact_name,
+                    artifact_type=ArtifactType.REPORT,
+                    file_path=file_path,
+                    file_size=len(findings_content.encode('utf-8')),
+                    mime_type="text/markdown",
+                    description=f"Deep research findings for: {task[:100]}",
+                    extra_data={
+                        "task": task,
+                        "tokens_used": total_tokens,
+                        "source": "deep_research_agent",
+                    },
+                )
+
+                # Set content preview
+                artifact.set_content_preview(findings_content, max_length=500)
+                await db.commit()
+
+                # Emit artifact created event
+                yield await emit_event(SSEEventType.ARTIFACT_CREATED, {
+                    "artifact_id": artifact.id,
+                    "name": artifact.name,
+                    "type": artifact.artifact_type.value,
+                    "file_path": artifact.file_path,
+                    "file_size": artifact.file_size,
+                    "preview": artifact.content_preview,
+                    "download_url": f"/api/v1/artifacts/{artifact.id}/download",
+                    "timestamp": time.time(),
+                })
+
+                logger.info(
+                    "artifact_created",
+                    artifact_id=artifact.id,
+                    session_id=session_id,
+                    type=artifact.artifact_type.value,
+                )
+        except Exception as artifact_err:
+            logger.error(f"Failed to save artifact: {artifact_err}", exc_info=True)
+            # Don't fail the session for artifact errors
 
         # P1-4: Atomic update - set session status based on outcome
         if has_fatal_error:
