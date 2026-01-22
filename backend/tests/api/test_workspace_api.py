@@ -360,8 +360,11 @@ class TestDeleteWorkspace:
 class TestGetWorkspaceSessions:
     """获取工作空间会话测试"""
 
-    def test_get_workspace_sessions_success(self, test_client, mock_user, mock_session_response):
-        """测试成功获取工作空间会话"""
+    def test_get_workspace_sessions_success(self, test_client, mock_user, mock_workspace_response):
+        """测试成功获取工作空间会话
+        
+        Note: API 返回 WorkspaceList，所以使用 mock_workspace_response
+        """
         from app.api.v1.workspace import get_workspace_service
         from app.core.dependencies import get_current_user, get_permission_service
         from app.main import app
@@ -377,8 +380,10 @@ class TestGetWorkspaceSessions:
 
         mock_service = AsyncMock()
         mock_service.get_workspace_sessions = AsyncMock(return_value={
-            "items": [mock_session_response],
-            "total": 1
+            "items": [mock_workspace_response],
+            "total": 1,
+            "limit": 20,
+            "offset": 0
         })
 
         def mock_get_service(db=None):
