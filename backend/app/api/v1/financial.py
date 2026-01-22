@@ -772,6 +772,55 @@ async def get_sentiment_pulse(request: SentimentPulseRequest):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+# ==================== 风险传导分析 API ====================
+
+class RiskPropagationRequest(BaseModel):
+    """风险传导分析请求"""
+    symbol: str = Field(..., description="股票代码")
+
+
+def _get_knowledge_graph_service():
+    """懒加载 KnowledgeGraphService"""
+    from app.services.financial.relation import get_knowledge_graph_service
+    return get_knowledge_graph_service()
+
+
+@router.post("/risk/propagation")
+async def get_risk_propagation(request: RiskPropagationRequest):
+    """
+    获取风险传导分析。
+
+    返回：
+    - total_risk_score: 综合风险分 (0-100)
+    - overall_risk_level: 风险等级 (low/medium/high/critical)
+    - self_risks: 自身风险
+        - risk_type: 风险类型 (credit/liquidity/operational/market/regulatory/contagion)
+        - risk_level: 风险等级
+        - risk_score: 风险分数
+        - description: 风险描述
+        - mitigation: 建议措施
+    - incoming_risks: 传导风险 (受他人影响)
+    - outgoing_risks: 输出风险 (影响他人)
+    - risk_by_type: 风险类型分布
+    - key_insights: 核心洞察
+    """
+    try:
+        service = _get_knowledge_graph_service()
+
+        result = await service.analyze_risk_propagation(
+            symbol=request.symbol,
+        )
+
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "disclaimer": "风险分析基于关联关系推断，仅供参考，不构成投资建议。"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 def _detect_market(symbol: str) -> str:
     """根据股票代码识别市场"""
     import re

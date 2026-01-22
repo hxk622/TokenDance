@@ -257,12 +257,19 @@ function renderMarkdown(content: string): string {
 function renderComponent(block: ParsedBlock): VNode | null {
   if (!block.componentName) return null
   
+  // Build component props (include content for fenced blocks like :::Component{}\ncontent\n:::)
+  const componentProps = {
+    ...block.props,
+    ...props.context.data,
+    // Pass block.content if it exists (for fenced syntax with inner content)
+    ...(block.content ? { content: block.content } : {}),
+  }
+  
   // Check props.components first (locally passed)
   const localComponent = props.components?.[block.componentName]
   if (localComponent) {
     return h(localComponent as any, {
-      ...block.props,
-      ...props.context.data,
+      ...componentProps,
       onEvent: (event: string, payload: unknown) => {
         emit('componentEvent', { 
           component: block.componentName!, 
@@ -277,8 +284,7 @@ function renderComponent(block: ParsedBlock): VNode | null {
   const registered = getComponent(block.componentName)
   if (registered) {
     return h(registered.component, {
-      ...block.props,
-      ...props.context.data,
+      ...componentProps,
       onEvent: (event: string, payload: unknown) => {
         emit('componentEvent', { 
           component: block.componentName!, 
@@ -293,10 +299,7 @@ function renderComponent(block: ParsedBlock): VNode | null {
   try {
     const resolved = resolveComponent(block.componentName)
     if (resolved && typeof resolved !== 'string') {
-      return h(resolved, {
-        ...block.props,
-        ...props.context.data,
-      })
+      return h(resolved, componentProps)
     }
   } catch {
     // Component not found

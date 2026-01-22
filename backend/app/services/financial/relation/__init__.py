@@ -28,6 +28,10 @@ from .knowledge_graph import (
     KnowledgeGraphService,
     Relationship,
     RelationshipType,
+    RiskLevel,
+    RiskNode,
+    RiskPropagationResult,
+    RiskType,
     get_knowledge_graph_service,
 )
 from .supply_chain_map import (
@@ -67,4 +71,9 @@ __all__ = [
     "Entity",
     "Relationship",
     "KnowledgeGraphResult",
+    # Risk Propagation
+    "RiskType",
+    "RiskLevel",
+    "RiskNode",
+    "RiskPropagationResult",
 ]
