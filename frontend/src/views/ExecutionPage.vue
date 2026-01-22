@@ -207,8 +207,20 @@ function handleHITLConfirmed(approved: boolean) {
   currentHITLRequest.value = null
 }
 
-// Layout ratios - 根据任务类型动态调整
+// ========================================
+// Task Type & Layout Configuration
+// ========================================
+
+// 布局比例配置 - 根据任务类型动态调整
 type TaskType = 'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'
+
+const layoutRatios: Record<TaskType, { left: number; right: number }> = {
+  'deep-research': { left: 35, right: 65 },
+  'ppt-generation': { left: 30, right: 70 },
+  'code-refactor': { left: 60, right: 40 },
+  'file-operations': { left: 65, right: 35 },
+  'default': { left: 45, right: 55 },
+}
 const taskType = ref<TaskType>('default')
 
 // 从 session 数据同步 taskType
@@ -241,9 +253,17 @@ watch(() => executionStore.session?.task_type, (newTaskType) => {
 // 是否为深度研究模式
 const isDeepResearch = computed(() => taskType.value === 'deep-research')
 
-// 当 taskType 变化时更新布局比例（仅当用户没有自定义过时）
+// taskType 变化时的统一响应（布局比例 + 默认 Tab）
+const defaultTabs: Record<TaskType, TabType> = {
+  'deep-research': 'report',
+  'ppt-generation': 'ppt',
+  'code-refactor': 'file-diff',
+  'file-operations': 'file-diff',
+  'default': 'report',
+}
+
 watch(taskType, (newType) => {
-  // 检查用户是否有保存的自定义比例
+  // 1. 更新布局比例（仅当用户没有自定义过时）
   const hasCustomRatio = localStorage.getItem('execution-horizontal-ratio')
   if (!hasCustomRatio) {
     const ratio = layoutRatios[newType]
@@ -251,9 +271,15 @@ watch(taskType, (newType) => {
     rightWidth.value = ratio.right
     console.log('[ExecutionPage] Layout ratio updated for taskType:', newType, ratio)
   }
-})
+  
+  // 2. 更新默认 Tab
+  currentTab.value = defaultTabs[newType] || 'report'
+}, { immediate: true })
 
-// Layout Mode: chat (单栏聊天) vs execution (两栏执行)
+// ========================================
+// Layout Mode (Chat vs Execution)
+// ========================================
+
 type LayoutMode = 'chat' | 'execution'
 const layoutMode = ref<LayoutMode>('chat')
 
@@ -272,13 +298,6 @@ watch(shouldShowExecution, (show) => {
     layoutMode.value = 'execution'
   }
 }, { immediate: true })
-const layoutRatios = {
-  'deep-research': { left: 35, right: 65 },
-  'ppt-generation': { left: 30, right: 70 },
-  'code-refactor': { left: 60, right: 40 },
-  'file-operations': { left: 65, right: 35 },
-  'default': { left: 45, right: 55 },
-}
 
 // Horizontal ratio (left vs right)
 const leftWidth = ref(layoutRatios[taskType.value].left)
@@ -624,18 +643,6 @@ function handleTabChange(tab: TabType) {
   console.log('Tab changed to:', tab)
   // TODO: Update URL or trigger other side effects
 }
-
-// Set default tab based on task type
-watch(taskType, (newType) => {
-  const defaults: Record<string, TabType> = {
-    'deep-research': 'report',
-    'ppt-generation': 'ppt',
-    'code-refactor': 'file-diff',
-    'file-operations': 'file-diff',
-    'default': 'report',
-  }
-  currentTab.value = defaults[newType] || 'report'
-}, { immediate: true })
 
 // Focus Mode: Enter when user double-clicks a node
 function handleNodeDoubleClick(nodeId: string) {
