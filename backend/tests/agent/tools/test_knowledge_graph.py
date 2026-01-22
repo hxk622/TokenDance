@@ -299,10 +299,14 @@ Hope this helps!'''
                 title="AI 概念图"
             )
             
-            # to_text() returns summary for success
-            assert "已生成知识图谱" in result
-            assert "2 个节点" in result
-            assert "1 条边" in result
+            # to_text() now returns JSON data directly (no summary)
+            result_data = json.loads(result)
+            
+            assert result_data["type"] == "knowledge_graph"
+            assert result_data["graph_type"] == "concept"
+            assert result_data["title"] == "AI 概念图"
+            assert len(result_data["graph"]["nodes"]) == 2
+            assert len(result_data["graph"]["edges"]) == 1
 
     @pytest.mark.asyncio
     async def test_execute_with_focus_entities(self):

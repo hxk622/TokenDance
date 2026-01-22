@@ -348,7 +348,7 @@ class KnowledgeGraphTool(BaseTool):
             graph_data["metadata"]["node_count"] = len(graph_data["nodes"])
             graph_data["metadata"]["edge_count"] = len(graph_data["edges"])
 
-            # 返回成功结果
+            # 返回成功结果 - 直接返回 JSON 以便调用者获取完整数据
             result = ToolResult(
                 success=True,
                 data={
@@ -357,7 +357,8 @@ class KnowledgeGraphTool(BaseTool):
                     "title": title or "Knowledge Graph",
                     "graph": graph_data,
                 },
-                summary=f"已生成知识图谱: {len(graph_data['nodes'])} 个节点, {len(graph_data['edges'])} 条边"
+                # 不设置 summary，这样 to_text() 会返回完整 JSON
+                # summary=f"已生成知识图谱: {len(graph_data['nodes'])} 个节点, {len(graph_data['edges'])} 条边"
             )
             return result.to_text()
 

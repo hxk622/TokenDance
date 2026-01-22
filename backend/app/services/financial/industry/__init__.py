@@ -14,8 +14,12 @@ from .industry_ranking import (
 )
 from .peer_comparison import (
     CompanyMetrics,
+    MetricType,
+    PeerComparisonMatrix,
     PeerComparisonResult,
     PeerComparisonService,
+    PeerInfo,
+    PeerMetricComparison,
     get_peer_comparison_service,
 )
 from .rotation_analysis import (
@@ -34,6 +38,10 @@ __all__ = [
     # Peer Comparison
     "PeerComparisonService",
     "PeerComparisonResult",
+    "PeerComparisonMatrix",
+    "PeerMetricComparison",
+    "PeerInfo",
+    "MetricType",
     "CompanyMetrics",
     "get_peer_comparison_service",
     # Industry Ranking

@@ -247,8 +247,25 @@ def mock_workspace_response():
         "description": "A workspace for testing",
         "workspace_type": "personal",
         "owner_id": "test-user-id",
+        "team_id": None,
+        "filesystem_path": "/data/users/test-user-id/workspaces/test-workspace-id",
+        "settings": {
+            "llm_model": "claude-3-5-sonnet-20241022",
+            "enable_auto_save": True,
+            "max_context_tokens": 128000,
+            "compression_threshold": 10240,
+        },
+        "stats": {
+            "total_tasks": 0,
+            "completed_tasks": 0,
+            "active_agents": 0,
+            "storage_used_mb": 0,
+            "monthly_tokens_used": 0,
+        },
+        "session_count": 0,
         "created_at": "2024-01-01T00:00:00",
         "updated_at": "2024-01-01T00:00:00",
+        "last_accessed_at": None,
     }
 
 
@@ -258,11 +275,14 @@ def mock_session_response():
     return {
         "id": "test-session-id",
         "workspace_id": "test-workspace-id",
-        "user_id": "test-user-id",
         "title": "Test Session",
         "status": "active",
+        "skill_id": None,
+        "total_tokens_used": 0,
+        "message_count": 0,
         "created_at": "2024-01-01T00:00:00",
         "updated_at": "2024-01-01T00:00:00",
+        "completed_at": None,
     }
 
 

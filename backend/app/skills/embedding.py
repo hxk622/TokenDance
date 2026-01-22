@@ -8,7 +8,22 @@ Embedding 模块 - 提供语义向量化能力
 """
 
 import logging
+import os
+import ssl
 from abc import ABC, abstractmethod
+
+# 修复 macOS SSL 证书问题（huggingface_hub 下载模型时需要）
+# 必须在导入 sentence_transformers 之前设置
+try:
+    import certifi
+    cert_path = certifi.where()
+    os.environ.setdefault("SSL_CERT_FILE", cert_path)
+    os.environ.setdefault("REQUESTS_CA_BUNDLE", cert_path)
+    os.environ.setdefault("CURL_CA_BUNDLE", cert_path)
+    # 设置 huggingface_hub 特定的环境变量
+    os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 

@@ -6,16 +6,25 @@ PeerComparisonService - 同行对比分析服务
 2. 关键指标横向比较
 3. 竞争优势分析
 4. 估值对比
+5. [新增] PK 矩阵 - 带冠军标识和综合评分
 
 使用方法：
-    service = PeerComparisonService()
+    service = get_peer_comparison_service()
     result = await service.compare_peers("600519")
+    matrix = await service.get_comparison_matrix("600519")
 """
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+class MetricType(str, Enum):
+    """指标类型 - 用于判断谁是冠军"""
+    HIGHER_BETTER = "higher_better"  # 越高越好
+    LOWER_BETTER = "lower_better"    # 越低越好
 
 
 @dataclass
@@ -117,11 +126,97 @@ class PeerComparisonResult:
         }
 
 
+@dataclass
+class PeerInfo:
+    """对比公司信息"""
+    symbol: str
+    name: str
+    market_cap: float = 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "symbol": self.symbol,
+            "name": self.name,
+            "market_cap": self.market_cap,
+        }
+
+
+@dataclass
+class PeerMetricComparison:
+    """单指标对比"""
+    metric_name: str
+    metric_key: str
+    metric_type: MetricType
+    values: dict[str, float | None]  # symbol -> value
+    winner: str | None  # 最优者 symbol
+    industry_mean: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "metric_name": self.metric_name,
+            "metric_key": self.metric_key,
+            "metric_type": self.metric_type.value,
+            "values": self.values,
+            "winner": self.winner,
+            "industry_mean": self.industry_mean,
+        }
+
+
+@dataclass
+class PeerComparisonMatrix:
+    """同行对比矩阵 - 用于 PK 展示"""
+    target_symbol: str
+    target_name: str
+    industry: str
+    peers: list[PeerInfo]  # 对比公司列表
+    metrics: list[PeerMetricComparison]  # 各指标对比
+
+    # 综合评分 (0-100)
+    scores: dict[str, float]  # symbol -> score
+
+    # 洞察
+    insights: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "target_symbol": self.target_symbol,
+            "target_name": self.target_name,
+            "industry": self.industry,
+            "peers": [p.to_dict() for p in self.peers],
+            "peer_count": len(self.peers),
+            "metrics": [m.to_dict() for m in self.metrics],
+            "scores": self.scores,
+            "insights": self.insights,
+        }
+
+
+# PK 矩阵指标配置
+MATRIX_METRICS: list[tuple[str, str, MetricType]] = [
+    ("ROE", "roe", MetricType.HIGHER_BETTER),
+    ("PE (TTM)", "pe_ttm", MetricType.LOWER_BETTER),
+    ("营收增速", "revenue_growth", MetricType.HIGHER_BETTER),
+    ("净利率", "net_margin", MetricType.HIGHER_BETTER),
+    ("毛利率", "gross_margin", MetricType.HIGHER_BETTER),
+    ("资产负债率", "debt_ratio", MetricType.LOWER_BETTER),
+]
+
+# 评分权重
+SCORE_WEIGHTS: dict[str, float] = {
+    "roe": 0.20,
+    "pe_ttm": 0.15,
+    "revenue_growth": 0.15,
+    "net_margin": 0.15,
+    "gross_margin": 0.15,
+    "debt_ratio": 0.10,
+    "profit_growth": 0.10,
+}
+
+
 class PeerComparisonService:
     """
     同行对比服务
 
-    提供同行业公司的横向对比分析。
+    提供同行业公司的横向对比分析和 PK 矩阵。
     """
 
     # 申万行业分类 (简化版)
@@ -216,6 +311,235 @@ class PeerComparisonService:
                     result[symbol][metric] = getattr(company_metrics, metric, 0)
 
         return result
+
+    async def get_comparison_matrix(
+        self,
+        symbol: str,
+        peer_count: int = 3,
+        auto_select: bool = True,
+        custom_peers: list[str] | None = None,
+    ) -> PeerComparisonMatrix:
+        """
+        获取同行对比矩阵 (PK 矩阵)
+
+        Args:
+            symbol: 目标股票代码
+            peer_count: 对比公司数量
+            auto_select: 是否自动选择对比公司
+            custom_peers: 自定义对比公司列表
+
+        Returns:
+            PeerComparisonMatrix 包含各指标对比和综合评分
+        """
+        cache_key = f"matrix:{symbol}:{peer_count}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        try:
+            result = await self._build_comparison_matrix(
+                symbol, peer_count, auto_select, custom_peers
+            )
+            self._cache[cache_key] = result
+            return result
+        except Exception as e:
+            logger.error(f"Failed to build comparison matrix: {e}")
+            return self._get_empty_matrix(symbol)
+
+    async def _build_comparison_matrix(
+        self,
+        symbol: str,
+        peer_count: int,
+        auto_select: bool,
+        custom_peers: list[str] | None,
+    ) -> PeerComparisonMatrix:
+        """构建对比矩阵"""
+        # 获取目标公司信息
+        info = self.INDUSTRY_MAPPING.get(symbol)
+        if info:
+            target_name, industry = info
+        else:
+            target_name = f"Stock {symbol}"
+            industry = "其他"
+
+        # 获取对比公司
+        if custom_peers:
+            peer_symbols = custom_peers[:peer_count]
+        else:
+            peer_symbols = await self.get_industry_peers(symbol)
+            peer_symbols = peer_symbols[:peer_count]
+
+        # 所有公司 (包括目标)
+        all_symbols = [symbol] + peer_symbols
+
+        # 获取所有公司指标
+        all_metrics: dict[str, CompanyMetrics] = {}
+        peers_info: list[PeerInfo] = []
+
+        for sym in all_symbols:
+            company_metrics = await self._fetch_company_metrics(sym)
+            if company_metrics:
+                all_metrics[sym] = company_metrics
+                peers_info.append(PeerInfo(
+                    symbol=sym,
+                    name=company_metrics.name,
+                    market_cap=company_metrics.market_cap,
+                ))
+
+        # 构建各指标对比
+        metric_comparisons: list[PeerMetricComparison] = []
+
+        for metric_name, metric_key, metric_type in MATRIX_METRICS:
+            values: dict[str, float | None] = {}
+            valid_values: list[tuple[str, float]] = []
+
+            for sym in all_symbols:
+                if sym in all_metrics:
+                    val = getattr(all_metrics[sym], metric_key, None)
+                    values[sym] = val
+                    if val is not None and val != 0:
+                        valid_values.append((sym, val))
+                else:
+                    values[sym] = None
+
+            # 确定冠军
+            winner = None
+            if valid_values:
+                if metric_type == MetricType.HIGHER_BETTER:
+                    winner = max(valid_values, key=lambda x: x[1])[0]
+                else:
+                    winner = min(valid_values, key=lambda x: x[1])[0]
+
+            # 计算行业均值
+            industry_mean = None
+            if valid_values:
+                industry_mean = sum(v for _, v in valid_values) / len(valid_values)
+
+            metric_comparisons.append(PeerMetricComparison(
+                metric_name=metric_name,
+                metric_key=metric_key,
+                metric_type=metric_type,
+                values=values,
+                winner=winner,
+                industry_mean=industry_mean,
+            ))
+
+        # 计算综合评分
+        scores = self._calculate_composite_scores(all_symbols, all_metrics, metric_comparisons)
+
+        # 生成洞察
+        insights = self._generate_matrix_insights(symbol, all_metrics, scores)
+
+        return PeerComparisonMatrix(
+            target_symbol=symbol,
+            target_name=target_name,
+            industry=industry,
+            peers=peers_info,
+            metrics=metric_comparisons,
+            scores=scores,
+            insights=insights,
+        )
+
+    def _calculate_composite_scores(
+        self,
+        symbols: list[str],
+        all_metrics: dict[str, CompanyMetrics],
+        comparisons: list[PeerMetricComparison],
+    ) -> dict[str, float]:
+        """计算综合评分"""
+        scores: dict[str, float] = {}
+
+        for sym in symbols:
+            if sym not in all_metrics:
+                scores[sym] = 0.0
+                continue
+
+            total_score = 0.0
+            total_weight = 0.0
+
+            for comp in comparisons:
+                metric_key = comp.metric_key
+                weight = SCORE_WEIGHTS.get(metric_key, 0.1)
+
+                value = comp.values.get(sym)
+                if value is None:
+                    continue
+
+                # 收集所有有效值
+                valid_values = [v for v in comp.values.values() if v is not None]
+                if not valid_values:
+                    continue
+
+                min_val = min(valid_values)
+                max_val = max(valid_values)
+
+                if max_val == min_val:
+                    normalized = 50.0
+                else:
+                    if comp.metric_type == MetricType.HIGHER_BETTER:
+                        normalized = ((value - min_val) / (max_val - min_val)) * 100
+                    else:
+                        normalized = ((max_val - value) / (max_val - min_val)) * 100
+
+                total_score += normalized * weight
+                total_weight += weight
+
+            if total_weight > 0:
+                scores[sym] = round(total_score / total_weight, 1)
+            else:
+                scores[sym] = 50.0
+
+        return scores
+
+    def _generate_matrix_insights(
+        self,
+        target_symbol: str,
+        all_metrics: dict[str, CompanyMetrics],
+        scores: dict[str, float],
+    ) -> list[str]:
+        """生成矩阵洞察"""
+        insights = []
+
+        if target_symbol not in all_metrics:
+            return ["数据不足，无法生成洞察"]
+
+        target = all_metrics[target_symbol]
+        target_score = scores.get(target_symbol, 0)
+
+        # 排名
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        rank = next((i + 1 for i, (sym, _) in enumerate(sorted_scores) if sym == target_symbol), 0)
+
+        if rank == 1:
+            insights.append(f"{target.name}综合评分{target_score:.0f}分，位列同行第一")
+        elif rank <= 3:
+            insights.append(f"{target.name}综合评分{target_score:.0f}分，位列同行前三")
+        else:
+            insights.append(f"{target.name}综合评分{target_score:.0f}分，排名第{rank}")
+
+        # 优势指标
+        if target.roe > 20:
+            insights.append(f"ROE {target.roe:.1f}% 表现优秀，盈利能力强")
+
+        if target.net_margin > 30:
+            insights.append(f"净利率 {target.net_margin:.1f}% 显著领先，定价能力强")
+
+        # 劣势
+        if target.debt_ratio > 60:
+            insights.append(f"资产负债率 {target.debt_ratio:.1f}% 偏高，关注财务风险")
+
+        return insights if insights else ["各项指标表现均衡"]
+
+    def _get_empty_matrix(self, symbol: str) -> PeerComparisonMatrix:
+        """返回空矩阵"""
+        return PeerComparisonMatrix(
+            target_symbol=symbol,
+            target_name="",
+            industry="",
+            peers=[],
+            metrics=[],
+            scores={},
+            insights=["数据不可用"],
+        )
 
     async def _perform_comparison(
         self,

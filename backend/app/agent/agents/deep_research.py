@@ -776,13 +776,28 @@ Every factual claim MUST have a citation."""
                 # 构建 Citation 对象
                 citations.append(self._build_citation(i, source))
 
+        # 条件生成知识图谱
+        knowledge_graph_data = None
+        if self.research_state and self._should_generate_knowledge_graph():
+            logger.info("Generating knowledge graph for report...")
+            knowledge_graph_data = await self._generate_knowledge_graph_for_report(report)
+            if knowledge_graph_data and knowledge_graph_data.get("nodes"):
+                # 有完整图谱数据，嵌入到报告中
+                import json
+                topic_title = self.research_state.topic[:50] if self.research_state else "Research"
+                report += "\n\n---\n\n## 知识图谱\n\n"
+                report += f":::KnowledgeGraph{{title=\"{topic_title}\"}}"
+                report += f"\n{json.dumps(knowledge_graph_data, ensure_ascii=False)}\n"
+                report += ":::"
+
         # 记录到 findings.md
         await self.memory.write_findings(
             "Research Report Generated",
             report[:2000]  # 摘要
         )
 
-        self.research_state.phase = "reporting"
+        if self.research_state:
+            self.research_state.phase = "reporting"
 
         return AgentAction(
             type=ActionType.ANSWER,
@@ -790,6 +805,7 @@ Every factual claim MUST have a citation."""
             data={
                 "report_type": "research",
                 "citations": [c.to_dict() for c in citations],
+                "knowledge_graph": knowledge_graph_data,
             }
         )
 
@@ -825,6 +841,114 @@ Every factual claim MUST have a citation."""
             excerpt_context=source.content[:500] if source.content else "",
             claim_text="",  # 可后续从报告中提取
         )
+
+    def _should_generate_knowledge_graph(self) -> bool:
+        """判断是否应该生成知识图谱
+
+        条件（满足任一即可）：
+        1. 来源数量 >= 5
+        2. 发现数量 >= 3
+        3. 主题包含关系类关键词
+        """
+        if not self.research_state:
+            return False
+
+        sources_count = len(self.research_state.sources_collected)
+        findings_count = len(self.research_state.findings)
+        topic = self.research_state.topic.lower()
+
+        # 条件 1: 来源数量足够多
+        if sources_count >= 5:
+            logger.debug(f"Knowledge graph triggered: sources_count={sources_count}")
+            return True
+
+        # 条件 2: 发现数量足够多
+        if findings_count >= 3:
+            logger.debug(f"Knowledge graph triggered: findings_count={findings_count}")
+            return True
+
+        # 条件 3: 主题暗示需要图谱
+        graph_keywords = [
+            "对比", "关系", "区别", "联系", "影响", "因果",
+            "架构", "组件", "模块", "系统",
+            "vs", "compare", "relationship", "between", "impact",
+            "architecture", "ecosystem", "landscape"
+        ]
+        for keyword in graph_keywords:
+            if keyword in topic:
+                logger.debug(f"Knowledge graph triggered: keyword='{keyword}' in topic")
+                return True
+
+        return False
+
+    async def _generate_knowledge_graph_for_report(self, report_content: str) -> dict[str, Any] | None:
+        """为报告生成知识图谱
+
+        Args:
+            report_content: 报告内容
+
+        Returns:
+            图谱数据字典，失败返回 None
+        """
+        import json
+
+        try:
+            # 检查工具是否可用
+            if not self.tools.has("generate_knowledge_graph"):
+                logger.warning("Knowledge graph tool not available")
+                return None
+
+            tool = self.tools.get("generate_knowledge_graph")
+
+            # 准备内容 - 截取前 6000 字符避免超长
+            content_for_graph = report_content[:6000]
+
+            # 确定图谱类型
+            graph_type = "mixed"  # 默认混合类型
+            topic = self.research_state.topic.lower() if self.research_state else ""
+
+            if "引用" in topic or "citation" in topic:
+                graph_type = "citation"
+            elif "时间" in topic or "timeline" in topic or "历史" in topic:
+                graph_type = "timeline"
+            elif "概念" in topic or "concept" in topic:
+                graph_type = "concept"
+
+            # 调用知识图谱工具
+            result_str = await tool.execute(
+                content=content_for_graph,
+                graph_type=graph_type,
+                title=self.research_state.topic[:50] if self.research_state else "Research",
+                max_nodes=25  # 限制节点数避免过于复杂
+            )
+
+            # to_text() 返回格式:
+            # - 失败: "Error: ..."
+            # - 成功: JSON 数据 (data 字段)
+            if result_str.startswith("Error:"):
+                logger.warning(f"Knowledge graph generation failed: {result_str}")
+                return None
+
+            # 解析 JSON 结果
+            try:
+                result_data = json.loads(result_str)
+                # 提取 graph 数据
+                if isinstance(result_data, dict):
+                    graph = result_data.get("graph") or result_data
+                    if "nodes" in graph and "edges" in graph:
+                        logger.info(
+                            f"Knowledge graph generated: {len(graph['nodes'])} nodes, "
+                            f"{len(graph['edges'])} edges"
+                        )
+                        return graph
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse knowledge graph JSON: {e}")
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to generate knowledge graph: {e}")
+            return None
 
     def _infer_source_type(self, url: str, credibility: SourceCredibility) -> str:
         """推断来源类型"""

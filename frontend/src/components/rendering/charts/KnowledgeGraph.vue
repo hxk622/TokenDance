@@ -509,11 +509,21 @@ defineExpose({
           class="layout-select"
           @change="changeLayout(currentLayout)"
         >
-          <option value="cose">力导向</option>
-          <option value="circle">圆形</option>
-          <option value="breadthfirst">层次</option>
-          <option value="concentric">同心</option>
-          <option value="grid">网格</option>
+          <option value="cose">
+            力导向
+          </option>
+          <option value="circle">
+            圆形
+          </option>
+          <option value="breadthfirst">
+            层次
+          </option>
+          <option value="concentric">
+            同心
+          </option>
+          <option value="grid">
+            网格
+          </option>
         </select>
         
         <div class="toolbar-divider" />

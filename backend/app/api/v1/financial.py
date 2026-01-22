@@ -26,6 +26,17 @@ def _get_technical_indicators():
     from app.services.financial import get_technical_indicators
     return get_technical_indicators()
 
+
+def _get_industry_benchmark_service():
+    from app.services.financial.benchmark import get_industry_benchmark_service
+    return get_industry_benchmark_service()
+
+
+def _get_peer_comparison_service():
+    from app.services.financial.industry import get_peer_comparison_service
+    return get_peer_comparison_service()
+
+
 router = APIRouter()
 
 
@@ -83,6 +94,23 @@ class ComprehensiveAnalysisRequest(BaseModel):
     symbol: str = Field(..., description="股票代码")
     market: str | None = Field(None, description="市场")
     include_technical: bool = Field(True, description="是否包含技术分析")
+
+
+class PercentileRequest(BaseModel):
+    """行业分位数请求"""
+    symbol: str = Field(..., description="股票代码 (e.g., '600519')")
+    metrics: list[str] | None = Field(
+        None,
+        description="指标列表 (默认: roe, net_margin, revenue_growth, pe_ttm, debt_ratio)"
+    )
+    include_dupont: bool = Field(True, description="是否包含 DuPont 分解")
+
+
+class PeerMatrixRequest(BaseModel):
+    """同行对比矩阵请求"""
+    symbol: str = Field(..., description="股票代码")
+    peer_count: int = Field(3, description="对比公司数量", ge=1, le=10)
+    custom_peers: list[str] | None = Field(None, description="自定义对比公司列表")
 
 
 # ==================== Endpoints ====================
@@ -472,6 +500,91 @@ async def run_comprehensive_analysis(request: ComprehensiveAnalysisRequest):
             "success": True,
             "data": results,
             "disclaimer": "本分析仅供参考，不构成投资建议。投资有风险，入市需谨慎。"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+# ==================== 行业基准 & 同行对比 API ====================
+
+@router.post("/benchmark/percentile")
+async def get_industry_percentile(request: PercentileRequest):
+    """
+    获取指标行业分位数。
+
+    每个指标返回：
+    - percentile: TOP X% (越小越好)
+    - current_value: 当前值
+    - mean: 行业均值
+    - percentile_50: 行业中位数
+    - rank: 排名
+    - trend_description: 趋势描述
+
+    可选 DuPont 分解：
+    - net_profit_margin: 净利率
+    - asset_turnover: 资产周转率
+    - equity_multiplier: 权益乘数
+    - primary_driver: 主要驱动因素
+    - insights: 分析洞察
+    """
+    try:
+        service = _get_industry_benchmark_service()
+
+        # 获取分位数
+        benchmarks = await service.get_multiple_percentiles(
+            symbol=request.symbol,
+            metrics=request.metrics,
+        )
+
+        result = {
+            "symbol": request.symbol,
+            "benchmarks": [b.to_dict() for b in benchmarks],
+        }
+
+        # 可选 DuPont 分解
+        if request.include_dupont:
+            dupont = await service.get_dupont_decomposition(request.symbol)
+            result["dupont"] = dupont.to_dict()
+
+        return {
+            "success": True,
+            "data": result,
+            "disclaimer": "行业分位数基于同行业公司对比，仅供参考。"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/peer/matrix")
+async def get_peer_comparison_matrix(request: PeerMatrixRequest):
+    """
+    获取同行对比矩阵 (PK 矩阵)。
+
+    返回：
+    - peers: 对比公司列表
+    - metrics: 各指标对比
+        - metric_name: 指标名
+        - values: 各公司的值
+        - winner: 冠军 (symbol)
+        - industry_mean: 行业均值
+    - scores: 综合评分 (0-100)
+    - insights: 分析洞察
+    """
+    try:
+        service = _get_peer_comparison_service()
+
+        matrix = await service.get_comparison_matrix(
+            symbol=request.symbol,
+            peer_count=request.peer_count,
+            custom_peers=request.custom_peers,
+        )
+
+        return {
+            "success": True,
+            "data": matrix.to_dict(),
+            "disclaimer": "同行对比仅供参考，不同公司的业务模式可能存在差异。"
         }
 
     except Exception as e:
