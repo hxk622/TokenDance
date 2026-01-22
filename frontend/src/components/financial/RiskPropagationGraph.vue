@@ -3,11 +3,19 @@
     <!-- Header -->
     <div class="risk-header">
       <div class="header-left">
-        <Shield class="header-icon" :size="20" />
-        <h3 class="header-title">风险传导分析</h3>
+        <Shield
+          class="header-icon"
+          :size="20"
+        />
+        <h3 class="header-title">
+          风险传导分析
+        </h3>
       </div>
       <div class="header-right">
-        <div class="risk-score-badge" :class="`level-${overallRiskLevel}`">
+        <div
+          class="risk-score-badge"
+          :class="`level-${overallRiskLevel}`"
+        >
           <span class="score-value">{{ totalRiskScore.toFixed(0) }}</span>
           <span class="score-label">综合风险</span>
         </div>
@@ -17,35 +25,57 @@
     <!-- Risk Overview -->
     <div class="risk-overview">
       <div class="overview-item">
-        <AlertTriangle class="overview-icon critical" :size="18" />
+        <AlertTriangle
+          class="overview-icon critical"
+          :size="18"
+        />
         <span class="overview-value">{{ criticalRiskCount }}</span>
         <span class="overview-label">严重</span>
       </div>
       <div class="overview-item">
-        <AlertCircle class="overview-icon high" :size="18" />
+        <AlertCircle
+          class="overview-icon high"
+          :size="18"
+        />
         <span class="overview-value">{{ highRiskCount }}</span>
         <span class="overview-label">高危</span>
       </div>
       <div class="overview-item">
-        <ArrowDownToLine class="overview-icon incoming" :size="18" />
+        <ArrowDownToLine
+          class="overview-icon incoming"
+          :size="18"
+        />
         <span class="overview-value">{{ incomingRisks.length }}</span>
         <span class="overview-label">传入</span>
       </div>
       <div class="overview-item">
-        <ArrowUpFromLine class="overview-icon outgoing" :size="18" />
+        <ArrowUpFromLine
+          class="overview-icon outgoing"
+          :size="18"
+        />
         <span class="overview-value">{{ outgoingRisks.length }}</span>
         <span class="overview-label">传出</span>
       </div>
     </div>
 
     <!-- Key Insights -->
-    <div v-if="keyInsights.length > 0" class="insights-section">
+    <div
+      v-if="keyInsights.length > 0"
+      class="insights-section"
+    >
       <div class="insights-header">
-        <Lightbulb class="insights-icon" :size="16" />
+        <Lightbulb
+          class="insights-icon"
+          :size="16"
+        />
         <span>核心洞察</span>
       </div>
       <ul class="insights-list">
-        <li v-for="(insight, idx) in keyInsights" :key="idx" class="insight-item">
+        <li
+          v-for="(insight, idx) in keyInsights"
+          :key="idx"
+          class="insight-item"
+        >
           {{ insight }}
         </li>
       </ul>
@@ -54,8 +84,14 @@
     <!-- Risk Graph Visualization -->
     <div class="risk-graph">
       <!-- Center Node (Target Company) -->
-      <div class="center-node" :class="`level-${overallRiskLevel}`">
-        <Building class="node-icon" :size="24" />
+      <div
+        class="center-node"
+        :class="`level-${overallRiskLevel}`"
+      >
+        <Building
+          class="node-icon"
+          :size="24"
+        />
         <span class="node-name">{{ name }}</span>
         <span class="node-symbol">{{ symbol }}</span>
       </div>
@@ -74,12 +110,19 @@
             :class="`level-${risk.risk_level}`"
             @click="selectRisk(risk)"
           >
-            <component :is="getEntityIcon(risk.entity.entity_type)" class="entity-icon" :size="16" />
+            <component
+              :is="getEntityIcon(risk.entity.entity_type)"
+              class="entity-icon"
+              :size="16"
+            />
             <div class="node-info">
               <span class="node-name">{{ risk.entity.name }}</span>
               <span class="risk-type">{{ getRiskTypeName(risk.risk_type) }}</span>
             </div>
-            <div class="risk-score" :class="`level-${risk.risk_level}`">
+            <div
+              class="risk-score"
+              :class="`level-${risk.risk_level}`"
+            >
               {{ risk.risk_score.toFixed(0) }}
             </div>
           </div>
@@ -100,12 +143,19 @@
             :class="`level-${risk.risk_level}`"
             @click="selectRisk(risk)"
           >
-            <component :is="getRiskTypeIcon(risk.risk_type)" class="risk-icon" :size="18" />
+            <component
+              :is="getRiskTypeIcon(risk.risk_type)"
+              class="risk-icon"
+              :size="18"
+            />
             <div class="node-info">
               <span class="risk-type">{{ getRiskTypeName(risk.risk_type) }}</span>
               <span class="risk-level-text">{{ getRiskLevelName(risk.risk_level) }}</span>
             </div>
-            <div class="risk-score" :class="`level-${risk.risk_level}`">
+            <div
+              class="risk-score"
+              :class="`level-${risk.risk_level}`"
+            >
               {{ risk.risk_score.toFixed(0) }}
             </div>
           </div>
@@ -126,12 +176,19 @@
             :class="`level-${risk.risk_level}`"
             @click="selectRisk(risk)"
           >
-            <component :is="getEntityIcon(risk.entity.entity_type)" class="entity-icon" :size="16" />
+            <component
+              :is="getEntityIcon(risk.entity.entity_type)"
+              class="entity-icon"
+              :size="16"
+            />
             <div class="node-info">
               <span class="node-name">{{ risk.entity.name }}</span>
               <span class="risk-type">{{ getRiskTypeName(risk.risk_type) }}</span>
             </div>
-            <div class="risk-score" :class="`level-${risk.risk_level}`">
+            <div
+              class="risk-score"
+              :class="`level-${risk.risk_level}`"
+            >
               {{ risk.risk_score.toFixed(0) }}
             </div>
           </div>
@@ -141,13 +198,25 @@
 
     <!-- Risk Detail Card -->
     <Transition name="slide-up">
-      <div v-if="selectedRisk" class="risk-detail-card">
+      <div
+        v-if="selectedRisk"
+        class="risk-detail-card"
+      >
         <div class="detail-header">
-          <div class="detail-type" :class="`level-${selectedRisk.risk_level}`">
-            <component :is="getRiskTypeIcon(selectedRisk.risk_type)" :size="16" />
+          <div
+            class="detail-type"
+            :class="`level-${selectedRisk.risk_level}`"
+          >
+            <component
+              :is="getRiskTypeIcon(selectedRisk.risk_type)"
+              :size="16"
+            />
             <span>{{ getRiskTypeName(selectedRisk.risk_type) }}</span>
           </div>
-          <button class="close-btn" @click="selectedRisk = null">
+          <button
+            class="close-btn"
+            @click="selectedRisk = null"
+          >
             <X :size="16" />
           </button>
         </div>
@@ -159,7 +228,9 @@
           </span>
         </div>
 
-        <p class="detail-description">{{ selectedRisk.description }}</p>
+        <p class="detail-description">
+          {{ selectedRisk.description }}
+        </p>
 
         <div class="detail-mitigation">
           <Lightbulb :size="14" />
@@ -167,7 +238,10 @@
         </div>
 
         <!-- Propagation Path -->
-        <div v-if="selectedRisk.propagation_path.length > 1" class="propagation-path">
+        <div
+          v-if="selectedRisk.propagation_path.length > 1"
+          class="propagation-path"
+        >
           <span class="path-label">传导路径:</span>
           <div class="path-nodes">
             <span
@@ -176,7 +250,10 @@
               class="path-node"
             >
               {{ getNodeName(nodeId) }}
-              <ArrowRight v-if="idx < selectedRisk.propagation_path.length - 1" :size="12" />
+              <ArrowRight
+                v-if="idx < selectedRisk.propagation_path.length - 1"
+                :size="12"
+              />
             </span>
           </div>
         </div>

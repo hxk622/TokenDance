@@ -296,6 +296,60 @@ def mock_token_response():
     }
 
 
+@pytest.fixture
+def mock_project_response():
+    """Mock Project 响应"""
+    return {
+        "id": "test-project-id",
+        "workspace_id": "test-workspace-id",
+        "title": "Test Project",
+        "intent": "测试项目",
+        "description": "A test project",
+        "project_type": "research",
+        "status": "draft",
+        "context": {
+            "goals": [],
+            "decisions": [],
+            "failures": [],
+            "findings": [],
+            "constraints": [],
+            "tags": [],
+        },
+        "settings": {
+            "llm_model": "claude-3-5-sonnet-20241022",
+            "max_iterations": 10,
+            "auto_archive": True,
+            "allow_code_execution": False,
+        },
+        "created_at": "2024-01-01T00:00:00",
+        "updated_at": "2024-01-01T00:00:00",
+    }
+
+
+# ==================== Integration Test Fixtures ====================
+# 这些 fixture 用于集成测试，需要真实数据库
+# 单元测试应使用上面的 mock fixtures
+
+@pytest.fixture
+def test_workspace_id():
+    """测试用的 workspace ID
+
+    Note: 这是一个假的 ID，用于 mock 测试。
+    集成测试应该创建真实的 workspace。
+    """
+    return "test-workspace-id"
+
+
+@pytest.fixture
+def test_project(mock_project_response):
+    """测试用的 project 数据
+
+    Note: 这是 mock 数据，用于单元测试。
+    集成测试应该创建真实的 project。
+    """
+    return mock_project_response
+
+
 # ==================== 清理 Fixtures ====================
 
 @pytest.fixture(autouse=True)

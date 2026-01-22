@@ -6,7 +6,10 @@
         <span class="metric-name">{{ benchmark.metric_name }}</span>
         <span class="metric-value">{{ formatValue(benchmark.current_value, benchmark.metric_key) }}</span>
       </div>
-      <span class="percentile-badge" :class="percentileClass">
+      <span
+        class="percentile-badge"
+        :class="percentileClass"
+      >
         TOP {{ benchmark.percentile.toFixed(0) }}%
       </span>
     </div>
@@ -40,17 +43,26 @@
     </div>
 
     <!-- Trend Description -->
-    <p v-if="benchmark.trend_description" class="trend-description">
+    <p
+      v-if="benchmark.trend_description"
+      class="trend-description"
+    >
       {{ benchmark.trend_description }}
     </p>
 
     <!-- DuPont Section (Collapsible) -->
-    <div v-if="dupont && showDupont" class="dupont-section">
+    <div
+      v-if="dupont && showDupont"
+      class="dupont-section"
+    >
       <button
         class="dupont-trigger"
         @click="isDupontExpanded = !isDupontExpanded"
       >
-        <TrendingUp class="trigger-icon" :size="16" />
+        <TrendingUp
+          class="trigger-icon"
+          :size="16"
+        />
         <span>DuPont 分解</span>
         <ChevronDown
           class="chevron-icon"
@@ -60,7 +72,10 @@
       </button>
 
       <Transition name="collapse">
-        <div v-if="isDupontExpanded" class="dupont-breakdown">
+        <div
+          v-if="isDupontExpanded"
+          class="dupont-breakdown"
+        >
           <!-- ROE Formula -->
           <div class="dupont-formula">
             <span class="formula-label">ROE {{ dupont.roe.toFixed(1) }}%</span>
@@ -97,8 +112,14 @@
           </div>
 
           <!-- Insights -->
-          <ul v-if="dupont.insights.length > 0" class="dupont-insights">
-            <li v-for="(insight, idx) in dupont.insights" :key="idx">
+          <ul
+            v-if="dupont.insights.length > 0"
+            class="dupont-insights"
+          >
+            <li
+              v-for="(insight, idx) in dupont.insights"
+              :key="idx"
+            >
               {{ insight }}
             </li>
           </ul>

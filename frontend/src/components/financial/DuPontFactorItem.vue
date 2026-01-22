@@ -3,7 +3,10 @@
     <div class="factor-header">
       <span class="factor-name">{{ factor.name }}</span>
       <span class="factor-value">{{ formatValue() }}</span>
-      <span class="factor-percentile" :class="percentileClass">
+      <span
+        class="factor-percentile"
+        :class="percentileClass"
+      >
         TOP {{ factor.percentile.toFixed(0) }}%
       </span>
     </div>
@@ -14,7 +17,9 @@
         :style="{ width: barWidth }"
       />
     </div>
-    <p class="factor-description">{{ factor.description }}</p>
+    <p class="factor-description">
+      {{ factor.description }}
+    </p>
   </div>
 </template>
 

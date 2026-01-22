@@ -349,8 +349,20 @@ class TestGetSessionMessages:
         mock_service.get_session = AsyncMock(return_value=mock_session_response)
         mock_service.get_session_messages = AsyncMock(return_value={
             "items": [
-                {"id": "msg-1", "role": "user", "content": "Hello"},
-                {"id": "msg-2", "role": "assistant", "content": "Hi there!"}
+                {
+                    "id": "msg-1",
+                    "session_id": "test-session-id",
+                    "role": "user",
+                    "content": "Hello",
+                    "created_at": "2024-01-01T00:00:00"
+                },
+                {
+                    "id": "msg-2",
+                    "session_id": "test-session-id",
+                    "role": "assistant",
+                    "content": "Hi there!",
+                    "created_at": "2024-01-01T00:00:01"
+                }
             ],
             "total": 2
         })
@@ -397,7 +409,17 @@ class TestGetSessionArtifacts:
         mock_service.get_session = AsyncMock(return_value=mock_session_response)
         mock_service.get_session_artifacts = AsyncMock(return_value={
             "items": [
-                {"id": "artifact-1", "type": "file", "name": "output.txt"}
+                {
+                    "id": "artifact-1",
+                    "session_id": "test-session-id",
+                    "name": "output.txt",
+                    "artifact_type": "document",
+                    "file_path": "/data/artifacts/output.txt",
+                    "file_size": 1024,
+                    "download_url": "/api/v1/artifacts/artifact-1/download",
+                    "created_at": "2024-01-01T00:00:00",
+                    "updated_at": "2024-01-01T00:00:00"
+                }
             ],
             "total": 1
         })

@@ -302,8 +302,13 @@ const currentTabData = computed(() => {
     <div class="panel-header">
       <div class="header-title">
         <span class="title-icon">✨</span>
-        <h3 class="title-text">Aha Moment</h3>
-        <span v-if="stockName" class="stock-badge">{{ stockName }}</span>
+        <h3 class="title-text">
+          Aha Moment
+        </h3>
+        <span
+          v-if="stockName"
+          class="stock-badge"
+        >{{ stockName }}</span>
       </div>
       
       <button 
@@ -319,18 +324,27 @@ const currentTabData = computed(() => {
     </div>
 
     <!-- Empty State -->
-    <div v-if="!symbol" class="empty-state">
+    <div
+      v-if="!symbol"
+      class="empty-state"
+    >
       <p>请先选择一只股票</p>
     </div>
 
     <!-- Loading -->
-    <div v-else-if="loading && !currentTabData" class="loading-state">
+    <div
+      v-else-if="loading && !currentTabData"
+      class="loading-state"
+    >
       <Loader class="w-6 h-6 animate-spin" />
       <span>加载中...</span>
     </div>
 
     <!-- Content -->
-    <div v-else class="panel-content">
+    <div
+      v-else
+      class="panel-content"
+    >
       <!-- Tab Bar -->
       <div class="tab-bar">
         <button
@@ -340,7 +354,10 @@ const currentTabData = computed(() => {
           :class="{ 'is-active': activeTab === tab.key }"
           @click="activeTab = tab.key"
         >
-          <component :is="tab.icon" class="w-4 h-4" />
+          <component
+            :is="tab.icon"
+            class="w-4 h-4"
+          />
           <span>{{ tab.label }}</span>
         </button>
       </div>
@@ -348,8 +365,14 @@ const currentTabData = computed(() => {
       <!-- Tab Content -->
       <div class="tab-content">
         <!-- Benchmark Tab -->
-        <div v-if="activeTab === 'benchmark'" class="content-section">
-          <div v-if="benchmarkData && (benchmarkData as any)?.benchmarks?.length" class="benchmark-list">
+        <div
+          v-if="activeTab === 'benchmark'"
+          class="content-section"
+        >
+          <div
+            v-if="benchmarkData && (benchmarkData as any)?.benchmarks?.length"
+            class="benchmark-list"
+          >
             <MetricWithPercentile
               v-for="(bm, idx) in (benchmarkData as any).benchmarks"
               :key="idx"
@@ -358,30 +381,54 @@ const currentTabData = computed(() => {
               :show-dupont="idx === 0 && (benchmarkData as any)?.dupont"
             />
           </div>
-          <div v-else class="no-data">暂无数据</div>
+          <div
+            v-else
+            class="no-data"
+          >
+            暂无数据
+          </div>
         </div>
 
         <!-- Peer Matrix Tab -->
-        <div v-else-if="activeTab === 'peer'" class="content-section">
+        <div
+          v-else-if="activeTab === 'peer'"
+          class="content-section"
+        >
           <PeerComparisonMatrix
             v-if="peerMatrixData"
             :matrix="peerMatrixData as any"
           />
-          <div v-else class="no-data">暂无数据</div>
+          <div
+            v-else
+            class="no-data"
+          >
+            暂无数据
+          </div>
         </div>
 
         <!-- Events Tab -->
-        <div v-else-if="activeTab === 'events'" class="content-section">
+        <div
+          v-else-if="activeTab === 'events'"
+          class="content-section"
+        >
           <EventTimeline
             v-if="eventsData"
             :events="(eventsData as any)?.upcoming_events || []"
             :next-critical-event="(eventsData as any)?.next_critical_event || null"
           />
-          <div v-else class="no-data">暂无数据</div>
+          <div
+            v-else
+            class="no-data"
+          >
+            暂无数据
+          </div>
         </div>
 
         <!-- Sentiment Pulse Tab -->
-        <div v-else-if="activeTab === 'sentiment'" class="content-section">
+        <div
+          v-else-if="activeTab === 'sentiment'"
+          class="content-section"
+        >
           <SentimentPulse
             v-if="sentimentPulseData"
             :current-score="(sentimentPulseData as any)?.current_score || 0"
@@ -395,11 +442,19 @@ const currentTabData = computed(() => {
             :heat-index="(sentimentPulseData as any)?.heat_index || 0"
             :source-distribution="(sentimentPulseData as any)?.source_distribution || {}"
           />
-          <div v-else class="no-data">暂无数据</div>
+          <div
+            v-else
+            class="no-data"
+          >
+            暂无数据
+          </div>
         </div>
 
         <!-- Risk Propagation Tab -->
-        <div v-else-if="activeTab === 'risk'" class="content-section">
+        <div
+          v-else-if="activeTab === 'risk'"
+          class="content-section"
+        >
           <RiskPropagationGraph
             v-if="riskPropagationData"
             :symbol="(riskPropagationData as any)?.symbol || symbol || ''"
@@ -414,7 +469,12 @@ const currentTabData = computed(() => {
             :risk-by-type="(riskPropagationData as any)?.risk_by_type || {}"
             :key-insights="(riskPropagationData as any)?.key_insights || []"
           />
-          <div v-else class="no-data">暂无数据</div>
+          <div
+            v-else
+            class="no-data"
+          >
+            暂无数据
+          </div>
         </div>
       </div>
     </div>

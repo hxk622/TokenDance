@@ -4,37 +4,57 @@
     <div class="card-header">
       <div class="header-left">
         <h3 class="card-title">
-          <GitCompare class="title-icon" :size="18" />
+          <GitCompare
+            class="title-icon"
+            :size="18"
+          />
           同行对比
         </h3>
-        <span v-if="matrix" class="industry-tag">{{ matrix.industry }}</span>
+        <span
+          v-if="matrix"
+          class="industry-tag"
+        >{{ matrix.industry }}</span>
       </div>
-      <button class="customize-btn" @click="$emit('customize')">
+      <button
+        class="customize-btn"
+        @click="$emit('customize')"
+      >
         <Settings2 :size="14" />
         自定义对比
       </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
       <div class="loading-spinner" />
       <p>正在加载同行数据...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <AlertCircle :size="20" />
       <p>{{ error }}</p>
     </div>
 
     <!-- Matrix Content -->
-    <div v-else-if="matrix" class="matrix-content">
+    <div
+      v-else-if="matrix"
+      class="matrix-content"
+    >
       <!-- Comparison Table -->
       <div class="table-wrapper">
         <table class="comparison-table">
           <thead>
             <tr>
-              <th class="metric-col">指标</th>
+              <th class="metric-col">
+                指标
+              </th>
               <th
                 v-for="peer in matrix.peers"
                 :key="peer.symbol"
@@ -46,7 +66,9 @@
                   <span class="peer-symbol">{{ peer.symbol }}</span>
                 </div>
               </th>
-              <th class="industry-col">行业均值</th>
+              <th class="industry-col">
+                行业均值
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -56,7 +78,9 @@
               class="metric-row"
               @click="handleMetricClick(metric)"
             >
-              <td class="metric-name">{{ metric.metric_name }}</td>
+              <td class="metric-name">
+                {{ metric.metric_name }}
+              </td>
               <td
                 v-for="peer in matrix.peers"
                 :key="peer.symbol"
@@ -80,7 +104,9 @@
           </tbody>
           <tfoot>
             <tr class="score-row">
-              <td class="score-label">综合评分</td>
+              <td class="score-label">
+                综合评分
+              </td>
               <td
                 v-for="peer in matrix.peers"
                 :key="peer.symbol"
@@ -92,20 +118,26 @@
                   <span class="score-value">{{ (matrix.scores[peer.symbol] || 0).toFixed(0) }}分</span>
                 </div>
               </td>
-              <td></td>
+              <td />
             </tr>
           </tfoot>
         </table>
       </div>
 
       <!-- Insights -->
-      <div v-if="matrix.insights.length > 0" class="insights-section">
+      <div
+        v-if="matrix.insights.length > 0"
+        class="insights-section"
+      >
         <h4 class="section-title">
           <Lightbulb :size="14" />
           分析洞察
         </h4>
         <ul class="insights-list">
-          <li v-for="(insight, idx) in matrix.insights" :key="idx">
+          <li
+            v-for="(insight, idx) in matrix.insights"
+            :key="idx"
+          >
             {{ insight }}
           </li>
         </ul>
@@ -113,7 +145,10 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <p>暂无同行对比数据</p>
     </div>
   </div>

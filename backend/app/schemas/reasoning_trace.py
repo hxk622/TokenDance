@@ -6,7 +6,7 @@ ReasoningTrace Schemas - 推理轨迹数据模型
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResearchPhase(str, Enum):
@@ -60,10 +60,9 @@ class ReasoningTrace(BaseModel):
     )
     metadata: dict = Field(default_factory=dict, description="额外元数据")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    # Pydantic v2: 使用 model_config 替代 class Config
+    # datetime 序列化在 Pydantic v2 中默认支持 ISO 格式
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReasoningTraceCreate(BaseModel):

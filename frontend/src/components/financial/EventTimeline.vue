@@ -3,19 +3,40 @@
     <!-- Header -->
     <div class="timeline-header">
       <div class="header-left">
-        <Calendar class="header-icon" :size="20" />
-        <h3 class="header-title">事件日历</h3>
+        <Calendar
+          class="header-icon"
+          :size="20"
+        />
+        <h3 class="header-title">
+          事件日历
+        </h3>
         <span class="event-count">{{ events.length }} 个事件</span>
       </div>
       <div class="header-right">
         <!-- Filter Dropdown -->
-        <div class="filter-dropdown" v-if="showFilters">
-          <select v-model="selectedImportance" class="importance-select">
-            <option value="all">全部重要性</option>
-            <option value="critical">关键</option>
-            <option value="high">高</option>
-            <option value="medium">中</option>
-            <option value="low">低</option>
+        <div
+          v-if="showFilters"
+          class="filter-dropdown"
+        >
+          <select
+            v-model="selectedImportance"
+            class="importance-select"
+          >
+            <option value="all">
+              全部重要性
+            </option>
+            <option value="critical">
+              关键
+            </option>
+            <option value="high">
+              高
+            </option>
+            <option value="medium">
+              中
+            </option>
+            <option value="low">
+              低
+            </option>
           </select>
         </div>
         <!-- Days Range -->
@@ -24,8 +45,14 @@
     </div>
 
     <!-- Next Critical Event Banner -->
-    <div v-if="nextCriticalEvent" class="critical-banner">
-      <AlertTriangle class="critical-icon" :size="18" />
+    <div
+      v-if="nextCriticalEvent"
+      class="critical-banner"
+    >
+      <AlertTriangle
+        class="critical-icon"
+        :size="18"
+      />
       <div class="critical-content">
         <span class="critical-label">最近重要事件</span>
         <span class="critical-title">{{ nextCriticalEvent.title }}</span>
@@ -58,7 +85,10 @@
           :class="[`importance-${event.importance}`, { 'is-selected': selectedEvent === event }]"
           @click="selectEvent(event)"
         >
-          <div class="marker-dot" :style="{ backgroundColor: getEventColor(event.event_type) }" />
+          <div
+            class="marker-dot"
+            :style="{ backgroundColor: getEventColor(event.event_type) }"
+          />
           <component
             :is="getEventIcon(event.event_type)"
             class="marker-icon"
@@ -77,9 +107,15 @@
 
     <!-- Event Detail Card -->
     <Transition name="slide-up">
-      <div v-if="selectedEvent" class="event-card">
+      <div
+        v-if="selectedEvent"
+        class="event-card"
+      >
         <div class="card-header">
-          <div class="card-type" :style="{ backgroundColor: getEventColor(selectedEvent.event_type) + '20' }">
+          <div
+            class="card-type"
+            :style="{ backgroundColor: getEventColor(selectedEvent.event_type) + '20' }"
+          >
             <component
               :is="getEventIcon(selectedEvent.event_type)"
               :size="16"
@@ -89,12 +125,17 @@
               {{ getEventTypeName(selectedEvent.event_type) }}
             </span>
           </div>
-          <button class="close-btn" @click="selectedEvent = null">
+          <button
+            class="close-btn"
+            @click="selectedEvent = null"
+          >
             <X :size="16" />
           </button>
         </div>
 
-        <h4 class="card-title">{{ selectedEvent.title }}</h4>
+        <h4 class="card-title">
+          {{ selectedEvent.title }}
+        </h4>
 
         <div class="card-meta">
           <div class="meta-item">
@@ -105,17 +146,26 @@
             <Clock :size="14" />
             <span>{{ selectedEvent.days_until }} 天后</span>
           </div>
-          <div class="importance-badge" :class="`importance-${selectedEvent.importance}`">
+          <div
+            class="importance-badge"
+            :class="`importance-${selectedEvent.importance}`"
+          >
             {{ getImportanceName(selectedEvent.importance) }}
           </div>
         </div>
 
-        <p v-if="selectedEvent.description" class="card-description">
+        <p
+          v-if="selectedEvent.description"
+          class="card-description"
+        >
           {{ selectedEvent.description }}
         </p>
 
         <!-- Metadata -->
-        <div v-if="Object.keys(selectedEvent.metadata || {}).length > 0" class="card-metadata">
+        <div
+          v-if="Object.keys(selectedEvent.metadata || {}).length > 0"
+          class="card-metadata"
+        >
           <div
             v-for="(value, key) in selectedEvent.metadata"
             :key="key"
@@ -127,7 +177,10 @@
         </div>
 
         <!-- Historical Impact -->
-        <div v-if="selectedEvent.historical_impact" class="historical-impact">
+        <div
+          v-if="selectedEvent.historical_impact"
+          class="historical-impact"
+        >
           <div class="impact-header">
             <TrendingUp :size="14" />
             <span>历史影响参考</span>
@@ -177,19 +230,30 @@
         v-for="eventType in visibleEventTypes"
         :key="eventType"
         class="legend-item"
-        @click="toggleEventTypeFilter(eventType)"
         :class="{ dimmed: filteredTypes.length > 0 && !filteredTypes.includes(eventType) }"
+        @click="toggleEventTypeFilter(eventType)"
       >
-        <div class="legend-dot" :style="{ backgroundColor: getEventColor(eventType) }" />
+        <div
+          class="legend-dot"
+          :style="{ backgroundColor: getEventColor(eventType) }"
+        />
         <span class="legend-label">{{ getEventTypeName(eventType) }}</span>
         <span class="legend-count">{{ getEventCountByType(eventType) }}</span>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-if="events.length === 0" class="empty-state">
-      <Calendar class="empty-icon" :size="48" />
-      <p class="empty-text">暂无即将发生的事件</p>
+    <div
+      v-if="events.length === 0"
+      class="empty-state"
+    >
+      <Calendar
+        class="empty-icon"
+        :size="48"
+      />
+      <p class="empty-text">
+        暂无即将发生的事件
+      </p>
     </div>
   </div>
 </template>

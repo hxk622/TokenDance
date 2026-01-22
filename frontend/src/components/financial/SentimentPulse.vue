@@ -3,9 +3,17 @@
     <!-- Header -->
     <div class="pulse-header">
       <div class="header-left">
-        <Activity class="header-icon" :size="20" />
-        <h3 class="header-title">情绪脉冲</h3>
-        <span class="heat-badge" :class="heatClass">
+        <Activity
+          class="header-icon"
+          :size="20"
+        />
+        <h3 class="header-title">
+          情绪脉冲
+        </h3>
+        <span
+          class="heat-badge"
+          :class="heatClass"
+        >
           <Flame :size="12" />
           热度 {{ heatIndex.toFixed(0) }}
         </span>
@@ -16,11 +24,20 @@
     </div>
 
     <!-- Current Sentiment Card -->
-    <div class="current-sentiment" :class="`level-${currentLevel}`">
+    <div
+      class="current-sentiment"
+      :class="`level-${currentLevel}`"
+    >
       <div class="sentiment-gauge">
         <div class="gauge-track">
-          <div class="gauge-fill" :style="{ width: gaugeWidth + '%' }" />
-          <div class="gauge-indicator" :style="{ left: gaugeWidth + '%' }" />
+          <div
+            class="gauge-fill"
+            :style="{ width: gaugeWidth + '%' }"
+          />
+          <div
+            class="gauge-indicator"
+            :style="{ left: gaugeWidth + '%' }"
+          />
         </div>
         <div class="gauge-labels">
           <span>极度悲观</span>
@@ -33,13 +50,22 @@
           <span class="score-value">{{ (currentScore * 100).toFixed(0) }}</span>
           <span class="score-label">情绪指数</span>
         </div>
-        <div class="sentiment-change" :class="changeClass">
-          <component :is="changeIcon" :size="16" />
+        <div
+          class="sentiment-change"
+          :class="changeClass"
+        >
+          <component
+            :is="changeIcon"
+            :size="16"
+          />
           <span>{{ formatChange(scoreChange24h) }}</span>
           <span class="change-label">24h</span>
         </div>
         <div class="sentiment-level">
-          <span class="level-badge" :class="`level-${currentLevel}`">
+          <span
+            class="level-badge"
+            :class="`level-${currentLevel}`"
+          >
             {{ getLevelName(currentLevel) }}
           </span>
         </div>
@@ -66,8 +92,8 @@
             v-for="(mood, index) in dailyMoods"
             :key="mood.date"
             class="bar-group"
-            @click="selectDay(index)"
             :class="{ selected: selectedDayIndex === index }"
+            @click="selectDay(index)"
           >
             <div class="bar-stack">
               <div
@@ -85,16 +111,25 @@
       </div>
       <!-- Day Detail -->
       <Transition name="fade">
-        <div v-if="selectedDay" class="day-detail">
+        <div
+          v-if="selectedDay"
+          class="day-detail"
+        >
           <div class="detail-header">
             <span>{{ formatFullDate(selectedDay.date) }}</span>
-            <button class="close-btn" @click="selectedDayIndex = -1">
+            <button
+              class="close-btn"
+              @click="selectedDayIndex = -1"
+            >
               <X :size="14" />
             </button>
           </div>
           <div class="detail-grid">
             <div class="detail-item">
-              <span class="detail-value" :class="getScoreClass(selectedDay.score)">
+              <span
+                class="detail-value"
+                :class="getScoreClass(selectedDay.score)"
+              >
                 {{ (selectedDay.score * 100).toFixed(0) }}
               </span>
               <span class="detail-label">情绪指数</span>
@@ -117,9 +152,15 @@
     </div>
 
     <!-- Trending Topics -->
-    <div v-if="trendingTopics.length > 0" class="trending-topics">
+    <div
+      v-if="trendingTopics.length > 0"
+      class="trending-topics"
+    >
       <div class="section-header">
-        <Hash class="section-icon" :size="16" />
+        <Hash
+          class="section-icon"
+          :size="16"
+        />
         <span>热门话题</span>
       </div>
       <div class="topics-grid">
@@ -143,9 +184,15 @@
     <!-- Key Opinions -->
     <div class="opinions-section">
       <!-- Bullish Opinions -->
-      <div v-if="topBullishOpinions.length > 0" class="opinions-column bullish">
+      <div
+        v-if="topBullishOpinions.length > 0"
+        class="opinions-column bullish"
+      >
         <div class="opinions-header">
-          <TrendingUp class="opinions-icon" :size="16" />
+          <TrendingUp
+            class="opinions-icon"
+            :size="16"
+          />
           <span>看多观点 TOP {{ topBullishOpinions.length }}</span>
         </div>
         <div class="opinions-list">
@@ -154,7 +201,9 @@
             :key="`bull-${index}`"
             class="opinion-card"
           >
-            <p class="opinion-content">{{ opinion.content }}</p>
+            <p class="opinion-content">
+              {{ opinion.content }}
+            </p>
             <div class="opinion-meta">
               <span class="opinion-author">{{ opinion.author }}</span>
               <span class="opinion-likes">
@@ -168,9 +217,15 @@
       </div>
 
       <!-- Bearish Opinions -->
-      <div v-if="topBearishOpinions.length > 0" class="opinions-column bearish">
+      <div
+        v-if="topBearishOpinions.length > 0"
+        class="opinions-column bearish"
+      >
         <div class="opinions-header">
-          <TrendingDown class="opinions-icon" :size="16" />
+          <TrendingDown
+            class="opinions-icon"
+            :size="16"
+          />
           <span>看空观点 TOP {{ topBearishOpinions.length }}</span>
         </div>
         <div class="opinions-list">
@@ -179,7 +234,9 @@
             :key="`bear-${index}`"
             class="opinion-card"
           >
-            <p class="opinion-content">{{ opinion.content }}</p>
+            <p class="opinion-content">
+              {{ opinion.content }}
+            </p>
             <div class="opinion-meta">
               <span class="opinion-author">{{ opinion.author }}</span>
               <span class="opinion-likes">
@@ -195,7 +252,11 @@
 
     <!-- Source Distribution -->
     <div class="source-distribution">
-      <div class="source-item" v-for="(count, source) in sourceDistribution" :key="source">
+      <div
+        v-for="(count, source) in sourceDistribution"
+        :key="source"
+        class="source-item"
+      >
         <span class="source-name">{{ getSourceName(source as string) }}</span>
         <div class="source-bar">
           <div
