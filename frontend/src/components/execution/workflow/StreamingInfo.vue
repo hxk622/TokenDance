@@ -58,6 +58,8 @@ const emit = defineEmits<{
   'update-input': [input: string]
   /** 研究干预事件 */
   'research-intervene': [intervention: ResearchIntervention]
+  /** 用户发送消息事件 (Chat Mode 下触发执行) */
+  'send-message': [message: string]
 }>()
 
 // Selected clarification options
@@ -404,7 +406,8 @@ function handleSendMessage(payload: SendMessagePayload) {
   // Clear quote
   currentQuote.value = null
   
-  // TODO: Emit to parent to handle the message
+  // Emit to parent to handle the message (e.g., trigger execution in chat mode)
+  emit('send-message', payload.content)
 }
 
 // Start editing a message

@@ -473,9 +473,10 @@ async function initializeExecution() {
         initPhase.value = 'needs-clarification'
       }
     } else {
-      // No initial task, go directly to executing
-      initPhase.value = 'executing'
-      startActualExecution('')
+      // No initial task - wait for user input in chat mode
+      // Set to 'ready' state so StreamingInfo shows the chat input
+      initPhase.value = 'ready'
+      // Don't start execution yet - wait for user to send a message
     }
   } catch (error) {
     console.error('[ExecutionPage] Failed to initialize execution:', error)
@@ -698,7 +699,16 @@ function openBrowserUrl(url: string) {
 // Handle chat message from StreamingInfo
 function handleChatMessage(message: string) {
   console.log('Chat message received:', message)
-  // TODO: Send message to backend to supplement task execution
+  
+  // In ready state (no execution yet), treat as initial task and start execution
+  if (initPhase.value === 'ready' && !isRunning.value) {
+    initialTask.value = message
+    initPhase.value = 'executing'
+    startActualExecution(message)
+    return
+  }
+  
+  // TODO: During execution, send as supplementary message
   // executionStore.sendSupplementMessage(sessionId.value, message)
 }
 
@@ -1020,6 +1030,7 @@ onUnmounted(() => {
               :is-deep-research="isDeepResearch"
               @proceed="handleStreamingProceed"
               @research-intervene="handleResearchIntervene"
+              @send-message="handleChatMessage"
             />
           </div>
 
@@ -1064,7 +1075,7 @@ onUnmounted(() => {
               <div 
                 class="streaming-info-container"
               >
-                <StreamingInfo 
+              <StreamingInfo 
                   ref="streamingInfoRef"
                   :session-id="sessionId"
                   :init-phase="initPhase"
@@ -1074,6 +1085,7 @@ onUnmounted(() => {
                   :is-deep-research="isDeepResearch"
                   @proceed="handleStreamingProceed"
                   @research-intervene="handleResearchIntervene"
+                  @send-message="handleChatMessage"
                 />
               </div>
             </div>
