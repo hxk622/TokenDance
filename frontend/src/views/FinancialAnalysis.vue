@@ -166,6 +166,14 @@
             />
           </div>
         </div>
+
+        <!-- Aha Moment Panel -->
+        <AhaMomentPanel
+          v-if="store.stockInfo"
+          :symbol="store.stockInfo.symbol"
+          :stock-name="store.stockInfo.name"
+          class="aha-moment-section"
+        />
       </div>
 
       <!-- Right Column: Sentiment Analysis -->
@@ -230,6 +238,7 @@ import FinancialAnalysisCard from '@/components/financial/FinancialAnalysisCard.
 import ValuationCard from '@/components/financial/ValuationCard.vue'
 import TechnicalAnalysisCard from '@/components/financial/TechnicalAnalysisCard.vue'
 import ResearchAssistant from '@/components/financial/ResearchAssistant.vue'
+import AhaMomentPanel from '@/components/financial/AhaMomentPanel.vue'
 
 const store = useFinancialStore()
 
@@ -639,6 +648,11 @@ function handleAssistantAsk(question: string) {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+/* Aha Moment Section */
+.aha-moment-section {
+  margin-top: 1.5rem;
 }
 
 /* Footer */
