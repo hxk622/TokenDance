@@ -54,7 +54,8 @@ interface GraphData {
 
 // Props
 interface Props {
-  graph: GraphData
+  graph?: GraphData        // 直接传入的图谱数据
+  content?: string         // DynamicRenderer 传入的 JSON 字符串 (:::KnowledgeGraph{} 内容)
   title?: string
   height?: number | string
   layout?: 'cose' | 'circle' | 'breadthfirst' | 'concentric' | 'grid'
@@ -72,6 +73,29 @@ const props = withDefaults(defineProps<Props>(), {
   showLegend: true,
   interactive: true,
   theme: 'auto',
+})
+
+// 解析图谱数据 - 支持 graph prop 或 content (JSON 字符串)
+const graphData = computed<GraphData>(() => {
+  // 优先使用 graph prop
+  if (props.graph && props.graph.nodes) {
+    return props.graph
+  }
+  
+  // 尝试从 content 解析 JSON
+  if (props.content) {
+    try {
+      const parsed = JSON.parse(props.content.trim())
+      if (parsed && parsed.nodes && Array.isArray(parsed.nodes)) {
+        return parsed as GraphData
+      }
+    } catch (e) {
+      console.warn('[KnowledgeGraph] Failed to parse content as JSON:', e)
+    }
+  }
+  
+  // 返回空图谱
+  return { nodes: [], edges: [] }
 })
 
 // Emits
@@ -165,7 +189,7 @@ const nodeTypeLabels: Record<string, string> = {
 // Get used node types for legend
 const usedNodeTypes = computed(() => {
   const types = new Set<string>()
-  props.graph.nodes.forEach(node => {
+  graphData.value.nodes.forEach(node => {
     if (node.type) types.add(node.type)
   })
   return Array.from(types)
@@ -284,9 +308,10 @@ const getStylesheet = (): any[] => {
 
 // Convert graph data to Cytoscape format
 const getCytoscapeElements = () => {
-  const centralNodeId = props.graph.metadata?.central_node
+  const graph = graphData.value
+  const centralNodeId = graph.metadata?.central_node
   
-  const nodes = props.graph.nodes.map(node => ({
+  const nodes = graph.nodes.map(node => ({
     data: {
       id: node.id,
       label: node.label,
@@ -298,7 +323,7 @@ const getCytoscapeElements = () => {
     }
   }))
   
-  const edges = props.graph.edges.map((edge, index) => ({
+  const edges = graph.edges.map((edge, index) => ({
     data: {
       id: `edge-${index}`,
       source: edge.source,
@@ -449,7 +474,7 @@ const refresh = () => {
 }
 
 // Watch for graph changes
-watch(() => props.graph, () => {
+watch(graphData, () => {
   if (cy.value) {
     refresh()
   }
@@ -496,10 +521,10 @@ defineExpose({
       class="graph-toolbar"
     >
       <span 
-        v-if="title || graph.metadata?.title"
+        v-if="title || graphData.metadata?.title"
         class="toolbar-title"
       >
-        {{ title || graph.metadata?.title }}
+        {{ title || graphData.metadata?.title }}
       </span>
       
       <div class="toolbar-actions">
@@ -638,7 +663,7 @@ defineExpose({
     
     <!-- Stats -->
     <div class="graph-stats">
-      {{ graph.nodes.length }} 节点 · {{ graph.edges.length }} 关系
+      {{ graphData.nodes.length }} 节点 · {{ graphData.edges.length }} 关系
     </div>
   </div>
 </template>
