@@ -30,6 +30,11 @@ from .deep_research import DeepResearchAgent, ResearchState
 if TYPE_CHECKING:
     from app.services.financial import FinancialAnalyzer, TechnicalIndicators, ValuationAnalyzer
 
+    from ..context import AgentContext
+    from ..llm import BaseLLM
+    from ..memory import WorkingMemory
+    from ..tools import ToolRegistry
+
 _financial_analyzer: "FinancialAnalyzer | None" = None
 _valuation_analyzer: "ValuationAnalyzer | None" = None
 _technical_indicators: "TechnicalIndicators | None" = None
@@ -1137,13 +1142,13 @@ This report is for informational purposes only and does NOT constitute investmen
 # ==================== 工厂函数 ====================
 
 async def create_financial_research_agent(
-    context,
-    llm,
-    tools,
-    memory,
-    db,
+    context: "AgentContext",
+    llm: "BaseLLM",
+    tools: "ToolRegistry",
+    memory: "WorkingMemory",
+    db: Any,
     max_iterations: int = 30,
-    max_sources: int = 15
+    max_sources: int = 15,
 ) -> FinancialResearchAgent:
     """创建 FinancialResearchAgent 实例
 
