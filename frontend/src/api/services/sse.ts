@@ -98,6 +98,9 @@ export enum SSEEventType {
 
   // Diagram events (draw.io 图表生成)
   DIAGRAM_GENERATED = 'diagram.generated',
+
+  // Knowledge Graph events (知识图谱生成)
+  KNOWLEDGE_GRAPH_GENERATED = 'knowledge_graph.generated',
 }
 
 export interface SSEEvent<T = any> {

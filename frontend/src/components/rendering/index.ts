@@ -15,6 +15,7 @@ export { default as DynamicRenderer } from './engine/DynamicRenderer.vue'
 // Charts
 export { default as KLineChart } from './charts/KLineChart.vue'
 export { default as DrawioViewer } from './charts/DrawioViewer.vue'
+export { default as KnowledgeGraph } from './charts/KnowledgeGraph.vue'
 
 // Widgets
 export { default as MetricCard } from './widgets/MetricCard.vue'
@@ -30,6 +31,7 @@ export { default as ScrollyProgress } from './scrolly/ScrollyProgress.vue'
 import { registerComponent } from './engine/ComponentRegistry'
 import KLineChart from './charts/KLineChart.vue'
 import DrawioViewer from './charts/DrawioViewer.vue'
+import KnowledgeGraph from './charts/KnowledgeGraph.vue'
 import MetricCard from './widgets/MetricCard.vue'
 import ValuationTable from './widgets/ValuationTable.vue'
 import SourceCitation from './widgets/SourceCitation.vue'
@@ -47,6 +49,11 @@ export function registerBuiltInComponents(): void {
   registerComponent('DrawioViewer', DrawioViewer, { 
     category: 'chart', 
     description: 'draw.io 图表查看器 - 流程图/架构图' 
+  })
+  
+  registerComponent('KnowledgeGraph', KnowledgeGraph, { 
+    category: 'chart', 
+    description: '知识图谱可视化 - Cytoscape.js 交互式图谱' 
   })
   
   registerComponent('MetricCard', MetricCard, {

@@ -10,13 +10,12 @@ Knowledge Graph Tool - AI 知识图谱生成工具
 输出格式：JSON (nodes + edges)，前端用 Cytoscape.js 渲染
 """
 
-import os
 import json
+import os
 from typing import Any
 
 from ..base import BaseTool, ToolResult
 from ..risk import OperationCategory, RiskLevel
-
 
 # 节点类型定义
 NODE_TYPES = {
@@ -217,7 +216,8 @@ class KnowledgeGraphTool(BaseTool):
         if start != -1 and end > start:
             json_str = json_str[start:end]
 
-        return json.loads(json_str)
+        result: dict[str, Any] = json.loads(json_str)
+        return result
 
     def _validate_graph(self, data: dict[str, Any]) -> tuple[bool, str]:
         """验证图谱数据结构"""
@@ -257,7 +257,7 @@ class KnowledgeGraphTool(BaseTool):
                 node["color"] = node.get("color") or NODE_TYPES[node_type]["color"]
             else:
                 node["color"] = NODE_TYPES["concept"]["color"]
-            
+
             # 默认 importance
             if "importance" not in node:
                 node["importance"] = 5
@@ -269,7 +269,7 @@ class KnowledgeGraphTool(BaseTool):
                 edge["style"] = edge.get("style") or EDGE_TYPES[edge_type]["style"]
             else:
                 edge["style"] = "solid"
-            
+
             # 默认 strength
             if "strength" not in edge:
                 edge["strength"] = 5
@@ -295,7 +295,8 @@ class KnowledgeGraphTool(BaseTool):
         title = kwargs.get("title", "")
         focus_entities = kwargs.get("focus_entities", [])
         max_nodes = kwargs.get("max_nodes", 30)
-        include_weights = kwargs.get("include_weights", True)
+        # Note: include_weights is accepted but currently always True
+        _ = kwargs.get("include_weights", True)
 
         if not content:
             return ToolResult(
@@ -313,10 +314,10 @@ class KnowledgeGraphTool(BaseTool):
             # 构建 prompts
             system_prompt = self._get_system_prompt(graph_type, max_nodes)
             user_prompt = f"请从以下内容中提取知识图谱：\n\n{content}"
-            
+
             if focus_entities:
                 user_prompt += f"\n\n重点关注以下实体：{', '.join(focus_entities)}"
-            
+
             if title:
                 user_prompt = f"图谱主题：{title}\n\n{user_prompt}"
 
@@ -341,7 +342,7 @@ class KnowledgeGraphTool(BaseTool):
             # 添加元信息
             if "metadata" not in graph_data:
                 graph_data["metadata"] = {}
-            
+
             graph_data["metadata"]["graph_type"] = graph_type
             graph_data["metadata"]["title"] = title or "Knowledge Graph"
             graph_data["metadata"]["node_count"] = len(graph_data["nodes"])
