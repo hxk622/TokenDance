@@ -353,8 +353,10 @@ class AgentEngine:
         # 添加用户消息到 context
         self.context_manager.add_user_message(user_message)
 
-        # 信号: 意图清晰 → 转移到 REASONING
-        self.state_machine.transition(Signal.INTENT_CLEAR)
+        # 信号: 意图不清晰 → 直接转移到 REASONING（跳过 PLANNING）
+        # 注: run() 是简单执行模式，不需要 Planning 阶段
+        # 使用 INTENT_UNCLEAR 信号直接进入 REASONING 状态
+        self.state_machine.transition(Signal.INTENT_UNCLEAR)
         logger.info(f"State: {self.state_machine.current_state.value}")
 
         # 保存最终推理结果
