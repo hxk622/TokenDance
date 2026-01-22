@@ -223,32 +223,45 @@ const layoutRatios: Record<TaskType, { left: number; right: number }> = {
 }
 const taskType = ref<TaskType>('default')
 
-// 从 session 数据同步 taskType
+// 从 session 数据或 currentSkill 同步 taskType
+// 注意: 后端 session 目前没有 task_type 字段，主要通过 SKILL_MATCHED 事件推断
 function syncTaskTypeFromSession() {
+  // 优先使用 session.task_type（如果后端将来支持）
   const sessionTaskType = executionStore.session?.task_type
-  if (sessionTaskType) {
-    // 映射后端 task_type 到前端枚举
+  // 否则通过 currentSkill 推断
+  const skillId = sessionTaskType || executionStore.currentSkill?.id || executionStore.currentSkill?.name
+  
+  if (skillId) {
+    // 映射 skill_id 到前端 TaskType 枚举
     const typeMap: Record<string, TaskType> = {
       'deep_research': 'deep-research',
       'deep-research': 'deep-research',
+      'DeepResearch': 'deep-research',
       'ppt_generation': 'ppt-generation',
       'ppt-generation': 'ppt-generation',
+      'PPTGeneration': 'ppt-generation',
       'code_refactor': 'code-refactor',
       'code-refactor': 'code-refactor',
+      'CodeRefactor': 'code-refactor',
       'file_operations': 'file-operations',
       'file-operations': 'file-operations',
+      'FileOperations': 'file-operations',
     }
-    taskType.value = typeMap[sessionTaskType] || 'default'
-    console.log('[ExecutionPage] taskType synced from session:', taskType.value)
+    const newTaskType = typeMap[skillId] || 'default'
+    if (newTaskType !== taskType.value) {
+      taskType.value = newTaskType
+      console.log('[ExecutionPage] taskType synced:', taskType.value, 'from:', skillId)
+    }
   }
 }
 
-// 监听 session 变化，动态同步 taskType
-watch(() => executionStore.session?.task_type, (newTaskType) => {
-  if (newTaskType) {
+// 监听 session 和 currentSkill 变化，动态同步 taskType
+watch(
+  () => [executionStore.session?.task_type, executionStore.currentSkill?.id],
+  () => {
     syncTaskTypeFromSession()
   }
-})
+)
 
 // 是否为深度研究模式
 const isDeepResearch = computed(() => taskType.value === 'deep-research')
