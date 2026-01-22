@@ -476,7 +476,33 @@ async function initializeExecution() {
       return
     }
 
-    // If there's an initial task, run preflight check in-place
+    // Check session status to determine initialization behavior
+    const sessionStatus = executionStore.session?.status
+    
+    // Case 1: Session is RUNNING - reconnect to SSE stream to resume
+    if (sessionStatus === 'running') {
+      console.log('[ExecutionPage] Session is running, reconnecting to SSE stream')
+      initPhase.value = 'executing'
+      // Connect without task to avoid re-triggering agent
+      executionStore.sessionId = sessionId.value
+      executionStore.connectSSE(null)
+      startElapsedTimer()
+      return
+    }
+    
+    // Case 2: Session is COMPLETED/FAILED/CANCELLED - show results
+    if (sessionStatus === 'completed' || sessionStatus === 'failed' || sessionStatus === 'cancelled') {
+      console.log('[ExecutionPage] Session already finished, showing results:', sessionStatus)
+      // Set initPhase based on whether there are artifacts/messages
+      if (executionStore.artifacts.length > 0 || executionStore.messages.length > 0) {
+        initPhase.value = 'executing' // Will show execution mode due to shouldShowExecution
+      } else {
+        initPhase.value = 'ready' // Empty session, show chat mode
+      }
+      return
+    }
+
+    // Case 3: Session is PENDING with initial task - run preflight and start
     if (initialTask.value) {
       // Set analyzing phase - user sees the execution page with analyzing indicator
       initPhase.value = 'analyzing'
@@ -492,7 +518,7 @@ async function initializeExecution() {
         initPhase.value = 'needs-clarification'
       }
     } else {
-      // No initial task - wait for user input in chat mode
+      // Case 4: Session is PENDING without task - wait for user input in chat mode
       // Set to 'ready' state so StreamingInfo shows the chat input
       initPhase.value = 'ready'
       // Don't start execution yet - wait for user to send a message
@@ -1082,7 +1108,7 @@ onUnmounted(() => {
               <div 
                 class="streaming-info-container"
               >
-              <StreamingInfo 
+                <StreamingInfo 
                   ref="streamingInfoRef"
                   :session-id="sessionId"
                   :init-phase="initPhase"
