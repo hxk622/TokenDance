@@ -46,10 +46,14 @@ class SSEEventType(str, Enum):
     TASK_COMPLETE = "task.complete"        # Task 执行完成
     TASK_FAILED = "task.failed"            # Task 执行失败
 
-    # ========== Validation 事件 (LLM-as-a-Judge) ==========
+    # ========== Validation events (LLM-as-a-Judge) ==========
     VALIDATION_START = "validation.start"      # 验证开始
     VALIDATION_RESULT = "validation.result"    # 验证结果
     VALIDATION_RETRY = "validation.retry"      # 验证失败触发重试
+
+    # ========== Answer events (AnswerAgent) ==========
+    ANSWER_GENERATING = "answer.generating"    # 正在生成答案
+    ANSWER_READY = "answer.ready"              # 答案已就绪
 
     # Timeline 事件 (时光长廊)
     TIMELINE_SEARCH = "timeline_search"

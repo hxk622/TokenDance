@@ -54,6 +54,10 @@ export enum SSEEventType {
   VALIDATION_START = 'validation.start',    // 验证开始
   VALIDATION_RESULT = 'validation.result',  // 验证结果
   VALIDATION_RETRY = 'validation.retry',    // 验证失败触发重试
+
+  // ========== Answer events (AnswerAgent) ==========
+  ANSWER_GENERATING = 'answer.generating',  // 答案组装中
+  ANSWER_READY = 'answer.ready',            // 答案已就绪
   
   // File events
   FILE_CREATED = 'file_created',

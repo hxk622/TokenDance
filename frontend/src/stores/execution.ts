@@ -570,6 +570,35 @@ export const useExecutionStore = defineStore('execution', () => {
         break
       }
 
+      // ========== Answer events (AnswerAgent) ==========
+      case SSEEventType.ANSWER_GENERATING: {
+        console.log('[ExecutionStore] Answer generating...')
+        addLog({
+          type: 'thinking',
+          nodeId: '0',
+          content: '📝 正在组装最终答案...',
+        })
+        break
+      }
+
+      case SSEEventType.ANSWER_READY: {
+        console.log('[ExecutionStore] Answer ready:', event.data.summary || event.data.content?.substring(0, 100))
+        // 更新报告内容
+        if (event.data.content) {
+          reportContent.value = event.data.content
+        }
+        // 更新引用
+        if (event.data.citations && Array.isArray(event.data.citations)) {
+          citations.value = event.data.citations
+        }
+        addLog({
+          type: 'result',
+          nodeId: '0',
+          content: `✅ 答案已生成${event.data.summary ? ': ' + event.data.summary : ''}`,
+        })
+        break
+      }
+
       case SSEEventType.NODE_CREATED: {
         // 动态添加节点
         const pos = calculateNodePosition(nodes.value.length)

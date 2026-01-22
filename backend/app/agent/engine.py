@@ -254,6 +254,17 @@ class AgentEngine:
             ),
         )
 
+        # =================================================================
+        # AnswerAgent: 答案组装与格式化
+        # Planning 模式下组装多个 Task 的输出
+        # =================================================================
+        from app.agent.answer_agent import AnswerAgent
+        from app.agent.answer_agent import TaskOutput as AnswerTaskOutput
+        self.answer_agent = AnswerAgent(llm)
+
+        # 用于 Planning 模式收集各 Task 输出
+        self._task_outputs: list[AnswerTaskOutput] = []
+
         # -----------------------------------------------------------------
         # Policies: 动态迭代 / Context 压缩 / Token 预算
         # -----------------------------------------------------------------
@@ -1584,6 +1595,7 @@ Output the code wrapped in ```python and ``` markers."""
         self.scheduler = TaskScheduler()
         self._current_plan = None
         self.iteration_count = 0
+        self._task_outputs = []  # 重置 task 输出收集
 
         try:
             # Phase 1: Planning
@@ -1643,17 +1655,62 @@ Output the code wrapped in ```python and ``` markers."""
                 # 发送进度更新
                 yield self.plan_event_emitter.progress_update(self._current_plan)
 
-            # Phase 3: Completion
-            if self._current_plan.is_complete():
+            # Phase 3: Answer Assembly & Completion
+            if self._current_plan.is_complete() or self._task_outputs:
+                # 使用 AnswerAgent 组装最终答案
                 yield SSEEvent(
-                    type=SSEEventType.DONE,
-                    data={
-                        "status": "success",
-                        "message": "所有任务执行完成",
-                        "iterations": self.iteration_count,
-                        "progress": self._current_plan.get_progress()
-                    }
+                    type=SSEEventType.ANSWER_GENERATING,
+                    data={"message": "正在组装最终答案..."}
                 )
+
+                try:
+                    # 检测答案风格
+                    from app.agent.answer_agent import detect_answer_style
+                    answer_style = detect_answer_style(user_message)
+
+                    # 调用 AnswerAgent 生成答案
+                    final_answer = await self.answer_agent.generate(
+                        task_outputs=self._task_outputs,
+                        query=user_message,
+                        use_llm=len(self._task_outputs) > 1,  # 多任务使用 LLM 综合
+                        style=answer_style,
+                        generate_summary=True,
+                        generate_suggestions=False,
+                    )
+
+                    # 发送最终答案
+                    yield SSEEvent(
+                        type=SSEEventType.ANSWER_READY,
+                        data=final_answer.to_dict()
+                    )
+
+                    yield SSEEvent(
+                        type=SSEEventType.DONE,
+                        data={
+                            "status": "success",
+                            "message": "所有任务执行完成",
+                            "answer": final_answer.content,
+                            "summary": final_answer.summary,
+                            "iterations": self.iteration_count,
+                            "progress": self._current_plan.get_progress()
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"AnswerAgent failed: {e}")
+                    # 回退：直接输出任务结果
+                    fallback_content = "\n\n".join(
+                        [f"### {o.task_title}\n{o.output}" for o in self._task_outputs if o.success]
+                    )
+                    yield SSEEvent(
+                        type=SSEEventType.DONE,
+                        data={
+                            "status": "success",
+                            "message": "所有任务执行完成",
+                            "answer": fallback_content,
+                            "iterations": self.iteration_count,
+                            "progress": self._current_plan.get_progress()
+                        }
+                    )
             else:
                 yield SSEEvent(
                     type=SSEEventType.DONE,
@@ -1758,6 +1815,16 @@ Output the code wrapped in ```python and ``` markers."""
 
                 if task_status == "success":
                     self.scheduler.complete_task(task_obj.id, output[:500])
+
+                    # 收集 TaskOutput 用于 AnswerAgent
+                    from app.agent.answer_agent import TaskOutput
+                    self._task_outputs.append(TaskOutput(
+                        task_id=task_obj.id,
+                        task_title=task_obj.title,
+                        output=output,
+                        success=True,
+                    ))
+
                     yield self.plan_event_emitter.task_complete(task_obj)
                     yield SSEEvent(
                         type=SSEEventType.CONTENT,
@@ -1844,6 +1911,16 @@ Output the code wrapped in ```python and ``` markers."""
             # 根据任务状态更新调度器
             if task_status == "success":
                 self.scheduler.complete_task(task.id, output[:500] if output else "")
+
+                # 收集 TaskOutput 用于 AnswerAgent
+                from app.agent.answer_agent import TaskOutput
+                self._task_outputs.append(TaskOutput(
+                    task_id=task.id,
+                    task_title=task.title,
+                    output=output,
+                    success=True,
+                ))
+
                 yield self.plan_event_emitter.task_complete(task)
                 yield SSEEvent(
                     type=SSEEventType.CONTENT,
