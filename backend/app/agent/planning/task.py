@@ -127,6 +127,7 @@ class Task:
             "dependsOn": self.depends_on,  # 驼峰命名，与前端对齐
             "acceptanceCriteria": self.acceptance_criteria,
             "toolsHint": self.tools_hint,
+            "validationLevel": self.validation_level,  # 验证级别
             "metadata": {
                 "startTime": int(self.started_at.timestamp() * 1000) if self.started_at else None,
                 "endTime": int(self.completed_at.timestamp() * 1000) if self.completed_at else None,

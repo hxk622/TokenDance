@@ -257,6 +257,7 @@ class TaskExecutor:
         self._current_task = task
         self._iteration_count = 0
         self._tool_calls_count = 0
+        self._validation_retries = 0  # 重置验证重试计数
         self._start_time = time.perf_counter()
 
         logger.info(f"TaskExecutor starting: {task.title} ({task.id})")
@@ -369,8 +370,22 @@ class TaskExecutor:
                 # 检查是否有 <answer> 标记 (兼容旧格式)
                 if self.tool_executor.has_final_answer(response.content):
                     answer = self.tool_executor.extract_answer(response.content)
+                    output = answer or response.content
                     logger.info(f"Task completed with answer: {task.title}")
-                    yield self._make_done_event("success", output=answer or response.content)
+
+                    # ========== 执行验证 (answer 路径) ==========
+                    if self.config.enable_validation:
+                        async for event in self._validate_and_maybe_retry(
+                            task, output, context
+                        ):
+                            if event.type == SSEEventType.DONE:
+                                yield event
+                                return
+                            yield event
+                        # 验证失败，继续循环重试
+                        continue
+
+                    yield self._make_done_event("success", output=output)
                     return
 
                 # 继续下一轮迭代
