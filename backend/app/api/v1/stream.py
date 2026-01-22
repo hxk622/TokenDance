@@ -690,6 +690,18 @@ async def run_agent_stream(
         "timestamp": time.time(),
     })
 
+    # P2: Send skill matched event so frontend knows the task type
+    yield format_sse(SSEEventType.SKILL_MATCHED, {
+        "skill_id": "deep_research",
+        "skill_name": "deep_research",
+        "display_name": "深度研究",
+        "description": "深度研究技能，用于复杂信息检索和分析",
+        "icon": "search",
+        "color": "#00D9FF",
+        "confidence": 1.0,
+        "timestamp": time.time(),
+    })
+
     try:
         # P0-2: Use persistent workspace path instead of temp directory
         workspace_path = os.path.join(
@@ -851,6 +863,19 @@ async def run_agent_stream_with_store(
     yield await emit_event(SSEEventType.SESSION_STARTED, {
         "session_id": session_id,
         "task": task,
+        "timestamp": time.time(),
+    })
+
+    # P2: Send skill matched event so frontend knows the task type
+    # Currently all tasks use DeepResearchAgent
+    yield await emit_event(SSEEventType.SKILL_MATCHED, {
+        "skill_id": "deep_research",
+        "skill_name": "deep_research",
+        "display_name": "深度研究",
+        "description": "深度研究技能，用于复杂信息检索和分析",
+        "icon": "search",
+        "color": "#00D9FF",
+        "confidence": 1.0,
         "timestamp": time.time(),
     })
 
