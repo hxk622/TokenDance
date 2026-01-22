@@ -595,10 +595,13 @@ class PeerComparisonService:
     async def _fetch_company_metrics(self, symbol: str) -> CompanyMetrics | None:
         """获取公司指标"""
         try:
-            return await self._fetch_from_akshare(symbol)
+            result = await self._fetch_from_akshare(symbol)
+            if result is not None:
+                return result
         except Exception as e:
             logger.debug(f"AKShare fetch failed: {e}")
 
+        # Fallback to mock data
         return self._generate_mock_metrics(symbol)
 
     async def _fetch_from_akshare(self, symbol: str) -> CompanyMetrics | None:

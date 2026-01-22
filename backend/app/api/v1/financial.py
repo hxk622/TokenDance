@@ -591,6 +591,134 @@ async def get_peer_comparison_matrix(request: PeerMatrixRequest):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+# ==================== 事件日历 API ====================
+
+class EventCalendarRequest(BaseModel):
+    """事件日历请求"""
+    symbol: str = Field(..., description="股票代码")
+    days_ahead: int = Field(90, description="未来天数", ge=1, le=365)
+    event_types: list[str] | None = Field(None, description="筛选事件类型")
+    min_importance: str = Field("low", description="最低重要性: low/medium/high/critical")
+
+
+class HistoricalImpactRequest(BaseModel):
+    """历史事件影响请求"""
+    symbol: str = Field(..., description="股票代码")
+    event_type: str = Field(..., description="事件类型")
+    lookback_events: int = Field(8, description="回看事件数量", ge=1, le=20)
+
+
+def _get_event_calendar_service():
+    """懒加载 EventCalendarService"""
+    from app.services.financial.event import get_event_calendar_service
+    return get_event_calendar_service()
+
+
+@router.post("/events/upcoming")
+async def get_upcoming_events(request: EventCalendarRequest):
+    """
+    获取股票未来事件日历。
+
+    返回：
+    - upcoming_events: 事件列表
+        - event_type: 事件类型 (earnings/dividend/equity_unlock/...)
+        - event_date: 事件日期
+        - importance: 重要性 (low/medium/high/critical)
+        - title: 事件标题
+        - description: 事件描述
+        - days_until: 距今天数
+        - historical_impact: 历史类似事件影响
+    - events_by_type: 按类型分组统计
+    - next_critical_event: 最近的重要事件
+    - avg_post_event_return: 历史事件后平均收益
+    """
+    try:
+        from app.services.financial.event import EventImportance, EventType
+
+        service = _get_event_calendar_service()
+
+        # 解析事件类型筛选
+        event_type_filters = None
+        if request.event_types:
+            event_type_filters = []
+            for et in request.event_types:
+                try:
+                    event_type_filters.append(EventType(et))
+                except ValueError:
+                    pass  # 忽略无效类型
+
+        # 解析最低重要性
+        try:
+            min_imp = EventImportance(request.min_importance)
+        except ValueError:
+            min_imp = EventImportance.LOW
+
+        result = await service.get_upcoming_events(
+            symbol=request.symbol,
+            days_ahead=request.days_ahead,
+            event_types=event_type_filters,
+            min_importance=min_imp,
+        )
+
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "disclaimer": "事件日期为预估值，实际日期以公司公告为准。"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/events/historical-impact")
+async def get_historical_event_impact(request: HistoricalImpactRequest):
+    """
+    获取历史事件影响分析。
+
+    返回：
+    - impacts: 历史事件影响列表
+        - event_date: 事件日期
+        - price_change_1d/5d/20d: 事件后涨跌幅 %
+        - excess_return_1d/5d: 相对指数超额收益 %
+        - volume_change_pct: 成交量变化 %
+        - direction: 影响方向 (positive/negative/neutral)
+    """
+    try:
+        from app.services.financial.event import EventType
+
+        service = _get_event_calendar_service()
+
+        # 解析事件类型
+        try:
+            event_type = EventType(request.event_type)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid event_type: {request.event_type}"
+            ) from e
+
+        impacts = await service.get_historical_event_impact(
+            symbol=request.symbol,
+            event_type=event_type,
+            lookback_events=request.lookback_events,
+        )
+
+        return {
+            "success": True,
+            "data": {
+                "symbol": request.symbol,
+                "event_type": request.event_type,
+                "impacts": [i.to_dict() for i in impacts],
+            },
+            "disclaimer": "历史表现不代表未来收益。"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 def _detect_market(symbol: str) -> str:
     """根据股票代码识别市场"""
     import re

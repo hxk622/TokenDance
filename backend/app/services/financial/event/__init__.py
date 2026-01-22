@@ -7,6 +7,7 @@
 - 股权激励分析
 - 并购重组分析
 - 分红派息跟踪
+- 统一事件日历 (Event Calendar)
 """
 from .dividend_tracker import (
     DividendAnalysisResult,
@@ -29,6 +30,17 @@ from .equity_incentive import (
     IncentiveStatus,
     IncentiveType,
     get_equity_incentive_service,
+)
+from .event_calendar import (
+    EVENT_CONFIG,
+    EventCalendarResult,
+    EventCalendarService,
+    EventImpact,
+    EventImpactDirection,
+    EventImportance,
+    EventType,
+    UpcomingEvent,
+    get_event_calendar_service,
 )
 from .guidance_tracker import (
     Guidance,
@@ -79,4 +91,14 @@ __all__ = [
     "DividendType",
     "DividendRecord",
     "DividendAnalysisResult",
+    # Event Calendar
+    "EventCalendarService",
+    "get_event_calendar_service",
+    "EventType",
+    "EventImportance",
+    "EventImpactDirection",
+    "EventImpact",
+    "UpcomingEvent",
+    "EventCalendarResult",
+    "EVENT_CONFIG",
 ]
