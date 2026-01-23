@@ -629,3 +629,313 @@ class AkShareAdapter(BaseFinancialAdapter):
                 market=Market.CN.value,
                 data_type="dragon_tiger",
             )
+
+    async def get_margin_trading(
+        self,
+        symbol: str | None = None,
+        **kwargs
+    ) -> FinancialDataResult:
+        """
+        获取融资融券数据 (两融数据).
+
+        Args:
+            symbol: 股票代码（可选，不填则获取市场概况）
+
+        Returns:
+            FinancialDataResult with margin trading data.
+        """
+        try:
+            ak = _get_akshare()
+            loop = asyncio.get_event_loop()
+
+            if symbol:
+                # 个股融资融券数据
+                code, market = _normalize_cn_symbol(symbol)
+
+                df = await loop.run_in_executor(
+                    None,
+                    lambda: ak.stock_margin_detail_szse(code) if market == "SZ"
+                        else ak.stock_margin_detail_sse(code)
+                )
+
+                if df.empty:
+                    return FinancialDataResult(
+                        success=False,
+                        error=f"No margin trading data found for {symbol}",
+                        source=self.name,
+                        symbol=symbol,
+                        market=Market.CN.value,
+                        data_type="margin_trading",
+                    )
+
+                # 重命名列
+                column_mapping = {
+                    '信用交易日期': 'date',
+                    '日期': 'date',
+                    '融资买入额': 'margin_buy',
+                    '融资余额': 'margin_balance',
+                    '融券卖出量': 'short_sell_volume',
+                    '融券余量': 'short_balance_volume',
+                    '融券余额': 'short_balance',
+                    '融资融券余额': 'total_balance',
+                }
+                df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+
+                data = df.head(30).to_dict(orient='records')  # 返回最近30天
+
+                return FinancialDataResult(
+                    success=True,
+                    data=data,
+                    source=self.name,
+                    symbol=f"{code}.{market}",
+                    market=Market.CN.value,
+                    data_type="margin_trading",
+                    metadata={"records": len(data)},
+                )
+            else:
+                # 市场融资融券概况
+                df = await loop.run_in_executor(
+                    None,
+                    lambda: ak.stock_margin_sse()
+                )
+
+                if df.empty:
+                    return FinancialDataResult(
+                        success=False,
+                        error="No market margin data found",
+                        source=self.name,
+                        symbol="",
+                        market=Market.CN.value,
+                        data_type="margin_trading",
+                    )
+
+                data = df.head(30).to_dict(orient='records')
+
+                return FinancialDataResult(
+                    success=True,
+                    data=data,
+                    source=self.name,
+                    symbol="",
+                    market=Market.CN.value,
+                    data_type="margin_trading",
+                    metadata={"records": len(data), "scope": "market"},
+                )
+
+        except Exception as e:
+            return FinancialDataResult(
+                success=False,
+                error=str(e),
+                source=self.name,
+                symbol=symbol or "",
+                market=Market.CN.value,
+                data_type="margin_trading",
+            )
+
+    async def get_block_trade(
+        self,
+        symbol: str | None = None,
+        date: str | None = None,
+        **kwargs
+    ) -> FinancialDataResult:
+        """
+        获取大宗交易数据.
+
+        Args:
+            symbol: 股票代码（可选）
+            date: 日期 (YYYYMMDD 格式，可选)
+
+        Returns:
+            FinancialDataResult with block trade data.
+        """
+        try:
+            ak = _get_akshare()
+            loop = asyncio.get_event_loop()
+
+            if date is None:
+                date = datetime.now().strftime("%Y%m%d")
+
+            # 获取大宗交易明细
+            df = await loop.run_in_executor(
+                None,
+                lambda: ak.stock_dzjy_mrmx(start_date=date, end_date=date)
+            )
+
+            if df.empty:
+                return FinancialDataResult(
+                    success=False,
+                    error=f"No block trade data found for {date}",
+                    source=self.name,
+                    symbol=symbol or "",
+                    market=Market.CN.value,
+                    data_type="block_trade",
+                )
+
+            # 如果指定了股票，进行筛选
+            if symbol:
+                code, _ = _normalize_cn_symbol(symbol)
+                df = df[df['代码'].astype(str) == code]
+
+                if df.empty:
+                    return FinancialDataResult(
+                        success=False,
+                        error=f"No block trade data found for {symbol} on {date}",
+                        source=self.name,
+                        symbol=symbol,
+                        market=Market.CN.value,
+                        data_type="block_trade",
+                    )
+
+            # 重命名列
+            column_mapping = {
+                '代码': 'code',
+                '名称': 'name',
+                '交易日期': 'date',
+                '成交价': 'price',
+                '折扣率': 'discount_rate',
+                '成交量': 'volume',
+                '成交额': 'amount',
+                '买方营业部': 'buyer',
+                '卖方营业部': 'seller',
+            }
+            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+
+            data = df.to_dict(orient='records')
+
+            return FinancialDataResult(
+                success=True,
+                data=data,
+                source=self.name,
+                symbol=symbol or "",
+                market=Market.CN.value,
+                data_type="block_trade",
+                metadata={"date": date, "records": len(data)},
+            )
+
+        except Exception as e:
+            return FinancialDataResult(
+                success=False,
+                error=str(e),
+                source=self.name,
+                symbol=symbol or "",
+                market=Market.CN.value,
+                data_type="block_trade",
+            )
+
+    async def get_industry_stocks(
+        self,
+        industry: str,
+        **kwargs
+    ) -> FinancialDataResult:
+        """
+        获取行业成分股列表.
+
+        Args:
+            industry: 行业名称 (如 "白酒", "半导体", "银行")
+
+        Returns:
+            FinancialDataResult with industry stocks data.
+        """
+        try:
+            ak = _get_akshare()
+            loop = asyncio.get_event_loop()
+
+            # 获取行业成分股
+            df = await loop.run_in_executor(
+                None,
+                lambda: ak.stock_board_industry_cons_em(symbol=industry)
+            )
+
+            if df.empty:
+                return FinancialDataResult(
+                    success=False,
+                    error=f"No stocks found for industry: {industry}",
+                    source=self.name,
+                    symbol=industry,
+                    market=Market.CN.value,
+                    data_type="industry_stocks",
+                )
+
+            # 重命名列
+            column_mapping = {
+                '代码': 'code',
+                '名称': 'name',
+                '最新价': 'price',
+                '涨跌幅': 'change_percent',
+                '涨跌额': 'change',
+                '成交量': 'volume',
+                '成交额': 'amount',
+                '市盈率-动态': 'pe_ttm',
+                '市净率': 'pb',
+                '总市值': 'market_cap',
+            }
+            df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+
+            data = df.to_dict(orient='records')
+
+            return FinancialDataResult(
+                success=True,
+                data=data,
+                source=self.name,
+                symbol=industry,
+                market=Market.CN.value,
+                data_type="industry_stocks",
+                metadata={"industry": industry, "count": len(data)},
+            )
+
+        except Exception as e:
+            return FinancialDataResult(
+                success=False,
+                error=str(e),
+                source=self.name,
+                symbol=industry,
+                market=Market.CN.value,
+                data_type="industry_stocks",
+            )
+
+    async def get_industry_list(self, **kwargs) -> FinancialDataResult:
+        """
+        获取行业分类列表.
+
+        Returns:
+            FinancialDataResult with industry list.
+        """
+        try:
+            ak = _get_akshare()
+            loop = asyncio.get_event_loop()
+
+            df = await loop.run_in_executor(
+                None,
+                lambda: ak.stock_board_industry_name_em()
+            )
+
+            if df.empty:
+                return FinancialDataResult(
+                    success=False,
+                    error="No industry list found",
+                    source=self.name,
+                    symbol="",
+                    market=Market.CN.value,
+                    data_type="industry_list",
+                )
+
+            data = df.to_dict(orient='records')
+
+            return FinancialDataResult(
+                success=True,
+                data=data,
+                source=self.name,
+                symbol="",
+                market=Market.CN.value,
+                data_type="industry_list",
+                metadata={"count": len(data)},
+            )
+
+        except Exception as e:
+            return FinancialDataResult(
+                success=False,
+                error=str(e),
+                source=self.name,
+                symbol="",
+                market=Market.CN.value,
+                data_type="industry_list",
+            )

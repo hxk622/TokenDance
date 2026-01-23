@@ -357,3 +357,276 @@ class ThreeFilesManager:
             "findings": f"{base}/{self.FINDINGS_FILE}",
             "progress": f"{base}/{self.PROGRESS_FILE}",
         }
+
+    # ========== Manus 无限记忆模式支持 ==========
+
+    # 摘要生成阈值
+    FINDINGS_SUMMARY_THRESHOLD = 5000  # 超过 5000 字符触发摘要
+    MAX_FINDINGS_ENTRIES = 20  # 最多保留最近 20 条 findings
+    SUMMARY_MAX_LENGTH = 2000  # 摘要最大长度
+
+    def should_generate_summary(self) -> bool:
+        """
+        判断是否应该生成摘要（Manus 无限记忆模式）
+
+        条件：
+        - findings.md 超过阈值
+        - 或者 findings 条目数超过限制
+
+        Returns:
+            bool: 是否应该生成摘要
+        """
+        try:
+            findings_data = self.read_findings()
+            content = findings_data.get("content", "")
+
+            # 条件 1：字符数超过阈值
+            if len(content) > self.FINDINGS_SUMMARY_THRESHOLD:
+                return True
+
+            # 条件 2：条目数超过限制
+            entry_count = content.count("### [")
+            if entry_count > self.MAX_FINDINGS_ENTRIES:
+                return True
+
+            return False
+        except Exception:
+            return False
+
+    def generate_findings_summary(self, max_length: int | None = None) -> str:
+        """
+        生成 findings.md 的累积摘要（Manus 无限记忆模式核心）
+
+        策略：
+        1. 提取所有 findings 条目的标题
+        2. 保留最近 5 条的完整内容
+        3. 早期内容只保留标题和关键信息
+
+        Args:
+            max_length: 摘要最大长度，默认 SUMMARY_MAX_LENGTH
+
+        Returns:
+            str: 累积摘要
+        """
+        max_length = max_length or self.SUMMARY_MAX_LENGTH
+
+        try:
+            findings_data = self.read_findings()
+            content = findings_data.get("content", "")
+
+            if not content or len(content) < 100:
+                return "No significant findings yet."
+
+            # 解析 findings 条目
+            entries = self._parse_findings_entries(content)
+
+            if not entries:
+                return content[:max_length]
+
+            # 构建摘要
+            summary_parts = ["# Findings Summary (Accumulated)\n"]
+
+            # 统计信息
+            summary_parts.append(f"**Total entries**: {len(entries)}\n")
+
+            # 早期条目只保留标题
+            if len(entries) > 5:
+                summary_parts.append("\n## Earlier Findings (titles only)\n")
+                for entry in entries[:-5]:
+                    title = entry.get("title", "Untitled")
+                    summary_parts.append(f"- {title}\n")
+
+            # 最近 5 条保留完整内容（截断）
+            summary_parts.append("\n## Recent Findings (full content)\n")
+            recent_entries = entries[-5:] if len(entries) > 5 else entries
+            for entry in recent_entries:
+                title = entry.get("title", "Untitled")
+                content_text = entry.get("content", "")[:500]  # 每条最多 500 字符
+                summary_parts.append(f"\n### {title}\n{content_text}\n")
+
+            summary = "".join(summary_parts)
+
+            # 确保不超过最大长度
+            if len(summary) > max_length:
+                summary = summary[:max_length - 20] + "\n\n[... truncated]"
+
+            return summary
+
+        except Exception as e:
+            return f"Failed to generate summary: {e}"
+
+    def _parse_findings_entries(self, content: str) -> list[dict]:
+        """
+        解析 findings.md 中的条目
+
+        格式假设：
+        ### [timestamp] Title
+        content...
+
+        Returns:
+            list: [{"title": str, "timestamp": str, "content": str}, ...]
+        """
+        import re
+
+        entries = []
+        # 匹配 ### [timestamp] Title 格式
+        pattern = r'### \[([^\]]+)\]\s*(.*)'
+
+        lines = content.split("\n")
+        current_entry = None
+        current_content_lines = []
+
+        for line in lines:
+            match = re.match(pattern, line)
+            if match:
+                # 保存前一个条目
+                if current_entry:
+                    current_entry["content"] = "\n".join(current_content_lines).strip()
+                    entries.append(current_entry)
+
+                # 开始新条目
+                timestamp = match.group(1)
+                title = match.group(2).strip() or "Untitled"
+                current_entry = {
+                    "title": title,
+                    "timestamp": timestamp,
+                    "content": ""
+                }
+                current_content_lines = []
+            elif current_entry:
+                current_content_lines.append(line)
+
+        # 保存最后一个条目
+        if current_entry:
+            current_entry["content"] = "\n".join(current_content_lines).strip()
+            entries.append(current_entry)
+
+        return entries
+
+    def get_accumulated_summary(self) -> str:
+        """
+        获取三文件的累积摘要（Manus 无限记忆模式）
+
+        这是注入到 LLM context 的主要内容，替代完整的消息历史
+
+        Returns:
+            str: 累积摘要
+        """
+        summary_parts = ["# Working Memory (Accumulated Summary)\n"]
+
+        # 1. Task Plan 摘要 - 保留目标和当前状态
+        try:
+            task_plan = self.read_task_plan()
+            plan_content = task_plan.get("content", "")
+            # 只保留前 500 字符（目标和当前状态）
+            summary_parts.append("\n## Task Plan\n")
+            summary_parts.append(plan_content[:500] + "\n")
+        except Exception:
+            summary_parts.append("\n## Task Plan\nNo plan available.\n")
+
+        # 2. Findings 累积摘要
+        findings_summary = self.generate_findings_summary(max_length=1500)
+        summary_parts.append("\n## Research Findings\n")
+        summary_parts.append(findings_summary + "\n")
+
+        # 3. Progress 摘要 - 只保留最近的错误和成功
+        try:
+            progress = self.read_progress()
+            progress_content = progress.get("content", "")
+            # 提取最近的条目
+            recent_progress = self._extract_recent_progress(progress_content, max_entries=5)
+            summary_parts.append("\n## Recent Progress\n")
+            summary_parts.append(recent_progress + "\n")
+        except Exception:
+            summary_parts.append("\n## Recent Progress\nNo progress recorded.\n")
+
+        return "".join(summary_parts)
+
+    def _extract_recent_progress(self, content: str, max_entries: int = 5) -> str:
+        """
+        提取最近的 progress 条目
+
+        Args:
+            content: progress.md 内容
+            max_entries: 最多保留条目数
+
+        Returns:
+            str: 最近的 progress 摘要
+        """
+        import re
+
+        # 匹配 ### [timestamp] ... 格式
+        pattern = r'(### \[[^\]]+\][^#]*?)(?=### \[|$)'
+        matches = re.findall(pattern, content, re.DOTALL)
+
+        if not matches:
+            return content[-500:] if len(content) > 500 else content
+
+        # 取最近的 N 条
+        recent = matches[-max_entries:]
+        return "".join(recent).strip()
+
+    def trim_findings_to_summary(self) -> None:
+        """
+        将 findings.md 压缩为累积摘要（Manus 无限记忆模式）
+
+        当 findings 过长时，自动压缩：
+        1. 生成累积摘要
+        2. 用摘要替换原文件内容
+        3. 保留文件结构便于后续追加
+        """
+        if not self.should_generate_summary():
+            return
+
+        # 生成摘要
+        summary = self.generate_findings_summary(max_length=3000)
+
+        # 构建新的 findings 内容
+        new_content = f"""# Findings
+
+## Accumulated Summary
+{summary}
+
+---
+
+## New Findings
+
+*Findings after summary generation will appear below*
+
+"""
+
+        # 写入文件
+        path = f"sessions/{self.session_id}/{self.FINDINGS_FILE}"
+        self.fs.write_with_frontmatter(
+            path,
+            new_content,
+            metadata={
+                "title": "Findings (Summarized)",
+                "session_id": self.session_id,
+                "summarized_at": datetime.now().isoformat(),
+            }
+        )
+
+    def get_findings_stats(self) -> dict:
+        """
+        获取 findings 统计信息
+
+        Returns:
+            dict: {"char_count": int, "entry_count": int, "needs_summary": bool}
+        """
+        try:
+            findings_data = self.read_findings()
+            content = findings_data.get("content", "")
+            entries = self._parse_findings_entries(content)
+
+            return {
+                "char_count": len(content),
+                "entry_count": len(entries),
+                "needs_summary": self.should_generate_summary(),
+            }
+        except Exception:
+            return {
+                "char_count": 0,
+                "entry_count": 0,
+                "needs_summary": False,
+            }

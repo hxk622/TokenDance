@@ -393,3 +393,106 @@ class ContextManager:
     def has_active_skill(self) -> bool:
         """检查是否有激活的 Skill"""
         return self._active_skill is not None
+
+    # =========================================================================
+    # Manus 无限记忆模式支持
+    # =========================================================================
+
+    def replace_history_with_summary(self, summary: str, keep_recent: int = 3) -> int:
+        """
+        用摘要替换历史消息（Manus 无限记忆核心操作）
+
+        流程:
+        1. 保留最近 N 条消息
+        2. 用摘要替换早期消息
+        3. 返回被替换的消息数
+
+        Args:
+            summary: 累积摘要内容
+            keep_recent: 保留最近 N 条消息
+
+        Returns:
+            int: 被替换的消息数
+        """
+        if len(self.messages) <= keep_recent:
+            return 0
+
+        # 保留最近的消息
+        recent_messages = self.messages[-keep_recent:]
+        replaced_count = len(self.messages) - keep_recent
+
+        # 清空并注入摘要
+        self.messages.clear()
+
+        # 添加摘要作为第一条消息
+        self.messages.append(Message(
+            role="user",
+            content=f"📋 **Accumulated Context (from working memory files)**\n\n{summary}",
+            metadata={"type": "summary_injection", "replaced_count": replaced_count}
+        ))
+
+        # 恢复最近的消息
+        self.messages.extend(recent_messages)
+
+        logger.info(f"History replaced with summary: {replaced_count} messages -> 1 summary")
+        return replaced_count
+
+    def inject_file_summary(self, summary: str) -> None:
+        """
+        注入文件摘要到 Context（不清空历史）
+
+        用于周期性的摘要注入，不是完全替换
+
+        Args:
+            summary: 摘要内容
+        """
+        self.messages.append(Message(
+            role="user",
+            content=f"📋 **Working Memory Update**\n\n{summary}",
+            metadata={"type": "periodic_summary"}
+        ))
+        logger.info("File summary injected")
+
+    def should_compress(self, threshold_messages: int = 20, threshold_chars: int = 50000) -> bool:
+        """
+        判断是否应该压缩 Context
+
+        Args:
+            threshold_messages: 消息数阈值
+            threshold_chars: 字符数阈值
+
+        Returns:
+            bool: 是否应该压缩
+        """
+        # 消息数检查
+        if len(self.messages) > threshold_messages:
+            return True
+
+        # 字符数检查
+        total_chars = sum(len(m.content) for m in self.messages)
+        if total_chars > threshold_chars:
+            return True
+
+        return False
+
+    def get_context_stats(self) -> dict:
+        """
+        获取 Context 统计信息
+
+        Returns:
+            dict: 统计信息
+        """
+        total_chars = sum(len(m.content) for m in self.messages)
+        role_counts = {}
+        for m in self.messages:
+            role_counts[m.role] = role_counts.get(m.role, 0) + 1
+
+        return {
+            "message_count": len(self.messages),
+            "total_chars": total_chars,
+            "estimated_tokens": total_chars // 4,  # 粗略估算
+            "role_distribution": role_counts,
+            "has_active_skill": self.has_active_skill(),
+            "input_tokens": self.total_input_tokens,
+            "output_tokens": self.total_output_tokens,
+        }

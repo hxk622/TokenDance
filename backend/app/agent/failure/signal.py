@@ -24,17 +24,41 @@ class FailureSource(Enum):
 
 
 class FailureType(Enum):
-    """失败类型"""
-    EXECUTION_ERROR = "execution_error"          # 执行错误
+    """失败类型 - 细粒度分类支持智能重试决策
+
+    分类原则：
+    - 可重试: NETWORK_ERROR, RATE_LIMITED, TIMEOUT, DATA_SOURCE_UNAVAILABLE, API_ERROR
+    - 不可重试: PERMISSION_DENIED, INVALID_PARAMS, AUTHENTICATION_FAILED
+    - 需用户介入: REJECTED, COMPLIANCE_BLOCKED
+    """
+
+    # === 基础错误 ===
+    EXECUTION_ERROR = "execution_error"          # 执行错误（通用）
     VALIDATION_FAILED = "validation_failed"      # 验证失败
     TIMEOUT = "timeout"                          # 超时
     REJECTED = "rejected"                        # 被拒绝
-    NETWORK_ERROR = "network_error"              # 网络错误
-    PERMISSION_DENIED = "permission_denied"      # 权限不足
-    RESOURCE_NOT_FOUND = "resource_not_found"    # 资源不存在
-    INVALID_PARAMS = "invalid_params"            # 参数无效
-    RATE_LIMITED = "rate_limited"                # 限流
     UNKNOWN = "unknown"                          # 未知错误
+
+    # === 网络/API 相关 ===
+    NETWORK_ERROR = "network_error"              # 网络错误（连接失败、DNS等）
+    API_ERROR = "api_error"                      # API 调用错误（5xx、格式错误等）
+    RATE_LIMITED = "rate_limited"                # 限流（429）
+
+    # === 权限/认证 ===
+    PERMISSION_DENIED = "permission_denied"      # 权限不足（403）
+    AUTHENTICATION_FAILED = "authentication_failed"  # 认证失败（401）
+
+    # === 资源相关 ===
+    RESOURCE_NOT_FOUND = "resource_not_found"    # 资源不存在（404）
+    INVALID_PARAMS = "invalid_params"            # 参数无效（400）
+
+    # === 数据源相关 ===
+    DATA_SOURCE_UNAVAILABLE = "data_source_unavailable"  # 数据源不可用
+    DATA_PARSE_ERROR = "data_parse_error"        # 数据解析错误
+
+    # === 金融合规相关 ===
+    COMPLIANCE_BLOCKED = "compliance_blocked"    # 合规拦截（投资建议等）
+    MARKET_CLOSED = "market_closed"              # 市场休市
 
 
 class ExitCode(Enum):
@@ -93,15 +117,19 @@ class FailureSignal:
         """判断是否可重试
 
         可重试的条件：
-        - exit_code = 1 (一般失败)
-        - 失败类型不是致命错误
+        - exit_code != FATAL
+        - 失败类型在可重试列表中
         """
         if self.exit_code == ExitCode.FATAL.value:
             return False
 
+        # 不可重试的错误类型
         non_retryable_types = {
             FailureType.PERMISSION_DENIED,
+            FailureType.AUTHENTICATION_FAILED,
             FailureType.INVALID_PARAMS,
+            FailureType.REJECTED,
+            FailureType.COMPLIANCE_BLOCKED,
         }
 
         return self.failure_type not in non_retryable_types
@@ -121,11 +149,17 @@ class FailureSignal:
         learnings = {
             FailureType.TIMEOUT: "操作超时，考虑增加超时时间或优化操作",
             FailureType.PERMISSION_DENIED: "权限不足，检查文件/API权限",
+            FailureType.AUTHENTICATION_FAILED: "认证失败，检查 API Key 是否有效",
             FailureType.RESOURCE_NOT_FOUND: "资源不存在，检查路径/URL是否正确",
             FailureType.NETWORK_ERROR: "网络错误，检查网络连接或稍后重试",
+            FailureType.API_ERROR: "API 调用错误，检查请求格式或稍后重试",
             FailureType.RATE_LIMITED: "触发限流，降低请求频率或等待后重试",
             FailureType.INVALID_PARAMS: "参数无效，检查参数格式和类型",
             FailureType.VALIDATION_FAILED: "验证失败，检查输入数据是否符合要求",
+            FailureType.DATA_SOURCE_UNAVAILABLE: "数据源不可用，尝试备用数据源",
+            FailureType.DATA_PARSE_ERROR: "数据解析错误，检查数据格式",
+            FailureType.COMPLIANCE_BLOCKED: "合规拦截，该操作违反投资建议规范",
+            FailureType.MARKET_CLOSED: "市场休市，等待开市后重试",
         }
 
         if self.failure_type in learnings:
@@ -245,21 +279,56 @@ class FailureSignal:
 
     @classmethod
     def _infer_failure_type(cls, error: str, stderr: str) -> FailureType:
-        """推断失败类型"""
+        """推断失败类型 - 细粒度分类"""
         combined = f"{error} {stderr}".lower()
 
-        if "timeout" in combined:
+        # 超时
+        if "timeout" in combined or "timed out" in combined:
             return FailureType.TIMEOUT
-        if "permission" in combined or "denied" in combined:
+
+        # 认证失败（优先于权限检查）
+        if "401" in combined or "unauthorized" in combined or "authentication" in combined:
+            return FailureType.AUTHENTICATION_FAILED
+
+        # 权限不足
+        if "permission" in combined or "denied" in combined or "403" in combined:
             return FailureType.PERMISSION_DENIED
+
+        # 资源不存在
         if "not found" in combined or "404" in combined:
             return FailureType.RESOURCE_NOT_FOUND
-        if "connection" in combined or "network" in combined:
-            return FailureType.NETWORK_ERROR
-        if "rate limit" in combined or "429" in combined:
+
+        # 限流
+        if "rate limit" in combined or "429" in combined or "too many requests" in combined:
             return FailureType.RATE_LIMITED
-        if "invalid" in combined or "param" in combined:
+
+        # 网络错误
+        if any(kw in combined for kw in ["connection", "network", "dns", "socket", "unreachable"]):
+            return FailureType.NETWORK_ERROR
+
+        # API 错误（5xx）
+        if any(code in combined for code in ["500", "502", "503", "504", "5xx", "server error"]):
+            return FailureType.API_ERROR
+
+        # 数据源不可用
+        if any(kw in combined for kw in ["data source", "unavailable", "service down"]):
+            return FailureType.DATA_SOURCE_UNAVAILABLE
+
+        # 数据解析错误
+        if any(kw in combined for kw in ["parse error", "json", "decode", "format error"]):
+            return FailureType.DATA_PARSE_ERROR
+
+        # 参数无效
+        if "invalid" in combined or "param" in combined or "400" in combined:
             return FailureType.INVALID_PARAMS
+
+        # 合规拦截
+        if any(kw in combined for kw in ["compliance", "blocked", "investment advice", "recommendation"]):
+            return FailureType.COMPLIANCE_BLOCKED
+
+        # 市场休市
+        if "market closed" in combined or "休市" in combined:
+            return FailureType.MARKET_CLOSED
 
         return FailureType.EXECUTION_ERROR
 

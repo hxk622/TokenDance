@@ -77,6 +77,8 @@ from app.agent.tools.init_tools import register_builtin_tools
 from app.agent.tools.registry import ToolRegistry
 from app.agent.types import ExecutionMode, SSEEvent, SSEEventType
 from app.agent.working_memory.three_files import ThreeFilesManager
+from app.agent.memory.infinite_memory import InfiniteMemoryManager, InfiniteMemoryConfig
+from app.agent.checkpoint.manager import CheckpointManager, Checkpoint
 from app.context.unified_context import (
     ExecutionStatus,
     ExecutionType,
@@ -168,6 +170,28 @@ class AgentEngine:
 
         # 初始化三文件管理器
         self.three_files = ThreeFilesManager(filesystem=filesystem, session_id=session_id)
+
+        # =================================================================
+        # Manus 无限记忆模式
+        # =================================================================
+        self.infinite_memory = InfiniteMemoryManager(
+            three_files=self.three_files,
+            filesystem=filesystem,
+            session_id=session_id,
+            config=InfiniteMemoryConfig(
+                context_clear_threshold=15,
+                context_token_threshold=50000,
+                auto_save_interval=2,
+                checkpoint_interval=5,
+            ),
+        )
+
+        # 初始化检查点管理器
+        self.checkpoint_manager = CheckpointManager(
+            fs=filesystem,
+            save_interval=5,  # 每 5 次迭代保存
+            max_checkpoints=3,  # 保留最近 3 个
+        )
 
         # 初始化 Context Manager
         self.context_manager = ContextManager(
@@ -384,6 +408,21 @@ class AgentEngine:
 
             # 当接近上下文阈值时尝试压缩
             self._maybe_compress_context(tokens.get("total", 0))
+
+            # =================================================================
+            # Manus 无限记忆: 检查是否需要清理 Context
+            # =================================================================
+            if self.infinite_memory.should_clear_context(
+                message_count=self.context_manager.get_message_count(),
+                token_count=tokens.get("total", 0),
+            ):
+                self._clear_context_with_summary()
+
+            # =================================================================
+            # 检查点: 每 N 次迭代保存
+            # =================================================================
+            if self.checkpoint_manager.should_save(self.iteration_count):
+                self._save_checkpoint()
 
             # 根据当前状态执行操作
             current_state = self.state_machine.current_state
@@ -809,6 +848,142 @@ class AgentEngine:
             ])
         except Exception as e:
             logger.error(f"Store lessons failed: {e}")
+
+    def _clear_context_with_summary(self) -> None:
+        """
+        清理 Context 并用文件摘要替代（Manus 无限记忆模式）
+
+        核心操作:
+        1. 保存当前状态到文件
+        2. 清理旧消息
+        3. 注入文件摘要作为新的上下文基础
+        """
+        try:
+            logger.info("Clearing context with file summary (Manus mode)")
+
+            # 1. 获取文件摘要
+            summary = self.infinite_memory.clear_and_summarize()
+
+            # 2. 保留最近的消息
+            recent_count = self.infinite_memory.config.recent_messages_to_keep
+            recent_messages = self.context_manager.messages[-recent_count:] if self.context_manager.messages else []
+
+            # 3. 清空 Context
+            self.context_manager.messages.clear()
+
+            # 4. 注入文件摘要作为系统上下文
+            self.context_manager.add_user_message(
+                f"📋 **Working Memory Summary (accumulated from files)**\n\n{summary}"
+            )
+
+            # 5. 恢复最近的消息
+            for msg in recent_messages:
+                self.context_manager.messages.append(msg)
+
+            logger.info(
+                f"Context cleared: kept {len(recent_messages)} recent messages, "
+                f"injected {len(summary)} chars summary"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to clear context with summary: {e}")
+
+    def _save_checkpoint(self) -> None:
+        """
+        保存检查点（用于崩溃恢复）
+        """
+        try:
+            # 序列化消息
+            messages_data = [
+                {
+                    "role": m.role,
+                    "content": m.content,
+                    "metadata": m.metadata,
+                }
+                for m in self.context_manager.messages
+            ]
+
+            # 读取三文件内容
+            task_plan = self.three_files.read_task_plan().get("content", "")
+            findings = self.three_files.read_findings().get("content", "")
+            progress = self.three_files.read_progress().get("content", "")
+
+            # 获取失败历史
+            failure_history = [
+                {"type": f.failure_type, "count": f.occurrence_count}
+                for f in self.failure_observer.all_failures
+            ] if hasattr(self.failure_observer, 'all_failures') else []
+
+            # 保存检查点
+            checkpoint_id = self.checkpoint_manager.save_checkpoint(
+                iteration=self.iteration_count,
+                state=self.state_machine.current_state.value,
+                context_messages=messages_data,
+                token_usage=self.context_manager.get_token_usage(),
+                task_plan=task_plan,
+                findings=findings,
+                progress=progress,
+                failure_history=failure_history,
+            )
+
+            logger.info(f"Checkpoint saved: {checkpoint_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to save checkpoint: {e}")
+
+    def restore_from_checkpoint(self) -> bool:
+        """
+        从检查点恢复状态（Manus 模式核心）
+
+        Returns:
+            bool: 是否成功恢复
+        """
+        try:
+            checkpoint = self.checkpoint_manager.get_latest_checkpoint()
+            if not checkpoint:
+                logger.info("No checkpoint available for restore")
+                return False
+
+            logger.info(f"Restoring from checkpoint: {checkpoint.metadata.checkpoint_id}")
+
+            # 1. 恢复 Context 消息
+            self.context_manager.messages.clear()
+            for msg_data in checkpoint.context_messages:
+                self.context_manager.messages.append(
+                    CtxMessage(
+                        role=msg_data.get("role", "user"),
+                        content=msg_data.get("content", ""),
+                        metadata=msg_data.get("metadata"),
+                    )
+                )
+
+            # 2. 恢复迭代计数
+            self.iteration_count = checkpoint.metadata.iteration
+
+            # 3. 恢复状态机状态
+            # 注意: 这里简化处理，实际可能需要更复杂的状态恢复
+            target_state = AgentState(checkpoint.metadata.state)
+            self.state_machine.reset()
+            # 尝试转移到目标状态
+            if target_state == AgentState.REASONING:
+                self.state_machine.transition(Signal.USER_MESSAGE_RECEIVED)
+                self.state_machine.transition(Signal.INTENT_UNCLEAR)
+
+            # 4. 记录恢复到 progress
+            self.three_files.update_progress(
+                f"Restored from checkpoint {checkpoint.metadata.checkpoint_id} "
+                f"(iteration {checkpoint.metadata.iteration})"
+            )
+
+            logger.info(
+                f"Checkpoint restored: iteration={checkpoint.metadata.iteration}, "
+                f"messages={len(checkpoint.context_messages)}"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to restore from checkpoint: {e}")
+            return False
 
     def _maybe_compress_context(self, current_tokens: int, force_aggressive: bool = False) -> None:
         """在接近阈值时压缩上下文

@@ -3,18 +3,59 @@ SkillMatcher - Skill意图匹配器
 
 职责：
 1. 根据用户消息匹配最相关的Skill
-2. 支持多种匹配策略：关键词、Embedding、LLM Rerank
+2. 支持多种匹配策略：关键词、Embedding、BGE Rerank
 3. 可配置匹配阈值
+
+匹配流程：
+1. 关键词匹配（快速初筛）- 包含中文别名支持
+2. Embedding匹配（语义理解）
+3. BGE Rerank（精确重排序）- 替代 LLM Rerank，更快更准
 """
 
 import logging
 import re
 from typing import Protocol
 
+from typing import Any
+
 from .registry import SkillRegistry
 from .types import SkillMatch, SkillMetadata
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# 中文 Skill 别名映射
+# ============================================================================
+
+# Skill 名称到中文别名的映射（支持多语言匹配）
+SKILL_CHINESE_ALIASES: dict[str, list[str]] = {
+    # 研究类
+    "deep_research": ["深度研究", "调研", "研究报告", "分析报告", "研究"],
+    "financial_research": ["金融研究", "投研", "股票分析", "财务分析", "行业分析"],
+    "market_research": ["市场研究", "市场调研", "市场分析", "竞品分析"],
+
+    # 生成类
+    "ppt": ["PPT", "幻灯片", "演示文稿", "做PPT", "生成PPT"],
+    "ppt_generation": ["PPT生成", "幻灯片生成", "演示文稿生成"],
+    "image_generation": ["图片生成", "生成图片", "画图", "AI绘画"],
+
+    # 代码类
+    "code_review": ["代码审查", "代码评审", "Review代码", "审查代码"],
+    "systematic_debugging": ["调试", "Debug", "排查问题", "修Bug"],
+
+    # 文档类
+    "scientific_writing": ["学术写作", "论文写作", "科学写作"],
+    "literature_review": ["文献综述", "文献回顾", "综述"],
+    "peer_review": ["同行评审", "论文评审"],
+
+    # 数据类
+    "exploratory_data_analysis": ["数据分析", "探索性分析", "EDA"],
+    "statistical_analysis": ["统计分析", "统计"],
+
+    # 工具类
+    "perplexity_search": ["搜索", "联网搜索", "网络搜索"],
+}
 
 
 class EmbeddingModel(Protocol):
@@ -37,9 +78,9 @@ class SkillMatcher:
     """Skill意图匹配器
 
     使用三级匹配策略：
-    1. 关键词匹配（快速初筛）
+    1. 关键词匹配（快速初筛）- 包含中文别名
     2. Embedding匹配（语义理解）
-    3. LLM Rerank（可选，精确判断）
+    3. BGE Rerank（精确重排序）- 替代 LLM，更快更准
     """
 
     def __init__(
@@ -49,21 +90,27 @@ class SkillMatcher:
         llm_client: LLMClient | None = None,
         enable_embedding: bool = True,
         enable_llm_rerank: bool = False,
+        enable_bge_rerank: bool = True,
     ):
         """初始化匹配器
 
         Args:
             registry: Skill注册表
             embedding_model: Embedding模型（可选）
-            llm_client: LLM客户端（可选，用于Rerank）
+            llm_client: LLM客户端（可选，用于Rerank，已废弃）
             enable_embedding: 是否启用Embedding匹配
-            enable_llm_rerank: 是否启用LLM Rerank
+            enable_llm_rerank: 是否启用LLM Rerank（已废弃，使用 BGE）
+            enable_bge_rerank: 是否启用 BGE Rerank（默认启用）
         """
         self.registry = registry
         self.embedding_model = embedding_model
         self.llm_client = llm_client
         self.enable_embedding = enable_embedding and embedding_model is not None
         self.enable_llm_rerank = enable_llm_rerank and llm_client is not None
+        self.enable_bge_rerank = enable_bge_rerank
+
+        # BGE Reranker（懒加载）
+        self._bge_reranker: Any = None
 
         # Skill描述的Embedding缓存
         self._skill_embeddings: dict[str, list[float]] = {}
@@ -140,8 +187,10 @@ class SkillMatcher:
         if not embedding_candidates:
             return None
 
-        # 3. LLM Rerank（可选）
-        if self.enable_llm_rerank and len(embedding_candidates) > 1:
+        # 3. BGE Rerank（优先）或 LLM Rerank
+        if self.enable_bge_rerank and len(embedding_candidates) > 1:
+            final = self._bge_rerank(user_message, embedding_candidates)
+        elif self.enable_llm_rerank and len(embedding_candidates) > 1:
             final = await self._llm_rerank(user_message, embedding_candidates)
         else:
             final = embedding_candidates[0] if embedding_candidates else None
@@ -275,6 +324,13 @@ class SkillMatcher:
         if matched_words > 0:
             score += min(0.1, matched_words * 0.02)
 
+        # 5. 检查中文别名匹配 (权重: 0.5)
+        chinese_aliases = SKILL_CHINESE_ALIASES.get(skill.name, [])
+        for alias in chinese_aliases:
+            if alias.lower() in message_lower:
+                score += 0.5
+                break
+
         return min(score, 1.0)
 
     def _embedding_match(
@@ -327,12 +383,81 @@ class SkillMatcher:
 
         return results
 
+    def _bge_rerank(
+        self,
+        message: str,
+        candidates: list[SkillMatch],
+    ) -> SkillMatch | None:
+        """使用 BGE Reranker 重排序候选
+
+        相比 LLM Rerank：
+        - 更快：本地模型，无网络延迟
+        - 更便宜：免费开源
+        - 更稳定：专门训练的重排序模型
+
+        Args:
+            message: 用户消息
+            candidates: 候选匹配列表
+
+        Returns:
+            最佳匹配
+        """
+        if not candidates:
+            return None
+
+        # 懒加载 BGE Reranker
+        if self._bge_reranker is None:
+            try:
+                from .reranker import get_reranker
+                self._bge_reranker = get_reranker()
+            except Exception as e:
+                logger.warning(f"Failed to load BGE reranker, falling back: {e}")
+                return candidates[0]
+
+        try:
+            # 构建候选文本（包含显示名和描述）
+            candidate_texts = []
+            for c in candidates:
+                skill = self.registry.get(c.skill_id)
+                if skill:
+                    # 包含中文别名以提升中文查询的匹配效果
+                    aliases = SKILL_CHINESE_ALIASES.get(c.skill_id, [])
+                    alias_text = f" ({', '.join(aliases[:2])})" if aliases else ""
+                    text = f"{skill.display_name}{alias_text}: {skill.description}"
+                    candidate_texts.append(text)
+                else:
+                    candidate_texts.append(c.skill_id)
+
+            # 使用 BGE Reranker 重排序
+            rerank_results = self._bge_reranker.rerank(
+                query=message,
+                candidates=candidate_texts,
+                top_k=1,
+                threshold=0.1,
+            )
+
+            if rerank_results:
+                best = rerank_results[0]
+                result = candidates[best.index]
+                # 使用 rerank 分数，但要融合原始分数
+                result.score = (result.score + best.score) / 2
+                result.reason = f"BGE rerank (score={best.score:.3f})"
+                logger.debug(f"BGE rerank selected: {result.skill_id} (score={result.score:.3f})")
+                return result
+
+        except Exception as e:
+            logger.error(f"BGE rerank failed: {e}")
+
+        return candidates[0] if candidates else None
+
     async def _llm_rerank(
         self,
         message: str,
         candidates: list[SkillMatch],
     ) -> SkillMatch | None:
-        """使用LLM重排序候选
+        """使用LLM重排序候选（已废弃，保留兼容性）
+
+        推荐使用 BGE Rerank 替代。
 
         Args:
             message: 用户消息

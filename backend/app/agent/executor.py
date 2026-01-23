@@ -2,6 +2,7 @@
 Tool Call Executor
 
 解析 LLM 输出中的工具调用，执行工具，并返回结果
+支持统一重试策略，自动处理瞬时错误
 """
 
 import json
@@ -9,6 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from app.agent.retry import RetryExecutor, RetryPolicy
 from app.agent.tools.registry import ToolRegistry
 from app.core.logging import get_logger
 
@@ -39,19 +41,28 @@ class ToolCallExecutor:
 
     职责：
     1. 从 LLM 响应中解析工具调用
-    2. 执行工具
+    2. 执行工具（带自动重试）
     3. 处理错误
     4. 返回格式化结果
     """
 
-    def __init__(self, tool_registry: ToolRegistry):
+    def __init__(
+        self,
+        tool_registry: ToolRegistry,
+        enable_retry: bool = True,
+        default_retry_policy: RetryPolicy | None = None,
+    ):
         """
         初始化 Executor
 
         Args:
             tool_registry: 工具注册表
+            enable_retry: 是否启用自动重试（默认启用）
+            default_retry_policy: 默认重试策略（可选）
         """
         self.tool_registry = tool_registry
+        self.enable_retry = enable_retry
+        self.default_retry_policy = default_retry_policy or RetryPolicy.default()
 
     def parse_tool_calls(self, llm_response: str) -> list[ToolCall]:
         """
@@ -112,12 +123,17 @@ class ToolCallExecutor:
 
         return tool_calls
 
-    async def execute_tool_call(self, tool_call: ToolCall) -> ToolResult:
+    async def execute_tool_call(
+        self,
+        tool_call: ToolCall,
+        retry_policy: RetryPolicy | None = None,
+    ) -> ToolResult:
         """
-        执行单个工具调用
+        执行单个工具调用（带自动重试）
 
         Args:
             tool_call: 工具调用
+            retry_policy: 自定义重试策略（可选，覆盖默认策略）
 
         Returns:
             ToolResult: 工具执行结果
@@ -137,33 +153,65 @@ class ToolCallExecutor:
         # 获取工具实例
         tool = self.tool_registry.get_tool(tool_name)
 
-        try:
-            # 验证参数
+        # 内部执行函数（用于重试）
+        async def _execute() -> str:
             tool.validate_args(tool_call.parameters)
+            return await tool.execute(**tool_call.parameters)
 
-            # 执行工具
-            logger.info(f"Executing tool: {tool_name} with params: {tool_call.parameters}")
-            result = await tool.execute(**tool_call.parameters)
+        # 决定重试策略
+        policy = retry_policy or self.default_retry_policy
 
-            logger.info(f"Tool {tool_name} executed successfully")
+        if self.enable_retry:
+            # 使用统一重试执行器
+            executor = RetryExecutor(policy=policy, tool_name=tool_name)
+            retry_result = await executor.execute(_execute)
 
-            return ToolResult(
-                tool_name=tool_name,
-                success=True,
-                result=result,
-                call_id=tool_call.call_id
-            )
+            if retry_result.success:
+                logger.info(
+                    f"Tool {tool_name} executed successfully"
+                    + (f" (attempts={retry_result.attempts})" if retry_result.attempts > 1 else "")
+                )
+                return ToolResult(
+                    tool_name=tool_name,
+                    success=True,
+                    result=retry_result.result,
+                    call_id=tool_call.call_id
+                )
+            else:
+                # 重试失败
+                error_msg = retry_result.error or "Unknown error"
+                if retry_result.attempts > 1:
+                    error_msg += f" (after {retry_result.attempts} attempts)"
 
-        except Exception as e:
-            logger.error(f"Tool {tool_name} execution failed: {e}")
-
-            return ToolResult(
-                tool_name=tool_name,
-                success=False,
-                result="",
-                error=str(e),
-                call_id=tool_call.call_id
-            )
+                logger.error(f"Tool {tool_name} execution failed: {error_msg}")
+                return ToolResult(
+                    tool_name=tool_name,
+                    success=False,
+                    result="",
+                    error=error_msg,
+                    call_id=tool_call.call_id
+                )
+        else:
+            # 不重试，直接执行
+            try:
+                logger.info(f"Executing tool: {tool_name} with params: {tool_call.parameters}")
+                result = await _execute()
+                logger.info(f"Tool {tool_name} executed successfully")
+                return ToolResult(
+                    tool_name=tool_name,
+                    success=True,
+                    result=result,
+                    call_id=tool_call.call_id
+                )
+            except Exception as e:
+                logger.error(f"Tool {tool_name} execution failed: {e}")
+                return ToolResult(
+                    tool_name=tool_name,
+                    success=False,
+                    result="",
+                    error=str(e),
+                    call_id=tool_call.call_id
+                )
 
     async def execute_all(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
         """

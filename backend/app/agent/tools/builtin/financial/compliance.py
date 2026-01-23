@@ -1,7 +1,18 @@
-"""Compliance checker for financial data crawling."""
+"""Compliance checker for financial data crawling.
+
+合规检查模块，确保金融数据处理符合法规要求：
+- 网络爬取白名单/黑名单控制
+- 投资建议拦截
+- 内幕信息拦截
+- 市场操纵等禁止行为检测
+
+重要：任何金融分析结果都不构成投资建议
+"""
 
 import os
+import re
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -31,6 +42,25 @@ class CrawlingRules:
     retry_delay: int = 5
 
 
+class ComplianceViolationType(Enum):
+    """合规违规类型"""
+    INVESTMENT_ADVICE = "investment_advice"       # 投资建议
+    INSIDER_INFORMATION = "insider_information"   # 内幕信息
+    MARKET_MANIPULATION = "market_manipulation"   # 市场操纵
+    PRICE_PREDICTION = "price_prediction"         # 价格预测
+    GUARANTEE_RETURN = "guarantee_return"         # 承诺收益
+    DOMAIN_BLOCKED = "domain_blocked"             # 域名被拦截
+
+
+@dataclass
+class ComplianceCheckResult:
+    """合规检查结果"""
+    passed: bool
+    violation_type: ComplianceViolationType | None = None
+    reason: str = ""
+    suggestion: str = ""
+
+
 @dataclass
 class ComplianceConfig:
     """Full compliance configuration."""
@@ -46,6 +76,11 @@ class ComplianceConfig:
     openbb_providers: list[str] = field(default_factory=list)
     akshare_enabled: bool = True
     tushare_enabled: bool = False
+
+    # Content compliance
+    block_investment_advice: bool = True
+    block_price_predictions: bool = True
+    block_insider_info: bool = True
 
 
 class ComplianceChecker:
@@ -251,6 +286,149 @@ class ComplianceChecker:
     def reload_config(self) -> None:
         """Reload configuration from file."""
         self.config = self._load_config()
+
+    # ========== 内容合规检查 ==========
+
+    def check_content(self, text: str) -> ComplianceCheckResult:
+        """
+        检查文本内容是否合规.
+
+        Args:
+            text: 要检查的文本内容
+
+        Returns:
+            ComplianceCheckResult
+        """
+        text_lower = text.lower()
+
+        # 检查投资建议
+        if self.config.block_investment_advice:
+            result = self._check_investment_advice(text_lower)
+            if not result.passed:
+                return result
+
+        # 检查价格预测
+        if self.config.block_price_predictions:
+            result = self._check_price_prediction(text_lower)
+            if not result.passed:
+                return result
+
+        # 检查内幕信息
+        if self.config.block_insider_info:
+            result = self._check_insider_info(text_lower)
+            if not result.passed:
+                return result
+
+        return ComplianceCheckResult(passed=True)
+
+    def _check_investment_advice(self, text: str) -> ComplianceCheckResult:
+        """检查是否包含投资建议"""
+        # 投资建议关键词（中文 + 英文）
+        advice_patterns = [
+            # 直接建议
+            r"建议.{0,5}买入", r"建议.{0,5}卖出", r"建议.{0,5}持有",
+            r"建议.{0,5}增持", r"建议.{0,5}减持", r"建议.{0,5}清仓",
+            r"应该.{0,5}买入", r"应该.{0,5}卖出",
+            r"推荐.{0,5}买入", r"推荐.{0,5}卖出", r"强烈推荐",
+            r"buy.{0,10}recommendation", r"sell.{0,10}recommendation",
+            r"strong buy", r"strong sell",
+            # 目标价
+            r"目标价.{0,5}\d+", r"target price",
+            # 评级
+            r"评级.{0,3}买入", r"评级.{0,3}增持",
+        ]
+
+        for pattern in advice_patterns:
+            if re.search(pattern, text):
+                return ComplianceCheckResult(
+                    passed=False,
+                    violation_type=ComplianceViolationType.INVESTMENT_ADVICE,
+                    reason="检测到投资建议内容",
+                    suggestion="请修改为客观分析，避免直接给出买卖建议",
+                )
+
+        return ComplianceCheckResult(passed=True)
+
+    def _check_price_prediction(self, text: str) -> ComplianceCheckResult:
+        """检查是否包含价格预测"""
+        prediction_patterns = [
+            r"将会?.{0,5}上涨", r"将会?.{0,5}下跌",
+            r"股价.{0,5}到达", r"涨到.{0,3}\d+",
+            r"预计.{0,5}上涨", r"预计.{0,5}下跌",
+            r"必将.{0,5}突破", r"肯定.{0,5}涨",
+            r"will rise", r"will fall", r"will reach",
+            r"guaranteed to", r"definitely",
+        ]
+
+        for pattern in prediction_patterns:
+            if re.search(pattern, text):
+                return ComplianceCheckResult(
+                    passed=False,
+                    violation_type=ComplianceViolationType.PRICE_PREDICTION,
+                    reason="检测到价格预测内容",
+                    suggestion="请使用不确定性语言，如'可能'、'或许'",
+                )
+
+        return ComplianceCheckResult(passed=True)
+
+    def _check_insider_info(self, text: str) -> ComplianceCheckResult:
+        """检查是否包含内幕信息"""
+        insider_patterns = [
+            r"内幕.{0,5}消息", r"内部.{0,5}消息",
+            r"尚未公开", r"即将公布",
+            r"秘密.{0,5}消息", r"独家.{0,5}消息",
+            r"insider", r"non-public", r"confidential",
+        ]
+
+        for pattern in insider_patterns:
+            if re.search(pattern, text):
+                return ComplianceCheckResult(
+                    passed=False,
+                    violation_type=ComplianceViolationType.INSIDER_INFORMATION,
+                    reason="检测到疑似内幕信息",
+                    suggestion="请确保所有信息来源于公开渠道",
+                )
+
+        return ComplianceCheckResult(passed=True)
+
+    def _check_guarantee_return(self, text: str) -> ComplianceCheckResult:
+        """检查是否包含收益承诺"""
+        guarantee_patterns = [
+            r"保证.{0,5}收益", r"保证.{0,5}回报",
+            r"稳赚不赔", r"零风险",
+            r"年化.{0,5}\d+%", r"收益率.{0,5}\d+%",
+            r"guaranteed return", r"no risk", r"risk-free",
+        ]
+
+        for pattern in guarantee_patterns:
+            if re.search(pattern, text):
+                return ComplianceCheckResult(
+                    passed=False,
+                    violation_type=ComplianceViolationType.GUARANTEE_RETURN,
+                    reason="检测到收益承诺内容",
+                    suggestion="投资有风险，不应承诺固定收益",
+                )
+
+        return ComplianceCheckResult(passed=True)
+
+    def add_disclaimer(self, content: str) -> str:
+        """
+        为内容添加免责声明.
+
+        Args:
+            content: 原始内容
+
+        Returns:
+            添加了免责声明的内容
+        """
+        disclaimer = self.get_disclaimer() or self.DEFAULT_DISCLAIMER
+        return f"{content}\n\n---\n**免责声明**: {disclaimer}"
+
+    DEFAULT_DISCLAIMER = (
+        "以上内容仅供参考，不构成任何投资建议。"
+        "投资有风险，入市须谨慎。"
+        "请根据自身情况独立判断，并咨询专业顾问。"
+    )
 
 
 # Singleton instance

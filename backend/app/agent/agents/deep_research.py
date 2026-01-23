@@ -71,7 +71,13 @@ class ResearchFinding:
 
 @dataclass
 class ResearchState:
-    """研究状态 (Working Memory)"""
+    """研究状态 (Working Memory)
+
+    Manus 无限记忆模式:
+    - 这个类现在主要作为临时工作台
+    - 真正的持久化状态存储在 findings.md 中
+    - 可以从文件恢复状态
+    """
     topic: str
     queries_executed: list[str] = field(default_factory=list)
     sources_collected: list[ResearchSource] = field(default_factory=list)
@@ -81,6 +87,31 @@ class ResearchState:
     iteration: int = 0
     max_sources: int = 10
     min_credible_sources: int = 3
+
+    def to_dict(self) -> dict:
+        """转换为字典（用于保存到文件）"""
+        return {
+            "topic": self.topic,
+            "phase": self.phase,
+            "iteration": self.iteration,
+            "queries_executed": self.queries_executed,
+            "sources_count": len(self.sources_collected),
+            "findings_count": len(self.findings),
+            "knowledge_gaps": self.knowledge_gaps,
+            "max_sources": self.max_sources,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict, topic: str) -> "ResearchState":
+        """从字典恢复（Manus 无限记忆模式）"""
+        return cls(
+            topic=topic,
+            phase=data.get("phase", "init"),
+            iteration=data.get("iteration", 0),
+            queries_executed=data.get("queries_executed", []),
+            knowledge_gaps=data.get("knowledge_gaps", []),
+            max_sources=data.get("max_sources", 10),
+        )
 
 
 # ==================== 核心 Agent ====================
@@ -113,6 +144,234 @@ class DeepResearchAgent(BaseAgent):
         self._pending_queries: list[str] = []  # 待并发搜索的查询
         self._user_interventions: list[dict] = []  # 用户干预指令
         self._skip_domains: list[str] = []  # 跳过的域名
+
+        # Manus 无限记忆模式: 尝试从文件恢复状态
+        self._try_restore_state_from_files()
+
+    # ==================== Manus 无限记忆模式支持 ====================
+
+    def _try_restore_state_from_files(self) -> None:
+        """尝试从文件恢复研究状态（Manus 无限记忆模式）
+
+        在 Agent 初始化时调用。由于 __init__ 不支持异步，
+        实际的文件恢复会在 _decide() 中异步执行。
+        """
+        try:
+            if not hasattr(self, 'memory') or not self.memory:
+                return
+
+            # 异步恢复会在 _decide() 中执行，这里只做标记
+            logger.debug("State restore check completed (async restore will happen in _decide)")
+
+        except Exception as e:
+            logger.warning(f"Failed to restore state from files: {e}")
+
+    async def _restore_state_from_memory(self) -> bool:
+        """从 WorkingMemory 文件恢复研究状态
+
+        Returns:
+            bool: 是否成功恢复
+        """
+        try:
+            if not hasattr(self, 'memory') or not self.memory:
+                return False
+
+            # 读取 findings.md
+            findings_content = await self.memory.read_findings()
+            if not findings_content or len(findings_content) < 100:
+                return False
+
+            # 读取 task_plan.md 获取主题
+            task_plan = await self.memory.read_task_plan()
+            topic = self._extract_topic_from_plan(task_plan)
+
+            # 推断阶段
+            phase = self._infer_phase_from_findings(findings_content)
+
+            # 提取已执行的查询
+            queries = self._extract_queries_from_findings(findings_content)
+
+            # 创建 ResearchState
+            self.research_state = ResearchState(
+                topic=topic,
+                phase=phase,
+                queries_executed=queries,
+            )
+
+            logger.info(
+                f"Research state restored from files: topic='{topic[:50]}', "
+                f"phase={phase}, queries={len(queries)}"
+            )
+            return True
+
+        except Exception as e:
+            logger.warning(f"Failed to restore state from memory: {e}")
+            return False
+
+    def _extract_topic_from_plan(self, plan_content: str) -> str:
+        """从 task_plan 提取主题"""
+        lines = plan_content.split("\n")
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith("#") and len(line) > 10:
+                return line[:200]
+        return "Unknown topic"
+
+    def _infer_phase_from_findings(self, content: str) -> str:
+        """从 findings 内容推断当前阶段"""
+        # 简单的启发式说明
+        entry_count = content.count("### [")
+
+        if entry_count == 0:
+            return "init"
+        elif entry_count < 3:
+            return "searching"
+        elif entry_count < 8:
+            return "reading"
+        elif entry_count < 15:
+            return "synthesizing"
+        else:
+            return "reporting"
+
+    def _extract_queries_from_findings(self, content: str) -> list[str]:
+        """从 findings 提取已执行的查询"""
+        queries = []
+        # 匹配包含 "search" 或 "搜索" 的标题
+        import re
+        pattern = r'### \[[^\]]+\]\s*(?:.*?search|.*?搜索).*?[:\uff1a]\s*(.+?)(?:\n|$)'
+        matches = re.findall(pattern, content, re.IGNORECASE)
+        queries.extend(matches[:20])  # 最多 20 个
+        return queries
+
+    async def _save_state_to_memory(self) -> None:
+        """保存当前状态到 WorkingMemory（Manus 无限记忆模式）
+
+        在关键节点调用，确保状态持久化
+        """
+        if not self.research_state or not hasattr(self, 'memory') or not self.memory:
+            return
+
+        try:
+            # 生成状态摘要
+            state_summary = f"""
+**Research State Update**
+- Topic: {self.research_state.topic[:100]}
+- Phase: {self.research_state.phase}
+- Iteration: {self.research_state.iteration}
+- Sources collected: {len(self.research_state.sources_collected)}
+- Queries executed: {len(self.research_state.queries_executed)}
+- Knowledge gaps: {len(self.research_state.knowledge_gaps)}
+"""
+            # 写入 findings.md
+            await self.memory.write_findings(
+                f"State Checkpoint (Phase: {self.research_state.phase})",
+                state_summary
+            )
+
+            logger.debug(f"Research state saved to memory: phase={self.research_state.phase}")
+
+        except Exception as e:
+            logger.warning(f"Failed to save state to memory: {e}")
+
+    async def _save_source_to_memory(self, source: ResearchSource) -> None:
+        """保存来源到 WorkingMemory（立即持久化）
+
+        Args:
+            source: 研究来源
+        """
+        if not hasattr(self, 'memory') or not self.memory:
+            return
+
+        try:
+            finding_content = f"""
+**URL**: {source.url}
+**Credibility**: {source.credibility.value}
+
+{source.snippet[:500] if source.snippet else 'No snippet available'}
+"""
+            if source.key_findings:
+                finding_content += "\n**Key Findings**:\n"
+                for kf in source.key_findings[:5]:
+                    finding_content += f"- {kf}\n"
+
+            await self.memory.write_findings(
+                f"Source: {source.title[:80]}",
+                finding_content
+            )
+
+        except Exception as e:
+            logger.warning(f"Failed to save source to memory: {e}")
+
+    async def _save_finding_to_memory(self, finding_title: str, finding_content: str) -> None:
+        """保存发现到 WorkingMemory（立即持久化）
+
+        Args:
+            finding_title: 发现标题
+            finding_content: 发现内容
+        """
+        if not hasattr(self, 'memory') or not self.memory:
+            return
+
+        try:
+            await self.memory.write_findings(finding_title, finding_content)
+        except Exception as e:
+            logger.warning(f"Failed to save finding to memory: {e}")
+
+    async def restore_from_checkpoint(self, checkpoint_data: dict) -> bool:
+        """从检查点恢复 Agent 状态（Manus 无限记忆模式）
+
+        Args:
+            checkpoint_data: 检查点数据
+
+        Returns:
+            bool: 是否成功恢复
+        """
+        try:
+            # 1. 从检查点恢复迭代计数
+            iteration = checkpoint_data.get("iteration", 0)
+
+            # 2. 从文件恢复研究状态
+            restored = await self._restore_state_from_memory()
+            if restored and self.research_state:
+                self.research_state.iteration = iteration
+                logger.info(
+                    f"DeepResearchAgent restored from checkpoint: "
+                    f"iteration={iteration}, phase={self.research_state.phase}"
+                )
+                return True
+
+            # 3. 如果无法从文件恢复，从检查点数据恢复
+            task_plan = checkpoint_data.get("task_plan", "")
+            findings = checkpoint_data.get("findings", "")
+
+            if task_plan:
+                topic = self._extract_topic_from_plan(task_plan)
+            else:
+                topic = "Unknown topic"
+
+            if findings:
+                phase = self._infer_phase_from_findings(findings)
+                queries = self._extract_queries_from_findings(findings)
+            else:
+                phase = "init"
+                queries = []
+
+            self.research_state = ResearchState(
+                topic=topic,
+                phase=phase,
+                iteration=iteration,
+                queries_executed=queries,
+            )
+
+            logger.info(
+                f"DeepResearchAgent restored from checkpoint data: "
+                f"topic='{topic[:50]}', phase={phase}, iteration={iteration}"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to restore DeepResearchAgent from checkpoint: {e}")
+            return False
 
     # ==================== 用户干预处理 ====================
 
@@ -568,11 +827,17 @@ Ensure all claims have citations."""
         """
         logger.debug(f"DeepResearchAgent deciding, phase: {self.research_state.phase if self.research_state else 'init'}")
 
-        # 初始化研究状态
+        # Manus 无限记忆模式: 尝试从文件恢复状态
         if not self.research_state:
-            topic = self._extract_topic_from_context()
-            self.research_state = ResearchState(topic=topic)
-            logger.info(f"Research initialized for topic: {topic}")
+            # 先尝试从 WorkingMemory 恢复
+            restored = await self._restore_state_from_memory()
+            if not restored:
+                # 无法恢复，创建新状态
+                topic = self._extract_topic_from_context()
+                self.research_state = ResearchState(topic=topic)
+                logger.info(f"Research initialized for topic: {topic}")
+            else:
+                logger.info("Research state restored from WorkingMemory files")
 
         # 获取可用工具
         tool_definitions = self.tools.to_llm_format()
@@ -605,7 +870,7 @@ Ensure all claims have citations."""
                 await self._record_findings()
 
             # 更新阶段
-            self._update_phase_from_tool(tool_call["name"])
+            await self._update_phase_from_tool(tool_call["name"])
 
             return AgentAction(
                 type=ActionType.TOOL_CALL,
@@ -690,10 +955,15 @@ Do NOT call any more tools - provide the complete answer."""
 
         return base + phase_instructions.get(phase, "Continue research based on current needs.")
 
-    def _update_phase_from_tool(self, tool_name: str) -> None:
-        """根据工具调用更新阶段"""
+    async def _update_phase_from_tool(self, tool_name: str) -> None:
+        """根据工具调用更新阶段
+
+        Manus 无限记忆模式: 阶段变更时保存状态
+        """
         if not self.research_state:
             return
+
+        old_phase = self.research_state.phase
 
         if tool_name == "web_search":
             if self.research_state.phase == "init":
@@ -711,6 +981,11 @@ Do NOT call any more tools - provide the complete answer."""
         if len(self.research_state.sources_collected) >= self.research_state.min_credible_sources:
             if self.research_state.phase == "reading":
                 self.research_state.phase = "synthesizing"
+
+        # Manus 无限记忆模式: 阶段变更时保存状态
+        if self.research_state.phase != old_phase:
+            await self._save_state_to_memory()
+            logger.info(f"Research phase changed: {old_phase} -> {self.research_state.phase}")
 
     def _should_generate_report(self) -> bool:
         """判断是否应该生成报告"""
@@ -1055,8 +1330,11 @@ Every factual claim MUST have a citation."""
         # 默认为一般可信度
         return SourceCredibility.MODERATE
 
-    def add_source(self, url: str, title: str, snippet: str) -> ResearchSource:
-        """添加研究来源"""
+    async def add_source(self, url: str, title: str, snippet: str) -> ResearchSource:
+        """添加研究来源（立即持久化到 WorkingMemory）
+
+        Manus 无限记忆模式: 每次添加来源后立即写入 findings.md
+        """
         credibility = self.assess_source_credibility(url, title)
 
         source = ResearchSource(
@@ -1069,6 +1347,9 @@ Every factual claim MUST have a citation."""
         if self.research_state:
             self.research_state.sources_collected.append(source)
             logger.info(f"Added source: {title} (credibility: {credibility.value})")
+
+        # Manus 无限记忆模式: 立即持久化
+        await self._save_source_to_memory(source)
 
         return source
 
@@ -1163,7 +1444,7 @@ Every factual claim MUST have a citation."""
 
                     # 处理 read_url 结果 - 添加来源
                     if name == "read_url" and output.get("content"):
-                        self.add_source(
+                        await self.add_source(
                             url=output.get("url", ""),
                             title=output.get("title", "Unknown"),
                             snippet=output.get("content", "")[:500]
@@ -1320,7 +1601,7 @@ Every factual claim MUST have a citation."""
 
                     # 处理 read_url 结果
                     if tool_name == "read_url" and result.get("content"):
-                        self.add_source(
+                        await self.add_source(
                             url=result.get("url", ""),
                             title=result.get("title", "Unknown"),
                             snippet=result.get("content", "")[:500]
