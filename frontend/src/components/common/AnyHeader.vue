@@ -273,7 +273,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 500;
   color: white;
-  background: #a855f7;
+  background: #00B8D9;
   border: none;
   border-radius: 9999px;
   cursor: pointer;
@@ -281,7 +281,7 @@ onUnmounted(() => {
 }
 
 .avatar-btn:hover {
-  background: #9333ea;
+  background: #00D9FF;
 }
 
 /* Sign in button */
