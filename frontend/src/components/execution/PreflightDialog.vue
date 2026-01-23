@@ -241,7 +241,7 @@ const toggleEdit = () => {
 }
 
 .loading-icon {
-  color: #6366f1;
+  color: #00B8D9;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -332,7 +332,7 @@ h4 {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #6366f1;
+  color: #00B8D9;
   background: none;
   border: none;
   cursor: pointer;
@@ -369,7 +369,7 @@ h4 {
 
 .input-editor:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #00B8D9;
 }
 
 .missing-list {

@@ -167,13 +167,13 @@ const isDarkTheme = computed(() => {
 
 // Node type colors (matching backend)
 const nodeTypeColors: Record<string, string> = {
-  concept: '#6366f1',   // 紫色
+  concept: '#00B8D9',   // 紫色
   source: '#10b981',    // 绿色
   finding: '#f59e0b',   // 橙色
   section: '#3b82f6',   // 蓝色
   entity: '#ec4899',    // 粉色
   event: '#ef4444',     // 红色
-  question: '#8b5cf6',  // 紫罗兰
+  question: '#00D9FF',  // 紫罗兰
 }
 
 const nodeTypeLabels: Record<string, string> = {
@@ -317,7 +317,7 @@ const getCytoscapeElements = () => {
       label: node.label,
       type: node.type || 'concept',
       importance: node.importance || 5,
-      color: node.color || nodeTypeColors[node.type || 'concept'] || '#6366f1',
+      color: node.color || nodeTypeColors[node.type || 'concept'] || '#00B8D9',
       description: node.description || '',
       central: node.id === centralNodeId,
     }
@@ -790,7 +790,7 @@ defineExpose({
   width: 36px;
   height: 36px;
   border: 3px solid var(--any-border, #e5e5e5);
-  border-top-color: var(--exec-accent, #6366f1);
+  border-top-color: var(--exec-accent, #00B8D9);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

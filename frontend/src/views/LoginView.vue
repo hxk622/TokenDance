@@ -415,9 +415,9 @@ onMounted(async () => {
   --text-secondary: #a1a1aa;
   --text-tertiary: #71717a;
   
-  --accent-primary: hsl(262 83% 58%);  /* #8b5cf6 */
-  --accent-hover: hsl(262 90% 65%);
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-primary: #00D9FF;  /* #00D9FF */
+  --accent-hover: #33E1FF;
+  --accent-gradient: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   
   --success: #22c55e;
   --warning: #f59e0b;

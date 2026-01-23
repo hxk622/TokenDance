@@ -333,7 +333,7 @@ defineExpose({
 }
 
 .toolbar-btn--primary {
-  background: var(--exec-accent, #6366f1);
+  background: var(--exec-accent, #00B8D9);
   color: white;
   font-size: 12px;
   padding: 6px 12px;
@@ -359,7 +359,7 @@ defineExpose({
   width: 32px;
   height: 32px;
   border: 3px solid var(--any-border, #e5e5e5);
-  border-top-color: var(--exec-accent, #6366f1);
+  border-top-color: var(--exec-accent, #00B8D9);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -376,7 +376,7 @@ defineExpose({
 
 .retry-btn {
   padding: 6px 16px;
-  background: var(--exec-accent, #6366f1);
+  background: var(--exec-accent, #00B8D9);
   color: white;
   border: none;
   border-radius: 4px;

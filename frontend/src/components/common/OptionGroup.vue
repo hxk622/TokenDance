@@ -117,7 +117,7 @@ const handleSelect = (value: string | number) => {
   height: 20px;
   border-radius: 50%;
   background: white;
-  color: #6366f1;
+  color: #00B8D9;
   display: flex;
   align-items: center;
   justify-content: center;

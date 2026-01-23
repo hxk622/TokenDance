@@ -393,7 +393,7 @@ const handleRecommendClick = () => {
 }
 
 .previous-item::before {
-  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  background: linear-gradient(180deg, #00B8D9, #00D9FF);
 }
 
 .trending-item::before {

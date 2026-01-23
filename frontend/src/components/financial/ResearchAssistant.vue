@@ -366,7 +366,7 @@ watch(() => props.symbol, () => {
 .assistant-avatar {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #00D9FF);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -495,7 +495,7 @@ watch(() => props.symbol, () => {
 }
 
 .message.assistant .message-avatar {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #00D9FF);
 }
 
 .message-content {

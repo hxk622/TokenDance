@@ -22,7 +22,7 @@ function getCategoryIconComponent(categoryId: string): Component {
 
 // 分类颜色映射
 const categoryColors: Record<string, string> = {
-  research: '#6366f1',
+  research: '#00B8D9',
   writing: '#ec4899',
   data: '#14b8a6',
   visualization: '#f59e0b',
@@ -435,7 +435,7 @@ onMounted(() => {
 
 .retry-btn {
   @apply mt-4 px-4 py-2 rounded-lg transition-all duration-200;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   color: #ffffff;
 }
 
@@ -473,7 +473,7 @@ onMounted(() => {
 }
 
 .category-chip.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   border-color: transparent;
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
@@ -528,8 +528,8 @@ onMounted(() => {
 
 .scene-icon {
   @apply w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0;
-  background: var(--scene-color, #6366f1);
-  background: linear-gradient(135deg, var(--scene-color, #6366f1), color-mix(in srgb, var(--scene-color, #6366f1) 70%, black));
+  background: var(--scene-color, #00B8D9);
+  background: linear-gradient(135deg, var(--scene-color, #00B8D9), color-mix(in srgb, var(--scene-color, #00B8D9) 70%, black));
 }
 
 .scene-content {
@@ -658,7 +658,7 @@ onMounted(() => {
 
 .stat-value {
   @apply block text-3xl font-semibold;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

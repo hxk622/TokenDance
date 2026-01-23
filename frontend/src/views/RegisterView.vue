@@ -767,7 +767,7 @@ async function handleRegister() {
   @apply mt-0.5 w-4 h-4 rounded;
   @apply bg-transparent border border-gray-600;
   @apply cursor-pointer;
-  accent-color: #6366f1;
+  accent-color: #00B8D9;
 }
 
 .terms-checkbox:checked {

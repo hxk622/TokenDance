@@ -93,7 +93,7 @@ const formattedTime = computed(() => {
 }
 
 .message-user .message-content-wrapper {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   @apply text-white shadow-lg shadow-indigo-500/20;
 }
 

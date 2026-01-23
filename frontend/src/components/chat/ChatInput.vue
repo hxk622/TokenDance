@@ -170,7 +170,7 @@ function handleStop() {
   position: absolute;
   inset: -2px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4, #6366f1);
+  background: linear-gradient(135deg, #00B8D9, #00D9FF, #06b6d4, #00B8D9);
   background-size: 300% 300%;
   opacity: 0;
   z-index: -1;
@@ -193,7 +193,7 @@ function handleStop() {
   @apply flex-shrink-0 w-11 h-11 rounded-xl
          flex items-center justify-center
          transition-all duration-200;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
@@ -241,7 +241,7 @@ function handleStop() {
 
 .dot {
   @apply w-1.5 h-1.5 rounded-full;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #00B8D9, #00D9FF);
   animation: thinking-bounce 1.4s ease-in-out infinite;
 }
 

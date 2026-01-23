@@ -164,12 +164,12 @@ function highlightCodeBlocks() {
 }
 
 .markdown-content a {
-  color: hsl(262 83% 58%);
+  color: #00D9FF;
   text-decoration: underline;
 }
 
 .markdown-content a:hover {
-  color: hsl(262 90% 65%);
+  color: #33E1FF;
 }
 
 .markdown-content ul,

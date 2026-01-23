@@ -129,7 +129,7 @@ function selectOption(value: string) {
 
 .radio-option.selected {
   background: rgba(99, 102, 241, 0.08);
-  border-color: #6366f1;
+  border-color: #00B8D9;
 }
 
 .radio-indicator {
@@ -146,13 +146,13 @@ function selectOption(value: string) {
 }
 
 .radio-option.selected .radio-indicator {
-  border-color: #6366f1;
+  border-color: #00B8D9;
 }
 
 .radio-dot {
   width: 10px;
   height: 10px;
-  background: #6366f1;
+  background: #00B8D9;
   border-radius: 50%;
 }
 

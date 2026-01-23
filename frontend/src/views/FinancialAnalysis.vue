@@ -599,7 +599,7 @@ function handleAssistantAsk(question: string) {
 
 .analyze-button {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #00D9FF);
   color: #ffffff;
   border: none;
   border-radius: 8px;

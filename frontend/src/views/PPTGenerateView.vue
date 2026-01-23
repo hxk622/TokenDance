@@ -45,7 +45,7 @@ const error = ref<string | null>(null)
 
 // 预设颜色
 const colorPresets = [
-  { name: '蓝紫渐变', accent: '#6366f1', base: '#1a1a2e' },
+  { name: '蓝紫渐变', accent: '#00B8D9', base: '#1a1a2e' },
   { name: '科技青', accent: '#00d4ff', base: '#0a0a1a' },
   { name: '热情红', accent: '#f43f5e', base: '#1f1f1f' },
   { name: '自然绿', accent: '#10b981', base: '#1a2e1a' },
@@ -81,7 +81,7 @@ const addSlide = (style: LayeredSlideStyle = 'hero_title') => {
     title: '',
     subtitle: '',
     body: '',
-    accent_color: '#6366f1',
+    accent_color: '#00B8D9',
     base_color: '#1a1a2e',
     title_color: '#ffffff',
     subtitle_color: '#cccccc',

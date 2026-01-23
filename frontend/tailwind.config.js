@@ -21,11 +21,11 @@ export default {
           secondary: '#a1a1aa',
           tertiary: '#71717a',
         },
-        // 强调色（蓝紫渐变）
+        // 强调色（霓虹青 - Neon Cyan）
         accent: {
-          primary: 'hsl(262 83% 58%)', // #8b5cf6
-          hover: 'hsl(262 90% 65%)',
-          muted: 'hsl(262 80% 50%)',
+          primary: '#00D9FF',
+          hover: '#33E1FF',
+          muted: '#00B8D9',
         },
         // 边框
         border: {
@@ -34,7 +34,7 @@ export default {
         },
       },
       backgroundImage: {
-        'accent-gradient': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        'accent-gradient': 'linear-gradient(135deg, #00B8D9 0%, #00D9FF 50%, #00FF88 100%)',
       },
       fontFamily: {
         sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],

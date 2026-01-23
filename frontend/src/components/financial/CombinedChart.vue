@@ -286,11 +286,11 @@ function updateChart() {
         data: sentimentScores,
         smooth: true,
         lineStyle: {
-          color: '#6366f1',
+          color: '#00B8D9',
           width: 2,
         },
         itemStyle: {
-          color: '#6366f1',
+          color: '#00B8D9',
         },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [

@@ -638,7 +638,7 @@ onUnmounted(() => {
   width: 100%;
   font-size: 14px;
   font-weight: 500;
-  color: #6366f1;
+  color: #00B8D9;
   background: #f5f3ff;
   border: none;
   border-radius: 6px;
@@ -727,7 +727,7 @@ onUnmounted(() => {
 
 .feedback-input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #00B8D9;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 

@@ -308,7 +308,7 @@ function getBollingerLabel(position: string): string {
   width: 32px;
   height: 32px;
   border: 3px solid #e5e7eb;
-  border-top-color: #8b5cf6;
+  border-top-color: #00D9FF;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;

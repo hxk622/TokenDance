@@ -19,7 +19,7 @@ const variableValues = ref<Record<string, string>>({})
 
 // 分类颜色映射
 const categoryColors: Record<string, string> = {
-  research: '#6366f1',
+  research: '#00B8D9',
   writing: '#ec4899',
   data: '#14b8a6',
   visualization: '#f59e0b',

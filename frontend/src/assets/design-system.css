@@ -22,11 +22,11 @@
   --text-secondary: #a1a1aa;
   --text-tertiary: #71717a;
   
-  /* 强调色 - Accent Colors (蓝紫渐变) */
-  --accent-primary: hsl(262 83% 58%);  /* #8b5cf6 */
-  --accent-hover: hsl(262 90% 65%);
-  --accent-muted: hsl(262 80% 50%);
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  /* 强调色 - Accent Colors (霓虹青 Neon Cyan) */
+  --accent-primary: #00D9FF;
+  --accent-hover: #33E1FF;
+  --accent-muted: #00B8D9;
+  --accent-gradient: linear-gradient(135deg, #00B8D9 0%, #00D9FF 50%, #00FF88 100%);
   
   /* 功能色 - Functional Colors */
   --success: #22c55e;
@@ -321,10 +321,10 @@
 /* Glow Pulse */
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 rgba(139, 92, 246, 0);
+    box-shadow: 0 0 0 rgba(0, 217, 255, 0);
   }
   50% {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
   }
 }
 

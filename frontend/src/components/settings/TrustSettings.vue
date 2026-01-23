@@ -587,7 +587,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border: 3px solid #e5e7eb;
-  border-top-color: #6366f1;
+  border-top-color: #00B8D9;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -601,7 +601,7 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   color: white;
-  background: #6366f1;
+  background: #00B8D9;
   border: none;
   border-radius: 6px;
   cursor: pointer;

@@ -1101,7 +1101,7 @@ defineExpose({
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #00B8D9, #00D9FF);
   color: white;
 }
 
@@ -1149,7 +1149,7 @@ defineExpose({
 }
 
 .user-message .message-bubble {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #00B8D9, #00D9FF);
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -1564,7 +1564,7 @@ defineExpose({
 }
 
 .quoted-label {
-  color: #6366f1;
+  color: #00B8D9;
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -1608,7 +1608,7 @@ defineExpose({
 }
 
 .edit-textarea:focus {
-  border-color: #6366f1;
+  border-color: #00B8D9;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
@@ -1641,7 +1641,7 @@ defineExpose({
 }
 
 .edit-btn-save {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #00B8D9, #00D9FF);
   border: none;
   color: white;
 }
