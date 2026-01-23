@@ -304,28 +304,30 @@ class TestExecutionRouterIntegration:
         reset_execution_router()
         clear_all_contexts()
 
-    def test_router_decision_logging(self):
+    @pytest.mark.asyncio
+    async def test_router_decision_logging(self):
         """测试路由决策是否记录到上下文"""
         get_unified_context()
         router = ExecutionRouter()
 
         # 做出路由决策
-        decision = router.route("查询 data.csv")
+        decision = await router.route("查询 data.csv")
 
         # 验证决策信息
         assert decision.path == ExecutionPath.MCP_CODE
         assert decision.confidence >= 0.75
         assert "Structured task" in decision.reason
 
-    def test_router_statistics_tracking(self):
+    @pytest.mark.asyncio
+    async def test_router_statistics_tracking(self):
         """测试路由器统计追踪"""
         router = ExecutionRouter()
 
         # 执行多个路由决策
-        router.route("做深度研究")
-        router.route("查询 CSV")
-        router.route("你好")
-        router.route("计算平均值")
+        await router.route("做深度研究")
+        await router.route("查询 CSV")
+        await router.route("你好")
+        await router.route("计算平均值")
 
         stats = router.get_stats()
         assert stats["total"] == 4

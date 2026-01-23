@@ -6,11 +6,17 @@ Phase 3 Agent Engine 集成测试
 2. 三路执行路径的完整流程
 3. UnifiedExecutionContext 数据流
 4. 执行路由统计的准确性
+
+注意：这些测试被标记为 slow，因为 AgentEngine 初始化需要加载多个组件。
+运行方式：pytest -m slow
 """
 
 from unittest.mock import Mock
 
 import pytest
+
+# Mark all tests in this module as slow
+pytestmark = pytest.mark.slow
 
 from app.agent.engine import AgentEngine
 from app.context.unified_context import (
@@ -143,7 +149,8 @@ class TestAgentEngineIntegration:
         assert engine1.unified_context.get_var("data") == "session1_data"
         assert engine2.unified_context.get_var("data") == "session2_data"
 
-    def test_skill_path_routing_decision(self, setup):
+    @pytest.mark.asyncio
+    async def test_skill_path_routing_decision(self, setup):
         """测试 Skill 路径的路由决策"""
         llm, filesystem = setup
 
@@ -156,11 +163,11 @@ class TestAgentEngineIntegration:
         )
 
         # 测试非结构化任务（应该路由到 LLM）
-        decision = engine.execution_router.route("你好，今天天气怎么样？")
+        decision = await engine.execution_router.route("你好，今天天气怎么样？")
         assert decision.path == ExecutionPath.LLM_REASONING
 
         # 测试结构化任务（应该路由到 MCP）
-        decision = engine.execution_router.route("查询 data.csv 中有多少行")
+        decision = await engine.execution_router.route("查询 data.csv 中有多少行")
         assert decision.path == ExecutionPath.MCP_CODE
 
     def test_execution_recording_in_context(self, setup):
@@ -192,7 +199,8 @@ class TestAgentEngineIntegration:
         assert len(history) == 1
         assert history[0].execution_id == record.execution_id
 
-    def test_execution_path_statistics(self, setup):
+    @pytest.mark.asyncio
+    async def test_execution_path_statistics(self, setup):
         """测试路由决策统计"""
         llm, filesystem = setup
 
@@ -205,12 +213,10 @@ class TestAgentEngineIntegration:
         )
 
         # 进行多个路由决策
-        [
-            engine.execution_router.route("查询 data.csv"),  # MCP
-            engine.execution_router.route("你好"),           # LLM
-            engine.execution_router.route("计算平均值"),     # MCP
-            engine.execution_router.route("讲个故事"),       # LLM
-        ]
+        await engine.execution_router.route("查询 data.csv")  # MCP
+        await engine.execution_router.route("你好")           # LLM
+        await engine.execution_router.route("计算平均值")     # MCP
+        await engine.execution_router.route("讲个故事")       # LLM
 
         # 验证统计
         stats = engine.execution_router.get_stats()
@@ -323,7 +329,8 @@ class TestAgentEngineIntegration:
 class TestExecutionPathComparison:
     """执行路径对比测试"""
 
-    def test_skill_vs_mcp_routing(self):
+    @pytest.mark.asyncio
+    async def test_skill_vs_mcp_routing(self):
         """测试 Skill 和 MCP 的路由对比"""
         router = ExecutionRouter()
 
@@ -336,26 +343,28 @@ class TestExecutionPathComparison:
         ]
 
         for message, expected_path in test_cases:
-            decision = router.route(message)
+            decision = await router.route(message)
             assert decision.path == expected_path, f"Failed for: {message}"
 
-    def test_confidence_scoring(self):
+    @pytest.mark.asyncio
+    async def test_confidence_scoring(self):
         """测试置信度评分"""
         router = ExecutionRouter()
 
         # 高置信度的结构化任务
-        high_confidence = router.route("在 data.csv 中查询")
+        high_confidence = await router.route("在 data.csv 中查询")
         assert high_confidence.confidence >= 0.70
 
         # LLM 推理路径总是返回 confidence=1.0（确定会路由到 LLM）
-        low_confidence = router.route("你好")
+        low_confidence = await router.route("你好")
         assert low_confidence.path == ExecutionPath.LLM_REASONING
 
 
 class TestMonitoringAndLogging:
     """监控和日志测试"""
 
-    def test_router_statistics_tracking(self):
+    @pytest.mark.asyncio
+    async def test_router_statistics_tracking(self):
         """测试路由统计追踪"""
         router = ExecutionRouter()
 
@@ -365,7 +374,7 @@ class TestMonitoringAndLogging:
 
         # 执行多个路由决策
         for i in range(5):
-            router.route(f"测试消息 {i}")
+            await router.route(f"测试消息 {i}")
 
         # 验证统计
         stats = router.get_stats()
