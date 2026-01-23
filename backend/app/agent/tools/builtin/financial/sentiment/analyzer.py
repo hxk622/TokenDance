@@ -37,11 +37,10 @@ class SentimentAnalysisResult:
             "overall_score": self.overall_score,
             "overall_label": self.overall_label,
             "confidence": self.confidence,
-            "distribution": {
-                "bullish": self.bullish_count,
-                "bearish": self.bearish_count,
-                "neutral": self.neutral_count,
-            },
+            # Use flat field names to match frontend SentimentAnalysis type
+            "bullish_count": self.bullish_count,
+            "bearish_count": self.bearish_count,
+            "neutral_count": self.neutral_count,
             "key_bullish_points": self.key_bullish_points,
             "key_bearish_points": self.key_bearish_points,
             "trending_topics": self.trending_topics,
