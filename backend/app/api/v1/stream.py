@@ -46,10 +46,10 @@ try:
     )
     from app.agent.agents.deep_research import DeepResearchAgent
     from app.agent.checkpoint import CheckpointManager  # Manus 无限记忆模式
-    from app.filesystem import AgentFileSystem
     from app.agent.llm.router import TaskType, get_free_llm_for_task
     from app.agent.tools import ToolRegistry
     from app.agent.tools.init_tools import register_builtin_tools
+    from app.filesystem import AgentFileSystem
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
     AGENT_ENGINE_AVAILABLE = False
