@@ -309,7 +309,8 @@ class TestPatternDetection:
         """每个测试前重置路由器"""
         reset_execution_router()
 
-    def test_file_extension_patterns(self):
+    @pytest.mark.asyncio
+    async def test_file_extension_patterns(self):
         """测试文件扩展名模式"""
         router = ExecutionRouter()
 
@@ -321,10 +322,11 @@ class TestPatternDetection:
         ]
 
         for message, expected_path in test_cases:
-            decision = router.route(message)
+            decision = await router.route(message)
             assert decision.path == expected_path, f"Failed for: {message}"
 
-    def test_data_structure_patterns(self):
+    @pytest.mark.asyncio
+    async def test_data_structure_patterns(self):
         """测试数据结构模式"""
         router = ExecutionRouter()
 
@@ -336,10 +338,11 @@ class TestPatternDetection:
         ]
 
         for message, in test_cases:
-            decision = router.route(message)
+            decision = await router.route(message)
             assert decision.path == ExecutionPath.MCP_CODE, f"Failed for: {message}"
 
-    def test_math_operation_patterns(self):
+    @pytest.mark.asyncio
+    async def test_math_operation_patterns(self):
         """测试数学操作模式"""
         router = ExecutionRouter()
 
@@ -351,7 +354,7 @@ class TestPatternDetection:
         ]
 
         for message, in test_cases:
-            decision = router.route(message)
+            decision = await router.route(message)
             assert decision.path == ExecutionPath.MCP_CODE
 
 
@@ -413,19 +416,21 @@ class TestEdgeCases:
         """每个测试前重置路由器"""
         reset_execution_router()
 
-    def test_empty_message(self):
+    @pytest.mark.asyncio
+    async def test_empty_message(self):
         """测试空消息"""
         router = ExecutionRouter()
-        decision = router.route("")
+        decision = await router.route("")
 
         # 应该降级到 LLM 推理
         assert decision.path == ExecutionPath.LLM_REASONING
 
-    def test_very_long_message(self):
+    @pytest.mark.asyncio
+    async def test_very_long_message(self):
         """测试很长的消息"""
         router = ExecutionRouter()
         long_message = "这是一条很长的消息。" * 100
-        decision = router.route(long_message)
+        decision = await router.route(long_message)
 
         # 应该能够处理
         assert decision.path in [
@@ -434,10 +439,11 @@ class TestEdgeCases:
             ExecutionPath.LLM_REASONING,
         ]
 
-    def test_special_characters(self):
+    @pytest.mark.asyncio
+    async def test_special_characters(self):
         """测试特殊字符"""
         router = ExecutionRouter()
-        decision = router.route("查询 @#$%^&*")
+        decision = await router.route("查询 @#$%^&*")
 
         # 应该能够处理
         assert decision.path in [
@@ -446,15 +452,16 @@ class TestEdgeCases:
             ExecutionPath.LLM_REASONING,
         ]
 
-    def test_mixed_case_keywords(self):
+    @pytest.mark.asyncio
+    async def test_mixed_case_keywords(self):
         """测试混合大小写关键词"""
         router = ExecutionRouter()
 
         # 关键词应该不区分大小写
-        decision = router.route("Query the CSV")
+        decision = await router.route("Query the CSV")
         assert decision.path == ExecutionPath.MCP_CODE
 
-        decision = router.route("QUERY THE CSV")
+        decision = await router.route("QUERY THE CSV")
         assert decision.path == ExecutionPath.MCP_CODE
 
 
