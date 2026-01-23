@@ -39,7 +39,7 @@ async function loadTaskHistory() {
       workspace_id: workspaceId,
       limit: 100
     })
-    tasks.value = response.sessions || []
+    tasks.value = response.items || []
   } catch (error) {
     console.error('Failed to load task history:', error)
     tasks.value = []

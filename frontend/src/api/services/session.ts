@@ -63,7 +63,7 @@ export interface SessionUpdate {
 }
 
 export interface SessionListResponse {
-  sessions: Session[]
+  items: Session[]
   total: number
   limit: number
   offset: number
@@ -79,7 +79,7 @@ export interface Message {
 }
 
 export interface MessageListResponse {
-  messages: Message[]
+  items: Message[]
   total: number
 }
 

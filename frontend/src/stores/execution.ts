@@ -220,7 +220,7 @@ export const useExecutionStore = defineStore('execution', () => {
 
       // Fetch messages
       const messageResponse = await sessionService.getSessionMessages(id)
-      messages.value = messageResponse.messages
+      messages.value = messageResponse.items
 
       // Fetch artifacts
       const artifactResponse = await sessionService.getSessionArtifacts(id)
