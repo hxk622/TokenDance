@@ -27,12 +27,17 @@ class ToolCall:
 
 @dataclass
 class ToolResult:
-    """工具执行结果"""
+    """工具执行结果
+
+    result 字段存储 JSON 序列化后的工具返回值，便于注入 LLM Context。
+    原始的 dict 结果存储在 result_data 字段（如果需要程序化访问）。
+    """
     tool_name: str
     success: bool
-    result: str
+    result: str  # JSON 序列化的结果文本
     error: str | None = None
     call_id: str | None = None
+    result_data: dict[str, Any] | None = None  # 原始 dict 结果
 
 
 class ToolCallExecutor:
@@ -141,20 +146,20 @@ class ToolCallExecutor:
         tool_name = tool_call.tool_name
 
         # 检查工具是否存在
-        if not self.tool_registry.has_tool(tool_name):
+        if not self.tool_registry.has(tool_name):
             return ToolResult(
                 tool_name=tool_name,
                 success=False,
                 result="",
-                error=f"Tool '{tool_name}' not found. Available tools: {list(self.tool_registry.list_tools())}",
+                error=f"Tool '{tool_name}' not found. Available tools: {self.tool_registry.list_names()}",
                 call_id=tool_call.call_id
             )
 
         # 获取工具实例
-        tool = self.tool_registry.get_tool(tool_name)
+        tool = self.tool_registry.get(tool_name)
 
         # 内部执行函数（用于重试）
-        async def _execute() -> str:
+        async def _execute() -> dict[str, Any]:
             tool.validate_args(tool_call.parameters)
             return await tool.execute(**tool_call.parameters)
 
@@ -171,11 +176,15 @@ class ToolCallExecutor:
                     f"Tool {tool_name} executed successfully"
                     + (f" (attempts={retry_result.attempts})" if retry_result.attempts > 1 else "")
                 )
+                # 序列化 dict 结果为 JSON 字符串
+                result_data = retry_result.result
+                result_str = json.dumps(result_data, ensure_ascii=False, indent=2) if isinstance(result_data, dict) else str(result_data)
                 return ToolResult(
                     tool_name=tool_name,
                     success=True,
-                    result=retry_result.result,
-                    call_id=tool_call.call_id
+                    result=result_str,
+                    call_id=tool_call.call_id,
+                    result_data=result_data if isinstance(result_data, dict) else None
                 )
             else:
                 # 重试失败
@@ -195,13 +204,16 @@ class ToolCallExecutor:
             # 不重试，直接执行
             try:
                 logger.info(f"Executing tool: {tool_name} with params: {tool_call.parameters}")
-                result = await _execute()
+                result_data = await _execute()
                 logger.info(f"Tool {tool_name} executed successfully")
+                # 序列化 dict 结果为 JSON 字符串
+                result_str = json.dumps(result_data, ensure_ascii=False, indent=2) if isinstance(result_data, dict) else str(result_data)
                 return ToolResult(
                     tool_name=tool_name,
                     success=True,
-                    result=result,
-                    call_id=tool_call.call_id
+                    result=result_str,
+                    call_id=tool_call.call_id,
+                    result_data=result_data if isinstance(result_data, dict) else None
                 )
             except Exception as e:
                 logger.error(f"Tool {tool_name} execution failed: {e}")

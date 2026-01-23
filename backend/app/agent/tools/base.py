@@ -63,14 +63,18 @@ class BaseTool(ABC):
             raise ValueError(f"{self.__class__.__name__} must define 'description'")
 
     @abstractmethod
-    async def execute(self, **kwargs) -> str:
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
         """执行工具
 
         Args:
             **kwargs: 工具参数（必须匹配 parameters schema）
 
         Returns:
-            str: 工具执行结果（文本格式）
+            dict[str, Any]: 工具执行结果，通常包含：
+                - success: bool - 是否成功
+                - result/data: Any - 结果数据
+                - error: str | None - 错误信息（失败时）
+                - 其他工具特定字段
 
         Raises:
             Exception: 工具执行失败时抛出异常

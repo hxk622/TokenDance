@@ -15,6 +15,7 @@ Agent 抽象基类
 
 定义 Agent 的核心决策循环、思考链、工具调用等基础框架
 """
+import json
 import logging
 import uuid
 import warnings
@@ -378,7 +379,10 @@ class BaseAgent(ABC):
             tool.validate_args(tool_args)
 
             # 执行
-            result = await tool.execute(**tool_args)
+            result_data = await tool.execute(**tool_args)
+
+            # 序列化 dict 结果为 JSON 字符串
+            result_str = json.dumps(result_data, ensure_ascii=False, indent=2) if isinstance(result_data, dict) else str(result_data)
 
             # 5. 成功 - 发送 tool_result 事件
             yield SSEEvent(
@@ -386,7 +390,7 @@ class BaseAgent(ABC):
                 data={
                     'id': tool_id,
                     'status': ToolStatus.SUCCESS.value,
-                    'result': result[:500] if len(result) > 500 else result  # 限制长度
+                    'result': result_str[:500] if len(result_str) > 500 else result_str  # 限制长度
                 }
             )
 
@@ -396,14 +400,14 @@ class BaseAgent(ABC):
                 name=tool_name,
                 args=tool_args,
                 status=ToolStatus.SUCCESS,
-                result=result
+                result=result_str
             )
             self.context.add_tool_call(tool_call_record)
 
             # 7. 记录到 progress.md
             await self.memory.log_action(
                 f"Tool Call: {tool_name}",
-                f"Args: {tool_args}\nResult: {result[:200]}...",
+                f"Args: {tool_args}\nResult: {result_str[:200]}...",
                 status="🔧"
             )
 
