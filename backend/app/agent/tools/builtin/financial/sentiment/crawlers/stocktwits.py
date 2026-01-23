@@ -46,7 +46,7 @@ class StocktwitsCrawler(BaseSentimentCrawler):
         "Accept": "application/json",
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize Stocktwits crawler."""
         super().__init__(**kwargs)
         self._client: httpx.AsyncClient | None = None
@@ -159,7 +159,7 @@ class StocktwitsCrawler(BaseSentimentCrawler):
         self,
         symbol: str,
         limit: int = 20,
-        **kwargs
+        **kwargs: Any
     ) -> CrawlResult:
         """
         Crawl messages for a specific stock symbol.
@@ -266,7 +266,7 @@ class StocktwitsCrawler(BaseSentimentCrawler):
         self,
         query: str,
         limit: int = 20,
-        **kwargs
+        **kwargs: Any
     ) -> CrawlResult:
         """
         Search for symbols matching query.

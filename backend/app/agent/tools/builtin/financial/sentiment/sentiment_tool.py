@@ -19,6 +19,8 @@ from app.agent.tools.builtin.financial.sentiment.crawlers.base import (
     SentimentPost,
 )
 from app.agent.tools.builtin.financial.sentiment.crawlers.guba import GubaCrawler
+from app.agent.tools.builtin.financial.sentiment.crawlers.reddit import RedditCrawler
+from app.agent.tools.builtin.financial.sentiment.crawlers.stocktwits import StocktwitsCrawler
 from app.agent.tools.builtin.financial.sentiment.crawlers.xueqiu import XueqiuCrawler
 
 
@@ -77,12 +79,15 @@ class SentimentTool:
 从多个来源采集讨论帖子，使用AI分析整体情绪倾向。
 
 数据源:
-- xueqiu: 雪球社区
-- guba: 东方财富股吧
+- xueqiu: 雪球社区 (A股)
+- guba: 东方财富股吧 (A股)
+- stocktwits: Stocktwits (美股社交媒体)
+- reddit: Reddit金融社区 (wallstreetbets/investing/stocks)
 
 示例:
 - 分析茅台舆情: symbol="600519", sources=["xueqiu", "guba"]
-- 只看雪球: symbol="600519", sources=["xueqiu"]
+- 分析苹果舆情: symbol="AAPL", sources=["stocktwits", "reddit"]
+- A股+美股全覆盖: symbol="AAPL", sources=["stocktwits", "reddit", "xueqiu"]
 
 输出:
 - overall_sentiment: bullish (看多) / bearish (看空) / neutral (中性)
@@ -92,9 +97,12 @@ class SentimentTool:
 """
 
     # Available crawlers
+    # 国内: xueqiu, guba | 国际: stocktwits, reddit
     CRAWLERS = {
         "xueqiu": XueqiuCrawler,
         "guba": GubaCrawler,
+        "stocktwits": StocktwitsCrawler,
+        "reddit": RedditCrawler,
     }
 
     def __init__(self, model: str | None = None):
@@ -122,7 +130,7 @@ class SentimentTool:
     async def analyze(
         self,
         symbol: str,
-        sources: list[Literal["xueqiu", "guba"]] | None = None,
+        sources: list[Literal["xueqiu", "guba", "stocktwits", "reddit"]] | None = None,
         limit_per_source: int = 20,
         analyze: bool = True,
         **kwargs

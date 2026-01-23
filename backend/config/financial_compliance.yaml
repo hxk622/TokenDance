@@ -85,6 +85,34 @@ compliance:
         paths:
           - /articles/*
           - /news/*
+
+      # International social media sources
+      - domain: reddit.com
+        enabled: true
+        rate_limit: 60   # Reddit allows ~100 QPM for public JSON API
+        description: "Reddit - Financial subreddits (wallstreetbets, investing, stocks)"
+        paths:
+          - /r/wallstreetbets/*
+          - /r/investing/*
+          - /r/stocks/*
+          - /r/stockmarket/*
+          - /r/options/*
+          - /search*
+
+      - domain: stocktwits.com
+        enabled: true
+        rate_limit: 30   # Conservative rate limit
+        description: "Stocktwits - US stock social media (Twitter alternative)"
+        paths:
+          - /symbol/*
+          - /streams/*
+
+      - domain: api.stocktwits.com
+        enabled: true
+        rate_limit: 30
+        description: "Stocktwits API"
+        paths:
+          - /api/2/*
           
     # ---------------------------------------------------------------------
     # Blacklist - Domains explicitly forbidden
