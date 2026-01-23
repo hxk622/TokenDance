@@ -437,34 +437,34 @@ async def submit_feedback(
 ) -> FeedbackResponse:
     """
     Submit feedback (like/dislike) for a message.
-    
+
     Used for collecting SFT training data.
-    
+
     Args:
         message_id: The message ID to provide feedback for
         request: Feedback request with 'like', 'dislike', or null to clear
-    
+
     Returns:
         FeedbackResponse with updated feedback state
     """
     from datetime import datetime
-    
+
     repo = MessageRepository(db)
     message = await repo.get_by_id(message_id)
-    
+
     if not message:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Message {message_id} not found"
         )
-    
+
     # Only allow feedback on assistant messages
     if message.role.value != "assistant":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Feedback can only be provided for assistant messages"
         )
-    
+
     # Convert feedback string to enum or None
     feedback_value = None
     if request.feedback:
@@ -474,7 +474,7 @@ async def submit_feedback(
                 detail="Feedback must be 'like', 'dislike', or null"
             )
         feedback_value = FeedbackType(request.feedback)
-    
+
     # Update the message
     feedback_at = datetime.utcnow() if feedback_value else None
     updated_message = await repo.update(
@@ -482,7 +482,13 @@ async def submit_feedback(
         feedback=feedback_value,
         feedback_at=feedback_at
     )
-    
+
+    if not updated_message:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update message"
+        )
+
     return FeedbackResponse(
         message_id=message_id,
         feedback=updated_message.feedback.value if updated_message.feedback else None,

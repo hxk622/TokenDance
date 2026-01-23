@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.message import FeedbackType, MessageRole
+from app.models.message import MessageRole
 
 # ============ Nested Schemas ============
 
