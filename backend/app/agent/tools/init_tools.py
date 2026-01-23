@@ -115,6 +115,16 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register wechat_article tool: {e}")
 
+    # WeChat Search Tool - 微信公众号文章搜索
+    try:
+        from app.agent.tools.builtin.wechat_search import WeChatSearchTool
+        wechat_search = WeChatSearchTool()
+        registry.register(wechat_search)
+        tools.append(wechat_search)
+        logger.info(f"Registered tool: {wechat_search.name}")
+    except Exception as e:
+        logger.error(f"Failed to register wechat_search tool: {e}")
+
     # Diagram Tool - draw.io 图表生成
     try:
         from app.agent.tools.builtin.diagram import DiagramTool
@@ -153,7 +163,7 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
 def get_tool_categories() -> dict:
     """Get tool categories for UI organization"""
     return {
-        "Web & Research": ["web_search", "read_url", "wechat_article"],
+        "Web & Research": ["web_search", "read_url", "wechat_article", "wechat_search"],
         "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
         "Content Generation": ["image_generation", "ppt_generator", "report_generator", "generate_diagram", "generate_knowledge_graph"],
@@ -176,6 +186,7 @@ def get_tool_descriptions() -> dict:
         "web_search": "Search web using DuckDuckGo",
         "read_url": "Read and extract content from a URL",
         "wechat_article": "Extract content from WeChat Official Account articles",
+        "wechat_search": "Search WeChat Official Account articles by keywords (via Google)",
         "shell": "Execute shell commands",
         "file_ops": "Perform file operations (read, write, list, delete)",
         "create_document": "Create a new document",
