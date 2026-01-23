@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Copy, ThumbsUp, ThumbsDown, Share2, RefreshCw, Check } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 
@@ -20,7 +20,11 @@ const { showToast } = useToast()
 const copied = ref(false)
 const localFeedback = ref<'like' | 'dislike' | null>(props.feedback ?? null)
 
-// Watch for prop changes
+// Sync localFeedback when props.feedback changes (e.g., from server refresh)
+watch(() => props.feedback, (newVal) => {
+  localFeedback.value = newVal ?? null
+})
+
 const currentFeedback = computed(() => localFeedback.value)
 
 // Copy to clipboard

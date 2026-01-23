@@ -74,7 +74,7 @@ class ToolMessageCreate(MessageBase):
 class MessageResponse(MessageBase):
     """Schema for message response."""
     id: str
-    session_id: str
+    session_id: str | None = None  # Can be None for conversation-based messages
     role: MessageRole
     content: str | None = None
     thinking: str | None = None

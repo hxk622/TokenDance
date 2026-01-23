@@ -190,13 +190,18 @@ class MessageRepository:
         message_id: str,
         **updates,
     ) -> Message | None:
-        """Update message fields."""
+        """Update message fields.
+
+        Note: To explicitly set a field to None, include it in updates.
+        Fields not in updates will not be modified.
+        """
         message = await self.get_by_id(message_id)
         if not message:
             return None
 
         for key, value in updates.items():
-            if hasattr(message, key) and value is not None:
+            if hasattr(message, key):
+                # Allow setting to None explicitly (e.g., clearing feedback)
                 setattr(message, key, value)
 
         await self.db.commit()
