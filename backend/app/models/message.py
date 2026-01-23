@@ -7,7 +7,7 @@ for backward compatibility during migration.
 import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,6 +25,12 @@ class MessageRole(PyEnum):
     ASSISTANT = "assistant"
     SYSTEM = "system"
     TOOL = "tool"
+
+
+class FeedbackType(PyEnum):
+    """Feedback type for message actions."""
+    LIKE = "like"
+    DISLIKE = "dislike"
 
 
 class Message(Base):
@@ -91,6 +97,13 @@ class Message(Base):
         default={},
         nullable=False
     )
+
+    # User feedback (for SFT training data collection)
+    feedback: Mapped[FeedbackType | None] = mapped_column(
+        Enum(FeedbackType, values_callable=lambda x: [e.value for e in x]),
+        nullable=True
+    )
+    feedback_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

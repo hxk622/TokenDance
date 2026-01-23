@@ -13,6 +13,12 @@ Skill 匹配准确性 Benchmark 测试
 - 中英混合（"帮我 research 一下"）
 - 模糊表达（"分析分析"）
 - 否定用例（不应匹配的消息）
+
+性能说明：
+- 使用 SentenceTransformer 模型进行语义匹配
+- 模型加载约需 3-10 秒，推理约 50-100ms/次
+- 使用 session scope fixture 避免重复加载模型
+- 使用 @pytest.mark.slow 标记，默认跳过，需显式运行: pytest -m slow
 """
 
 
@@ -172,14 +178,20 @@ BENCHMARK_CASES: list[tuple[str, str | None, str]] = [
 # 测试夹具
 # =============================================================================
 
-@pytest.fixture
-def skill_registry():
-    """创建并加载 Registry"""
+@pytest.fixture(scope="session")
+def skill_registry_session():
+    """创建并加载 Registry (session scope，整个测试会话只创建一次)"""
     from app.skills.registry import SkillRegistry
 
     registry = SkillRegistry()
     registry.load_all()
     return registry
+
+
+@pytest.fixture
+def skill_registry(skill_registry_session):
+    """Function-scoped alias for compatibility"""
+    return skill_registry_session
 
 
 @pytest.fixture
@@ -190,12 +202,25 @@ def skill_matcher(skill_registry):
     return SkillMatcher(skill_registry, enable_embedding=False)
 
 
-@pytest.fixture
-def skill_matcher_with_embedding(skill_registry):
-    """创建带 Embedding 的 SkillMatcher"""
+# 使用 session scope 的 embedding matcher，避免每个测试都重新加载模型
+_cached_embedding_matcher = None
+
+
+@pytest.fixture(scope="session")
+def skill_matcher_with_embedding_session(skill_registry_session):
+    """创建带 Embedding 的 SkillMatcher (session scope，模型只加载一次)
+    
+    性能优化：模型加载约 3-10 秒，使用 session scope 避免重复加载。
+    """
     from app.skills.matcher import create_skill_matcher
 
-    return create_skill_matcher(skill_registry, use_sentence_transformer=True)
+    return create_skill_matcher(skill_registry_session, use_sentence_transformer=True)
+
+
+@pytest.fixture
+def skill_matcher_with_embedding(skill_matcher_with_embedding_session):
+    """Function-scoped alias for compatibility"""
+    return skill_matcher_with_embedding_session
 
 
 # =============================================================================
@@ -223,8 +248,12 @@ class TestSkillMatchingBasic:
 # Benchmark 测试
 # =============================================================================
 
+@pytest.mark.slow
 class TestSkillMatchingBenchmark:
-    """Skill 匹配准确性 Benchmark"""
+    """Skill 匹配准确性 Benchmark
+    
+    标记为 slow，默认跳过。运行方式：pytest -m slow
+    """
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("user_message,expected_skill,description", BENCHMARK_CASES)
@@ -262,8 +291,12 @@ class TestSkillMatchingBenchmark:
 # 精度/召回率评估
 # =============================================================================
 
+@pytest.mark.slow
 class TestPrecisionRecall:
-    """评估匹配的 Precision 和 Recall"""
+    """评估匹配的 Precision 和 Recall
+    
+    标记为 slow，默认跳过。运行方式：pytest -m slow
+    """
 
     @pytest.mark.asyncio
     async def test_calculate_metrics(self, skill_matcher_with_embedding):
@@ -336,8 +369,12 @@ class TestPrecisionRecall:
 # 阈值敏感性测试
 # =============================================================================
 
+@pytest.mark.slow
 class TestThresholdSensitivity:
-    """测试不同阈值对匹配结果的影响"""
+    """测试不同阈值对匹配结果的影响
+    
+    标记为 slow，默认跳过。运行方式：pytest -m slow
+    """
 
     @pytest.mark.asyncio
     async def test_threshold_impact(self, skill_matcher_with_embedding):

@@ -4,16 +4,38 @@ import type { Message } from '@/api/session'
 import ThinkingBlock from '@/components/execution/ThinkingBlock.vue'
 import ToolCallBlock from '@/components/execution/ToolCallBlock.vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import MessageActions from './MessageActions.vue'
+import { messageApi } from '@/api/message'
 
 const props = defineProps<{
   message: Message
   isStreaming?: boolean
+  isLastAssistantMessage?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'regenerate'): void
 }>()
 
 const isUser = computed(() => props.message.role === 'user')
 const hasThinking = computed(() => !!props.message.thinking)
 const hasToolCalls = computed(() => props.message.tool_calls && props.message.tool_calls.length > 0)
 const hasCitations = computed(() => props.message.citations && props.message.citations.length > 0)
+const hasContent = computed(() => !!props.message.content)
+
+// Handle feedback submission
+async function handleFeedback(feedback: 'like' | 'dislike' | null) {
+  try {
+    await messageApi.submitFeedback(props.message.id, feedback)
+  } catch (error) {
+    console.error('Failed to submit feedback:', error)
+  }
+}
+
+// Handle regenerate
+function handleRegenerate() {
+  emit('regenerate')
+}
 
 // Transform tool_calls to match ToolCallBlock interface
 const formattedToolCalls = computed(() => {
@@ -131,6 +153,18 @@ const formattedToolCalls = computed(() => {
             </a>
           </div>
         </div>
+
+        <!-- Message Actions (only for completed assistant messages with content) -->
+        <MessageActions
+          v-if="hasContent && !isStreaming"
+          :message-id="message.id"
+          :content="message.content || ''"
+          :feedback="(message as any).feedback"
+          :is-last-message="isLastAssistantMessage"
+          :is-streaming="isStreaming"
+          @feedback="handleFeedback"
+          @regenerate="handleRegenerate"
+        />
       </div>
     </div>
 

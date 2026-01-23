@@ -339,8 +339,9 @@ class TestWeChatOAuth:
         mock_user.auth_provider = "wechat"
         mock_tokens = create_mock_tokens()
 
+        mock_workspace_id = "mock-workspace-id-123"
         mock_service = AsyncMock()
-        mock_service.login_with_wechat = AsyncMock(return_value=(mock_user, mock_tokens))
+        mock_service.login_with_wechat = AsyncMock(return_value=(mock_user, mock_tokens, mock_workspace_id))
 
         async def mock_get_auth_service():
             return mock_service
@@ -385,8 +386,9 @@ class TestGmailOAuth:
         mock_user.auth_provider = "gmail"
         mock_tokens = create_mock_tokens()
 
+        mock_workspace_id = "mock-workspace-id-456"
         mock_service = AsyncMock()
-        mock_service.login_with_gmail = AsyncMock(return_value=(mock_user, mock_tokens))
+        mock_service.login_with_gmail = AsyncMock(return_value=(mock_user, mock_tokens, mock_workspace_id))
 
         async def mock_get_auth_service():
             return mock_service

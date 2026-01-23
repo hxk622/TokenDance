@@ -139,7 +139,7 @@ async def wechat_callback(
         HTTPException: If WeChat OAuth fails
     """
     try:
-        user, tokens = await auth_service.login_with_wechat(
+        user, tokens, default_workspace_id = await auth_service.login_with_wechat(
             code=request.code
         )
 
@@ -150,6 +150,7 @@ async def wechat_callback(
                 refresh_token=tokens.refresh_token,
                 token_type=tokens.token_type,
             ),
+            default_workspace_id=default_workspace_id,
         )
     except ValueError as e:
         raise HTTPException(
@@ -191,7 +192,7 @@ async def gmail_callback(
         HTTPException: If Gmail OAuth fails
     """
     try:
-        user, tokens = await auth_service.login_with_gmail(
+        user, tokens, default_workspace_id = await auth_service.login_with_gmail(
             code=request.code
         )
 
@@ -202,6 +203,7 @@ async def gmail_callback(
                 refresh_token=tokens.refresh_token,
                 token_type=tokens.token_type,
             ),
+            default_workspace_id=default_workspace_id,
         )
     except ValueError as e:
         raise HTTPException(

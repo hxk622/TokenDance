@@ -326,14 +326,14 @@ class AuthService:
             refresh_token=refresh_token,
         ), default_workspace_id
 
-    async def login_with_wechat(self, code: str) -> tuple[User, TokenPair]:
+    async def login_with_wechat(self, code: str) -> tuple[User, TokenPair, str | None]:
         """Login or register user with WeChat OAuth.
 
         Args:
             code: WeChat authorization code
 
         Returns:
-            Tuple of (User, TokenPair)
+            Tuple of (User, TokenPair, default_workspace_id)
 
         Raises:
             ValueError: If WeChat OAuth fails
@@ -391,6 +391,27 @@ class AuthService:
                 headimgurl=user_info.get("headimgurl"),
             )
 
+            # Create default workspace for new WeChat user
+            if self.workspace_repo:
+                workspace = await self.workspace_repo.create(
+                    owner_id=str(user.id),
+                    name="默认工作区",
+                    slug="default",
+                    description="Your personal workspace",
+                )
+                logger.info(
+                    "default_workspace_created_wechat",
+                    user_id=str(user.id),
+                    workspace_id=workspace.id,
+                )
+
+        # Get user's default workspace
+        default_workspace_id = None
+        if self.workspace_repo:
+            workspaces, _ = await self.workspace_repo.get_by_owner(str(user.id), limit=1)
+            if workspaces:
+                default_workspace_id = workspaces[0].id
+
         # Generate tokens
         access_token = self.create_access_token(str(user.id), user.email)
         refresh_token = self.create_refresh_token(str(user.id), user.email)
@@ -400,16 +421,16 @@ class AuthService:
         return user, TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
-        )
+        ), default_workspace_id
 
-    async def login_with_gmail(self, code: str) -> tuple[User, TokenPair]:
+    async def login_with_gmail(self, code: str) -> tuple[User, TokenPair, str | None]:
         """Login or register user with Gmail OAuth.
 
         Args:
             code: Gmail authorization code
 
         Returns:
-            Tuple of (User, TokenPair)
+            Tuple of (User, TokenPair, default_workspace_id)
 
         Raises:
             ValueError: If Gmail OAuth fails
@@ -485,6 +506,27 @@ class AuthService:
                 expires_at=expires_at,
             )
 
+            # Create default workspace for new Gmail user
+            if self.workspace_repo:
+                workspace = await self.workspace_repo.create(
+                    owner_id=str(user.id),
+                    name="默认工作区",
+                    slug="default",
+                    description="Your personal workspace",
+                )
+                logger.info(
+                    "default_workspace_created_gmail",
+                    user_id=str(user.id),
+                    workspace_id=workspace.id,
+                )
+
+        # Get user's default workspace
+        default_workspace_id = None
+        if self.workspace_repo:
+            workspaces, _ = await self.workspace_repo.get_by_owner(str(user.id), limit=1)
+            if workspaces:
+                default_workspace_id = workspaces[0].id
+
         # Generate tokens
         access_token = self.create_access_token(str(user.id), user.email)
         refresh_token = self.create_refresh_token(str(user.id), user.email)
@@ -494,7 +536,7 @@ class AuthService:
         return user, TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
-        )
+        ), default_workspace_id
 
     async def refresh_access_token(self, refresh_token: str) -> TokenPair:
         """Generate new access token using refresh token.

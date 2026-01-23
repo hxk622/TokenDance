@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.message import MessageRole
+from app.models.message import FeedbackType, MessageRole
 
 # ============ Nested Schemas ============
 
@@ -81,9 +81,11 @@ class MessageResponse(MessageBase):
     tool_calls: list[ToolCall] | None = None
     citations: list[Citation] | None = None
     tokens_used: int = 0
+    feedback: str | None = None  # "like" | "dislike" | None
+    feedback_at: datetime | None = None
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)  #
+    model_config = ConfigDict(from_attributes=True)
 
 
 
@@ -163,3 +165,20 @@ class ConfirmRequest(BaseModel):
     """Request schema for HITL confirmation."""
     action_id: str
     confirmed: bool
+
+
+# ============ Feedback Schemas ============
+
+class FeedbackRequest(BaseModel):
+    """Request schema for message feedback."""
+    feedback: str | None = Field(
+        None,
+        description="Feedback type: 'like', 'dislike', or null to clear"
+    )
+
+
+class FeedbackResponse(BaseModel):
+    """Response schema for message feedback."""
+    message_id: str
+    feedback: str | None
+    feedback_at: datetime | None

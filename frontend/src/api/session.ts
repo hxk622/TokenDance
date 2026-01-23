@@ -61,6 +61,8 @@ export interface Message {
   tool_calls?: ToolCall[]
   citations?: Citation[]
   tokens_used?: number
+  feedback?: 'like' | 'dislike' | null
+  feedback_at?: string | null
   created_at: string
 }
 

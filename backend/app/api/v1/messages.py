@@ -20,6 +20,9 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.filesystem import AgentFileSystem
+from app.models.message import FeedbackType
+from app.repositories.message_repository import MessageRepository
+from app.schemas.message import FeedbackRequest, FeedbackResponse
 from app.services.session_service import SessionService
 
 logger = get_logger(__name__)
@@ -424,6 +427,67 @@ async def get_messages(
     messages = await service.get_session_messages(session_id, limit=limit)
 
     return messages
+
+
+@router.post("/feedback/{message_id}")
+async def submit_feedback(
+    message_id: str,
+    request: FeedbackRequest,
+    db: AsyncSession = Depends(get_db),
+) -> FeedbackResponse:
+    """
+    Submit feedback (like/dislike) for a message.
+    
+    Used for collecting SFT training data.
+    
+    Args:
+        message_id: The message ID to provide feedback for
+        request: Feedback request with 'like', 'dislike', or null to clear
+    
+    Returns:
+        FeedbackResponse with updated feedback state
+    """
+    from datetime import datetime
+    
+    repo = MessageRepository(db)
+    message = await repo.get_by_id(message_id)
+    
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Message {message_id} not found"
+        )
+    
+    # Only allow feedback on assistant messages
+    if message.role.value != "assistant":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Feedback can only be provided for assistant messages"
+        )
+    
+    # Convert feedback string to enum or None
+    feedback_value = None
+    if request.feedback:
+        if request.feedback not in ("like", "dislike"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Feedback must be 'like', 'dislike', or null"
+            )
+        feedback_value = FeedbackType(request.feedback)
+    
+    # Update the message
+    feedback_at = datetime.utcnow() if feedback_value else None
+    updated_message = await repo.update(
+        message_id,
+        feedback=feedback_value,
+        feedback_at=feedback_at
+    )
+    
+    return FeedbackResponse(
+        message_id=message_id,
+        feedback=updated_message.feedback.value if updated_message.feedback else None,
+        feedback_at=updated_message.feedback_at
+    )
 
 
 @router.get("/{session_id}/working-memory")

@@ -116,6 +116,12 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('access_token', response.tokens.access_token)
       localStorage.setItem('refresh_token', response.tokens.refresh_token)
       
+      // Set default workspace from WeChat login
+      if (response.default_workspace_id) {
+        const sessionStore = useSessionStore()
+        sessionStore.setCurrentWorkspace(response.default_workspace_id)
+      }
+      
       return response
     } catch (err: any) {
       error.value = getApiErrorMessage(err, '微信登录失败')
@@ -144,6 +150,12 @@ export const useAuthStore = defineStore('auth', () => {
       // Persist tokens
       localStorage.setItem('access_token', response.tokens.access_token)
       localStorage.setItem('refresh_token', response.tokens.refresh_token)
+      
+      // Set default workspace from Gmail login
+      if (response.default_workspace_id) {
+        const sessionStore = useSessionStore()
+        sessionStore.setCurrentWorkspace(response.default_workspace_id)
+      }
       
       return response
     } catch (err: any) {

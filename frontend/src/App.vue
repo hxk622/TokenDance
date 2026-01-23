@@ -22,6 +22,9 @@
       @close="handleCloseLoginModal"
       @success="handleLoginSuccess"
     />
+
+    <!-- Global Toast Notifications -->
+    <ToastContainer />
   </div>
 </template>
 
@@ -31,6 +34,7 @@ import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import LoginPromptModal from '@/components/common/LoginPromptModal.vue'
+import ToastContainer from '@/components/common/ToastContainer.vue'
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
