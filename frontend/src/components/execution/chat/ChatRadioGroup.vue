@@ -128,7 +128,7 @@ function selectOption(value: string) {
 }
 
 .radio-option.selected {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(0, 184, 217, 0.08);
   border-color: #00B8D9;
 }
 

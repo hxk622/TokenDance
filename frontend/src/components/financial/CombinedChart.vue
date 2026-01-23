@@ -294,8 +294,8 @@ function updateChart() {
         },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(99, 102, 241, 0.3)' },
-            { offset: 1, color: 'rgba(99, 102, 241, 0.05)' },
+            { offset: 0, color: 'rgba(0, 184, 217, 0.3)' },
+            { offset: 1, color: 'rgba(0, 184, 217, 0.05)' },
           ]),
         },
         yAxisIndex: 0,

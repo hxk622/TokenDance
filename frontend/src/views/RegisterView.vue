@@ -552,8 +552,8 @@ async function handleRegister() {
 .bg-gradient {
   @apply absolute inset-0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(139, 92, 246, 0.08), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 184, 217, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(0, 217, 255, 0.08), transparent),
     radial-gradient(ellipse 50% 30% at 20% 80%, rgba(6, 182, 212, 0.06), transparent);
 }
 
@@ -573,7 +573,7 @@ async function handleRegister() {
 }
 
 .orb-1 {
-  @apply w-64 h-64 bg-indigo-500/20;
+  @apply w-64 h-64 bg-cyan-500/20;
   top: 10%;
   left: 15%;
   animation-delay: 0s;
@@ -587,7 +587,7 @@ async function handleRegister() {
 }
 
 .orb-3 {
-  @apply w-32 h-32 bg-violet-500/10;
+  @apply w-32 h-32 bg-cyan-500/10;
   bottom: 20%;
   left: 40%;
   animation-delay: -4s;
@@ -638,7 +638,7 @@ async function handleRegister() {
 }
 
 .feature-icon {
-  @apply w-5 h-5 text-indigo-400;
+  @apply w-5 h-5 text-cyan-400;
 }
 
 .brand-footer {
@@ -716,8 +716,8 @@ async function handleRegister() {
 .form-input:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(99, 102, 241, 0.5);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: rgba(0, 184, 217, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.1);
 }
 
 .form-input.input-error {
@@ -771,7 +771,7 @@ async function handleRegister() {
 }
 
 .terms-checkbox:checked {
-  @apply bg-indigo-600 border-indigo-600;
+  @apply bg-cyan-600 border-cyan-600;
 }
 
 .terms-text {
@@ -779,7 +779,7 @@ async function handleRegister() {
 }
 
 .terms-link {
-  @apply text-white hover:text-indigo-300 transition-colors duration-200;
+  @apply text-white hover:text-cyan-300 transition-colors duration-200;
 }
 
 /* Submit Button */
@@ -815,7 +815,7 @@ async function handleRegister() {
 }
 
 .link-text {
-  @apply font-medium text-white hover:text-indigo-300 transition-colors duration-200;
+  @apply font-medium text-white hover:text-cyan-300 transition-colors duration-200;
 }
 
 /* Footer */

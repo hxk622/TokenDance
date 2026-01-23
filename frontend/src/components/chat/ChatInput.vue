@@ -162,7 +162,7 @@ function handleStop() {
 }
 
 .chat-textarea.is-streaming {
-  @apply border-indigo-500/50;
+  @apply border-cyan-500/50;
 }
 
 /* Gradient glow effect on focus */
@@ -195,12 +195,12 @@ function handleStop() {
          transition-all duration-200;
   background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 184, 217, 0.3);
 }
 
 .send-button:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 184, 217, 0.4);
 }
 
 .send-button:active:not(:disabled) {

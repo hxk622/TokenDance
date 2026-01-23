@@ -1556,7 +1556,7 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(0, 184, 217, 0.1);
   border-radius: 8px;
   font-size: 12px;
   margin-bottom: 4px;
@@ -1580,7 +1580,7 @@ defineExpose({
    Edit Mode
    ======================================== */
 .chat-message.editing {
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(0, 184, 217, 0.05);
   padding: 8px;
   margin: -8px;
   border-radius: 12px;
@@ -1609,7 +1609,7 @@ defineExpose({
 
 .edit-textarea:focus {
   border-color: #00B8D9;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.1);
 }
 
 .edit-actions {
@@ -1648,7 +1648,7 @@ defineExpose({
 
 .edit-btn-save:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 184, 217, 0.4);
 }
 
 /* Edited Badge */

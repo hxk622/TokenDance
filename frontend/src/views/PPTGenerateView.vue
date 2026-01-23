@@ -228,11 +228,11 @@ onMounted(async () => {
             <input
               v-model="filename"
               placeholder="文件名"
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-48"
+              class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 w-48"
             >
             <button
               :disabled="generating || !slides.length"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               @click="generatePPT"
             >
               <ArrowDownTrayIcon
@@ -287,7 +287,7 @@ onMounted(async () => {
                 :class="[
                   'relative p-3 rounded-lg cursor-pointer transition-all group',
                   selectedSlideIndex === index
-                    ? 'bg-indigo-50 border-2 border-indigo-500'
+                    ? 'bg-cyan-50 border-2 border-cyan-500'
                     : 'bg-gray-50 border-2 border-transparent hover:border-gray-300'
                 ]"
                 @click="selectSlide(index)"
@@ -320,7 +320,7 @@ onMounted(async () => {
             <div class="mt-4 pt-4 border-t border-gray-200">
               <div class="relative">
                 <button
-                  class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
+                  class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-cyan-600 border border-cyan-200 rounded-lg hover:bg-cyan-50 transition-colors"
                   @click="addSlide()"
                 >
                   <PlusIcon class="w-4 h-4" />
@@ -375,7 +375,7 @@ onMounted(async () => {
                   :class="[
                     'p-3 rounded-lg border-2 text-left transition-all',
                     currentSlide.style === style.id
-                      ? 'border-indigo-500 bg-indigo-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-200 hover:border-gray-300'
                   ]"
                   @click="currentSlide.style = style.id; updatePreview()"
@@ -396,7 +396,7 @@ onMounted(async () => {
               <input
                 v-model="currentSlide.title"
                 placeholder="输入标题..."
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 @input="updatePreview"
               >
             </div>
@@ -407,7 +407,7 @@ onMounted(async () => {
               <input
                 v-model="currentSlide.subtitle"
                 placeholder="输入副标题..."
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 @input="updatePreview"
               >
             </div>
@@ -419,7 +419,7 @@ onMounted(async () => {
                 v-model="currentSlide.body"
                 placeholder="输入正文内容（支持 • 开头的列表）..."
                 rows="4"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 resize-none"
                 @input="updatePreview"
               />
             </div>
@@ -528,7 +528,7 @@ onMounted(async () => {
                 v-if="previewLoading"
                 class="absolute inset-0 bg-white/80 flex items-center justify-center"
               >
-                <ArrowPathIcon class="w-8 h-8 text-indigo-500 animate-spin" />
+                <ArrowPathIcon class="w-8 h-8 text-cyan-500 animate-spin" />
               </div>
             </div>
 

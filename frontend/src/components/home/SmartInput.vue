@@ -325,7 +325,7 @@ const handleRecommendClick = () => {
 }
 
 .smart-input:focus {
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.15);
 }
 
 .input-submit {
@@ -347,7 +347,7 @@ const handleRecommendClick = () => {
   transform: translateY(-2px);
   box-shadow: 
     0 4px 16px rgba(255, 255, 255, 0.2),
-    0 0 24px rgba(139, 92, 246, 0.15);
+    0 0 24px rgba(0, 217, 255, 0.15);
 }
 
 .input-submit:not(:disabled):active {
@@ -413,15 +413,15 @@ const handleRecommendClick = () => {
 }
 
 .previous-item {
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(0, 184, 217, 0.08);
+  border: 1px solid rgba(0, 184, 217, 0.2);
   color: rgba(255, 255, 255, 0.8);
 }
 
 .previous-item:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  background: rgba(0, 184, 217, 0.15);
+  border-color: rgba(0, 184, 217, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 184, 217, 0.15);
 }
 
 .trending-item {

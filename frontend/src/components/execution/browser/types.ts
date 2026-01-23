@@ -87,7 +87,7 @@ export const OPERATION_CONFIG: Record<string, {
   fill: {
     icon: 'pencil',
     label: '填写',
-    color: 'text-purple-400',
+    color: 'text-cyan-400',
   },
   snapshot: {
     icon: 'camera',
@@ -125,7 +125,7 @@ export const FRAME_TYPE_CONFIG: Record<FrameType, {
   extract: {
     icon: 'document-text',
     label: '内容提取',
-    bgColor: 'bg-purple-500/20',
+    bgColor: 'bg-cyan-500/20',
   },
   error: {
     icon: 'exclamation-circle',

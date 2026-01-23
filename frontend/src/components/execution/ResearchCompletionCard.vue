@@ -208,7 +208,7 @@ onMounted(() => {
           <span class="stat-label">信息来源</span>
         </div>
         <div class="stat-item">
-          <ClockIcon class="w-5 h-5 text-purple-500" />
+          <ClockIcon class="w-5 h-5 text-cyan-500" />
           <span class="stat-value">{{ researchDurationText }}</span>
           <span class="stat-label">研究时长</span>
         </div>

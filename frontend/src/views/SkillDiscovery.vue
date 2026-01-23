@@ -411,8 +411,8 @@ onMounted(() => {
 
 .search-input:focus {
   outline: none;
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  border-color: rgba(0, 217, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.15);
 }
 
 .search-icon {
@@ -441,7 +441,7 @@ onMounted(() => {
 
 .retry-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 217, 255, 0.4);
 }
 
 /* Content */
@@ -476,7 +476,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #00B8D9 0%, #00D9FF 100%);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
 }
 
 .category-icon {

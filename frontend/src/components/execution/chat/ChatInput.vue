@@ -204,7 +204,7 @@ defineExpose({
 
 .chat-input-wrapper.focused {
   border-color: var(--any-border-hover);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.1);
 }
 
 .chat-input-wrapper.disabled {
@@ -364,7 +364,7 @@ defineExpose({
 
 .send-btn.active:hover {
   transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 184, 217, 0.4);
 }
 
 .send-btn:disabled {

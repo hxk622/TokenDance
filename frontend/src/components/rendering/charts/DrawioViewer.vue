@@ -340,7 +340,7 @@ defineExpose({
 }
 
 .toolbar-btn--primary:hover {
-  background: var(--exec-accent-hover, #4f46e5);
+  background: var(--exec-accent-hover, #00B8D9);
   color: white;
 }
 
@@ -385,7 +385,7 @@ defineExpose({
 }
 
 .retry-btn:hover {
-  background: var(--exec-accent-hover, #4f46e5);
+  background: var(--exec-accent-hover, #00B8D9);
 }
 
 .viewer-iframe {

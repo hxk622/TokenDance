@@ -728,7 +728,7 @@ onUnmounted(() => {
 .feedback-input:focus {
   outline: none;
   border-color: #00B8D9;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.2);
 }
 
 .dialog-actions {

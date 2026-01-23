@@ -334,7 +334,8 @@ async def combined_analysis(request: CombinedAnalysisRequest):
                 "stock_info": None if info_result.get("success") else info_result.get("error"),
                 "quote": None if quote_result.get("success") else quote_result.get("error"),
                 "historical": None if hist_result.get("success") else hist_result.get("error"),
-                "sentiment": sentiment_result.errors if not sentiment_result.success else [],
+                # Always pass sentiment errors (even when success=True, there may be partial errors)
+                "sentiment": sentiment_result.errors if sentiment_result.errors else [],
             },
             "disclaimer": info_result.get("disclaimer", "")
         }

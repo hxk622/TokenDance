@@ -425,7 +425,7 @@ const canSubmit = computed(() => {
 .text-textarea:focus {
   outline: none;
   border-color: var(--any-border-hover);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.1);
 }
 
 .text-input::placeholder,

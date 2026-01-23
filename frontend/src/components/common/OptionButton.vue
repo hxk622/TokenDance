@@ -89,11 +89,11 @@ const handleClick = () => {
   background: linear-gradient(135deg, #00B8D9, #00D9FF);
   color: white;
   border: none;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 184, 217, 0.3);
 }
 
 .option-button.selected:hover:not(.disabled) {
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 184, 217, 0.4);
   transform: translateY(-2px);
 }
 

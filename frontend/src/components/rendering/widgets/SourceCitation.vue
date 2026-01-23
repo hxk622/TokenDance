@@ -219,7 +219,7 @@ function formatDate(dateStr?: string): string {
 }
 
 .source-link {
-  color: #4f46e5;
+  color: #00B8D9;
   text-decoration: none;
 }
 
@@ -359,7 +359,7 @@ function formatDate(dateStr?: string): string {
 }
 
 .sidebar-link {
-  color: #4f46e5;
+  color: #00B8D9;
   text-decoration: none;
   font-weight: 500;
 }

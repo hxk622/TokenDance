@@ -421,7 +421,7 @@ watch(() => props.content, () => {
 }
 
 .markdown-block :deep(a) {
-  color: #4f46e5;
+  color: #00B8D9;
   text-decoration: underline;
 }
 

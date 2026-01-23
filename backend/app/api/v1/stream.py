@@ -1135,6 +1135,8 @@ async def run_agent_stream_with_store(
                 session_id,
                 error_message=fatal_error_message,
             )
+            # Note: Artifact was already saved above (lines 1061-1129)
+            # Even failed sessions should have their partial findings preserved
             yield await emit_event(SSEEventType.SESSION_FAILED, {
                 "session_id": session_id,
                 "status": "failed",
@@ -1156,6 +1158,51 @@ async def run_agent_stream_with_store(
 
     except Exception as e:
         logger.error(f"Agent execution error: {e}", exc_info=True)
+
+        # P2: Try to save any partial findings before failing
+        try:
+            if memory:  # memory might not be initialized if error occurred early
+                artifact_repo = ArtifactRepository(db)
+                storage = get_object_storage()
+                findings_content = await memory.read_findings()
+                if findings_content and len(findings_content.strip()) > 100:
+                    artifact_name = f"Research Report (Error) - {task[:50]}" if len(task) > 50 else f"Research Report (Error) - {task}"
+                    if storage:
+                        object_key = f"sessions/{session_id}/findings.md"
+                        try:
+                            storage.ensure_bucket("tokendance-artifacts")
+                            storage.put_text("tokendance-artifacts", object_key, findings_content, "text/markdown; charset=utf-8")
+                            file_path = f"minio://tokendance-artifacts/{object_key}"
+                        except Exception:
+                            file_path = f"local://{workspace_path}/findings.md"
+                    else:
+                        file_path = f"local://{workspace_path}/findings.md"
+
+                    artifact = await artifact_repo.create(
+                        session_id=session_id,
+                        name=artifact_name,
+                        artifact_type=ArtifactType.REPORT,
+                        file_path=file_path,
+                        file_size=len(findings_content.encode('utf-8')),
+                        mime_type="text/markdown",
+                        description=f"Partial research findings (error): {task[:100]}",
+                        extra_data={"task": task, "source": "deep_research_agent", "error": str(e)},
+                    )
+                    artifact.set_content_preview(findings_content, max_length=500)
+                    await db.commit()
+
+                    yield await emit_event(SSEEventType.ARTIFACT_CREATED, {
+                        "artifact_id": artifact.id,
+                        "name": artifact.name,
+                        "type": artifact.artifact_type.value,
+                        "file_path": artifact.file_path,
+                        "file_size": artifact.file_size,
+                        "preview": artifact.content_preview,
+                        "download_url": f"/api/v1/artifacts/{artifact.id}/download",
+                        "timestamp": time.time(),
+                    })
+        except Exception as artifact_err:
+            logger.error(f"Failed to save artifact on error: {artifact_err}")
 
         # P1-4: Atomic update - fail session with error
         await session_service.fail_session(

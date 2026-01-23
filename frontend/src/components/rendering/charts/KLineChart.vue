@@ -583,8 +583,8 @@ defineExpose({
 }
 
 .theme-dark .indicator-btn.active {
-  background: #4f46e5;
-  border-color: #4f46e5;
+  background: #00B8D9;
+  border-color: #00B8D9;
   color: #ffffff;
 }
 

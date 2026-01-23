@@ -111,7 +111,7 @@ const sectionDots = computed(() => {
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(180deg, #00B8D9 0%, #00D9FF 100%);
   border-radius: 2px;
   transition: height 100ms ease;
 }
@@ -139,8 +139,8 @@ const sectionDots = computed(() => {
 }
 
 .section-dot.is-active {
-  background: #4f46e5;
-  border-color: #4f46e5;
+  background: #00B8D9;
+  border-color: #00B8D9;
   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
 }
 

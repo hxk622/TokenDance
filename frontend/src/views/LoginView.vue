@@ -470,9 +470,9 @@ onMounted(async () => {
   @apply absolute inset-0;
   /* Using design system accent colors */
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(99, 102, 241, 0.08), transparent),
-    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(139, 92, 246, 0.06), transparent);
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 217, 255, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(0, 184, 217, 0.08), transparent),
+    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(0, 217, 255, 0.06), transparent);
 }
 
 .bg-pattern {
@@ -630,8 +630,8 @@ onMounted(async () => {
 }
 
 .feature-icon-wrapper.feature-icon--controllability {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.2);
 }
 
 .feature-icon-wrapper.feature-icon--persistence {
@@ -649,7 +649,7 @@ onMounted(async () => {
 }
 
 .feature-icon-wrapper.feature-icon--controllability:hover {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
 }
 
 .feature-icon-wrapper.feature-icon--persistence:hover {
@@ -804,7 +804,7 @@ onMounted(async () => {
   outline: none;
   background: var(--bg-elevated);
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
 }
 
 /* Submit Button - Using accent gradient */
@@ -824,7 +824,7 @@ onMounted(async () => {
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 16px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 217, 255, 0.3);
   background: var(--accent-hover);
 }
 

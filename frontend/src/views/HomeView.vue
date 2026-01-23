@@ -1062,12 +1062,12 @@ onUnmounted(() => {
 }
 
 .tag--doc {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(0, 217, 255, 0.15);
   color: #8B5CF6;
 }
 
 [data-theme="dark"] .tag--doc {
-  background: rgba(139, 92, 246, 0.25);
+  background: rgba(0, 217, 255, 0.25);
   color: #A78BFA;
 }
 
