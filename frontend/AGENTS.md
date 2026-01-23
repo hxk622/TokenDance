@@ -8,8 +8,9 @@
 # Setup
 pnpm install
 
-# Run dev server (logs to /tmp/frontend.log)
-pnpm dev >> /tmp/frontend.log 2>&1
+# Run dev server in background (logs to /tmp/frontend.log)
+# IMPORTANT: Must redirect stdin from /dev/null to prevent TTY blocking
+pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &
 
 # Build
 pnpm build
@@ -19,7 +20,7 @@ pnpm build
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev >> /tmp/frontend.log 2>&1` | Dev server (logs to /tmp/frontend.log) |
+| `pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &` | Dev server in background (logs to /tmp/frontend.log) |
 | `pnpm build` | Production build |
 | `pnpm build:with-check` | Build with type check |
 | `pnpm preview` | Preview production build |
