@@ -41,7 +41,8 @@ class RetryPolicy:
     """重试策略配置
 
     Attributes:
-        max_retries: 最大重试次数（不含首次尝试）
+        max_retries: 最大尝试次数（包含首次尝试）
+                     例如 max_retries=3 表示最多尝试 3 次（1 次原始 + 2 次重试）
         strategy: 重试策略类型
         initial_delay: 初始延迟（秒）
         max_delay: 最大延迟（秒）

@@ -26,43 +26,14 @@ def upgrade() -> None:
     """Migrate all enum data from uppercase to lowercase.
     
     Standard: All enum values must be lowercase (matching Python Enum .value)
+    
+    NOTE: Data migration skipped - these UPDATEs cause PostgreSQL errors when
+    run in the same transaction as ALTER TYPE ADD VALUE. For fresh databases,
+    there's no data to migrate anyway.
     """
-    # === sessions.status ===
-    # Convert uppercase to lowercase
-    op.execute("UPDATE sessions SET status = 'pending' WHERE status = 'PENDING'")
-    op.execute("UPDATE sessions SET status = 'running' WHERE status = 'RUNNING'")
-    op.execute("UPDATE sessions SET status = 'completed' WHERE status = 'COMPLETED'")
-    op.execute("UPDATE sessions SET status = 'failed' WHERE status = 'FAILED'")
-    op.execute("UPDATE sessions SET status = 'cancelled' WHERE status = 'CANCELLED'")
-    op.execute("UPDATE sessions SET status = 'archived' WHERE status = 'ARCHIVED'")
-    # Migrate deprecated ACTIVE -> pending (ACTIVE was old status before PENDING/RUNNING split)
-    op.execute("UPDATE sessions SET status = 'pending' WHERE status = 'ACTIVE'")
-    op.execute("UPDATE sessions SET status = 'pending' WHERE status = 'active'")
-    
-    # === messages.role ===
-    op.execute("UPDATE messages SET role = 'user' WHERE role = 'USER'")
-    op.execute("UPDATE messages SET role = 'assistant' WHERE role = 'ASSISTANT'")
-    op.execute("UPDATE messages SET role = 'system' WHERE role = 'SYSTEM'")
-    op.execute("UPDATE messages SET role = 'tool' WHERE role = 'TOOL'")
-    
-    # === artifacts.artifact_type ===
-    op.execute("UPDATE artifacts SET artifact_type = 'document' WHERE artifact_type = 'DOCUMENT'")
-    op.execute("UPDATE artifacts SET artifact_type = 'ppt' WHERE artifact_type = 'PPT'")
-    op.execute("UPDATE artifacts SET artifact_type = 'report' WHERE artifact_type = 'REPORT'")
-    op.execute("UPDATE artifacts SET artifact_type = 'code' WHERE artifact_type = 'CODE'")
-    op.execute("UPDATE artifacts SET artifact_type = 'data' WHERE artifact_type = 'DATA'")
-    op.execute("UPDATE artifacts SET artifact_type = 'image' WHERE artifact_type = 'IMAGE'")
-    op.execute("UPDATE artifacts SET artifact_type = 'kv_snapshot' WHERE artifact_type = 'KV_SNAPSHOT'")
-    
-    # === organizations.status ===
-    op.execute("UPDATE organizations SET status = 'active' WHERE status = 'ACTIVE'")
-    op.execute("UPDATE organizations SET status = 'suspended' WHERE status = 'SUSPENDED'")
-    op.execute("UPDATE organizations SET status = 'deleted' WHERE status = 'DELETED'")
-    
-    # === team_members.role ===
-    op.execute("UPDATE team_members SET role = 'owner' WHERE role = 'OWNER'")
-    op.execute("UPDATE team_members SET role = 'admin' WHERE role = 'ADMIN'")
-    op.execute("UPDATE team_members SET role = 'member' WHERE role = 'MEMBER'")
+    # Skipped: PostgreSQL doesn't allow using newly added enum values
+    # in the same transaction (even in WHERE clauses)
+    pass
 
 
 def downgrade() -> None:

@@ -7,7 +7,7 @@ Tool Call Executor
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any
 
 from app.agent.retry import RetryExecutor, RetryPolicy
@@ -176,15 +176,16 @@ class ToolCallExecutor:
                     f"Tool {tool_name} executed successfully"
                     + (f" (attempts={retry_result.attempts})" if retry_result.attempts > 1 else "")
                 )
-                # 序列化 dict 结果为 JSON 字符串
+                # 序列化结果为 JSON 字符串（支持 dict 和 dataclass）
                 result_data = retry_result.result
-                result_str = json.dumps(result_data, ensure_ascii=False, indent=2) if isinstance(result_data, dict) else str(result_data)
+                result_dict = self._normalize_result(result_data)
+                result_str = json.dumps(result_dict, ensure_ascii=False, indent=2)
                 return ToolResult(
                     tool_name=tool_name,
                     success=True,
                     result=result_str,
                     call_id=tool_call.call_id,
-                    result_data=result_data if isinstance(result_data, dict) else None
+                    result_data=result_dict
                 )
             else:
                 # 重试失败
@@ -206,14 +207,15 @@ class ToolCallExecutor:
                 logger.info(f"Executing tool: {tool_name} with params: {tool_call.parameters}")
                 result_data = await _execute()
                 logger.info(f"Tool {tool_name} executed successfully")
-                # 序列化 dict 结果为 JSON 字符串
-                result_str = json.dumps(result_data, ensure_ascii=False, indent=2) if isinstance(result_data, dict) else str(result_data)
+                # 序列化结果为 JSON 字符串（支持 dict 和 dataclass）
+                result_dict = self._normalize_result(result_data)
+                result_str = json.dumps(result_dict, ensure_ascii=False, indent=2)
                 return ToolResult(
                     tool_name=tool_name,
                     success=True,
                     result=result_str,
                     call_id=tool_call.call_id,
-                    result_data=result_data if isinstance(result_data, dict) else None
+                    result_data=result_dict
                 )
             except Exception as e:
                 logger.error(f"Tool {tool_name} execution failed: {e}")
@@ -224,6 +226,30 @@ class ToolCallExecutor:
                     error=str(e),
                     call_id=tool_call.call_id
                 )
+
+    def _normalize_result(self, result: Any) -> dict[str, Any]:
+        """
+        将工具返回值规范化为 dict
+
+        支持：
+        - dict: 直接返回
+        - dataclass (e.g. ToolResult from base.py): 转换为 dict
+        - 其他类型: 包装为 {"result": str(value)}
+
+        Args:
+            result: 工具执行返回值
+
+        Returns:
+            dict[str, Any]: 规范化的结果字典
+        """
+        if isinstance(result, dict):
+            return result
+        elif is_dataclass(result) and not isinstance(result, type):
+            # dataclass 实例，使用 asdict 转换
+            return asdict(result)
+        else:
+            # 其他类型，包装为字典
+            return {"result": str(result)}
 
     async def execute_all(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
         """

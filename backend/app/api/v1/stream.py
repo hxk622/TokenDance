@@ -46,6 +46,7 @@ try:
     )
     from app.agent.agents.deep_research import DeepResearchAgent
     from app.agent.checkpoint import CheckpointManager  # Manus 无限记忆模式
+    from app.filesystem import AgentFileSystem
     from app.agent.llm.router import TaskType, get_free_llm_for_task
     from app.agent.tools import ToolRegistry
     from app.agent.tools.init_tools import register_builtin_tools
@@ -933,27 +934,40 @@ async def run_agent_stream_with_store(
         )
 
         # Manus 无限记忆模式: 检查并从检查点恢复
-        checkpoint_manager = CheckpointManager(workspace_path, session_id)
-        if checkpoint_manager.has_checkpoint():
-            try:
-                checkpoint_data = checkpoint_manager.load_latest()
-                if checkpoint_data:
+        try:
+            checkpoint_fs = AgentFileSystem(workspace_path)
+            checkpoint_manager = CheckpointManager(
+                fs=checkpoint_fs,
+                save_interval=5,
+                max_checkpoints=3,
+            )
+            # 检查是否有检查点可以恢复
+            if checkpoint_manager.can_rollback():
+                checkpoint = checkpoint_manager.get_latest_checkpoint()
+                if checkpoint:
+                    # 构建 checkpoint_data 字典
+                    checkpoint_data = {
+                        "iteration": checkpoint.metadata.iteration,
+                        "task_plan": checkpoint.task_plan,
+                        "findings": checkpoint.findings,
+                        "progress": checkpoint.progress,
+                    }
                     # 恢复 Agent 状态
                     restored = await agent.restore_from_checkpoint(checkpoint_data)
                     if restored:
                         logger.info(
                             "agent_restored_from_checkpoint",
                             session_id=session_id,
-                            checkpoint_iteration=checkpoint_data.get("iteration", 0),
+                            checkpoint_iteration=checkpoint.metadata.iteration,
                         )
                         yield await emit_event(SSEEventType.PROGRESS_UPDATE, {
                             "message": "Resuming from checkpoint...",
-                            "iteration": checkpoint_data.get("iteration", 0),
+                            "iteration": checkpoint.metadata.iteration,
                             "timestamp": time.time(),
                         })
-            except Exception as cp_err:
-                logger.warning(f"Failed to restore from checkpoint: {cp_err}")
-                # 继续正常执行，不抛异常
+        except Exception as cp_err:
+            logger.warning(f"Failed to restore from checkpoint: {cp_err}")
+            # 继续正常执行，不抛异常
 
         # Collect assistant response
         assistant_content_parts = []

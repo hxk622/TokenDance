@@ -21,6 +21,7 @@ import uuid
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
+from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from .context import AgentContext
@@ -381,8 +382,16 @@ class BaseAgent(ABC):
             # 执行
             result_data = await tool.execute(**tool_args)
 
-            # 序列化 dict 结果为 JSON 字符串
-            result_str = json.dumps(result_data, ensure_ascii=False, indent=2) if isinstance(result_data, dict) else str(result_data)
+            # 规范化结果为 dict（支持 dict 和 dataclass）
+            if isinstance(result_data, dict):
+                result_dict = result_data
+            elif is_dataclass(result_data) and not isinstance(result_data, type):
+                result_dict = asdict(result_data)
+            else:
+                result_dict = {"result": str(result_data)}
+
+            # 序列化为 JSON 字符串
+            result_str = json.dumps(result_dict, ensure_ascii=False, indent=2)
 
             # 5. 成功 - 发送 tool_result 事件
             yield SSEEvent(

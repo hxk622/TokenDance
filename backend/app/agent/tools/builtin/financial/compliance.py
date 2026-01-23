@@ -319,6 +319,11 @@ class ComplianceChecker:
             if not result.passed:
                 return result
 
+        # 检查收益承诺
+        result = self._check_guarantee_return(text_lower)
+        if not result.passed:
+            return result
+
         return ComplianceCheckResult(passed=True)
 
     def _check_investment_advice(self, text: str) -> ComplianceCheckResult:
