@@ -96,6 +96,19 @@ class ToolRegistry:
         """
         return list(self._tools.keys())
 
+    # 别名方法（向后兼容）
+    def list_tools(self) -> list[str]:
+        """list_names() 的别名，向后兼容"""
+        return self.list_names()
+
+    def get_tool(self, name: str) -> BaseTool:
+        """get() 的别名，向后兼容"""
+        return self.get(name)
+
+    def has_tool(self, name: str) -> bool:
+        """has() 的别名，向后兼容"""
+        return self.has(name)
+
     def list_active_names(self) -> list[str]:
         """列出当前可用的工具名称（考虑 Action Space Pruning）
 
