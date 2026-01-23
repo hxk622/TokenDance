@@ -194,13 +194,13 @@ async def create_sse_token(
 ):
     """
     P1-1: Exchange access token for short-lived SSE token.
-    
+
     This avoids exposing JWT tokens in SSE connection URLs.
     The returned SSE token:
     - Is valid for 5 minutes
     - Can only be used for the specified session
     - Is single-use (consumed on first SSE connection)
-    
+
     Usage:
     1. POST /api/v1/sessions/sse-token with {session_id: "..."}
     2. Use returned sse_token in SSE connection URL: ?sse_token=...
@@ -242,7 +242,7 @@ async def stop_session(
 ):
     """
     P1-2: Request agent to stop execution.
-    
+
     Sets a stop flag in Redis that the agent checks periodically.
     The agent will gracefully terminate and update session status to CANCELLED.
     """
@@ -669,7 +669,7 @@ async def run_agent_stream(
 ) -> AsyncGenerator[str, None]:
     """
     Run Agent and stream events.
-    
+
     P0 fixes applied:
     - P0-1: Update session status (RUNNING -> COMPLETED/FAILED)
     - P0-2: Use persistent workspace path instead of temp directory
@@ -954,6 +954,52 @@ async def run_agent_stream_with_store(
                     await stop_service.clear_stop_signal(session_id)
                     # Set agent stopped flag
                     agent.stopped = True
+
+                    # P2: Save artifacts before cancelling (to preserve research progress)
+                    artifact_repo = ArtifactRepository(db)
+                    storage = get_object_storage()
+                    try:
+                        findings_content = await memory.read_findings()
+                        if findings_content and len(findings_content.strip()) > 100:
+                            artifact_name = f"Research Report (Cancelled) - {task[:50]}" if len(task) > 50 else f"Research Report (Cancelled) - {task}"
+
+                            if storage:
+                                object_key = f"sessions/{session_id}/findings.md"
+                                try:
+                                    storage.ensure_bucket("tokendance-artifacts")
+                                    storage.put_text("tokendance-artifacts", object_key, findings_content, "text/markdown; charset=utf-8")
+                                    file_path = f"minio://tokendance-artifacts/{object_key}"
+                                except Exception:
+                                    file_path = f"local://{workspace_path}/findings.md"
+                            else:
+                                file_path = f"local://{workspace_path}/findings.md"
+
+                            artifact = await artifact_repo.create(
+                                session_id=session_id,
+                                name=artifact_name,
+                                artifact_type=ArtifactType.REPORT,
+                                file_path=file_path,
+                                file_size=len(findings_content.encode('utf-8')),
+                                mime_type="text/markdown",
+                                description=f"Partial research findings (cancelled): {task[:100]}",
+                                extra_data={"task": task, "source": "deep_research_agent", "cancelled": True},
+                            )
+                            artifact.set_content_preview(findings_content, max_length=500)
+                            await db.commit()
+
+                            yield await emit_event(SSEEventType.ARTIFACT_CREATED, {
+                                "artifact_id": artifact.id,
+                                "name": artifact.name,
+                                "type": artifact.artifact_type.value,
+                                "file_path": artifact.file_path,
+                                "file_size": artifact.file_size,
+                                "preview": artifact.content_preview,
+                                "download_url": f"/api/v1/artifacts/{artifact.id}/download",
+                                "timestamp": time.time(),
+                            })
+                    except Exception as artifact_err:
+                        logger.error(f"Failed to save artifact on cancel: {artifact_err}")
+
                     # Emit cancellation event
                     yield await emit_event(SSEEventType.SESSION_COMPLETED, {
                         "session_id": session_id,
@@ -1018,8 +1064,8 @@ async def run_agent_stream_with_store(
 
         # Read findings.md as the research report
         try:
-            findings_data = memory.read_findings()
-            findings_content = findings_data.get('content', '') if isinstance(findings_data, dict) else str(findings_data)
+            findings_content = await memory.read_findings()
+            # WorkingMemory.read_findings() returns str, not dict
 
             if findings_content and len(findings_content.strip()) > 100:  # Only save if has meaningful content
                 # Generate artifact name from task
