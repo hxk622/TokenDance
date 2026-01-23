@@ -16,6 +16,7 @@ from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.datetime_utils import utc_now_naive
 
 if TYPE_CHECKING:
     from app.models.artifact import Artifact
@@ -131,10 +132,10 @@ class Project(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utc_now_naive, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime, default=utc_now_naive, onupdate=utc_now_naive, nullable=False
     )
     last_accessed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -184,7 +185,7 @@ class Project(Base):
         self.context["decisions"].append({
             "decision": decision,
             "reason": reason,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": utc_now_naive().isoformat()
         })
 
     def add_failure(self, failure_type: str, message: str, learning: str | None = None) -> None:
@@ -195,7 +196,7 @@ class Project(Base):
             "type": failure_type,
             "message": message,
             "learning": learning,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": utc_now_naive().isoformat()
         })
 
     def add_finding(self, finding: str, source: str | None = None) -> None:
@@ -205,7 +206,7 @@ class Project(Base):
         self.context["key_findings"].append({
             "finding": finding,
             "source": source,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": utc_now_naive().isoformat()
         })
 
     def get_failures_summary(self) -> str:

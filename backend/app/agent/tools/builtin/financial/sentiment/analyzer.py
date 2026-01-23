@@ -213,21 +213,67 @@ class SentimentAnalyzer:
                 trending_topics=data.get("trending_topics", []),
             )
 
-            # Update individual posts
+            # Update individual posts from LLM response
             individual = data.get("individual_sentiments", [])
             sentiment_map = {str(item.get("id", "")): item for item in individual}
+
+            # Track posts that weren't covered by LLM individual_sentiments
+            untagged_posts: list[SentimentPost] = []
 
             for post in posts:
                 if post.id in sentiment_map:
                     item = sentiment_map[post.id]
                     post.sentiment_label = item.get("sentiment", "neutral")
                     post.sentiment_score = float(item.get("score", 0))
+                else:
+                    # Post wasn't in LLM's individual_sentiments
+                    untagged_posts.append(post)
+
+            # If LLM didn't return individual_sentiments for some posts,
+            # use keyword analysis as fallback for those posts
+            if untagged_posts:
+                self._tag_posts_with_keywords(untagged_posts)
 
             return result
 
         except json.JSONDecodeError:
             # Parse failed, use keyword fallback
             return self._keyword_analysis(posts, "")
+
+    def _tag_posts_with_keywords(self, posts: list[SentimentPost]) -> None:
+        """
+        Tag individual posts with sentiment using keyword analysis.
+
+        This is used as a fallback when LLM doesn't return individual_sentiments.
+        """
+        # Bullish keywords
+        bullish_words = [
+            "利好", "突破", "放量", "主力", "龙头", "翻倍", "涨停", "拉升",
+            "低估", "价值洼地", "长期看好", "逢低买入", "买入", "加仓", "看多",
+            "牛市", "反弹", "起飞", "爆发", "暴涨", "机会", "底部",
+        ]
+
+        # Bearish keywords
+        bearish_words = [
+            "利空", "暴跌", "出货", "割肉", "套牢", "爆雷", "跌停", "崩盘",
+            "高估", "泡沫", "风险", "减仓", "清仓", "看空", "卖出",
+            "熊市", "跳水", "砸盘", "出逃", "危险", "顶部",
+        ]
+
+        for post in posts:
+            text = post.content
+            bull_score = sum(1 for w in bullish_words if w in text)
+            bear_score = sum(1 for w in bearish_words if w in text)
+
+            if bull_score > bear_score:
+                post.sentiment_label = "bullish"
+                post.sentiment_score = min(1.0, bull_score * 0.2)
+            elif bear_score > bull_score:
+                post.sentiment_label = "bearish"
+                post.sentiment_score = max(-1.0, -bear_score * 0.2)
+            else:
+                post.sentiment_label = "neutral"
+                post.sentiment_score = 0.0
 
     def _keyword_analysis(
         self,

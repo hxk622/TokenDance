@@ -3,8 +3,7 @@ AgentLesson Model - Agent 经验教训存储
 
 使用 pgvector 扩展存储向量化的 Lessons，支持语义检索。
 """
-from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Column, Integer, String, Text
 
 try:
     from pgvector.sqlalchemy import Vector
@@ -31,7 +30,7 @@ class AgentLesson(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False, index=True)
     summary = Column(Text, nullable=False)
-    tags = Column(JSONB, default=list)  # JSON 数组：["tag1", "tag2"]
+    tags = Column(JSON, default=list)  # JSON 数组：["tag1", "tag2"]
     created_at = Column(String(50), nullable=False)  # ISO format string
 
     # pgvector 列（768 维 - BERT 标准）
@@ -40,7 +39,7 @@ class AgentLesson(Base):
         embedding = Column(Vector(768), nullable=True)
     else:
         # Fallback: 存储为 JSON（用于开发环境）
-        embedding = Column(JSONB, nullable=True)
+        embedding = Column(JSON, nullable=True)
 
     def __repr__(self):
         return f"<AgentLesson(id={self.id}, title='{self.title[:30]}...')>"

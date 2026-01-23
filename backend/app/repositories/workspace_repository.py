@@ -141,8 +141,8 @@ class WorkspaceRepository:
 
     async def update_last_accessed(self, workspace_id: str) -> Workspace | None:
         """Update the last_accessed_at timestamp."""
-        from datetime import datetime
-        return await self.update(workspace_id, last_accessed_at=datetime.utcnow())
+        from app.core.datetime_utils import utc_now_naive
+        return await self.update(workspace_id, last_accessed_at=utc_now_naive())
 
     async def increment_workspace_count(self, user_id: str) -> None:
         """Increment workspace count for user usage stats."""

@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.datetime_utils import utc_now_naive
 from app.models.agent_state import AgentCheckpoint, AgentState
 
 
@@ -28,7 +28,7 @@ class AgentStateRepository:
             agent_config_id=agent_config_id,
             current_state=current_state,
             state_data=state_data or {},
-            started_at=datetime.utcnow()
+            started_at=utc_now_naive()
         )
 
         self.db.add(state)
@@ -67,7 +67,7 @@ class AgentStateRepository:
         if state_data is not None:
             state.state_data = state_data
 
-        state.last_activity_at = datetime.utcnow()
+        state.last_activity_at = utc_now_naive()
 
         await self.db.commit()
         await self.db.refresh(state)
@@ -88,7 +88,7 @@ class AgentStateRepository:
         state.input_tokens_used += input_tokens
         state.output_tokens_used += output_tokens
         state.total_tokens_used = state.input_tokens_used + state.output_tokens_used
-        state.last_activity_at = datetime.utcnow()
+        state.last_activity_at = utc_now_naive()
 
         await self.db.commit()
         await self.db.refresh(state)
@@ -111,7 +111,7 @@ class AgentStateRepository:
         else:
             state.tool_calls_failed += 1
 
-        state.last_activity_at = datetime.utcnow()
+        state.last_activity_at = utc_now_naive()
 
         await self.db.commit()
         await self.db.refresh(state)
@@ -130,8 +130,8 @@ class AgentStateRepository:
 
         state.error_count += 1
         state.last_error = error_message
-        state.last_error_time = datetime.utcnow()
-        state.last_activity_at = datetime.utcnow()
+        state.last_error_time = utc_now_naive()
+        state.last_activity_at = utc_now_naive()
 
         await self.db.commit()
         await self.db.refresh(state)
@@ -149,7 +149,7 @@ class AgentStateRepository:
             return None
 
         state.current_state = "COMPLETED"
-        state.completed_at = datetime.utcnow()
+        state.completed_at = utc_now_naive()
 
         if total_execution_time is not None:
             state.total_execution_time = total_execution_time
@@ -157,7 +157,7 @@ class AgentStateRepository:
             if state.iteration_count > 0:
                 state.average_iteration_time = total_execution_time / state.iteration_count
 
-        state.last_activity_at = datetime.utcnow()
+        state.last_activity_at = utc_now_naive()
 
         await self.db.commit()
         await self.db.refresh(state)

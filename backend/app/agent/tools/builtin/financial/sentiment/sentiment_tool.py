@@ -4,6 +4,7 @@ SentimentTool - Unified interface for sentiment analysis.
 Combines crawlers and analyzer into a single tool.
 """
 
+import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -149,40 +150,58 @@ class SentimentTool:
 
         all_posts: list[SentimentPost] = []
 
-        # Crawl from each source
-        for source in sources:
+        # Crawl from all sources in parallel for better performance
+        async def crawl_source(source: str) -> tuple[str, CrawlResult | None, str | None]:
+            """Crawl a single source and return (source, result, error)."""
             try:
                 crawler = self._get_crawler(source)
-
                 crawl_result = await crawler.crawl(
                     symbol,
                     limit=limit_per_source,
                     **kwargs
                 )
+                return (source, crawl_result, None)
+            except Exception as e:
+                return (source, None, str(e))
 
+        # Execute all crawls in parallel
+        crawl_tasks = [crawl_source(source) for source in sources]
+        crawl_results = await asyncio.gather(*crawl_tasks)
+
+        # Process results
+        for source, crawl_result, error in crawl_results:
+            if error:
+                result.errors.append(f"{source}: {error}")
+            elif crawl_result:
                 result.crawl_results[source] = crawl_result
-
                 if crawl_result.success:
                     result.sources_used.append(source)
                     all_posts.extend(crawl_result.posts)
                 else:
                     result.errors.append(f"{source}: {crawl_result.error}")
 
-            except Exception as e:
-                result.errors.append(f"{source}: {str(e)}")
-
         # Store all posts
         result.posts = all_posts
 
-        # Run analysis if we have posts
-        if all_posts and analyze:
+        # Handle different scenarios
+        if not all_posts:
+            # All crawlers failed - no posts at all
+            result.success = False
+            if not result.errors:
+                result.errors.append("No posts found from any source")
+            return result
+
+        # We have posts, run analysis if requested
+        if analyze:
             try:
                 analysis = await self.analyzer.analyze_posts(all_posts, symbol)
                 result.analysis = analysis
                 result.success = True
             except Exception as e:
                 result.errors.append(f"Analysis error: {str(e)}")
-        elif all_posts:
+                # Even if analysis fails, we still have posts
+                result.success = True
+        else:
             result.success = True
 
         return result

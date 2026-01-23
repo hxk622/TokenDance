@@ -7,11 +7,12 @@ PreferenceLearner - 用户偏好学习服务
 3. 偏好应用 - 将学习到的偏好应用到研究配置中
 """
 import logging
-from datetime import datetime
 from urllib.parse import urlparse
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.datetime_utils import utc_now_naive
 
 from app.models.user_preference import (
     ExpertiseLevel,
@@ -189,7 +190,7 @@ class PreferenceLearner:
         adjustments.append({
             "from": previous_depth,
             "to": new_depth,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": utc_now_naive().isoformat()
         })
 
         # 只保留最近 10 次调整

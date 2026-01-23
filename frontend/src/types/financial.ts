@@ -51,7 +51,6 @@ export type HistoricalDataPoint = HistoricalRecord
 
 export interface SentimentPost {
   id: string
-  post_id?: string  // Alias for id
   content: string
   author: string
   timestamp: string | null
@@ -63,7 +62,6 @@ export interface SentimentPost {
   symbol: string
   sentiment_score?: number
   sentiment_label?: 'bullish' | 'bearish' | 'neutral'
-  sentiment?: 'bullish' | 'bearish' | 'neutral'  // Alias for sentiment_label
   key_points?: string[]
 }
 

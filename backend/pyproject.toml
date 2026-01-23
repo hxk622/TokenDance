@@ -205,3 +205,8 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=app --cov-report=term-missing --cov-report=html"
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.20.0",
+]

@@ -224,7 +224,7 @@ export const useExecutionStore = defineStore('execution', () => {
 
       // Fetch artifacts
       const artifactResponse = await sessionService.getSessionArtifacts(id)
-      artifacts.value = artifactResponse.artifacts
+      artifacts.value = artifactResponse.items
 
       // Initialize workflow nodes from session metadata
       initializeWorkflow()
@@ -858,7 +858,7 @@ export const useExecutionStore = defineStore('execution', () => {
         // Refresh artifacts list
         if (sessionId.value) {
           sessionService.getSessionArtifacts(sessionId.value).then(res => {
-            artifacts.value = res.artifacts
+            artifacts.value = res.items
           })
         }
         break

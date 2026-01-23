@@ -83,19 +83,26 @@ export interface MessageListResponse {
   total: number
 }
 
+export type ArtifactType = 'document' | 'ppt' | 'report' | 'code' | 'data' | 'image' | 'kv_snapshot'
+
 export interface Artifact {
   id: string
   session_id: string
-  type: 'report' | 'ppt' | 'code' | 'file' | 'other'
-  title: string
-  content?: string
-  file_path?: string
-  metadata?: Record<string, any>
+  name: string
+  description?: string
+  artifact_type: ArtifactType
+  file_path: string
+  file_size: number
+  mime_type?: string
+  preview_url?: string
+  thumbnail_url?: string
+  download_url: string
   created_at: string
+  updated_at: string
 }
 
 export interface ArtifactListResponse {
-  artifacts: Artifact[]
+  items: Artifact[]
   total: number
 }
 

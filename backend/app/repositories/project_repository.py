@@ -1,7 +1,6 @@
 """
 Project repository - database access layer for projects.
 """
-from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
@@ -9,6 +8,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.datetime_utils import utc_now_naive
 from app.models.artifact import Artifact
 from app.models.conversation import Conversation
 from app.models.project import Project, ProjectStatus, ProjectType
@@ -162,7 +162,7 @@ class ProjectRepository:
         return await self.update(
             project_id,
             status=ProjectStatus.IN_PROGRESS,
-            last_accessed_at=datetime.utcnow(),
+            last_accessed_at=utc_now_naive(),
         )
 
     async def complete_project(self, project_id: str) -> Project | None:
@@ -175,7 +175,7 @@ class ProjectRepository:
 
     async def touch(self, project_id: str) -> Project | None:
         """Update last_accessed_at timestamp."""
-        return await self.update(project_id, last_accessed_at=datetime.utcnow())
+        return await self.update(project_id, last_accessed_at=utc_now_naive())
 
     async def add_decision(
         self,
@@ -194,7 +194,7 @@ class ProjectRepository:
         context["decisions"].append({
             "decision": decision,
             "reason": reason,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": utc_now_naive().isoformat(),
         })
         project.context = context
 
@@ -221,7 +221,7 @@ class ProjectRepository:
             "type": failure_type,
             "message": message,
             "learning": learning,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": utc_now_naive().isoformat(),
         })
         project.context = context
 
@@ -246,7 +246,7 @@ class ProjectRepository:
         context["key_findings"].append({
             "finding": finding,
             "source": source,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": utc_now_naive().isoformat(),
         })
         project.context = context
 
@@ -358,7 +358,7 @@ class ProjectRepository:
         """Archive quick task projects that have been inactive for N days."""
         from datetime import timedelta
 
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = utc_now_naive() - timedelta(days=days)
 
         query = select(Project).where(
             and_(

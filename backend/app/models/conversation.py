@@ -14,6 +14,7 @@ from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.datetime_utils import utc_now_naive
 
 if TYPE_CHECKING:
     from app.models.message import Message
@@ -117,10 +118,10 @@ class Conversation(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utc_now_naive, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime, default=utc_now_naive, onupdate=utc_now_naive, nullable=False
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -177,4 +178,4 @@ class Conversation(Base):
     def complete(self) -> None:
         """Mark conversation as completed."""
         self.status = ConversationStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = utc_now_naive()

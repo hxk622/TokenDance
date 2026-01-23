@@ -6,9 +6,9 @@ Feedback Loop - 用户反馈学习回路（占位实现）
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Literal
 
+from app.core.datetime_utils import utc_now_naive
 from app.filesystem.agent_fs import AgentFileSystem
 
 FeedbackType = Literal["misunderstanding", "wrong_tool", "incomplete", "other"]
@@ -35,6 +35,6 @@ class FeedbackLoop:
                 title=f"User Feedback ({feedback.feedback_type})",
                 summary=feedback.message,
                 tags=["feedback", feedback.feedback_type],
-                created_at=feedback.created_at or (datetime.utcnow().isoformat() + "Z"),
+                created_at=feedback.created_at or (utc_now_naive().isoformat() + "Z"),
             )
         ])

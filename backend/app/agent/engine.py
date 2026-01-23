@@ -17,10 +17,10 @@ import asyncio
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 from app.agent.context_manager import ContextManager
+from app.core.datetime_utils import utc_now_naive
 from app.agent.context_manager import Message as CtxMessage
 
 # Unified Execution Architecture
@@ -804,7 +804,7 @@ class AgentEngine:
                     title="Session Summary & Lessons",
                     summary=lesson_summary,
                     tags=["lessons", "robustness"],
-                    created_at=datetime.utcnow().isoformat() + "Z",  # type: ignore
+                    created_at=utc_now_naive().isoformat() + "Z",
                 )
             ])
         except Exception as e:

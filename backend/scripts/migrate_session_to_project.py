@@ -17,11 +17,12 @@ Options:
 import argparse
 import asyncio
 import sys
-from datetime import datetime
 from pathlib import Path
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from app.core.datetime_utils import utc_now_naive
 
 from contextlib import asynccontextmanager
 
@@ -180,7 +181,7 @@ async def migrate_session(
             completed_at=session.completed_at,
             extra_data={
                 "migrated_from_session_id": session.id,
-                "migration_timestamp": datetime.utcnow().isoformat(),
+                "migration_timestamp": utc_now_naive().isoformat(),
             },
         )
 
@@ -274,7 +275,7 @@ def extract_failures(session: Session) -> list[dict]:
                         "type": tc.get("name", "unknown_tool"),
                         "message": str(tc.get("error", tc.get("result", "Unknown error"))),
                         "learning": None,
-                        "timestamp": msg.created_at.isoformat() if msg.created_at else datetime.utcnow().isoformat(),
+                        "timestamp": msg.created_at.isoformat() if msg.created_at else utc_now_naive().isoformat(),
                     })
 
     return failures[:10]  # Limit to 10 most recent failures

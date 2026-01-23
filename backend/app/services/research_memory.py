@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
+from app.core.datetime_utils import utc_now_naive
+
 
 class MemoryType(str, Enum):
     """记忆类型"""
@@ -41,7 +43,7 @@ class ResearchMemory:
     source_session_id: str | None = None
     source_url: str | None = None
     tags: list[str] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=utc_now_naive)
     updated_at: datetime | None = None
     importance: float = 0.5  # 0-1
     embedding: list[float] | None = None
@@ -64,7 +66,7 @@ class ResearchContext:
     memories: list[ResearchMemory]
     key_findings: list[str]
     open_questions: list[str]
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=utc_now_naive)
 
 
 class ResearchMemoryService:
@@ -385,7 +387,7 @@ class ResearchMemoryService:
         for m in memories:
             if m.id == memory_id:
                 m.importance = max(0.0, min(1.0, importance))
-                m.updated_at = datetime.utcnow()
+                m.updated_at = utc_now_naive()
                 return m
         return None
 

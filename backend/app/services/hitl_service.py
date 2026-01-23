@@ -9,6 +9,7 @@ from typing import Any
 
 from redis.asyncio import Redis
 
+from app.core.datetime_utils import utc_now_naive
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -35,7 +36,7 @@ class HITLRequest:
         self.operation = operation
         self.description = description
         self.context = context or {}
-        self.created_at = datetime.utcnow()
+        self.created_at = utc_now_naive()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -71,7 +72,7 @@ class HITLResponse:
         self.request_id = request_id
         self.approved = approved
         self.user_feedback = user_feedback
-        self.responded_at = responded_at or datetime.utcnow()
+        self.responded_at = responded_at or utc_now_naive()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -224,7 +225,7 @@ class HITLService:
         """
         import asyncio
 
-        start_time = datetime.utcnow()
+        start_time = utc_now_naive()
 
         while True:
             response = await self.get_response(request_id)
@@ -232,7 +233,7 @@ class HITLService:
                 return response
 
             # Check timeout
-            elapsed = (datetime.utcnow() - start_time).total_seconds()
+            elapsed = (utc_now_naive() - start_time).total_seconds()
             if elapsed >= timeout_seconds:
                 logger.warning(
                     "hitl_response_timeout",

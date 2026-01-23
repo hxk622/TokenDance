@@ -66,7 +66,7 @@
     >
       <div
         v-for="post in filteredPosts"
-        :key="post.post_id || post.id"
+        :key="post.id"
         class="post-card"
       >
         <!-- Post header -->
@@ -83,9 +83,9 @@
           
           <div
             class="sentiment-badge"
-            :class="`sentiment-${post.sentiment || post.sentiment_label || 'neutral'}`"
+            :class="`sentiment-${post.sentiment_label || 'neutral'}`"
           >
-            {{ getSentimentLabel(post.sentiment || post.sentiment_label || 'neutral') }}
+            {{ getSentimentLabel(post.sentiment_label || 'neutral') }}
           </div>
         </div>
 
@@ -93,16 +93,16 @@
         <div class="post-content">
           <p
             class="post-text"
-            :class="{ 'is-expanded': expandedPosts.has(post.post_id || post.id) }"
+            :class="{ 'is-expanded': expandedPosts.has(post.id) }"
           >
             {{ post.content }}
           </p>
           <button
             v-if="post.content.length > 200"
             class="expand-button"
-            @click="toggleExpand(post.post_id || post.id)"
+            @click="toggleExpand(post.id)"
           >
-            {{ expandedPosts.has(post.post_id || post.id) ? '收起' : '展开' }}
+            {{ expandedPosts.has(post.id) ? '收起' : '展开' }}
           </button>
         </div>
 
@@ -217,17 +217,15 @@ function toggleExpand(postId: string) {
 function getFilterCount(filter: string): number {
   if (!props.posts) return 0
   
-  const getSentiment = (p: SentimentPost) => p.sentiment || p.sentiment_label
-  
   switch (filter) {
     case 'all':
       return props.posts.length
     case 'bullish':
-      return props.posts.filter(p => getSentiment(p) === 'bullish').length
+      return props.posts.filter(p => p.sentiment_label === 'bullish').length
     case 'bearish':
-      return props.posts.filter(p => getSentiment(p) === 'bearish').length
+      return props.posts.filter(p => p.sentiment_label === 'bearish').length
     case 'neutral':
-      return props.posts.filter(p => getSentiment(p) === 'neutral').length
+      return props.posts.filter(p => p.sentiment_label === 'neutral').length
     case 'popular':
       return props.posts.filter(p => (p.likes || 0) >= 10).length
     default:
@@ -243,13 +241,13 @@ const filteredPosts = computed(() => {
   
   switch (activeFilter.value) {
     case 'bullish':
-      filtered = filtered.filter(p => p.sentiment === 'bullish')
+      filtered = filtered.filter(p => p.sentiment_label === 'bullish')
       break
     case 'bearish':
-      filtered = filtered.filter(p => p.sentiment === 'bearish')
+      filtered = filtered.filter(p => p.sentiment_label === 'bearish')
       break
     case 'neutral':
-      filtered = filtered.filter(p => p.sentiment === 'neutral')
+      filtered = filtered.filter(p => p.sentiment_label === 'neutral')
       break
     case 'popular':
       filtered = filtered.filter(p => (p.likes || 0) >= 10)

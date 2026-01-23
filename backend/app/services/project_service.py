@@ -2,11 +2,12 @@
 Project service - business logic layer for projects.
 """
 import logging
-from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.datetime_utils import utc_now_naive
 
 from app.models.conversation import Conversation, ConversationPurpose, ConversationStatus
 from app.models.project import Project, ProjectStatus, ProjectType
@@ -207,7 +208,7 @@ class ProjectService:
             return None
 
         conversation.status = ConversationStatus.COMPLETED
-        conversation.completed_at = datetime.utcnow()
+        conversation.completed_at = utc_now_naive()
         await self.db.commit()
         await self.db.refresh(conversation)
         return conversation

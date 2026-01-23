@@ -360,6 +360,90 @@ def cleanup_dependency_overrides():
     app.dependency_overrides.clear()
 
 
+# ==================== Integration Database Fixtures ====================
+# 这些 fixture 用于集成测试，会创建真实的数据库表
+
+@pytest_asyncio.fixture
+async def db_with_tables():
+    """创建带有表结构的内存数据库 session
+
+    此 fixture 会：
+    1. 导入所有 models 以注册到 Base.metadata
+    2. 创建所有表
+    3. 提供 database session
+    4. 测试结束后清理
+    """
+    from sqlalchemy import event
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+    from app.core.database import Base
+
+    # Import all models to register them with Base.metadata
+    from app.models import (  # noqa: F401
+        artifact,
+        conversation,
+        message,
+        project,
+        project_version,
+        session,
+        user,
+        workspace,
+    )
+
+    # 创建内存数据库引擎
+    test_engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+    )
+
+    # 启用 SQLite 外键支持
+    @event.listens_for(test_engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    # 创建所有表
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # 创建 session factory
+    test_session_maker = async_sessionmaker(
+        test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    async with test_session_maker() as session:
+        yield session
+
+    # 清理表
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+    await test_engine.dispose()
+
+
+@pytest.fixture
+def test_client_with_db(db_with_tables):
+    """带有真实数据库的测试客户端
+
+    用于集成测试，会用测试数据库覆盖 get_db 依赖
+    """
+    from app.core.database import get_db
+    from app.main import app
+
+    async def override_get_db():
+        yield db_with_tables
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
 # ==================== Markers ====================
 
 def pytest_configure(config):

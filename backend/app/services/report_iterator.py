@@ -8,8 +8,8 @@ Report Iterator Service - 报告迭代服务
 """
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import datetime
 
+from app.core.datetime_utils import utc_now_naive
 from app.schemas.interactive_report import (
     QUICK_ACTIONS,
     InteractiveReport,
@@ -98,7 +98,7 @@ class ReportIterator:
         initial_version = ReportVersion(
             version=1,
             sections=sections,
-            created_at=datetime.utcnow(),
+            created_at=utc_now_naive(),
             revision_note="初始版本",
         )
 
@@ -109,7 +109,7 @@ class ReportIterator:
             query=query,
             current_version=1,
             versions=[initial_version],
-            created_at=datetime.utcnow(),
+            created_at=utc_now_naive(),
         )
 
         self._reports[report_id] = report
@@ -238,7 +238,7 @@ class ReportIterator:
                     content=revision.revised_content,
                     sources=list(set(section.sources + revision.new_sources)),
                     created_at=section.created_at,
-                    updated_at=datetime.utcnow(),
+                    updated_at=utc_now_naive(),
                     version=section.version + 1,
                 )
             else:
@@ -250,14 +250,14 @@ class ReportIterator:
         new_version = ReportVersion(
             version=report.current_version + 1,
             sections=new_sections,
-            created_at=datetime.utcnow(),
+            created_at=utc_now_naive(),
             revision_note=user_note or f"版本 {report.current_version + 1}",
         )
 
         # 更新报告
         report.versions.append(new_version)
         report.current_version += 1
-        report.updated_at = datetime.utcnow()
+        report.updated_at = utc_now_naive()
 
         return report
 
@@ -332,13 +332,13 @@ class ReportIterator:
         rollback_version = ReportVersion(
             version=report.current_version + 1,
             sections=target_version_obj.sections,
-            created_at=datetime.utcnow(),
+            created_at=utc_now_naive(),
             revision_note=f"回滚至版本 {target_version}",
         )
 
         report.versions.append(rollback_version)
         report.current_version += 1
-        report.updated_at = datetime.utcnow()
+        report.updated_at = utc_now_naive()
 
         return report
 

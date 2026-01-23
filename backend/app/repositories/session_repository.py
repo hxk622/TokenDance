@@ -127,10 +127,10 @@ class SessionRepository:
         total_tokens_used: int | None = None,
     ) -> Session | None:
         """Mark session as COMPLETED."""
-        from datetime import datetime
+        from app.core.datetime_utils import utc_now_naive
         updates = {
             "status": SessionStatus.COMPLETED,
-            "completed_at": datetime.utcnow(),
+            "completed_at": utc_now_naive(),
         }
         if total_tokens_used is not None:
             updates["total_tokens_used"] = total_tokens_used
@@ -142,10 +142,10 @@ class SessionRepository:
         error_message: str | None = None,
     ) -> Session | None:
         """Mark session as FAILED."""
-        from datetime import datetime
+        from app.core.datetime_utils import utc_now_naive
         updates = {
             "status": SessionStatus.FAILED,
-            "completed_at": datetime.utcnow(),
+            "completed_at": utc_now_naive(),
         }
         if error_message:
             # Store error in extra_data
@@ -161,11 +161,11 @@ class SessionRepository:
         session_id: str,
     ) -> Session | None:
         """Mark session as CANCELLED (user stopped)."""
-        from datetime import datetime
+        from app.core.datetime_utils import utc_now_naive
         return await self.update(
             session_id,
             status=SessionStatus.CANCELLED,
-            completed_at=datetime.utcnow(),
+            completed_at=utc_now_naive(),
         )
 
     async def update_todo_list(
@@ -235,9 +235,11 @@ class SessionRepository:
         Archive completed sessions older than N days.
         Returns the number of archived sessions.
         """
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        from app.core.datetime_utils import utc_now_naive
+
+        cutoff_date = utc_now_naive() - timedelta(days=days)
 
         query = (
             select(Session)

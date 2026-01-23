@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
 
+from app.core.datetime_utils import utc_now_naive
 from app.filesystem.agent_fs import AgentFileSystem
 
 
@@ -40,7 +40,7 @@ class DistributedMemory:
             prev = self.fs.read(self.PATH)
             content = prev + "\n" + body
         else:
-            header = "# Learnings\n\n" + f"> updated_at: {datetime.utcnow().isoformat()}Z\n\n"
+            header = "# Learnings\n\n" + f"> updated_at: {utc_now_naive().isoformat()}Z\n\n"
             content = header + body
         self.fs.write(self.PATH, content)
 

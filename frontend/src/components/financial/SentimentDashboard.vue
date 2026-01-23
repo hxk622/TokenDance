@@ -203,6 +203,32 @@
           </div>
         </div>
       </div>
+
+      <!-- Warnings Section: #3 Fallback warning + #5 Partial errors -->
+      <div
+        v-if="hasWarnings"
+        class="warnings-section"
+      >
+        <!-- Analysis fallback warning (#3) -->
+        <div
+          v-if="sentiment.analysis?.error"
+          class="warning-item analysis-warning"
+        >
+          <AlertCircle class="warning-icon w-4 h-4" />
+          <span class="warning-text">注意: 使用了关键词分析（置信度较低）</span>
+        </div>
+
+        <!-- Partial source errors (#5) -->
+        <div
+          v-if="sentiment.errors && sentiment.errors.length > 0"
+          class="warning-item source-warning"
+        >
+          <AlertTriangle class="warning-icon w-4 h-4" />
+          <span class="warning-text">
+            部分数据源不可用: {{ getSourceErrors() }}
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -210,7 +236,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SentimentResult } from '@/types/financial'
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, BarChart3 } from 'lucide-vue-next'
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, AlertCircle, BarChart3 } from 'lucide-vue-next'
 
 interface Props {
   sentiment: SentimentResult | null
@@ -306,6 +332,26 @@ const pieSegments = computed(() => {
     return segment
   })
 })
+
+// Check if there are any warnings to display
+const hasWarnings = computed(() => {
+  if (!props.sentiment) return false
+  const hasAnalysisError = !!props.sentiment.analysis?.error
+  const hasSourceErrors = props.sentiment.errors && props.sentiment.errors.length > 0
+  return hasAnalysisError || hasSourceErrors
+})
+
+// Get human-readable source errors
+function getSourceErrors(): string {
+  if (!props.sentiment?.errors) return ''
+  return props.sentiment.errors
+    .map(err => {
+      if (err.includes('xueqiu')) return '雪球'
+      if (err.includes('guba')) return '股吧'
+      return err.split(':')[0]
+    })
+    .join(', ')
+}
 </script>
 
 <style scoped>
@@ -674,6 +720,46 @@ const pieSegments = computed(() => {
 
 .metric-value.neutral {
   color: #6b7280;
+}
+
+/* Warnings Section */
+.warnings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.warning-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.warning-item.analysis-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.warning-item.analysis-warning .warning-icon {
+  color: #d97706;
+}
+
+.warning-item.source-warning {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.warning-item.source-warning .warning-icon {
+  color: #ef4444;
+}
+
+.warning-text {
+  flex: 1;
 }
 
 /* Responsive */

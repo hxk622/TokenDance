@@ -3,10 +3,11 @@ End-to-End (E2E) Test Suite
 Tests the complete flow from user registration to message streaming.
 """
 import uuid
-from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
+
+from app.core.datetime_utils import utc_now_naive
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import Base, async_session_maker, engine
@@ -229,7 +230,7 @@ class TestE2EFlow:
 
         # Complete session
         session.status = SessionStatus.COMPLETED
-        session.completed_at = datetime.utcnow()
+        session.completed_at = utc_now_naive()
         await db_session.commit()
 
         assert session.status == SessionStatus.COMPLETED

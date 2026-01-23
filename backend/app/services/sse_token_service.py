@@ -13,9 +13,10 @@ Security benefits:
 - JWT access tokens are never exposed in URLs
 """
 import secrets
-from datetime import datetime
 
 from redis.asyncio import Redis
+
+from app.core.datetime_utils import utc_now_naive
 
 from app.core.logging import get_logger
 
@@ -61,7 +62,7 @@ class SSETokenService:
         token_data = {
             "user_id": user_id,
             "session_id": session_id,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": utc_now_naive().isoformat(),
         }
         
         # Set with TTL

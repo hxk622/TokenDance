@@ -4,10 +4,11 @@
 负责评估工具调用是否需要用户确认，以及记录授权决策。
 """
 import logging
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.datetime_utils import utc_now_naive
 
 from app.agent.tools.base import BaseTool
 from app.agent.tools.risk import (
@@ -240,7 +241,7 @@ class TrustService:
         if session_id not in session_grants:
             session_grants[session_id] = {
                 "granted_operations": [],
-                "granted_at": datetime.utcnow().isoformat(),
+                "granted_at": utc_now_naive().isoformat(),
             }
 
         if operation_category not in session_grants[session_id]["granted_operations"]:

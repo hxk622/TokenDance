@@ -3,6 +3,8 @@ import re
 from datetime import datetime, timedelta
 
 from jose import JWTError, jwt
+
+from app.core.datetime_utils import utc_now_naive
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -129,7 +131,7 @@ class AuthService:
         Returns:
             JWT token string
         """
-        expire = datetime.utcnow() + timedelta(
+        expire = utc_now_naive() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
         payload = {
@@ -151,7 +153,7 @@ class AuthService:
         Returns:
             JWT token string
         """
-        expire = datetime.utcnow() + timedelta(
+        expire = utc_now_naive() + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
         payload = {
@@ -435,7 +437,7 @@ class AuthService:
             # User exists, update info if needed
             expires_at = None
             if token_data.get("expires_in"):
-                expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+                expires_at = utc_now_naive() + timedelta(seconds=token_data["expires_in"])
 
             user = await self.user_repo.update_gmail_info(
                 user_id=user.id,
@@ -461,7 +463,7 @@ class AuthService:
 
             expires_at = None
             if token_data.get("expires_in"):
-                expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+                expires_at = utc_now_naive() + timedelta(seconds=token_data["expires_in"])
 
             user = await self.user_repo.create(
                 email=gmail_email,

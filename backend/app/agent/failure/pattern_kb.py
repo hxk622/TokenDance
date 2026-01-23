@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime
 
+from app.core.datetime_utils import utc_now_naive
 from app.filesystem.agent_fs import AgentFileSystem
 
 from .signal import FailureSignal
@@ -67,7 +67,7 @@ class FailurePatternKB:
         if signal.is_success():
             return
         sig = self._signature(signal)
-        now = datetime.utcnow().isoformat() + "Z"
+        now = utc_now_naive().isoformat() + "Z"
         if sig not in self._cache:
             self._cache[sig] = FailurePattern(
                 signature=sig,

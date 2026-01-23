@@ -39,21 +39,21 @@ class TestProjectRoutes:
         # Should be 422 (validation error) not 404
         assert response.status_code == 422
 
-    @pytest.mark.skip(reason="DB connection issue in Python 3.13 + asyncpg, see ISSUE#xxx")
+    @pytest.mark.skip(reason="需要真实数据库表，待集成测试 fixture 完善")
     def test_conversation_routes_registered(self, client):
         """测试 conversation 路由已注册
 
-        Note: 此测试在 Python 3.13 + asyncpg 环境下有 event loop 兼容性问题
+        Note: 此测试需要 projects 表存在，当前测试环境使用内存 SQLite 且未创建表
         """
         response = client.get("/api/v1/projects/test-id/conversations")
         # Should be 404 (project not found) not 404 (route not found)
         assert response.status_code == 404
 
-    @pytest.mark.skip(reason="DB connection issue in Python 3.13 + asyncpg, see ISSUE#xxx")
+    @pytest.mark.skip(reason="需要真实数据库表，待集成测试 fixture 完善")
     def test_chat_route_registered(self, client):
         """测试 chat 路由已注册
 
-        Note: 此测试在 Python 3.13 + asyncpg 环境下有 event loop 兼容性问题
+        Note: 此测试需要 projects 表存在，当前测试环境使用内存 SQLite 且未创建表
         """
         response = client.post(
             "/api/v1/projects/test-id/chat",
@@ -62,11 +62,11 @@ class TestProjectRoutes:
         # Should be 404 (project not found) not 404 (route not found)
         assert response.status_code == 404
 
-    @pytest.mark.skip(reason="DB connection issue in Python 3.13 + asyncpg, see ISSUE#xxx")
+    @pytest.mark.skip(reason="需要真实数据库表，待集成测试 fixture 完善")
     def test_context_routes_registered(self, client):
         """测试 context 路由已注册
 
-        Note: 此测试在 Python 3.13 + asyncpg 环境下有 event loop 兼容性问题
+        Note: 此测试需要 projects 表存在，当前测试环境使用内存 SQLite 且未创建表
         """
         # Decision route
         response = client.post(

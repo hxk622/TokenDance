@@ -5856,6 +5856,11 @@ science-viz = [
     { name = "seaborn" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "aiosqlite" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "akshare", marker = "extra == 'finance'", specifier = ">=1.14.0" },
@@ -5940,6 +5945,9 @@ requires-dist = [
     { name = "yfinance", marker = "extra == 'finance'", specifier = ">=0.2.36" },
 ]
 provides-extras = ["dev", "science-bio", "science-chem", "science-ml", "science-viz", "science-physics", "science-clinical", "science-all", "finance"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "aiosqlite", specifier = ">=0.20.0" }]
 
 [[package]]
 name = "tokenizers"
