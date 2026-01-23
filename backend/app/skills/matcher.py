@@ -265,7 +265,7 @@ class SkillMatcher:
         Returns:
             候选Skill ID列表
         """
-        candidates: list[tuple] = []  # (skill_id, score)
+        candidates: list[tuple[str, float]] = []  # (skill_id, score)
         message_lower = message.lower()
 
         for skill in self.registry.get_all():
@@ -358,7 +358,7 @@ class SkillMatcher:
             logger.error(f"Failed to encode message: {e}")
             return []
 
-        scores: list[tuple] = []  # (skill_id, similarity)
+        scores: list[tuple[str, float]] = []  # (skill_id, similarity)
 
         for skill_id in candidates:
             if skill_id not in self._skill_embeddings:
@@ -470,12 +470,14 @@ class SkillMatcher:
             return candidates[0] if candidates else None
 
         # 构建候选列表
-        skill_list = "\n".join([
-            f"{i+1}. {self.registry.get(c.skill_id).display_name}: "
-            f"{self.registry.get(c.skill_id).description}"
-            for i, c in enumerate(candidates)
-            if self.registry.get(c.skill_id)
-        ])
+        skill_lines = []
+        for i, c in enumerate(candidates):
+            skill = self.registry.get(c.skill_id)
+            if skill:
+                skill_lines.append(
+                    f"{i+1}. {skill.display_name}: {skill.description}"
+                )
+        skill_list = "\n".join(skill_lines)
 
         prompt = f"""User message: "{message}"
 
@@ -539,7 +541,7 @@ class SimpleEmbeddingModel:
     用于测试和没有外部Embedding服务时的降级方案。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.vocabulary: dict[str, int] = {}
         self.idf: dict[str, float] = {}
         self._fitted = False

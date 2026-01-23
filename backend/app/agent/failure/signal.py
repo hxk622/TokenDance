@@ -239,8 +239,8 @@ class FailureSignal:
         success: bool,
         error: str | None = None,
         stderr: str = "",
-        tool_args: dict | None = None,
-        metadata: dict | None = None,
+        tool_args: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> "FailureSignal":
         """从工具执行结果创建 FailureSignal
 

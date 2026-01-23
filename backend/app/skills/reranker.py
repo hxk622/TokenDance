@@ -79,7 +79,7 @@ class BGEReranker:
             logger.info(f"Loading BGE reranker model: {self.model_name}")
 
             # 构建参数
-            kwargs = {"use_fp16": self.use_fp16}
+            kwargs: dict[str, Any] = {"use_fp16": self.use_fp16}
             if self.device:
                 kwargs["device"] = self.device
 

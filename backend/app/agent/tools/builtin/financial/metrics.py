@@ -78,7 +78,7 @@ class FinancialMetricsCalculator:
             return None
         return numerator / denominator
 
-    def _get_value(self, data: dict, *keys: str) -> float | None:
+    def _get_value(self, data: dict[str, Any], *keys: str) -> float | None:
         """从字典中获取值，支持多个可能的key"""
         for key in keys:
             if key in data and data[key] is not None:
@@ -425,16 +425,17 @@ class FinancialMetricsCalculator:
         equity_multiplier = self._safe_div(total_assets, equity)
 
         # 理论 ROE = 净利率 × 资产周转率 × 权益乘数
-        theoretical_roe = None
-        if all([
-            net_margin.value is not None,
-            asset_turnover.value is not None,
-            equity_multiplier is not None
-        ]):
+        theoretical_roe: float | None = None
+        if (
+            net_margin.value is not None
+            and asset_turnover.value is not None
+            and equity_multiplier is not None
+        ):
             theoretical_roe = (
-                (net_margin.value / 100) *
-                asset_turnover.value *
-                equity_multiplier * 100
+                (net_margin.value / 100)
+                * asset_turnover.value
+                * equity_multiplier
+                * 100
             )
 
         return {
@@ -493,7 +494,7 @@ class FinancialMetricsCalculator:
         """计算摘要，只返回有效值"""
         all_metrics = self.calc_all()
 
-        summary = {
+        summary: dict[str, dict[str, Any]] = {
             "profitability": {},
             "solvency": {},
             "efficiency": {},
