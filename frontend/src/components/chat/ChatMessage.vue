@@ -23,13 +23,14 @@ const hasToolCalls = computed(() => props.message.tool_calls && props.message.to
 const hasCitations = computed(() => props.message.citations && props.message.citations.length > 0)
 const hasContent = computed(() => !!props.message.content)
 
-// Handle feedback submission
-async function handleFeedback(feedback: 'like' | 'dislike' | null) {
-  try {
-    await messageApi.submitFeedback(props.message.id, feedback)
-  } catch (error) {
+// Handle feedback submission (fire-and-forget with rollback on error)
+function handleFeedback(feedback: 'like' | 'dislike' | null, onError?: () => void) {
+  // Fire-and-forget - don't await, let UI respond immediately
+  messageApi.submitFeedback(props.message.id, feedback).catch((error) => {
     console.error('Failed to submit feedback:', error)
-  }
+    // Rollback UI state on failure
+    onError?.()
+  })
 }
 
 // Handle regenerate

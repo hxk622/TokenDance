@@ -12,7 +12,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'feedback', feedback: 'like' | 'dislike' | null): void
+  (e: 'feedback', feedback: 'like' | 'dislike' | null, onError?: () => void): void
   (e: 'regenerate'): void
 }>()
 
@@ -37,12 +37,20 @@ async function handleCopy() {
   }
 }
 
-// Handle feedback
+// Handle feedback (optimistic update with rollback on failure)
 function handleFeedback(type: 'like' | 'dislike') {
   // Toggle: if clicking same feedback, clear it
   const newFeedback = localFeedback.value === type ? null : type
+  const oldFeedback = localFeedback.value
+  
+  // Optimistic update - UI responds immediately
   localFeedback.value = newFeedback
-  emit('feedback', newFeedback)
+  
+  // Emit with rollback callback for error handling
+  emit('feedback', newFeedback, () => {
+    // Rollback on failure
+    localFeedback.value = oldFeedback
+  })
 }
 
 // Handle share (copy content for now)

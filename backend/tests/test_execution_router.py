@@ -27,7 +27,8 @@ class MockSkillMatcher:
     def __init__(self, match_result=None):
         self.match_result = match_result
 
-    def match(self, message: str):
+    async def match(self, message: str, min_score: float = 0.0):
+        """异步 mock match 方法"""
         return self.match_result
 
 
@@ -71,20 +72,22 @@ class TestSkillPathRouting:
         """每个测试前重置路由器"""
         reset_execution_router()
 
-    def test_high_confidence_skill_match(self):
+    @pytest.mark.asyncio
+    async def test_high_confidence_skill_match(self):
         """测试高置信度 Skill 匹配"""
         matcher = MockSkillMatcher(MockSkillMatch("deep_research", 0.95))
         executor = MockSkillExecutor(can_execute_result=True)
         router = ExecutionRouter(skill_matcher=matcher, skill_executor=executor)
 
-        decision = router.route("做深度研究")
+        decision = await router.route("做深度研究")
 
         assert decision.path == ExecutionPath.SKILL
         assert decision.confidence == 0.95
         assert "deep_research" in decision.reason
         assert decision.fallback_path == ExecutionPath.MCP_CODE
 
-    def test_low_confidence_skill_match(self):
+    @pytest.mark.asyncio
+    async def test_low_confidence_skill_match(self):
         """测试低置信度 Skill 匹配（应该降级）"""
         matcher = MockSkillMatcher(MockSkillMatch("deep_research", 0.70))
         router = ExecutionRouter(
@@ -92,18 +95,19 @@ class TestSkillPathRouting:
             skill_confidence_threshold=0.85,
         )
 
-        decision = router.route("做深度研究")
+        decision = await router.route("做深度研究")
 
         # 低于阈值，应该继续检查结构化任务
         assert decision.path != ExecutionPath.SKILL
 
-    def test_skill_not_executable(self):
+    @pytest.mark.asyncio
+    async def test_skill_not_executable(self):
         """测试 Skill 不可执行的情况"""
         matcher = MockSkillMatcher(MockSkillMatch("deep_research", 0.95))
         executor = MockSkillExecutor(can_execute_result=False)
         router = ExecutionRouter(skill_matcher=matcher, skill_executor=executor)
 
-        decision = router.route("做深度研究")
+        decision = await router.route("做深度研究")
 
         # Skill 虽然匹配但不可执行，应该继续检查其他路径
         assert decision.path != ExecutionPath.SKILL
@@ -116,57 +120,64 @@ class TestStructuredTaskDetection:
         """每个测试前重置路由器"""
         reset_execution_router()
 
-    def test_csv_file_detection(self):
+    @pytest.mark.asyncio
+    async def test_csv_file_detection(self):
         """测试 CSV 文件相关任务"""
         router = ExecutionRouter()
-        decision = router.route("查找 data.csv 中状态为 Active 的行数")
+        decision = await router.route("查找 data.csv 中状态为 Active 的行数")
 
         assert decision.path == ExecutionPath.MCP_CODE
         assert decision.confidence >= 0.75
 
-    def test_json_file_detection(self):
+    @pytest.mark.asyncio
+    async def test_json_file_detection(self):
         """测试 JSON 文件相关任务"""
         router = ExecutionRouter()
-        decision = router.route("读取 config.json 文件")
+        decision = await router.route("读取 config.json 文件")
 
         assert decision.path == ExecutionPath.MCP_CODE
         assert decision.confidence >= 0.75
 
-    def test_dataframe_keyword(self):
+    @pytest.mark.asyncio
+    async def test_dataframe_keyword(self):
         """测试 DataFrame 关键词"""
         router = ExecutionRouter()
-        decision = router.route("在 dataframe 中筛选值大于 100 的行")
+        decision = await router.route("在 dataframe 中筛选值大于 100 的行")
 
         assert decision.path == ExecutionPath.MCP_CODE
 
-    def test_sql_query_detection(self):
+    @pytest.mark.asyncio
+    async def test_sql_query_detection(self):
         """测试 SQL 查询检测"""
         router = ExecutionRouter()
-        decision = router.route("执行 SELECT * FROM users WHERE status = 'active'")
+        decision = await router.route("执行 SELECT * FROM users WHERE status = 'active'")
 
         assert decision.path == ExecutionPath.MCP_CODE
         assert decision.confidence >= 0.85
 
-    def test_calculation_detection(self):
+    @pytest.mark.asyncio
+    async def test_calculation_detection(self):
         """测试计算任务检测"""
         router = ExecutionRouter()
-        decision = router.route("计算列表的平均值: average([1, 2, 3, 4, 5])")
+        decision = await router.route("计算列表的平均值: average([1, 2, 3, 4, 5])")
 
         assert decision.path == ExecutionPath.MCP_CODE
 
-    def test_data_processing_keywords(self):
+    @pytest.mark.asyncio
+    async def test_data_processing_keywords(self):
         """测试数据处理关键词"""
         router = ExecutionRouter()
         message = "将 CSV 转换为 JSON 格式"
-        decision = router.route(message)
+        decision = await router.route(message)
 
         assert decision.path == ExecutionPath.MCP_CODE
 
-    def test_code_execution_request(self):
+    @pytest.mark.asyncio
+    async def test_code_execution_request(self):
         """测试显式代码执行请求"""
         router = ExecutionRouter()
         # 需要同时包含"代码"关键词和"处理数据"等结构化任务关键词
-        decision = router.route("写一个 Python 脚本来查询 CSV 数据")
+        decision = await router.route("写一个 Python 脚本来查询 CSV 数据")
 
         assert decision.path == ExecutionPath.MCP_CODE
 
@@ -178,31 +189,35 @@ class TestLLMReasoningFallback:
         """每个测试前重置路由器"""
         reset_execution_router()
 
-    def test_unstructured_question(self):
+    @pytest.mark.asyncio
+    async def test_unstructured_question(self):
         """测试非结构化问题"""
         router = ExecutionRouter()
-        decision = router.route("你认为 AI 的未来如何？")
+        decision = await router.route("你认为 AI 的未来如何？")
 
         assert decision.path == ExecutionPath.LLM_REASONING
 
-    def test_writing_task(self):
+    @pytest.mark.asyncio
+    async def test_writing_task(self):
         """测试写作任务"""
         router = ExecutionRouter()
-        decision = router.route("帮我写一篇关于机器学习的文章")
+        decision = await router.route("帮我写一篇关于机器学习的文章")
 
         assert decision.path == ExecutionPath.LLM_REASONING
 
-    def test_general_advice(self):
+    @pytest.mark.asyncio
+    async def test_general_advice(self):
         """测试一般建议"""
         router = ExecutionRouter()
-        decision = router.route("给我一些项目管理的建议")
+        decision = await router.route("给我一些项目管理的建议")
 
         assert decision.path == ExecutionPath.LLM_REASONING
 
-    def test_no_skill_match_no_structured_keywords(self):
+    @pytest.mark.asyncio
+    async def test_no_skill_match_no_structured_keywords(self):
         """测试无 Skill 匹配且无结构化关键词"""
         router = ExecutionRouter()
-        decision = router.route("你好，今天天气怎么样？")
+        decision = await router.route("你好，今天天气怎么样？")
 
         assert decision.path == ExecutionPath.LLM_REASONING
 
@@ -248,35 +263,38 @@ class TestStatistics:
         """每个测试前重置路由器"""
         reset_execution_router()
 
-    def test_stats_tracking(self):
+    @pytest.mark.asyncio
+    async def test_stats_tracking(self):
         """测试统计追踪"""
         router = ExecutionRouter()
 
         # 执行多个路由决策
-        router.route("做深度研究")
-        router.route("查询 CSV 文件")
-        router.route("你好")
+        await router.route("做深度研究")
+        await router.route("查询 CSV 文件")
+        await router.route("你好")
 
         stats = router.get_stats()
         assert stats["total"] == 3
 
-    def test_path_distribution(self):
+    @pytest.mark.asyncio
+    async def test_path_distribution(self):
         """测试执行路径分布统计"""
         router = ExecutionRouter()
 
         # 强制指定结构化任务
         for _ in range(10):
-            router.route("计算 average([1,2,3])")
+            await router.route("计算 average([1,2,3])")
 
         stats = router.get_stats()
         assert stats["total"] == 10
         assert stats["mcp_code_ratio"] >= 0.5  # 至少一半应该是 MCP
 
-    def test_reset_stats(self):
+    @pytest.mark.asyncio
+    async def test_reset_stats(self):
         """测试重置统计"""
         router = ExecutionRouter()
-        router.route("测试")
-        router.route("测试")
+        await router.route("测试")
+        await router.route("测试")
 
         assert router.stats["total"] == 2
 
