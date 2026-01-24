@@ -47,7 +47,7 @@ router = APIRouter()
 
 # ==================== Helper Functions ====================
 
-def format_sse_event(event_type: str, data: dict) -> str:
+def format_sse_event(event_type: str, data: dict[str, object]) -> str:
     """Format SSE event according to SSE spec
 
     Args:
@@ -67,27 +67,27 @@ def get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:
 
 def parse_document_attachment(attachment: Attachment) -> str | None:
     """Parse document attachment and convert to markdown text.
-    
+
     Args:
         attachment: Document attachment with base64 data URL
-        
+
     Returns:
         Markdown text content or None if parsing failed
     """
     if not MARKITDOWN_AVAILABLE:
         logger.warning("markitdown not available, skipping document parsing")
         return None
-    
+
     if not attachment.url or not attachment.url.startswith('data:'):
         logger.warning(f"Invalid document URL format for {attachment.name}")
         return None
-    
+
     try:
         # Extract base64 data from data URL
         # Format: data:application/pdf;base64,XXXX...
         header, data = attachment.url.split(',', 1)
         file_bytes = base64.b64decode(data)
-        
+
         # Determine file extension from name or MIME type
         file_ext = ''
         if attachment.name:
@@ -104,29 +104,29 @@ def parse_document_attachment(attachment: Attachment) -> str | None:
             file_ext = '.csv'
         elif 'text/markdown' in header:
             file_ext = '.md'
-        
+
         # Convert using markitdown
         md = MarkItDown()
         result = md.convert_stream(io.BytesIO(file_bytes), file_extension=file_ext)
-        
+
         if result and result.text_content:
             logger.info(f"Successfully parsed document: {attachment.name} ({len(result.text_content)} chars)")
             return result.text_content
         else:
             logger.warning(f"markitdown returned empty content for {attachment.name}")
             return None
-            
+
     except Exception as e:
         logger.error(f"Failed to parse document {attachment.name}: {e}")
         return None
 
 
-def process_document_attachments(attachments: list[Attachment] | None) -> tuple[list[dict], str]:
+def process_document_attachments(attachments: list[Attachment] | None) -> tuple[list[dict[str, str | None]], str]:
     """Process document attachments and return agent attachments + context.
-    
+
     Args:
         attachments: List of attachments from request
-        
+
     Returns:
         Tuple of (attachments_for_agent, document_context)
         - attachments_for_agent: Image attachments to pass to agent
@@ -134,10 +134,10 @@ def process_document_attachments(attachments: list[Attachment] | None) -> tuple[
     """
     if not attachments:
         return [], ""
-    
+
     agent_attachments = []
     document_texts = []
-    
+
     for att in attachments:
         if att.type == "image":
             # Pass images directly to agent for vision processing
@@ -154,12 +154,12 @@ def process_document_attachments(attachments: list[Attachment] | None) -> tuple[
             else:
                 # If parsing failed, still note the document
                 document_texts.append(f"## Document: {att.name or 'Unnamed'}\n\n[Document parsing failed]")
-    
+
     # Build document context
     document_context = ""
     if document_texts:
         document_context = "\n\n---\n\n# Attached Documents\n\n" + "\n\n---\n\n".join(document_texts) + "\n\n---\n\n"
-    
+
     return agent_attachments, document_context
 
 
@@ -220,10 +220,19 @@ async def send_message(
                 # Create Tool Registry (empty for now)
                 tools = ToolRegistry()
 
-                # 检查是否有图片附件
-                has_images = request.attachments and any(
-                    a.type == "image" for a in request.attachments
+                # Process attachments: parse documents, keep images for vision
+                attachments_for_agent, document_context = process_document_attachments(
+                    request.attachments
                 )
+
+                # Build final user message with document context
+                user_message = request.content
+                if document_context:
+                    user_message = f"{request.content}\n\n{document_context}"
+                    logger.info(f"Added document context ({len(document_context)} chars) to user message")
+
+                # 检查是否有图片附件
+                has_images = len(attachments_for_agent) > 0
 
                 # 根据是否有图片选择模型
                 if has_images:
@@ -248,20 +257,11 @@ async def send_message(
                     max_iterations=50
                 )
 
-                # 将附件转换为 Agent 格式
-                attachments_for_agent = None
-                if request.attachments:
-                    attachments_for_agent = [
-                        {
-                            "type": a.type,
-                            "url": a.url,
-                            "name": a.name
-                        }
-                        for a in request.attachments
-                    ]
-
                 # Run Agent and stream events
-                async for event in agent.run(request.content, attachments=attachments_for_agent):
+                async for event in agent.run(
+                    user_message,
+                    attachments=attachments_for_agent if attachments_for_agent else None
+                ):
                     # Convert SSEEvent to SSE format
                     yield format_sse_event(event.type.value, event.data)
 

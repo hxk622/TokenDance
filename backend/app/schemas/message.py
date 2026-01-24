@@ -31,7 +31,7 @@ class Citation(BaseModel):
 
 class Attachment(BaseModel):
     """Message attachment schema.
-    
+
     Supported types:
     - image: Image files (PNG, JPEG, GIF, WebP)
     - document: Document files (PDF, DOCX, XLSX, PPTX, TXT, CSV, MD)
