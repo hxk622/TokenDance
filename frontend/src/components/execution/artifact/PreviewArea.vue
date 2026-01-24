@@ -1,11 +1,35 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import type { EChartsOption } from 'echarts'
 import CoworkerFileTree from '../workflow/CoworkerFileTree.vue'
 import LiveDiff from './LiveDiff.vue'
+import SandboxBrowser from './SandboxBrowser.vue'
+import PdfViewer from './PdfViewer.vue'
+import ChartPreview from './ChartPreview.vue'
+import CodeEditor from './CodeEditor.vue'
+import DataTable from './DataTable.vue'
+import VideoPlayer from './VideoPlayer.vue'
+import AudioPlayer from './AudioPlayer.vue'
+import ExecutionReplay from './ExecutionReplay.vue'
+
+// Extended TabType from ArtifactTabs
+type TabType = 'report' | 'ppt' | 'file-diff' | 'image' | 'sandbox' | 'pdf' | 'chart' | 'code' | 'table' | 'video' | 'audio' | 'replay'
 
 interface Props {
   sessionId: string
-  currentTab?: 'report' | 'ppt' | 'file-diff' | 'image'
+  currentTab?: TabType
+  // New props for different content types
+  sandboxContent?: { html?: string; url?: string }
+  pdfSrc?: string
+  chartOption?: EChartsOption
+  chartTitle?: string
+  codeContent?: string
+  codeLanguage?: string
+  tableColumns?: { key: string; label: string }[]
+  tableData?: Record<string, unknown>[]
+  videoSrc?: string
+  audioSrc?: string
+  replaySteps?: { id: string; timestamp: number; type: string; title: string; screenshot?: string }[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -532,6 +556,58 @@ const previewContent = ref(`# AI Agent 市场分析报告
         </div>
       </div>
     </div>
+
+    <!-- Sandbox Browser Tab -->
+    <SandboxBrowser
+      v-else-if="currentTab === 'sandbox'"
+      :html-content="sandboxContent?.html"
+      :url="sandboxContent?.url"
+    />
+
+    <!-- PDF Viewer Tab -->
+    <PdfViewer
+      v-else-if="currentTab === 'pdf' && pdfSrc"
+      :src="pdfSrc"
+    />
+
+    <!-- Chart Preview Tab -->
+    <ChartPreview
+      v-else-if="currentTab === 'chart' && chartOption"
+      :option="chartOption"
+      :title="chartTitle"
+    />
+
+    <!-- Code Editor Tab -->
+    <CodeEditor
+      v-else-if="currentTab === 'code'"
+      :content="codeContent"
+      :language="codeLanguage"
+    />
+
+    <!-- Data Table Tab -->
+    <DataTable
+      v-else-if="currentTab === 'table' && tableColumns && tableData"
+      :columns="tableColumns"
+      :data="tableData"
+    />
+
+    <!-- Video Player Tab -->
+    <VideoPlayer
+      v-else-if="currentTab === 'video' && videoSrc"
+      :src="videoSrc"
+    />
+
+    <!-- Audio Player Tab -->
+    <AudioPlayer
+      v-else-if="currentTab === 'audio' && audioSrc"
+      :src="audioSrc"
+    />
+
+    <!-- Execution Replay Tab -->
+    <ExecutionReplay
+      v-else-if="currentTab === 'replay' && replaySteps"
+      :steps="replaySteps as any"
+    />
   </div>
 </template>
 

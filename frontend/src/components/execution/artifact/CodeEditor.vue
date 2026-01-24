@@ -252,7 +252,10 @@ onUnmounted(() => {
     <!-- Toolbar -->
     <div class="editor-toolbar">
       <!-- File Tabs (multi-file mode) -->
-      <div v-if="isMultiFile" class="file-tabs">
+      <div
+        v-if="isMultiFile"
+        class="file-tabs"
+      >
         <button
           v-for="file in files"
           :key="file.id"
@@ -265,7 +268,10 @@ onUnmounted(() => {
       </div>
       
       <!-- Language Badge (single file mode) -->
-      <div v-else class="language-badge">
+      <div
+        v-else
+        class="language-badge"
+      >
         <FileCode class="w-4 h-4" />
         <span>{{ language }}</span>
       </div>
@@ -277,16 +283,28 @@ onUnmounted(() => {
           :title="isEditing ? '查看模式' : '编辑模式'"
           @click="toggleEditMode"
         >
-          <Edit3 v-if="!isEditing" class="w-4 h-4" />
-          <Eye v-else class="w-4 h-4" />
+          <Edit3
+            v-if="!isEditing"
+            class="w-4 h-4"
+          />
+          <Eye
+            v-else
+            class="w-4 h-4"
+          />
         </button>
         <button 
           class="action-btn"
           :title="isCopied ? '已复制' : '复制代码'"
           @click="copyContent"
         >
-          <Check v-if="isCopied" class="w-4 h-4 text-green-500" />
-          <Copy v-else class="w-4 h-4" />
+          <Check
+            v-if="isCopied"
+            class="w-4 h-4 text-green-500"
+          />
+          <Copy
+            v-else
+            class="w-4 h-4"
+          />
         </button>
         <button 
           class="action-btn"
@@ -307,7 +325,10 @@ onUnmounted(() => {
 
     <!-- Editor Container -->
     <div class="editor-container">
-      <div ref="editorRef" class="monaco-container" />
+      <div
+        ref="editorRef"
+        class="monaco-container"
+      />
     </div>
   </div>
 </template>

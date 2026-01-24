@@ -169,6 +169,12 @@ function toggleCodeView() {
   emit('code-toggle', showCode.value)
 }
 
+function copyCode() {
+  if (props.htmlContent) {
+    navigator.clipboard.writeText(props.htmlContent)
+  }
+}
+
 function openExternal() {
   if (props.url) {
     window.open(props.url, '_blank')
@@ -256,8 +262,14 @@ onMounted(() => {
           title="查看代码"
           @click="toggleCodeView"
         >
-          <Code2 v-if="!showCode" class="w-4 h-4" />
-          <Eye v-else class="w-4 h-4" />
+          <Code2
+            v-if="!showCode"
+            class="w-4 h-4"
+          />
+          <Eye
+            v-else
+            class="w-4 h-4"
+          />
         </button>
         <button 
           class="action-btn"
@@ -284,7 +296,10 @@ onMounted(() => {
         :style="viewportStyle"
       >
         <!-- Loading Overlay -->
-        <div v-if="isLoading" class="loading-overlay">
+        <div
+          v-if="isLoading"
+          class="loading-overlay"
+        >
           <RefreshCw class="loading-icon" />
           <span>加载中...</span>
         </div>
@@ -299,7 +314,10 @@ onMounted(() => {
         />
 
         <!-- Viewport Frame (for non-desktop modes) -->
-        <div v-if="currentViewport !== 'desktop'" class="viewport-frame">
+        <div
+          v-if="currentViewport !== 'desktop'"
+          class="viewport-frame"
+        >
           <div class="frame-notch" />
         </div>
       </div>
@@ -307,10 +325,16 @@ onMounted(() => {
 
     <!-- Code Panel (shown when code view is active) -->
     <Transition name="slide">
-      <div v-if="showCode && htmlContent" class="code-panel">
+      <div
+        v-if="showCode && htmlContent"
+        class="code-panel"
+      >
         <div class="code-header">
           <span>源代码</span>
-          <button class="copy-btn" @click="navigator.clipboard.writeText(htmlContent)">
+          <button
+            class="copy-btn"
+            @click="copyCode"
+          >
             复制
           </button>
         </div>

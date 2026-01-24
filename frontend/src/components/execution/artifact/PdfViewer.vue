@@ -57,12 +57,14 @@ async function loadPdfJs() {
   if (pdfjsLib) return pdfjsLib
   
   try {
-    // Import PDF.js from CDN or local
+    // Import PDF.js - will be loaded from node_modules if available, otherwise fallback
+    // @ts-expect-error - pdfjs-dist may not have types installed
     const pdfjs = await import('pdfjs-dist')
     pdfjsLib = pdfjs
     
-    // Set worker source
-    const workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+    // Set worker source from CDN
+    const version = pdfjs.version || '3.11.174'
+    const workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
     
     return pdfjs
@@ -245,7 +247,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="pdf-viewer">
+  <div
+    ref="containerRef"
+    class="pdf-viewer"
+  >
     <!-- Toolbar -->
     <div class="pdf-toolbar">
       <!-- Page Navigation -->
@@ -267,7 +272,7 @@ onUnmounted(() => {
             :min="1"
             :max="totalPages"
             @change="handlePageInput"
-          />
+          >
           <span class="page-total">/ {{ totalPages }}</span>
         </div>
         
@@ -333,23 +338,38 @@ onUnmounted(() => {
     <!-- PDF Content -->
     <div class="pdf-content">
       <!-- Loading State -->
-      <div v-if="isLoading" class="pdf-loading">
+      <div
+        v-if="isLoading"
+        class="pdf-loading"
+      >
         <div class="loading-spinner" />
         <span>加载 PDF 中...</span>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="pdf-error">
+      <div
+        v-else-if="error"
+        class="pdf-error"
+      >
         <FileText class="w-12 h-12" />
         <span>{{ error }}</span>
-        <button class="retry-btn" @click="loadPdf">
+        <button
+          class="retry-btn"
+          @click="loadPdf"
+        >
           重试
         </button>
       </div>
 
       <!-- Canvas -->
-      <div v-else class="canvas-wrapper">
-        <canvas ref="canvasRef" class="pdf-canvas" />
+      <div
+        v-else
+        class="canvas-wrapper"
+      >
+        <canvas
+          ref="canvasRef"
+          class="pdf-canvas"
+        />
       </div>
     </div>
   </div>

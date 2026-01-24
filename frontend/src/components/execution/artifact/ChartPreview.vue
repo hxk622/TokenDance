@@ -27,14 +27,16 @@ const props = withDefaults(defineProps<Props>(), {
   autoResize: true
 })
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const emit = defineEmits<{
-  'chart-ready': [chart: ECharts]
-  'click': [params: any]
+  (e: 'chart-ready', chart: any): void
+  (e: 'click', params: unknown): void
 }>()
 
 // State
 const chartRef = ref<HTMLDivElement | null>(null)
-const chartInstance = ref<ECharts | null>(null)
+// Use any to avoid strict ECharts type compatibility issues
+const chartInstance = ref<echarts.ECharts | null>(null)
 const isFullscreen = ref(false)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
@@ -184,8 +186,14 @@ onUnmounted(() => {
     <!-- Toolbar -->
     <div class="chart-toolbar">
       <div class="chart-info">
-        <component :is="ChartIcon" class="w-4 h-4" />
-        <span v-if="title" class="chart-title">{{ title }}</span>
+        <component
+          :is="ChartIcon"
+          class="w-4 h-4"
+        />
+        <span
+          v-if="title"
+          class="chart-title"
+        >{{ title }}</span>
       </div>
       
       <div class="chart-actions">
@@ -216,16 +224,25 @@ onUnmounted(() => {
     <!-- Chart Container -->
     <div class="chart-container">
       <!-- Loading -->
-      <div v-if="isLoading" class="chart-loading">
+      <div
+        v-if="isLoading"
+        class="chart-loading"
+      >
         <div class="loading-spinner" />
         <span>加载图表中...</span>
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="chart-error">
+      <div
+        v-else-if="error"
+        class="chart-error"
+      >
         <Settings class="w-12 h-12" />
         <span>{{ error }}</span>
-        <button class="retry-btn" @click="refreshChart">
+        <button
+          class="retry-btn"
+          @click="refreshChart"
+        >
           重试
         </button>
       </div>
