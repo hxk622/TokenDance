@@ -346,22 +346,24 @@ class FreeModelRouter(SimpleRouter):
     """
 
     # 免费模型任务映射 - 按任务类型推荐最佳免费模型 (2026-01 更新)
+    # 注意: 模型名称必须与 MODEL_REGISTRY 中的 key 一致
     FREE_TASK_MODEL_MAP = {
-        TaskType.DEEP_RESEARCH: "deepseek/deepseek-r1-0528:free",       # 深度推理
-        TaskType.FINANCIAL_ANALYSIS: "deepseek/deepseek-r1-0528:free",  # 分析任务
+        TaskType.DEEP_RESEARCH: "deepseek/deepseek-r1:free",             # 深度推理 (支持 thinking)
+        TaskType.FINANCIAL_ANALYSIS: "deepseek/deepseek-r1:free",        # 分析任务
         TaskType.PPT_GENERATION: "meta-llama/llama-3.3-70b-instruct:free",  # 创意生成
-        TaskType.CODE_GENERATION: "deepseek/deepseek-r1-0528:free",     # 专业编码
-        TaskType.QUICK_QA: "xiaomi/mimo-v2-flash:free",                 # 快速响应
-        TaskType.MULTIMODAL: "xiaomi/mimo-v2-flash:free",               # 多模态
-        TaskType.GENERAL: "meta-llama/llama-3.3-70b-instruct:free",     # 通用
+        TaskType.CODE_GENERATION: "mistralai/devstral-2:free",           # 专业编码
+        TaskType.QUICK_QA: "xiaomi/mimo-v2-flash:free",                  # 快速响应
+        TaskType.MULTIMODAL: "xiaomi/mimo-v2-flash:free",                # 多模态
+        TaskType.GENERAL: "meta-llama/llama-3.3-70b-instruct:free",      # 通用
     }
 
     # Fallback 链 - 当主模型不可用时的备选 (2026-01 更新)
+    # 注意: 模型名称必须与 MODEL_REGISTRY 中的 key 一致
     FREE_FALLBACK_CHAIN = [
-        "deepseek/deepseek-r1-0528:free",           # DeepSeek R1 - 推理强
+        "deepseek/deepseek-r1:free",                 # DeepSeek R1 - 推理强 (支持 thinking)
         "meta-llama/llama-3.3-70b-instruct:free",   # Llama 3.3 - 通用
         "xiaomi/mimo-v2-flash:free",                # MiMo - 快速
-        "z-ai/glm-4.5-air:free",                    # GLM - 中文友好
+        "zhipu/glm-4.5-air:free",                   # GLM - 中文友好
     ]
 
     def __init__(self, use_free_only: bool = True, fallback_to_paid: bool = False):
@@ -412,7 +414,7 @@ class FreeModelRouter(SimpleRouter):
 
         if prefer_chinese:
             logger.info("Chinese preferred, using GLM-4.5-Air")
-            return "z-ai/glm-4.5-air:free"
+            return "zhipu/glm-4.5-air:free"
 
         # 按任务类型选择
         model = self.FREE_TASK_MODEL_MAP.get(
