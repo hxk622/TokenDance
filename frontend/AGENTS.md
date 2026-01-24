@@ -8,9 +8,9 @@
 # Setup
 pnpm install
 
-# Run dev server (with T-state auto-recovery)
-# 使用下面的完整命令启动前端，会自动处理 T 状态进程
-cd frontend && pkill -f vite 2>/dev/null; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 & sleep 3; while ps -o stat= -p $(pgrep -f vite | head -1) 2>/dev/null | grep -q T; do pkill -f vite; sleep 1; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &; sleep 3; done; curl -s http://127.0.0.1:5173 >/dev/null && echo "Frontend started successfully"
+# Run dev server (recommended - prevents T-state)
+# 使用子 shell + nohup 方式启动，防止进入 T 状态
+cd frontend && pkill -f vite 2>/dev/null; (nohup pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &); sleep 3 && curl -s http://127.0.0.1:5173 >/dev/null && echo "Frontend started successfully"
 
 # Build
 pnpm build
@@ -20,7 +20,7 @@ pnpm build
 
 | Command | Purpose |
 |---------|---------|
-| `pkill -f vite; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &` | Dev server (kill existing first) |
+| `pkill -f vite; (nohup pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &)` | Dev server (subshell + nohup, prevents T-state) |
 | `pnpm build` | Production build |
 | `pnpm build:with-check` | Build with type check |
 | `pnpm preview` | Preview production build |
@@ -214,22 +214,12 @@ frontend/
 **规则**: 启动前端时，必须检测并处理 T 状态：
 
 ```bash
-# 完整启动命令 (带 T 状态自动恢复)
-start_frontend() {
-  pkill -f vite 2>/dev/null
-  sleep 1
-  cd /path/to/frontend && pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &
-  sleep 3
-  # 检测 T 状态并重启
-  while ps -o stat= -p $(pgrep -f vite | head -1) 2>/dev/null | grep -q T; do
-    echo "Vite in T-state, restarting..."
-    pkill -f vite
-    sleep 1
-    pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &
-    sleep 3
-  done
-  curl -s http://127.0.0.1:5173 >/dev/null && echo "Frontend OK"
-}
+# 推荐启动命令 (子 shell + nohup 防止 T 状态)
+pkill -f vite 2>/dev/null
+sleep 1
+cd /path/to/frontend && (nohup pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &)
+sleep 3
+curl -s http://127.0.0.1:5173 >/dev/null && echo "Frontend OK"
 ```
 
 **快速检查命令**:
@@ -244,7 +234,7 @@ ps -o pid,stat,command -p $(pgrep -f vite) 2>/dev/null
 **日志输出规则 (必须遵循):**
 
 - 前端日志必须输出到 `/tmp/frontend.log`，不要输出到 stdout
-- 启动命令: `pkill -f vite; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &`
+- 启动命令: `pkill -f vite; (nohup pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &)`
 - 查看日志: `tail -f /tmp/frontend.log`
 
 ## Git Workflow
