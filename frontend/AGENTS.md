@@ -8,9 +8,9 @@
 # Setup
 pnpm install
 
-# Run dev server in background (logs to /tmp/frontend.log)
-# IMPORTANT: Must redirect stdin from /dev/null to prevent TTY blocking
-pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &
+# Run dev server (with T-state auto-recovery)
+# 使用下面的完整命令启动前端，会自动处理 T 状态进程
+cd frontend && pkill -f vite 2>/dev/null; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 & sleep 3; while ps -o stat= -p $(pgrep -f vite | head -1) 2>/dev/null | grep -q T; do pkill -f vite; sleep 1; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &; sleep 3; done; curl -s http://127.0.0.1:5173 >/dev/null && echo "Frontend started successfully"
 
 # Build
 pnpm build
@@ -20,7 +20,7 @@ pnpm build
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &` | Dev server in background (logs to /tmp/frontend.log) |
+| `pkill -f vite; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &` | Dev server (kill existing first) |
 | `pnpm build` | Production build |
 | `pnpm build:with-check` | Build with type check |
 | `pnpm preview` | Preview production build |
@@ -207,12 +207,44 @@ frontend/
 | monaco-editor | Code editor |
 | marked + highlight.js | Markdown rendering |
 
+## Vite T-State Handling (必须遵循)
+
+**问题**: 在后台启动 vite 时，进程可能进入 T 状态 (Stopped/Traced)，导致服务无响应。
+
+**规则**: 启动前端时，必须检测并处理 T 状态：
+
+```bash
+# 完整启动命令 (带 T 状态自动恢复)
+start_frontend() {
+  pkill -f vite 2>/dev/null
+  sleep 1
+  cd /path/to/frontend && pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &
+  sleep 3
+  # 检测 T 状态并重启
+  while ps -o stat= -p $(pgrep -f vite | head -1) 2>/dev/null | grep -q T; do
+    echo "Vite in T-state, restarting..."
+    pkill -f vite
+    sleep 1
+    pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &
+    sleep 3
+  done
+  curl -s http://127.0.0.1:5173 >/dev/null && echo "Frontend OK"
+}
+```
+
+**快速检查命令**:
+```bash
+# 检查 vite 进程状态
+ps -o pid,stat,command -p $(pgrep -f vite) 2>/dev/null
+# T/TN = 停止状态, S/R = 正常
+```
+
 ## Logging
 
 **日志输出规则 (必须遵循):**
 
 - 前端日志必须输出到 `/tmp/frontend.log`，不要输出到 stdout
-- 启动命令: `pnpm dev >> /tmp/frontend.log 2>&1`
+- 启动命令: `pkill -f vite; pnpm dev </dev/null >> /tmp/frontend.log 2>&1 &`
 - 查看日志: `tail -f /tmp/frontend.log`
 
 ## Git Workflow
