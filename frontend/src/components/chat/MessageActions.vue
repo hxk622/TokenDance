@@ -82,8 +82,14 @@ function handleRegenerate() {
       title="复制"
       @click="handleCopy"
     >
-      <Check v-if="copied" class="w-3.5 h-3.5" />
-      <Copy v-else class="w-3.5 h-3.5" />
+      <Check
+        v-if="copied"
+        class="w-3.5 h-3.5"
+      />
+      <Copy
+        v-else
+        class="w-3.5 h-3.5"
+      />
     </button>
 
     <!-- Like -->

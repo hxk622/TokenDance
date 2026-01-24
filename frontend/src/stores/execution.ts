@@ -1010,6 +1010,22 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   /**
+   * Send supplementary message during execution
+   */
+  async function sendSupplementMessage(message: string) {
+    if (!sessionId.value) {
+      console.error('[ExecutionStore] Cannot send message: no session ID')
+      return
+    }
+
+    // Disconnect current SSE connection
+    disconnect()
+
+    // Reconnect with the new message as task
+    await connectSSE(message)
+  }
+
+  /**
    * Disconnect SSE and cleanup
    */
   function disconnect() {
@@ -1084,6 +1100,7 @@ export const useExecutionStore = defineStore('execution', () => {
     pause,
     resume,
     connectSSE,
+    sendSupplementMessage,
     stopExecution,  // P1-2
     disconnect,
     reset,

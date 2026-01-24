@@ -1,6 +1,8 @@
 """
 Chat API endpoints - includes SSE streaming for real-time Agent responses.
 """
+import base64
+import io
 import json
 import logging
 import tempfile
@@ -10,8 +12,16 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.message import ChatRequest, ConfirmRequest
+from app.schemas.message import Attachment, ChatRequest, ConfirmRequest
 from app.services.session_service import SessionService
+
+# Document conversion imports
+try:
+    from markitdown import MarkItDown
+    MARKITDOWN_AVAILABLE = True
+except ImportError:
+    MARKITDOWN_AVAILABLE = False
+    logging.warning("markitdown not available - document parsing disabled")
 
 # Agent Engine imports
 try:
@@ -53,6 +63,104 @@ def format_sse_event(event_type: str, data: dict) -> str:
 def get_session_service(db: AsyncSession = Depends(get_db)) -> SessionService:
     """Dependency to get SessionService instance."""
     return SessionService(db)
+
+
+def parse_document_attachment(attachment: Attachment) -> str | None:
+    """Parse document attachment and convert to markdown text.
+    
+    Args:
+        attachment: Document attachment with base64 data URL
+        
+    Returns:
+        Markdown text content or None if parsing failed
+    """
+    if not MARKITDOWN_AVAILABLE:
+        logger.warning("markitdown not available, skipping document parsing")
+        return None
+    
+    if not attachment.url or not attachment.url.startswith('data:'):
+        logger.warning(f"Invalid document URL format for {attachment.name}")
+        return None
+    
+    try:
+        # Extract base64 data from data URL
+        # Format: data:application/pdf;base64,XXXX...
+        header, data = attachment.url.split(',', 1)
+        file_bytes = base64.b64decode(data)
+        
+        # Determine file extension from name or MIME type
+        file_ext = ''
+        if attachment.name:
+            file_ext = '.' + attachment.name.rsplit('.', 1)[-1].lower()
+        elif 'pdf' in header:
+            file_ext = '.pdf'
+        elif 'word' in header or 'docx' in header:
+            file_ext = '.docx'
+        elif 'excel' in header or 'xlsx' in header:
+            file_ext = '.xlsx'
+        elif 'text/plain' in header:
+            file_ext = '.txt'
+        elif 'text/csv' in header:
+            file_ext = '.csv'
+        elif 'text/markdown' in header:
+            file_ext = '.md'
+        
+        # Convert using markitdown
+        md = MarkItDown()
+        result = md.convert_stream(io.BytesIO(file_bytes), file_extension=file_ext)
+        
+        if result and result.text_content:
+            logger.info(f"Successfully parsed document: {attachment.name} ({len(result.text_content)} chars)")
+            return result.text_content
+        else:
+            logger.warning(f"markitdown returned empty content for {attachment.name}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Failed to parse document {attachment.name}: {e}")
+        return None
+
+
+def process_document_attachments(attachments: list[Attachment] | None) -> tuple[list[dict], str]:
+    """Process document attachments and return agent attachments + context.
+    
+    Args:
+        attachments: List of attachments from request
+        
+    Returns:
+        Tuple of (attachments_for_agent, document_context)
+        - attachments_for_agent: Image attachments to pass to agent
+        - document_context: Parsed document text to prepend to user message
+    """
+    if not attachments:
+        return [], ""
+    
+    agent_attachments = []
+    document_texts = []
+    
+    for att in attachments:
+        if att.type == "image":
+            # Pass images directly to agent for vision processing
+            agent_attachments.append({
+                "type": att.type,
+                "url": att.url,
+                "name": att.name
+            })
+        elif att.type == "document":
+            # Parse documents and convert to text context
+            parsed_text = parse_document_attachment(att)
+            if parsed_text:
+                document_texts.append(f"## Document: {att.name or 'Unnamed'}\n\n{parsed_text}")
+            else:
+                # If parsing failed, still note the document
+                document_texts.append(f"## Document: {att.name or 'Unnamed'}\n\n[Document parsing failed]")
+    
+    # Build document context
+    document_context = ""
+    if document_texts:
+        document_context = "\n\n---\n\n# Attached Documents\n\n" + "\n\n---\n\n".join(document_texts) + "\n\n---\n\n"
+    
+    return agent_attachments, document_context
 
 
 @router.post("/{session_id}/message")

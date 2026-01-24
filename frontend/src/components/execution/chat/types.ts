@@ -110,16 +110,40 @@ export interface ImageAttachment {
   dataUrl?: string   // base64 data URL for sending
 }
 
+// Document attachment for preview
+export interface FileAttachment {
+  id: string
+  file: File
+  dataUrl?: string   // base64 data URL for sending
+}
+
 // Chat input state
 export interface ChatInputState {
   text: string
   quote?: QuoteInfo
   images?: ImageAttachment[]
+  files?: FileAttachment[]
 }
+
+// Supported document MIME types
+export const SUPPORTED_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'text/markdown',
+] as const
+
+export type SupportedDocumentType = typeof SUPPORTED_DOCUMENT_TYPES[number]
 
 // Attachment format for API (matches backend schema)
 export interface Attachment {
-  type: 'image' | 'file'
+  type: 'image' | 'document'
   url: string  // base64 data URL
   name?: string
 }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { Send, Paperclip, Mic, X, Image as ImageIcon } from 'lucide-vue-next'
-import type { QuoteInfo, SendMessagePayload, ImageAttachment, Attachment } from './types'
+import { Send, Paperclip, Mic, X, Image as ImageIcon, FileText, FileSpreadsheet, File } from 'lucide-vue-next'
+import type { QuoteInfo, SendMessagePayload, ImageAttachment, FileAttachment, Attachment } from './types'
+import { SUPPORTED_DOCUMENT_TYPES } from './types'
 
 interface Props {
   disabled?: boolean
@@ -9,7 +10,9 @@ interface Props {
   quote?: QuoteInfo | null
   maxLength?: number
   maxImages?: number
+  maxFiles?: number
   maxImageSizeMB?: number
+  maxFileSizeMB?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -18,7 +21,9 @@ const props = withDefaults(defineProps<Props>(), {
   quote: null,
   maxLength: 2000,
   maxImages: 5,
-  maxImageSizeMB: 10
+  maxFiles: 5,
+  maxImageSizeMB: 10,
+  maxFileSizeMB: 20
 })
 
 const emit = defineEmits<{
@@ -29,24 +34,30 @@ const emit = defineEmits<{
 // Input state
 const inputText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isFocused = ref(false)
+const isDragging = ref(false)
 const pendingImages = ref<ImageAttachment[]>([])
-const isProcessingImage = ref(false)
+const pendingFiles = ref<FileAttachment[]>([])
+const isProcessingFile = ref(false)
 
-// Supported image types
-const SUPPORTED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+// Supported types
+const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
 // Computed
 const canSend = computed(() => {
-  const hasContent = inputText.value.trim().length > 0 || pendingImages.value.length > 0
-  return hasContent && !props.disabled && !isProcessingImage.value
+  const hasContent = inputText.value.trim().length > 0 || pendingImages.value.length > 0 || pendingFiles.value.length > 0
+  return hasContent && !props.disabled && !isProcessingFile.value
 })
 
 const charCount = computed(() => inputText.value.length)
 const isNearLimit = computed(() => charCount.value > props.maxLength * 0.9)
 const hasImages = computed(() => pendingImages.value.length > 0)
+const hasFiles = computed(() => pendingFiles.value.length > 0)
+const hasAttachments = computed(() => hasImages.value || hasFiles.value)
 const canAddMoreImages = computed(() => pendingImages.value.length < props.maxImages)
+const canAddMoreFiles = computed(() => pendingFiles.value.length < props.maxFiles)
 
 // ============ Image Processing ============
 
@@ -66,7 +77,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
  * Validate image file
  */
 function validateImage(file: File): string | null {
-  if (!SUPPORTED_TYPES.includes(file.type)) {
+  if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
     return `不支持的图片格式: ${file.type}`
   }
   const sizeMB = file.size / (1024 * 1024)
@@ -74,6 +85,48 @@ function validateImage(file: File): string | null {
     return `图片太大: ${sizeMB.toFixed(1)}MB (最大 ${props.maxImageSizeMB}MB)`
   }
   return null
+}
+
+/**
+ * Validate document file
+ */
+function validateDocument(file: File): string | null {
+  if (!SUPPORTED_DOCUMENT_TYPES.includes(file.type as typeof SUPPORTED_DOCUMENT_TYPES[number])) {
+    return `不支持的文档格式: ${file.type || file.name.split('.').pop()}`
+  }
+  const sizeMB = file.size / (1024 * 1024)
+  if (sizeMB > props.maxFileSizeMB) {
+    return `文档太大: ${sizeMB.toFixed(1)}MB (最大 ${props.maxFileSizeMB}MB)`
+  }
+  return null
+}
+
+/**
+ * Check if file is an image
+ */
+function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/')
+}
+
+/**
+ * Check if file is a document
+ */
+function isDocumentFile(file: File): boolean {
+  return SUPPORTED_DOCUMENT_TYPES.includes(file.type as typeof SUPPORTED_DOCUMENT_TYPES[number])
+}
+
+/**
+ * Get file icon component based on file type
+ */
+function getFileIcon(file: File): typeof FileText {
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+    return FileSpreadsheet
+  }
+  if (ext === 'pdf' || ext === 'doc' || ext === 'docx' || ext === 'txt' || ext === 'md') {
+    return FileText
+  }
+  return File
 }
 
 /**
@@ -92,7 +145,7 @@ async function addImage(file: File) {
     return
   }
 
-  isProcessingImage.value = true
+  isProcessingFile.value = true
 
   try {
     const previewUrl = URL.createObjectURL(file)
@@ -110,7 +163,43 @@ async function addImage(file: File) {
   } catch (err) {
     console.error('[ChatInput] Failed to process image:', err)
   } finally {
-    isProcessingImage.value = false
+    isProcessingFile.value = false
+  }
+}
+
+/**
+ * Add document to pending list
+ */
+async function addDocument(file: File) {
+  // Validate
+  const error = validateDocument(file)
+  if (error) {
+    console.warn('[ChatInput] Document validation failed:', error)
+    return
+  }
+
+  if (!canAddMoreFiles.value) {
+    console.warn(`[ChatInput] Max files (${props.maxFiles}) reached`)
+    return
+  }
+
+  isProcessingFile.value = true
+
+  try {
+    const dataUrl = await readFileAsDataUrl(file)
+
+    const attachment: FileAttachment = {
+      id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      file,
+      dataUrl
+    }
+
+    pendingFiles.value.push(attachment)
+    console.log('[ChatInput] Document added:', file.name, `(${(file.size / 1024).toFixed(1)}KB)`)
+  } catch (err) {
+    console.error('[ChatInput] Failed to process document:', err)
+  } finally {
+    isProcessingFile.value = false
   }
 }
 
@@ -127,11 +216,36 @@ function removeImage(id: string) {
 }
 
 /**
+ * Remove file from pending list
+ */
+function removeFile(id: string) {
+  const index = pendingFiles.value.findIndex(f => f.id === id)
+  if (index !== -1) {
+    pendingFiles.value.splice(index, 1)
+  }
+}
+
+/**
  * Clear all pending images
  */
 function clearImages() {
   pendingImages.value.forEach(img => URL.revokeObjectURL(img.previewUrl))
   pendingImages.value = []
+}
+
+/**
+ * Clear all pending files
+ */
+function clearFiles() {
+  pendingFiles.value = []
+}
+
+/**
+ * Clear all attachments
+ */
+function clearAllAttachments() {
+  clearImages()
+  clearFiles()
 }
 
 // ============ Event Handlers ============
@@ -156,9 +270,9 @@ function handlePaste(e: ClipboardEvent) {
 }
 
 /**
- * Handle file input change
+ * Handle image input change
  */
-function handleFileChange(e: Event) {
+function handleImageChange(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
   if (!files) return
@@ -174,10 +288,95 @@ function handleFileChange(e: Event) {
 }
 
 /**
- * Open file picker
+ * Handle document input change
  */
-function handleAttachment() {
+function handleDocumentChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = input.files
+  if (!files) return
+
+  for (const file of files) {
+    if (canAddMoreFiles.value) {
+      addDocument(file)
+    }
+  }
+
+  // Reset input for re-selection
+  input.value = ''
+}
+
+/**
+ * Open image picker
+ */
+function handleImageAttachment() {
+  imageInputRef.value?.click()
+}
+
+/**
+ * Open document picker
+ */
+function handleDocumentAttachment() {
   fileInputRef.value?.click()
+}
+
+// ============ Drag & Drop ============
+
+/**
+ * Handle drag enter
+ */
+function handleDragEnter(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  isDragging.value = true
+}
+
+/**
+ * Handle drag leave
+ */
+function handleDragLeave(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  // Only set to false if leaving the wrapper
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const x = e.clientX
+  const y = e.clientY
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    isDragging.value = false
+  }
+}
+
+/**
+ * Handle drag over
+ */
+function handleDragOver(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+/**
+ * Handle drop
+ */
+function handleDrop(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  isDragging.value = false
+
+  const files = e.dataTransfer?.files
+  if (!files) return
+
+  for (const file of files) {
+    if (isImageFile(file)) {
+      if (canAddMoreImages.value) {
+        addImage(file)
+      }
+    } else if (isDocumentFile(file)) {
+      if (canAddMoreFiles.value) {
+        addDocument(file)
+      }
+    } else {
+      console.warn('[ChatInput] Unsupported file type:', file.type)
+    }
+  }
 }
 
 // Auto-resize textarea
@@ -207,14 +406,25 @@ function handleKeyDown(e: KeyboardEvent) {
 async function handleSend() {
   if (!canSend.value) return
 
-  // Convert pending images to API format
-  const attachments: Attachment[] = pendingImages.value
-    .filter(img => img.dataUrl)
-    .map(img => ({
-      type: 'image' as const,
-      url: img.dataUrl!,
-      name: img.file.name
-    }))
+  // Convert pending attachments to API format
+  const attachments: Attachment[] = [
+    // Images
+    ...pendingImages.value
+      .filter(img => img.dataUrl)
+      .map(img => ({
+        type: 'image' as const,
+        url: img.dataUrl!,
+        name: img.file.name
+      })),
+    // Documents
+    ...pendingFiles.value
+      .filter(f => f.dataUrl)
+      .map(f => ({
+        type: 'document' as const,
+        url: f.dataUrl!,
+        name: f.file.name
+      }))
+  ]
   
   const payload: SendMessagePayload = {
     content: inputText.value.trim(),
@@ -224,7 +434,7 @@ async function handleSend() {
   
   emit('send', payload)
   inputText.value = ''
-  clearImages()
+  clearAllAttachments()
   autoResize()
   
   // Clear quote after send
@@ -269,16 +479,41 @@ defineExpose({
 </script>
 
 <template>
-  <div :class="['chat-input-wrapper', { disabled, focused: isFocused }]">
-    <!-- Hidden file input -->
+  <div 
+    :class="['chat-input-wrapper', { disabled, focused: isFocused, dragging: isDragging }]"
+    @dragenter="handleDragEnter"
+    @dragleave="handleDragLeave"
+    @dragover="handleDragOver"
+    @drop="handleDrop"
+  >
+    <!-- Hidden file inputs -->
     <input
-      ref="fileInputRef"
+      ref="imageInputRef"
       type="file"
       accept="image/png,image/jpeg,image/gif,image/webp"
       multiple
       class="hidden-file-input"
-      @change="handleFileChange"
+      @change="handleImageChange"
     >
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md"
+      multiple
+      class="hidden-file-input"
+      @change="handleDocumentChange"
+    >
+
+    <!-- Drag Overlay -->
+    <Transition name="fade">
+      <div v-if="isDragging" class="drag-overlay">
+        <div class="drag-content">
+          <Paperclip class="w-8 h-8" />
+          <span>拖放文件到此处</span>
+          <span class="drag-hint">支持图片、PDF、Word、Excel 等</span>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Quote Preview -->
     <Transition name="quote">
@@ -299,13 +534,14 @@ defineExpose({
       </div>
     </Transition>
 
-    <!-- Image Preview Area -->
-    <Transition name="images">
+    <!-- Attachments Preview Area -->
+    <Transition name="attachments">
       <div
-        v-if="hasImages"
-        class="images-preview"
+        v-if="hasAttachments"
+        class="attachments-preview"
       >
-        <div class="images-grid">
+        <!-- Images Grid -->
+        <div v-if="hasImages" class="images-grid">
           <div
             v-for="img in pendingImages"
             :key="img.id"
@@ -317,7 +553,7 @@ defineExpose({
               class="image-thumbnail"
             >
             <button
-              class="image-remove"
+              class="item-remove"
               title="移除图片"
               @click="removeImage(img.id)"
             >
@@ -325,33 +561,59 @@ defineExpose({
             </button>
             <span class="image-name">{{ img.file.name }}</span>
           </div>
-          <!-- Add more images button -->
-          <button
-            v-if="canAddMoreImages"
-            class="image-add-btn"
-            title="添加更多图片"
-            @click="handleAttachment"
-          >
-            <ImageIcon class="w-5 h-5" />
-            <span class="add-text">添加</span>
-          </button>
         </div>
-        <div class="images-hint">
-          {{ pendingImages.length }}/{{ maxImages }} 张图片 · 支持粘贴截图
+
+        <!-- Files List -->
+        <div v-if="hasFiles" class="files-list">
+          <div
+            v-for="f in pendingFiles"
+            :key="f.id"
+            class="file-item"
+          >
+            <component :is="getFileIcon(f.file)" class="file-icon" />
+            <div class="file-info">
+              <span class="file-name">{{ f.file.name }}</span>
+              <span class="file-size">{{ (f.file.size / 1024).toFixed(1) }} KB</span>
+            </div>
+            <button
+              class="item-remove"
+              title="移除文件"
+              @click="removeFile(f.id)"
+            >
+              <X class="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        <div class="attachments-hint">
+          <span v-if="hasImages">{{ pendingImages.length }}/{{ maxImages }} 张图片</span>
+          <span v-if="hasImages && hasFiles"> · </span>
+          <span v-if="hasFiles">{{ pendingFiles.length }}/{{ maxFiles }} 个文档</span>
+          <span> · 支持拖拽上传</span>
         </div>
       </div>
     </Transition>
     
     <!-- Input Area -->
     <div class="input-area">
-      <!-- Attachment Button -->
+      <!-- Image Attachment Button -->
       <button
         class="input-btn attachment-btn"
-        :class="{ 'has-images': hasImages }"
+        :class="{ 'has-items': hasImages }"
         title="添加图片 (支持粘贴截图)"
-        @click="handleAttachment"
+        @click="handleImageAttachment"
       >
         <ImageIcon class="w-4 h-4" />
+      </button>
+
+      <!-- Document Attachment Button -->
+      <button
+        class="input-btn attachment-btn"
+        :class="{ 'has-items': hasFiles }"
+        title="上传文档 (PDF/Word/Excel)"
+        @click="handleDocumentAttachment"
+      >
+        <Paperclip class="w-4 h-4" />
       </button>
       
       <!-- Text Input -->
@@ -359,7 +621,7 @@ defineExpose({
         <textarea
           ref="textareaRef"
           v-model="inputText"
-          :placeholder="hasImages ? '添加描述（可选）...' : placeholder"
+          :placeholder="hasAttachments ? '添加描述（可选）...' : placeholder"
           :disabled="disabled"
           :maxlength="maxLength"
           rows="1"
@@ -393,7 +655,7 @@ defineExpose({
       <button
         :class="['send-btn', { active: canSend }]"
         :disabled="!canSend"
-        :title="isProcessingImage ? '处理图片中...' : '发送'"
+        :title="isProcessingFile ? '处理文件中...' : '发送'"
         @click="handleSend"
       >
         <Send class="w-4 h-4" />
@@ -404,6 +666,7 @@ defineExpose({
 
 <style scoped>
 .chat-input-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--any-bg-secondary);
@@ -422,6 +685,12 @@ defineExpose({
   pointer-events: none;
 }
 
+.chat-input-wrapper.dragging {
+  border-color: var(--exec-accent, #00D9FF);
+  border-style: dashed;
+  background: rgba(0, 184, 217, 0.05);
+}
+
 /* Hidden file input */
 .hidden-file-input {
   position: absolute;
@@ -429,6 +698,45 @@ defineExpose({
   height: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Drag Overlay */
+.drag-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 184, 217, 0.1);
+  border-radius: 16px;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+}
+
+.drag-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--exec-accent, #00D9FF);
+  font-weight: 500;
+}
+
+.drag-hint {
+  font-size: 12px;
+  color: var(--any-text-muted);
+  font-weight: normal;
+}
+
+/* Fade Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 200ms ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* Quote Preview */
@@ -494,8 +802,8 @@ defineExpose({
   transform: translateY(-8px);
 }
 
-/* Images Preview Area */
-.images-preview {
+/* Attachments Preview Area */
+.attachments-preview {
   padding: 8px 12px;
   background: var(--any-bg-tertiary);
   border-bottom: 1px solid var(--any-border);
@@ -505,6 +813,7 @@ defineExpose({
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .image-item {
@@ -523,7 +832,7 @@ defineExpose({
   object-fit: cover;
 }
 
-.image-remove {
+.item-remove {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -541,7 +850,8 @@ defineExpose({
   transition: opacity 150ms ease;
 }
 
-.image-item:hover .image-remove {
+.image-item:hover .item-remove,
+.file-item:hover .item-remove {
   opacity: 1;
 }
 
@@ -559,46 +869,81 @@ defineExpose({
   overflow: hidden;
 }
 
-.image-add-btn {
-  width: 64px;
-  height: 64px;
+/* Files List */
+.files-list {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.file-item {
+  position: relative;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: transparent;
-  border: 2px dashed var(--any-border);
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--any-bg-primary);
+  border: 1px solid var(--any-border);
   border-radius: 8px;
+}
+
+.file-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--exec-accent, #00D9FF);
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-name {
+  font-size: 13px;
+  color: var(--any-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 11px;
   color: var(--any-text-muted);
-  cursor: pointer;
-  transition: all 150ms ease;
 }
 
-.image-add-btn:hover {
-  border-color: var(--any-border-hover);
-  color: var(--any-text-secondary);
+.file-item .item-remove {
+  position: relative;
+  top: auto;
+  right: auto;
+  opacity: 0.6;
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-muted);
+}
+
+.file-item .item-remove:hover {
+  opacity: 1;
   background: var(--any-bg-hover);
+  color: var(--any-text-primary);
 }
 
-.add-text {
-  font-size: 10px;
-}
-
-.images-hint {
+.attachments-hint {
   margin-top: 6px;
   font-size: 11px;
   color: var(--any-text-muted);
 }
 
-/* Images Transition */
-.images-enter-active,
-.images-leave-active {
+/* Attachments Transition */
+.attachments-enter-active,
+.attachments-leave-active {
   transition: all 200ms ease;
 }
 
-.images-enter-from,
-.images-leave-to {
+.attachments-enter-from,
+.attachments-leave-to {
   opacity: 0;
   max-height: 0;
   padding-top: 0;
@@ -630,7 +975,7 @@ defineExpose({
   color: var(--any-text-secondary);
 }
 
-.input-btn.has-images {
+.input-btn.has-items {
   color: var(--exec-accent, #00D9FF);
 }
 

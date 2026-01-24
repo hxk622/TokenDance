@@ -270,6 +270,9 @@ const isDeepResearch = computed(() => taskType.value === 'deep-research')
 const leftWidth = ref(layoutRatios[taskType.value].left)
 const rightWidth = ref(layoutRatios[taskType.value].right)
 
+// Artifact tab state - MUST be declared before watch that uses it
+const currentTab = ref<TabType>('report')
+
 // taskType 变化时的统一响应（布局比例 + 默认 Tab）
 const defaultTabs: Record<TaskType, TabType> = {
   'deep-research': 'report',
@@ -322,9 +325,6 @@ const bottomHeight = ref(60)
 
 // Refs for child components
 const streamingInfoRef = ref<InstanceType<typeof StreamingInfo> | null>(null)
-
-// Artifact tab state - defaults based on task type
-const currentTab = ref<TabType>('report')
 
 // Focus Mode state
 const isFocusMode = ref(false)
@@ -745,7 +745,7 @@ function openBrowserUrl(url: string) {
 // Handle chat message from StreamingInfo
 function handleChatMessage(message: string) {
   console.log('Chat message received:', message)
-  
+
   // In ready state (no execution yet), treat as initial task and start execution
   if (initPhase.value === 'ready' && !isRunning.value) {
     initialTask.value = message
@@ -753,9 +753,11 @@ function handleChatMessage(message: string) {
     startActualExecution(message)
     return
   }
-  
-  // TODO: During execution, send as supplementary message
-  // executionStore.sendSupplementMessage(sessionId.value, message)
+
+  // During or after execution, send as supplementary message
+  if (sessionId.value) {
+    executionStore.sendSupplementMessage(message)
+  }
 }
 
 // ESC 键盘快捷键退出聚焦模式

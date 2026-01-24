@@ -580,14 +580,14 @@ async def stream_session_events(
                 })
 
             # If task is provided and Agent Engine is available, run real agent
-            # BUG FIX: Only start Agent if session is PENDING to prevent
-            # SSE reconnection from re-triggering Agent execution
+            # Multi-turn conversation support: Allow new messages in COMPLETED sessions
+            # Only prevent re-triggering for RUNNING sessions (already executing)
             from app.models.session import SessionStatus
 
             should_start_agent = (
                 task and
                 AGENT_ENGINE_AVAILABLE and
-                session.status == SessionStatus.PENDING
+                session.status in (SessionStatus.PENDING, SessionStatus.COMPLETED, SessionStatus.FAILED, SessionStatus.CANCELLED)
             )
 
             if should_start_agent:

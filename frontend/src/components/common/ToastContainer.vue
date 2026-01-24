@@ -33,7 +33,10 @@ function getColorClass(type: Toast['type']) {
           class="flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-sm shadow-lg min-w-[200px] max-w-[400px]"
           :class="getColorClass(toast.type)"
         >
-          <component :is="getIcon(toast.type)" class="w-5 h-5 flex-shrink-0" />
+          <component
+            :is="getIcon(toast.type)"
+            class="w-5 h-5 flex-shrink-0"
+          />
           <span class="flex-1 text-sm">{{ toast.message }}</span>
           <button
             class="p-0.5 hover:bg-white/10 rounded transition-colors cursor-pointer"

@@ -7,6 +7,15 @@ from .anthropic import ClaudeLLM
 from .base import BaseLLM, ImageContent, LLMMessage, LLMResponse, MultimodalContent, TextContent
 from .openrouter import OpenRouterLLM, create_openrouter_llm
 from .qwen import QwenLLM, create_qwen_llm
+from .siliconflow import (
+    SILICONFLOW_FREE_MODELS,
+    SILICONFLOW_PAID_MODELS,
+    SiliconFlowLLM,
+    create_siliconflow_llm,
+    get_siliconflow_best_model,
+    get_siliconflow_free_model,
+    is_siliconflow_free_model,
+)
 
 # 路由器
 from .router import FreeModelRouter, SimpleRouter, TaskType, get_free_llm_for_task, get_llm_for_task
@@ -26,6 +35,14 @@ __all__ = [
     "create_qwen_llm",
     "OpenRouterLLM",
     "create_openrouter_llm",
+    # SiliconFlow
+    "SiliconFlowLLM",
+    "create_siliconflow_llm",
+    "get_siliconflow_free_model",
+    "get_siliconflow_best_model",
+    "is_siliconflow_free_model",
+    "SILICONFLOW_FREE_MODELS",
+    "SILICONFLOW_PAID_MODELS",
     # 路由器
     "SimpleRouter",
     "FreeModelRouter",

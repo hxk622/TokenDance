@@ -271,6 +271,26 @@ class AgentFileSystem:
         file_path = self.workspace_path / relative_path
         return file_path.exists()
 
+    def mkdir(self, relative_path: str, parents: bool = True, exist_ok: bool = True) -> Path:
+        """
+        创建目录
+
+        Args:
+            relative_path: 相对于workspace的路径
+            parents: 是否创建父目录
+            exist_ok: 目录已存在时是否报错
+
+        Returns:
+            Path: 目录路径
+        """
+        dir_path = self.workspace_path / relative_path
+
+        if not self._is_safe_path(dir_path):
+            raise PermissionError(f"不允许在工作空间外创建目录: {relative_path}")
+
+        dir_path.mkdir(parents=parents, exist_ok=exist_ok)
+        return dir_path
+
     def get_absolute_path(self, relative_path: str) -> Path:
         """
         获取绝对路径

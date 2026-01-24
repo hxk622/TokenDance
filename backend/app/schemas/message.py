@@ -30,10 +30,15 @@ class Citation(BaseModel):
 
 
 class Attachment(BaseModel):
-    """Message attachment schema."""
-    type: str  # file, image
+    """Message attachment schema.
+    
+    Supported types:
+    - image: Image files (PNG, JPEG, GIF, WebP)
+    - document: Document files (PDF, DOCX, XLSX, PPTX, TXT, CSV, MD)
+    """
+    type: str  # image, document
     file_id: str | None = None
-    url: str | None = None
+    url: str | None = None  # base64 data URL
     name: str | None = None
 
 
