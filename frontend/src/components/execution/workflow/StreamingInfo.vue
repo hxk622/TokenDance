@@ -5,6 +5,8 @@ import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { ChatInput, ChatFormMessage } from '@/components/execution/chat'
 import { ResearchProgress, InterventionPanel } from '@/components/execution/research'
+import MessageActions from '@/components/chat/MessageActions.vue'
+import { messageApi } from '@/api/message'
 import ResearchBlockList from '@/components/execution/research/blocks/ResearchBlockList.vue'
 import type { BlockEvent } from '@/composables/useResearchBlocks'
 import type { 
@@ -465,6 +467,31 @@ function handleFormEdit(msgId: string) {
   }
 }
 
+// Handle message feedback (fire-and-forget with rollback on error)
+function handleMessageFeedback(msgId: string, feedback: 'like' | 'dislike' | null, onError?: () => void) {
+  messageApi.submitFeedback(msgId, feedback).catch((error) => {
+    console.error('Failed to submit feedback:', error)
+    onError?.()
+  })
+}
+
+// Handle regenerate last AI message
+function handleRegenerateMessage() {
+  // TODO: Implement regenerate logic - re-run agent from last user message
+  console.log('Regenerate message requested')
+}
+
+// Check if a message is the last assistant message
+function isLastAssistantMessage(msgId: string): boolean {
+  const assistantMessages = visibleMessages.value.filter(m => m.role === 'assistant')
+  return assistantMessages.length > 0 && assistantMessages[assistantMessages.length - 1].id === msgId
+}
+
+// Check if any message is currently streaming
+const isAnyMessageStreaming = computed(() => {
+  return messages.value.some(m => m.status === 'streaming' || m.status === 'thinking')
+})
+
 // Filter visible messages (hide deprecated unless expanded)
 const visibleMessages = computed(() => {
   return messages.value.filter(m => !m.deprecated)
@@ -924,19 +951,17 @@ defineExpose({
               />
             </div>
             
-            <!-- Message actions (hover) -->
-            <div
-              v-if="hoveredMessageId === msg.id && msg.status === 'complete'"
-              class="message-actions ai-actions"
-            >
-              <button
-                class="action-btn"
-                title="引用"
-                @click="handleQuoteMessage(msg)"
-              >
-                <MessageSquareQuote class="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <!-- Message actions -->
+            <MessageActions
+              v-if="msg.status === 'complete'"
+              :message-id="msg.id"
+              :content="msg.content || ''"
+              :feedback="(msg as any).feedback"
+              :is-last-message="isLastAssistantMessage(msg.id)"
+              :is-streaming="isAnyMessageStreaming"
+              @feedback="(fb, onError) => handleMessageFeedback(msg.id, fb, onError)"
+              @regenerate="handleRegenerateMessage"
+            />
             
             <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
           </div>
