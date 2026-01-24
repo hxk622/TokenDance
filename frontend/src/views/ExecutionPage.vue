@@ -793,10 +793,30 @@ function openBrowserUrl(url: string) {
 }
 
 // Handle chat message from StreamingInfo
-function handleChatMessage(message: string) {
+async function handleChatMessage(message: string) {
   console.log('Chat message received:', message)
 
-  // In ready state (no execution yet), treat as initial task and start execution
+  // Project Mode: Use project store for chat
+  if (isProjectMode.value) {
+    if (!projectStore.currentProject) {
+      console.error('[ExecutionPage] No current project in project mode')
+      executionStore.error = 'Project not loaded'
+      return
+    }
+
+    try {
+      // Send message through project API (creates conversation if needed)
+      await projectStore.sendMessage(message)
+      // TODO: Integrate with SSE streaming for project mode
+      console.log('[ExecutionPage] Project message sent')
+    } catch (error) {
+      console.error('[ExecutionPage] Failed to send project message:', error)
+      executionStore.error = 'Failed to send message'
+    }
+    return
+  }
+
+  // Session Mode: In ready state (no execution yet), treat as initial task and start execution
   if (initPhase.value === 'ready' && !isRunning.value) {
     initialTask.value = message
     initPhase.value = 'executing'
@@ -804,7 +824,7 @@ function handleChatMessage(message: string) {
     return
   }
 
-  // During or after execution, send as supplementary message
+  // Session Mode: During or after execution, send as supplementary message
   if (sessionId.value) {
     executionStore.sendSupplementMessage(message)
   }
