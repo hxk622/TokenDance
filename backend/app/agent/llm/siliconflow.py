@@ -15,11 +15,7 @@ import os
 from collections.abc import AsyncGenerator
 from typing import Any
 
-try:
-    from openai import AsyncOpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
+import httpx
 
 from .base import BaseLLM, LLMMessage, LLMResponse
 
@@ -74,7 +70,7 @@ SILICONFLOW_FALLBACK_CHAIN = [
 class SiliconFlowLLM(BaseLLM):
     """SiliconFlow API 客户端
 
-    使用 OpenAI SDK 调用硅基流动 API
+    使用 httpx 直接调用硅基流动 API（绕过 SSL 证书问题）
     官方文档：https://docs.siliconflow.cn
     """
 
@@ -87,18 +83,7 @@ class SiliconFlowLLM(BaseLLM):
         base_url: str = "https://api.siliconflow.cn/v1"
     ):
         super().__init__(api_key, model, max_tokens, temperature)
-
-        if not OPENAI_AVAILABLE:
-            raise ImportError(
-                "openai SDK not installed. "
-                "Install with: pip install openai"
-            )
-
-        self.base_url = base_url
-        self.client = AsyncOpenAI(
-            api_key=api_key,
-            base_url=base_url
-        )
+        self.base_url = base_url.rstrip("/")
         logger.info(f"SiliconFlowLLM initialized with model: {model}")
 
     async def complete(
@@ -147,36 +132,46 @@ class SiliconFlowLLM(BaseLLM):
         logger.info(f"[SiliconFlow] Calling model: {self.model} | max_tokens: {params['max_tokens']}")
 
         try:
-            # 调用 API
-            response = await self.client.chat.completions.create(**api_params)
+            # 使用 httpx 直接调用（禁用 SSL 验证，绕过证书问题）
+            async with httpx.AsyncClient(verify=False, timeout=120.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json=api_params
+                )
+                response.raise_for_status()
+                data = response.json()
 
             # 解析响应
-            message = response.choices[0].message
-            content = message.content or ""
+            message = data["choices"][0]["message"]
+            content = message.get("content") or ""
 
             # 解析工具调用
             tool_calls = None
-            if message.tool_calls:
+            if message.get("tool_calls"):
                 tool_calls = []
-                for tc in message.tool_calls:
+                for tc in message["tool_calls"]:
                     try:
                         # 尝试解析 JSON 参数
-                        arguments = json.loads(tc.function.arguments)
+                        arguments = json.loads(tc["function"]["arguments"])
                     except json.JSONDecodeError:
-                        arguments = {"raw": tc.function.arguments}
+                        arguments = {"raw": tc["function"]["arguments"]}
 
                     tool_calls.append({
-                        "id": tc.id,
-                        "name": tc.function.name,
+                        "id": tc["id"],
+                        "name": tc["function"]["name"],
                         "input": arguments
                     })
 
             # 处理使用量信息
             usage = None
-            if response.usage:
+            if data.get("usage"):
                 usage = {
-                    "input_tokens": response.usage.prompt_tokens,
-                    "output_tokens": response.usage.completion_tokens
+                    "input_tokens": data["usage"]["prompt_tokens"],
+                    "output_tokens": data["usage"]["completion_tokens"]
                 }
                 logger.info(
                     f"[SiliconFlow] Response from {self.model} | "
@@ -186,7 +181,7 @@ class SiliconFlowLLM(BaseLLM):
             return LLMResponse(
                 content=content,
                 tool_calls=tool_calls,
-                stop_reason=response.choices[0].finish_reason,
+                stop_reason=data["choices"][0].get("finish_reason"),
                 usage=usage
             )
 
@@ -240,11 +235,31 @@ class SiliconFlowLLM(BaseLLM):
         logger.info(f"[SiliconFlow] Streaming from model: {self.model}")
 
         try:
-            # 流式调用
-            stream = await self.client.chat.completions.create(**api_params)
-            async for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
+            # 使用 httpx 直接流式调用（禁用 SSL 验证）
+            async with httpx.AsyncClient(verify=False, timeout=120.0) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json=api_params
+                ) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if line.startswith("data: "):
+                            data_str = line[6:]  # Remove "data: " prefix
+                            if data_str.strip() == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data_str)
+                                if chunk.get("choices") and chunk["choices"][0].get("delta"):
+                                    content = chunk["choices"][0]["delta"].get("content")
+                                    if content:
+                                        yield content
+                            except json.JSONDecodeError:
+                                continue
 
         except Exception as e:
             logger.error(f"[SiliconFlow] Stream failed: {e}")

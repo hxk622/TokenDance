@@ -43,6 +43,7 @@ class LLMResponse:
     tool_calls: list[dict[str, Any]] | None = None
     stop_reason: str | None = None  # "end_turn" | "tool_use" | "max_tokens"
     usage: dict[str, int] | None = None  # {"input_tokens": 123, "output_tokens": 456}
+    thinking: str | None = None  # DeepSeek R1 等模型的 reasoning/thinking 内容
 
 
 class BaseLLM(ABC):

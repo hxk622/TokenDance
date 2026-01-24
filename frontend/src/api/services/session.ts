@@ -111,11 +111,20 @@ export interface IntentValidationRequest {
   context?: Record<string, string>
 }
 
+export interface ClarificationOption {
+  label: string
+  value: string
+}
+
 export interface IntentValidationResponse {
   is_complete: boolean
   confidence_score: number
+  // Legacy fields
   missing_info: string[]
   suggested_questions: string[]
+  // New structured fields
+  clarification_options: ClarificationOption[]
+  detected_task_type: string | null
   reasoning?: string
 }
 

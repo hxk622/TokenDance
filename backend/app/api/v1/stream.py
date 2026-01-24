@@ -666,9 +666,10 @@ async def run_agent_stream(
         register_builtin_tools(tools)
 
         # 使用智能路由选择免费 LLM
+        # 使用 DEEP_RESEARCH 类型以选择支持 thinking 的模型 (deepseek-r1)
         llm = get_free_llm_for_task(
-            task_type=TaskType.GENERAL,
-            max_tokens=4096
+            task_type=TaskType.DEEP_RESEARCH,
+            max_tokens=8192
         )
 
         # Create Agent (using DeepResearchAgent for Timeline events)
@@ -842,10 +843,10 @@ async def run_agent_stream_with_store(
         tools = ToolRegistry()
         register_builtin_tools(tools)
 
-        # Get LLM
+        # Get LLM - 使用 DEEP_RESEARCH 类型以选择支持 thinking 的模型 (deepseek-r1)
         llm = get_free_llm_for_task(
-            task_type=TaskType.GENERAL,
-            max_tokens=4096
+            task_type=TaskType.DEEP_RESEARCH,
+            max_tokens=8192
         )
 
         # Create Agent (using DeepResearchAgent for Timeline events)

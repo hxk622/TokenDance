@@ -84,6 +84,9 @@ class SSEEventType(str, Enum):
     # Knowledge Graph 事件 (知识图谱生成)
     KNOWLEDGE_GRAPH_GENERATED = "knowledge_graph.generated"  # 知识图谱生成完成
 
+    # Agent Thinking 事件 (DeepSeek R1 等模型的 reasoning 过程)
+    AGENT_THINKING = "agent.thinking"  # LLM 推理过程
+
 
 class ToolStatus(str, Enum):
     """工具执行状态"""
@@ -117,6 +120,7 @@ class AgentAction:
     tool_call_id: str | None = None  # LLM 返回的工具调用 ID
     answer: str | None = None
     data: dict[str, Any] | None = None
+    thinking: str | None = None  # DeepSeek R1 等模型的 reasoning/thinking 内容
 
 
 @dataclass

@@ -157,6 +157,16 @@ class BaseAgent(ABC):
                     # 2.3 决策
                     action = await self._decide()
 
+                    # 2.3.1 如果有 thinking 内容，发送 AGENT_THINKING 事件
+                    if action.thinking:
+                        yield SSEEvent(
+                            type=SSEEventType.AGENT_THINKING,
+                            data={
+                                'content': action.thinking,
+                                'phase': 'reasoning',
+                            }
+                        )
+
                     # 2.4 执行决策
                     if action.type == ActionType.TOOL_CALL:
                         # 工具调用

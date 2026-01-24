@@ -856,6 +856,9 @@ Ensure all claims have citations."""
             tools=tool_definitions
         )
 
+        # 提取 thinking 内容 (DeepSeek R1 等模型)
+        llm_thinking = response.thinking
+
         # 处理工具调用
         if response.tool_calls:
             tool_call = response.tool_calls[0]
@@ -876,18 +879,52 @@ Ensure all claims have citations."""
                 type=ActionType.TOOL_CALL,
                 tool_name=tool_call["name"],
                 tool_args=tool_call["input"],
-                tool_call_id=tool_call["id"]
+                tool_call_id=tool_call["id"],
+                thinking=llm_thinking,
             )
 
         # 检查是否应该生成报告
         if self._should_generate_report():
             return await self._generate_final_report()
 
-        # 默认继续研究
+        # 在早期阶段，如果 LLM 没返回 tool_calls，强制继续搜索
+        if self.research_state and self.research_state.phase in ["init", "searching", "reading"]:
+            sources_count = len(self.research_state.sources_collected)
+            queries_count = len(self.research_state.queries_executed)
+
+            # 如果来源不足，强制继续搜索
+            if sources_count < self.research_state.min_credible_sources or queries_count < 3:
+                logger.info(
+                    f"Forcing continued research: sources={sources_count}, queries={queries_count}, "
+                    f"phase={self.research_state.phase}"
+                )
+                # 生成一个搜索查询继续研究
+                topic = self.research_state.topic
+                return AgentAction(
+                    type=ActionType.TOOL_CALL,
+                    tool_name="web_search",
+                    tool_args={"query": f"{topic} latest research", "max_results": 5},
+                    tool_call_id=f"forced_search_{self.research_state.iteration}"
+                )
+
+        # 如果 LLM 返回了内容但不是报告阶段，记录并继续
         answer = response.content.strip()
+        if answer and len(answer) > 100:
+            # 如果有实质性内容且已完成足够研究，可以作为答案
+            if self.research_state and self.research_state.phase == "synthesizing":
+                return AgentAction(
+                    type=ActionType.ANSWER,
+                    answer=answer
+                )
+
+        # 否则强制进入综合阶段
+        if self.research_state:
+            self.research_state.phase = "synthesizing"
+            logger.info("LLM returned no tools, moving to synthesizing phase")
+
         return AgentAction(
             type=ActionType.ANSWER,
-            answer=answer
+            answer=answer or "Research in progress. Gathering more information..."
         )
 
     def _get_decision_prompt(self) -> str:
@@ -988,7 +1025,13 @@ Do NOT call any more tools - provide the complete answer."""
             logger.info(f"Research phase changed: {old_phase} -> {self.research_state.phase}")
 
     def _should_generate_report(self) -> bool:
-        """判断是否应该生成报告"""
+        """判断是否应该生成报告
+
+        最低研究要求（必须全部满足）：
+        1. 至少 3 个来源 (min_credible_sources)
+        2. 至少执行过 3 次搜索或阅读
+        3. 处于 synthesizing 或更后的阶段
+        """
         if not self.research_state:
             return False
 
@@ -996,14 +1039,33 @@ Do NOT call any more tools - provide the complete answer."""
         if self.research_state.phase == "reporting":
             return True
 
-        # 达到最大来源数
-        if len(self.research_state.sources_collected) >= self.research_state.max_sources:
+        sources_count = len(self.research_state.sources_collected)
+        queries_count = len(self.research_state.queries_executed)
+        min_sources = self.research_state.min_credible_sources  # 默认 3
+        min_queries = 3
+
+        # 检查最低研究要求
+        has_minimum_research = (
+            sources_count >= min_sources and
+            queries_count >= min_queries and
+            self.research_state.phase in ["synthesizing", "reporting"]
+        )
+
+        # 达到最大来源数且满足最低要求
+        if sources_count >= self.research_state.max_sources and has_minimum_research:
             self.research_state.phase = "reporting"
             return True
 
-        # 迭代次数过多
-        if self.research_state.iteration > 15:
+        # 迭代次数过多但必须满足最低来源要求
+        if self.research_state.iteration > 20 and sources_count >= min_sources:
             self.research_state.phase = "reporting"
+            logger.info(f"Max iterations reached, generating report with {sources_count} sources")
+            return True
+
+        # 强制上限：30 次迭代后无论如何都生成报告
+        if self.research_state.iteration > 30:
+            self.research_state.phase = "reporting"
+            logger.warning(f"Force generating report after {self.research_state.iteration} iterations")
             return True
 
         return False

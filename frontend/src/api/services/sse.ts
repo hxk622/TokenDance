@@ -110,6 +110,9 @@ export enum SSEEventType {
 
   // Knowledge Graph events (知识图谱生成)
   KNOWLEDGE_GRAPH_GENERATED = 'knowledge_graph.generated',
+
+  // LLM Reasoning events (DeepSeek R1 等模型的推理过程)
+  LLM_REASONING = 'agent.thinking',  // LLM 推理/思考过程
 }
 
 export interface SSEEvent<T = any> {

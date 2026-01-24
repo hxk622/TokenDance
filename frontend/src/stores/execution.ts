@@ -394,11 +394,16 @@ export const useExecutionStore = defineStore('execution', () => {
       // Backend actual events: thinking, tool_call, tool_result, content, done
       case SSEEventType.THINKING:
       case SSEEventType.AGENT_THINKING:
+      case SSEEventType.LLM_REASONING:  // DeepSeek R1 等模型的推理过程
         addLog({
           type: 'thinking',
           nodeId: event.data.node_id || activeNodeId.value || '0',
           content: event.data.content,
         })
+        // 如果是 LLM_REASONING 事件，可能包含 phase 信息
+        if (event.event === SSEEventType.LLM_REASONING && event.data.phase) {
+          console.log('[ExecutionStore] LLM reasoning phase:', event.data.phase)
+        }
         break
 
       case SSEEventType.TOOL_CALL:

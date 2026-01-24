@@ -1,8 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, type Component, markRaw } from 'vue'
-import { FileText, BarChart3, Image, GitCompare, Pin } from 'lucide-vue-next'
+import { 
+  FileText, BarChart3, Image, GitCompare, Pin,
+  Globe, FileType, LineChart, Code2, Table2, 
+  Video, AudioLines, History
+} from 'lucide-vue-next'
 
-type TabType = 'report' | 'ppt' | 'file-diff' | 'image'
+// Extended TabType to support all Manus-like artifact types
+export type TabType = 
+  | 'report'      // 研究报告
+  | 'ppt'         // PPT
+  | 'file-diff'   // 文件变更
+  | 'image'       // 图像
+  | 'sandbox'     // 沙盒浏览器
+  | 'pdf'         // PDF
+  | 'chart'       // 图表
+  | 'code'        // 代码
+  | 'table'       // 数据表格
+  | 'video'       // 视频
+  | 'audio'       // 音频
+  | 'replay'      // 执行回放
 
 interface Props {
   sessionId: string
@@ -27,12 +44,28 @@ interface ArtifactTab {
   isPinned?: boolean
 }
 
-const tabs = ref<ArtifactTab[]>([
+// All available tabs with their configurations
+const allTabs: ArtifactTab[] = [
+  // 最终产物
   { id: 'report', type: 'report', title: '研究报告', icon: markRaw(FileText) },
   { id: 'ppt', type: 'ppt', title: 'PPT', icon: markRaw(BarChart3) },
-  { id: 'image', type: 'image', title: '图像内容', icon: markRaw(Image) },
+  { id: 'code', type: 'code', title: '代码', icon: markRaw(Code2) },
   { id: 'file-diff', type: 'file-diff', title: '文件变更', icon: markRaw(GitCompare) },
-])
+  // 可视化
+  { id: 'chart', type: 'chart', title: '图表', icon: markRaw(LineChart) },
+  { id: 'table', type: 'table', title: '数据表格', icon: markRaw(Table2) },
+  // 多媒体
+  { id: 'image', type: 'image', title: '图像', icon: markRaw(Image) },
+  { id: 'video', type: 'video', title: '视频', icon: markRaw(Video) },
+  { id: 'audio', type: 'audio', title: '音频', icon: markRaw(AudioLines) },
+  // 工具
+  { id: 'sandbox', type: 'sandbox', title: '实时预览', icon: markRaw(Globe) },
+  { id: 'pdf', type: 'pdf', title: 'PDF', icon: markRaw(FileType) },
+  { id: 'replay', type: 'replay', title: '执行回放', icon: markRaw(History) },
+]
+
+// Visible tabs (can be filtered by available artifacts)
+const tabs = ref<ArtifactTab[]>(allTabs)
 
 const current = computed({
   get: () => props.currentTab,

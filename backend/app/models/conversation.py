@@ -49,6 +49,17 @@ class ConversationPurpose(PyEnum):
     EXPORT = "export"
 
 
+class ConversationType(PyEnum):
+    """Type of conversation (legacy compatibility).
+
+    Note: This enum is maintained for backward compatibility.
+    For new code, consider using ConversationPurpose instead.
+    """
+    CHAT = "chat"
+    RESEARCH = "research"
+    TASK = "task"
+
+
 class Conversation(Base):
     """
     Conversation model - a multi-turn interaction within a Project.

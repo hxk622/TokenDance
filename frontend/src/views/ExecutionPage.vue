@@ -402,6 +402,17 @@ onUnmounted(() => {
   }
 })
 
+// Map detected_task_type to frontend TaskType
+function mapDetectedTaskType(detectedType: string | null): TaskType {
+  const typeMap: Record<string, TaskType> = {
+    'deep_research': 'deep-research',
+    'ppt_generation': 'ppt-generation',
+    'code_refactor': 'code-refactor',
+    'file_operations': 'file-operations',
+  }
+  return typeMap[detectedType || ''] || 'default'
+}
+
 // Run preflight check to validate task intent (async, non-blocking)
 async function runPreflightCheck(taskInput: string): Promise<IntentValidationResponse> {
   try {
@@ -410,20 +421,56 @@ async function runPreflightCheck(taskInput: string): Promise<IntentValidationRes
       context: { session_id: sessionId.value }
     })
     preflightResult.value = result
+
+    // Immediately set taskType from detected_task_type for layout switching
+    if (result.detected_task_type) {
+      const newTaskType = mapDetectedTaskType(result.detected_task_type)
+      if (newTaskType !== taskType.value) {
+        taskType.value = newTaskType
+        console.log('[ExecutionPage] taskType set from preflight:', taskType.value)
+      }
+    }
+
     return result
   } catch (error) {
     console.error('[ExecutionPage] Preflight check failed:', error)
-    // Fallback: allow execution if preflight fails
+    // Fallback: detect task type from input keywords
+    const detectedType = detectTaskTypeFromInput(taskInput)
     const fallbackResult: IntentValidationResponse = {
       is_complete: true,
       confidence_score: 1.0,
       missing_info: [],
       suggested_questions: [],
+      clarification_options: [],
+      detected_task_type: detectedType,
       reasoning: ''
     }
     preflightResult.value = fallbackResult
+
+    // Set taskType even on fallback
+    const newTaskType = mapDetectedTaskType(detectedType)
+    if (newTaskType !== taskType.value) {
+      taskType.value = newTaskType
+      console.log('[ExecutionPage] taskType set from fallback detection:', taskType.value)
+    }
+
     return fallbackResult
   }
+}
+
+// Fallback task type detection from keywords
+function detectTaskTypeFromInput(input: string): string {
+  const inputLower = input.toLowerCase()
+  if (["调研", "研究", "分析", "了解", "research", "analyze"].some(kw => inputLower.includes(kw))) {
+    return "deep_research"
+  }
+  if (["ppt", "演示", "幻灯片", "slides"].some(kw => inputLower.includes(kw))) {
+    return "ppt_generation"
+  }
+  if (["代码", "code", "refactor"].some(kw => inputLower.includes(kw))) {
+    return "code_refactor"
+  }
+  return "general"
 }
 
 // Handle proceed from StreamingInfo (after clarification)
@@ -1237,6 +1284,11 @@ onUnmounted(() => {
 /* Project mode: wider sidebar */
 .execution-page.project-mode .execution-main {
   margin-left: 280px;
+}
+
+/* Project mode: adjust header position */
+.execution-page.project-mode :deep(.any-header) {
+  left: 296px; /* 280px sidebar + 16px gap */
 }
 
 /* Sidebar footer button */

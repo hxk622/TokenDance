@@ -182,7 +182,7 @@ onUnmounted(() => {
 .any-header {
   position: fixed;
   top: 12px;
-  left: 280px; /* After sidebar */
+  left: 72px; /* Default: after narrow sidebar (56px + 16px gap) */
   right: 16px;
   display: flex;
   align-items: center;

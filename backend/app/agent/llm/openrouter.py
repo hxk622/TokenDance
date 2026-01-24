@@ -155,6 +155,17 @@ class OpenRouterLLM(BaseLLM):
                 content = message.get("content", "")
                 tool_calls = []
 
+                # 解析 DeepSeek R1 等模型的 thinking/reasoning 内容
+                thinking = None
+                # DeepSeek R1 使用 reasoning_content 字段
+                if "reasoning_content" in message:
+                    thinking = message.get("reasoning_content", "")
+                # 其他模型可能使用 reasoning 或 thinking 字段
+                elif "reasoning" in message:
+                    thinking = message.get("reasoning", "")
+                elif "thinking" in message:
+                    thinking = message.get("thinking", "")
+
                 # 处理新的 tool_calls 格式 (OpenAI tools API)
                 if "tool_calls" in message and message["tool_calls"]:
                     for tc in message["tool_calls"]:
@@ -184,7 +195,8 @@ class OpenRouterLLM(BaseLLM):
                     content=content,
                     tool_calls=tool_calls if tool_calls else None,
                     stop_reason=choice["finish_reason"],
-                    usage=usage
+                    usage=usage,
+                    thinking=thinking,
                 )
 
             except httpx.HTTPStatusError as e:

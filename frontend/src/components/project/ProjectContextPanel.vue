@@ -7,7 +7,7 @@
  * - Failures: 失败记录 (Keep the Failures)
  * - Key Findings: 关键发现
  */
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useProjectStore } from '@/stores/project'
 import type { Decision, Failure, Finding } from '@/types/project'
 import {
@@ -18,9 +18,58 @@ import {
   CheckCircle2,
   Clock,
   BookOpen,
+  RefreshCw,
 } from 'lucide-vue-next'
 
+// Props
+interface Props {
+  /** Project ID - 用于加载对应项目的上下文 */
+  projectId: string
+}
+const props = defineProps<Props>()
+
 const projectStore = useProjectStore()
+const isLoading = ref(false)
+
+// 加载项目上下文
+async function loadContext() {
+  if (!props.projectId) return
+  
+  // 如果当前项目已经是目标项目且有 context，跳过加载
+  if (
+    projectStore.currentProject?.id === props.projectId &&
+    projectStore.projectContext
+  ) {
+    return
+  }
+  
+  isLoading.value = true
+  try {
+    await projectStore.loadContext(props.projectId)
+  } catch (error) {
+    console.error('[ProjectContextPanel] Failed to load context:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 监听 projectId 变化，重新加载 context
+watch(() => props.projectId, () => {
+  loadContext()
+}, { immediate: true })
+
+// 刷新按钮
+async function handleRefresh() {
+  if (isLoading.value || !props.projectId) return
+  isLoading.value = true
+  try {
+    await projectStore.loadContext(props.projectId)
+  } catch (error) {
+    console.error('[ProjectContextPanel] Failed to refresh context:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // Computed
 const context = computed(() => projectStore.projectContext)
@@ -70,11 +119,29 @@ const isEmpty = computed(() =>
     <div class="panel-header">
       <BookOpen class="header-icon" />
       <span class="header-title">项目上下文</span>
+      <button
+        class="refresh-btn"
+        :class="{ loading: isLoading }"
+        :disabled="isLoading"
+        title="刷新"
+        @click="handleRefresh"
+      >
+        <RefreshCw class="refresh-icon" />
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      <div class="spinner" />
+      <p>加载上下文...</p>
     </div>
 
     <!-- Empty State -->
     <div
-      v-if="isEmpty"
+      v-else-if="isEmpty"
       class="empty-state"
     >
       <Lightbulb class="empty-icon" />
@@ -83,7 +150,7 @@ const isEmpty = computed(() =>
     </div>
 
     <div
-      v-else
+      v-else-if="!isLoading"
       class="context-content"
     >
       <!-- Decisions Section -->
@@ -248,9 +315,67 @@ const isEmpty = computed(() =>
 }
 
 .header-title {
+  flex: 1;
   font-size: 14px;
   font-weight: 600;
   color: var(--any-text-primary);
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--any-radius-md);
+  background: transparent;
+  color: var(--any-text-tertiary);
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-primary);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-btn.loading .refresh-icon {
+  animation: spin 1s linear infinite;
+}
+
+.refresh-icon {
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loading State */
+.loading-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--any-border);
+  border-top-color: var(--exec-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
 }
 
 /* Empty State */
