@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, toRef } from 'vue'
 import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
@@ -28,6 +28,7 @@ import type {
   BrowserEvent,
   BrowserAction
 } from '@/components/execution/chat/types'
+import { useExecutionStore } from '@/stores/execution'
 
 // Re-export types for external use
 export type { ChatMessage, QuoteInfo, FormField, FormGroup }
@@ -100,9 +101,11 @@ watch(() => props.initPhase, () => {
 })
 
 // ========================================
-// Research Progress State (深度研究进度)
+// Research Progress State (深度研究进度 - 从 execution store 读取)
 // ========================================
-const researchProgress = ref<ResearchProgressType | null>(null)
+const executionStore = useExecutionStore()
+// 使用 store 的 researchProgress 作为数据源 (单一数据源原则)
+const researchProgress = toRef(executionStore, 'researchProgress')
 const isResearchProgressCollapsed = ref(false)
 const isInterventionPanelCollapsed = ref(false)
 const isInterventionSending = ref(false)
@@ -110,99 +113,57 @@ const isInterventionSending = ref(false)
 // Block 模式相关 ref
 const researchBlockListRef = ref<InstanceType<typeof ResearchBlockList> | null>(null)
 
-// Initialize research progress when in deep research mode
+// 以下方法保留为向后兼容 (legacy API)
+// 实际数据更新现在通过 SSE 事件 -> executionStore -> researchProgress 流动
+// 这些方法现在为空操作，保留接口以便将来可能的手动更新场景
 function initResearchProgress() {
-  researchProgress.value = {
-    phase: 'planning',
-    phaseProgress: 0,
-    overallProgress: 0,
-    queries: [],
-    sources: [],
-    currentAction: '正在分析研究主题...',
-  }
+  // Store 会在接收到 RESEARCH_PHASE_CHANGE 等事件时自动初始化
+  console.log('[StreamingInfo] initResearchProgress called (now handled by store)')
 }
 
-// Update research progress from SSE events
-function updateResearchPhase(phase: ResearchPhase, phaseProgress: number = 0) {
-  if (!researchProgress.value) initResearchProgress()
-  researchProgress.value!.phase = phase
-  researchProgress.value!.phaseProgress = phaseProgress
+function updateResearchPhase(_phase: ResearchPhase, _phaseProgress: number = 0) {
+  // Store 会在接收到 RESEARCH_PHASE_CHANGE 事件时自动更新
+  console.log('[StreamingInfo] updateResearchPhase called (now handled by store)')
 }
 
-function addResearchQuery(queryId: string, text: string, status: 'pending' | 'running' | 'done' | 'failed' = 'running') {
-  if (!researchProgress.value) initResearchProgress()
-  const existing = researchProgress.value!.queries.find(q => q.id === queryId)
-  if (existing) {
-    existing.status = status
-  } else {
-    researchProgress.value!.queries.push({ id: queryId, text, status })
-  }
+function addResearchQuery(_queryId: string, _text: string, _status: 'pending' | 'running' | 'done' | 'failed' = 'running') {
+  // Store 会在接收到 RESEARCH_QUERY_START 事件时自动更新
+  console.log('[StreamingInfo] addResearchQuery called (now handled by store)')
 }
 
-function updateResearchQuery(queryId: string, resultCount: number) {
-  if (!researchProgress.value) return
-  const query = researchProgress.value.queries.find(q => q.id === queryId)
-  if (query) {
-    query.status = 'done'
-    query.resultCount = resultCount
-  }
+function updateResearchQuery(_queryId: string, _resultCount: number) {
+  // Store 会在接收到 RESEARCH_QUERY_RESULT 事件时自动更新
+  console.log('[StreamingInfo] updateResearchQuery called (now handled by store)')
 }
 
 function addResearchSource(
-  sourceId: string,
-  url: string,
-  domain: string,
-  title: string,
-  status: 'pending' | 'reading' | 'done' | 'skipped' | 'failed' = 'reading'
+  _sourceId: string,
+  _url: string,
+  _domain: string,
+  _title: string,
+  _status: 'pending' | 'reading' | 'done' | 'skipped' | 'failed' = 'reading'
 ) {
-  if (!researchProgress.value) initResearchProgress()
-  const existing = researchProgress.value!.sources.find(s => s.id === sourceId)
-  if (existing) {
-    existing.status = status
-  } else {
-    researchProgress.value!.sources.push({
-      id: sourceId,
-      url,
-      domain,
-      title,
-      type: 'unknown',
-      credibility: 50,
-      credibilityLevel: 'moderate',
-      status,
-    })
-  }
+  // Store 会在接收到 RESEARCH_SOURCE_START 事件时自动更新
+  console.log('[StreamingInfo] addResearchSource called (now handled by store)')
 }
 
 function updateResearchSource(
-  sourceId: string,
-  credibility: number,
-  sourceType: string = 'unknown',
-  extractedFacts: string[] = []
+  _sourceId: string,
+  _credibility: number,
+  _sourceType: string = 'unknown',
+  _extractedFacts: string[] = []
 ) {
-  if (!researchProgress.value) return
-  const source = researchProgress.value.sources.find(s => s.id === sourceId)
-  if (source) {
-    source.status = 'done'
-    source.credibility = credibility
-    source.credibilityLevel = getCredibilityLevel(credibility)
-    source.type = sourceType as ResearchSource['type']
-    source.extractedFacts = extractedFacts
-  }
+  // Store 会在接收到 RESEARCH_SOURCE_DONE 事件时自动更新
+  console.log('[StreamingInfo] updateResearchSource called (now handled by store)')
 }
 
 function updateResearchProgressState(
-  currentAction: string,
-  overallProgress?: number,
-  estimatedTime?: number
+  _currentAction: string,
+  _overallProgress?: number,
+  _estimatedTime?: number
 ) {
-  if (!researchProgress.value) initResearchProgress()
-  researchProgress.value!.currentAction = currentAction
-  if (overallProgress !== undefined) {
-    researchProgress.value!.overallProgress = overallProgress
-  }
-  if (estimatedTime !== undefined) {
-    researchProgress.value!.estimatedTimeRemaining = estimatedTime
-  }
+  // Store 会在接收到 RESEARCH_PROGRESS_UPDATE 事件时自动更新
+  console.log('[StreamingInfo] updateResearchProgressState called (now handled by store)')
 }
 
 // ========================================

@@ -159,9 +159,10 @@ export interface ResearchSource {
   url: string
   domain: string
   title: string
-  type: 'academic' | 'report' | 'news' | 'blog' | 'official' | 'unknown'
+  type: 'academic' | 'report' | 'news' | 'blog' | 'official' | 'social' | 'unknown'
   credibility: number
-  credibilityLevel: 'authoritative' | 'reliable' | 'moderate' | 'low' | 'questionable'
+  // 与 research/types.ts 中的 CredibilityLevel 保持一致
+  credibilityLevel: 'authoritative' | 'reliable' | 'moderate' | 'questionable'
   status: 'pending' | 'reading' | 'done' | 'skipped' | 'failed'
   extractedFacts?: string[]
 }
@@ -1129,12 +1130,12 @@ export const useExecutionStore = defineStore('execution', () => {
 
   /**
    * Get credibility level from score
+   * 与 research/types.ts 中的 getCredibilityLevel 保持一致
    */
   function getCredibilityLevel(score: number): ResearchSource['credibilityLevel'] {
     if (score >= 95) return 'authoritative'
     if (score >= 70) return 'reliable'
-    if (score >= 50) return 'moderate'
-    if (score >= 30) return 'low'
+    if (score >= 40) return 'moderate'
     return 'questionable'
   }
 
