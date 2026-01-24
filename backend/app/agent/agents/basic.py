@@ -46,7 +46,18 @@ class BasicAgent(BaseAgent):
         )
 
         # BasicAgent 的思考比较简单，直接记录即可
-        thinking_content = f"User question: {self.context.messages[-1].get('content', '') if self.context.messages else 'N/A'}"
+        if self.context.messages:
+            last_content = self.context.messages[-1].get('content', '')
+            # 处理多模态消息：提取文本部分
+            if isinstance(last_content, list):
+                text_parts = [p.get('text', '') for p in last_content if p.get('type') == 'text']
+                image_count = sum(1 for p in last_content if p.get('type') == 'image_url')
+                text_summary = ' '.join(text_parts) if text_parts else '(图片)'
+                thinking_content = f"User question: {text_summary} [+{image_count} image(s)]"
+            else:
+                thinking_content = f"User question: {last_content}"
+        else:
+            thinking_content = "User question: N/A"
         self.context.append_thinking(thinking_content)
 
         logger.debug("Thinking complete")
