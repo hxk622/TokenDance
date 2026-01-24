@@ -90,7 +90,7 @@ def parse_document_attachment(attachment: Attachment) -> str | None:
 
         # Determine file extension from name or MIME type
         file_ext = ''
-        if attachment.name:
+        if attachment.name and '.' in attachment.name:
             file_ext = '.' + attachment.name.rsplit('.', 1)[-1].lower()
         elif 'pdf' in header:
             file_ext = '.pdf'

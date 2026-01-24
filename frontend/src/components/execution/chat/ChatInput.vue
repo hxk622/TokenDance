@@ -91,7 +91,18 @@ function validateImage(file: File): string | null {
  * Validate document file
  */
 function validateDocument(file: File): string | null {
-  if (!SUPPORTED_DOCUMENT_TYPES.includes(file.type as typeof SUPPORTED_DOCUMENT_TYPES[number])) {
+  // Check MIME type first, fallback to extension if empty
+  const mimeTypeValid = SUPPORTED_DOCUMENT_TYPES.includes(file.type as typeof SUPPORTED_DOCUMENT_TYPES[number])
+  
+  // Fallback: check by extension if MIME type is empty or not recognized
+  let extensionValid = false
+  if (!mimeTypeValid) {
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    const validExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'md']
+    extensionValid = ext ? validExtensions.includes(ext) : false
+  }
+  
+  if (!mimeTypeValid && !extensionValid) {
     return `不支持的文档格式: ${file.type || file.name.split('.').pop()}`
   }
   const sizeMB = file.size / (1024 * 1024)
@@ -112,7 +123,14 @@ function isImageFile(file: File): boolean {
  * Check if file is a document
  */
 function isDocumentFile(file: File): boolean {
-  return SUPPORTED_DOCUMENT_TYPES.includes(file.type as typeof SUPPORTED_DOCUMENT_TYPES[number])
+  // Check MIME type
+  if (SUPPORTED_DOCUMENT_TYPES.includes(file.type as typeof SUPPORTED_DOCUMENT_TYPES[number])) {
+    return true
+  }
+  // Fallback: check by extension
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  const validExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'md']
+  return ext ? validExtensions.includes(ext) : false
 }
 
 /**
@@ -474,7 +492,7 @@ onUnmounted(() => {
 // Expose methods
 defineExpose({
   focus,
-  clear: () => { inputText.value = ''; clearImages() }
+  clear: () => { inputText.value = ''; clearAllAttachments() }
 })
 </script>
 
