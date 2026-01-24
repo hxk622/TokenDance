@@ -145,7 +145,7 @@ class AuthService:
 
     @staticmethod
     def create_refresh_token(user_id: str, email: str) -> str:
-        """Create JWT refresh token.
+        """Create JWT refresh token with 30 days expiration.
 
         Args:
             user_id: User UUID string
@@ -162,6 +162,7 @@ class AuthService:
             "email": email,
             "exp": expire,
             "type": "refresh",
+            "iat": utc_now_naive(),  # Issued at time
         }
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

@@ -17,18 +17,29 @@ interface TokenPayload {
   type: 'access' | 'refresh'
 }
 
+// 从环境变量获取 API URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 class TokenManager {
   private refreshPromise: Promise<boolean> | null = null
   private readonly REFRESH_THRESHOLD_DAYS = 3  // 剩余 3 天时刷新
   private readonly CHECK_INTERVAL_MS = 60 * 1000  // 每分钟检查一次
   private checkTimer: ReturnType<typeof setInterval> | null = null
+  private isInitialized = false  // 防止重复初始化
 
   /**
    * 初始化 Token 管理器
    * 启动定时检查
    */
   init() {
+    // 防止重复初始化
+    if (this.isInitialized) {
+      console.log('[TokenManager] Already initialized, skipping...')
+      return
+    }
+
     console.log('[TokenManager] Initializing...')
+    this.isInitialized = true
 
     // 立即检查一次
     this.checkAndRefreshToken()
@@ -69,6 +80,7 @@ class TokenManager {
       this.checkTimer = null
       console.log('[TokenManager] Stopped')
     }
+    this.isInitialized = false  // 允许重新初始化
   }
 
   /**
@@ -154,7 +166,7 @@ class TokenManager {
     try {
       console.log('[TokenManager] Calling refresh API...')
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/refresh', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +250,5 @@ class TokenManager {
 // 导出单例
 export const tokenManager = new TokenManager()
 
-// 自动初始化（如果有 token）
-if (localStorage.getItem('access_token')) {
-  tokenManager.init()
-}
+// 注意：不要在这里自动初始化，应该在 main.ts 中统一初始化
+// 避免重复初始化问题

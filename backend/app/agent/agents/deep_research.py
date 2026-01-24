@@ -486,7 +486,7 @@ class DeepResearchAgent(BaseAgent):
             if event.type == SSEEventType.TOOL_RESULT and event.data.get('status') == 'success':
                 tool_result = event.data.get('result', '')
 
-        # 工具执行成功后，发送 Timeline 事件
+        # 工具执行成功后，更新研究状态并发送 Timeline 事件
         if tool_result is not None:
             if tool_name == "web_search":
                 # 尝试解析结果获取结果数
@@ -497,17 +497,34 @@ class DeepResearchAgent(BaseAgent):
                 except Exception:
                     results_count = 0
                 query = tool_args.get('query', '')
+
+                # 更新 queries_executed
+                if self.research_state and query and query not in self.research_state.queries_executed:
+                    self.research_state.queries_executed.append(query)
+                    logger.debug(f"Added query to executed list: {query[:50]}")
+
                 yield self._emit_timeline_search(query, results_count)
 
             elif tool_name == "read_url":
                 url = tool_args.get('url', '')
-                # 尝试从结果中提取标题
+                # 尝试从结果中提取标题和内容
                 try:
                     import json
                     result_data = json.loads(tool_result) if isinstance(tool_result, str) else tool_result
                     title = result_data.get('title', 'Unknown') if isinstance(result_data, dict) else 'Unknown'
+                    content = result_data.get('content', '') if isinstance(result_data, dict) else ''
                 except Exception:
                     title = 'Unknown'
+                    content = ''
+
+                # 更新 sources_collected (关键！否则 _should_generate_report 会失败)
+                if url and self.research_state:
+                    await self.add_source(
+                        url=url,
+                        title=title,
+                        snippet=content[:500] if content else tool_result[:500] if isinstance(tool_result, str) else ''
+                    )
+
                 yield self._emit_timeline_read(url, title)
 
             elif tool_name == "browser_screenshot":

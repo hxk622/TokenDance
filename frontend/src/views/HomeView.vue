@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import { useAuthGuard } from '@/composables/useAuthGuard'
@@ -325,15 +325,31 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown)
   
-  // Load recent projects
-  const workspaceId = projectStore.currentWorkspaceId || 'default'
-  projectStore.setCurrentWorkspace(workspaceId)
-  try {
-    await projectStore.loadProjects(workspaceId)
-  } catch (e) {
-    console.error('Failed to load projects:', e)
+  // Load recent projects if workspace is set
+  // Note: WorkspaceSelector in AnyHeader will auto-load and set workspace if none selected
+  const workspaceId = projectStore.currentWorkspaceId
+  if (workspaceId) {
+    try {
+      await projectStore.loadProjects(workspaceId)
+    } catch (e) {
+      console.error('Failed to load projects:', e)
+    }
   }
 })
+
+// Watch workspace changes to reload projects
+watch(
+  () => projectStore.currentWorkspaceId,
+  async (newWorkspaceId) => {
+    if (newWorkspaceId) {
+      try {
+        await projectStore.loadProjects(newWorkspaceId)
+      } catch (e) {
+        console.error('Failed to load projects after workspace change:', e)
+      }
+    }
+  }
+)
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
