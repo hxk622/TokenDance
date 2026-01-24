@@ -6,12 +6,16 @@ EarningsSurpriseService - 业绩超预期/不及预期分析服务
 2. 历史业绩偏离分析
 3. 市场预期跟踪
 4. 超预期后股价反应分析
+
+注意：当前使用 mock 数据。设置环境变量 FINANCIAL_DATA_MODE=mock 以允许使用。
 """
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 from typing import Any
+
+from app.services.financial.config import check_data_mode_or_raise
 
 logger = logging.getLogger(__name__)
 

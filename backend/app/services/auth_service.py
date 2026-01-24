@@ -122,7 +122,7 @@ class AuthService:
 
     @staticmethod
     def create_access_token(user_id: str, email: str) -> str:
-        """Create JWT access token.
+        """Create JWT access token with 7 days expiration.
 
         Args:
             user_id: User UUID string
@@ -132,13 +132,14 @@ class AuthService:
             JWT token string
         """
         expire = utc_now_naive() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            days=settings.ACCESS_TOKEN_EXPIRE_DAYS
         )
         payload = {
             "user_id": user_id,
             "email": email,
             "exp": expire,
             "type": "access",
+            "iat": utc_now_naive(),  # Issued at time
         }
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

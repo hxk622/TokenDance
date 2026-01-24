@@ -6,12 +6,17 @@ EventCalendarService - 统一事件日历服务
 2. 未来90天事件Timeline
 3. 历史事件影响分析（事件前后股价表现）
 4. 事件重要性评级
+
+注意：当前使用 mock 数据。要使用真实数据，需要集成数据源 API。
+设置环境变量 FINANCIAL_DATA_MODE=mock 以允许使用 mock 数据。
 """
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any
+
+from app.services.financial.config import check_data_mode_or_raise
 
 logger = logging.getLogger(__name__)
 
@@ -335,11 +340,17 @@ class EventCalendarService:
             event_type: 事件类型
             lookback_events: 回看事件数量
         """
+        # Check if mock data is allowed
+        check_data_mode_or_raise("EventCalendarService", "get_historical_impact")
+
         # Mock数据 - 实际应从数据库/API获取
         return await self._get_mock_historical_impacts(symbol, event_type, lookback_events)
 
     async def _get_earnings_events(self, symbol: str, days_ahead: int) -> list[UpcomingEvent]:
         """获取财报发布事件"""
+        # Check if mock data is allowed
+        check_data_mode_or_raise("EventCalendarService", "_get_earnings_events")
+
         # Mock数据
         today = date.today()
         events = []

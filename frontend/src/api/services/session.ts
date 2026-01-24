@@ -227,17 +227,22 @@ class SessionService {
   /**
    * Get working memory files (三文件工作法)
    */
-  async getWorkingMemory(_sessionId: string): Promise<{
+  async getWorkingMemory(sessionId: string): Promise<{
     task_plan: string
     findings: string
     progress: string
   }> {
-    // TODO: 实现获取三文件内容的API
-    // 临时返回mock数据
+    const response = await apiClient.get<{
+      session_id: string
+      task_plan: { content: string; metadata: any }
+      findings: { content: string; metadata: any }
+      progress: { content: string; metadata: any }
+    }>(`/api/v1/working-memory/sessions/${sessionId}`)
+
     return {
-      task_plan: '# Task Plan\n\n## Phase 1\n- Research market data\n\n## Phase 2\n- Analyze competitors',
-      findings: '# Findings\n\n- Found 3 relevant reports',
-      progress: '# Progress\n\n- [x] Completed Phase 1\n- [ ] Phase 2 in progress',
+      task_plan: response.data.task_plan.content,
+      findings: response.data.findings.content,
+      progress: response.data.progress.content,
     }
   }
 

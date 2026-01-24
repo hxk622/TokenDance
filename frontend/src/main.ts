@@ -16,6 +16,10 @@ console.log('[Main] Importing router...')
 import router from './router'
 console.log('[Main] router imported')
 
+console.log('[Main] Importing Token Manager...')
+import { tokenManager } from './utils/tokenManager'
+console.log('[Main] Token Manager imported')
+
 console.log('[Main] Importing design-system.css...')
 import './assets/design-system.css'
 console.log('[Main] design-system.css imported')
@@ -57,4 +61,11 @@ console.log('[Main] Mounting app')
 app.mount('#app')
 console.log('[Main] App mounted')
 
-// Auth initialization is handled in App.vue onMounted
+// Initialize Token Manager if user is logged in
+console.log('[Main] Initializing Token Manager')
+if (localStorage.getItem('access_token')) {
+  tokenManager.init()
+  console.log('[Main] Token Manager initialized')
+} else {
+  console.log('[Main] No token found, Token Manager not initialized')
+}

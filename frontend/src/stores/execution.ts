@@ -294,8 +294,26 @@ export const useExecutionStore = defineStore('execution', () => {
       sseToken = tokenResponse.sse_token
       console.log('[ExecutionStore] SSE token obtained, expires in', tokenResponse.expires_in, 'seconds')
     } catch (tokenErr: any) {
-      console.warn('[ExecutionStore] Failed to get SSE token, falling back to JWT:', tokenErr.message)
+      console.warn('[ExecutionStore] Failed to get SSE token:', tokenErr.message)
+
+      // Check if it's an authentication error (401)
+      if (tokenErr.response?.status === 401) {
+        console.error('[ExecutionStore] Authentication failed - user needs to login')
+        error.value = 'Authentication failed. Please login again.'
+        sseConnectionState.value = 'fatal_error'
+        sseError.value = 'Authentication failed'
+
+        // Clear invalid tokens
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+
+        // Redirect to login page
+        window.location.href = '/login'
+        return
+      }
+
       // Fall back to JWT token (deprecated but still supported)
+      console.warn('[ExecutionStore] Falling back to JWT token')
     }
 
     sseConnection = createSSEConnection(
@@ -304,15 +322,31 @@ export const useExecutionStore = defineStore('execution', () => {
         onEvent: handleSSEEvent,
         onError: (err: SSEConnectionError) => {
           console.error('[ExecutionStore] SSE error:', err)
-          
+
+          // Handle authentication errors (401)
+          if (err.statusCode === 401) {
+            console.error('[ExecutionStore] SSE authentication failed - user needs to login')
+            sseConnectionState.value = 'fatal_error'
+            sseError.value = 'Authentication failed'
+            error.value = 'Authentication failed. Please login again.'
+
+            // Clear invalid tokens
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+
+            // Redirect to login page
+            window.location.href = '/login'
+            return
+          }
+
           // Update connection state based on error type
           if (err.isFatal) {
             sseConnectionState.value = 'fatal_error'
             sseError.value = err.message
-            error.value = err.statusCode === 404 
-              ? 'Session not found' 
-              : err.statusCode === 403 
-              ? 'Access denied' 
+            error.value = err.statusCode === 404
+              ? 'Session not found'
+              : err.statusCode === 403
+              ? 'Access denied'
               : err.message
           } else {
             sseConnectionState.value = 'error'

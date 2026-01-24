@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { 
   Globe, RefreshCw, ArrowLeft, ArrowRight, 
   Monitor, Tablet, Smartphone, Maximize2, ExternalLink,
@@ -41,6 +41,7 @@ const showCode = ref(false)
 const history = ref<string[]>([])
 const historyIndex = ref(-1)
 const isFullscreen = ref(false)
+const currentBlobUrl = ref<string>('')
 
 // Computed
 const viewportStyle = computed(() => {
@@ -63,12 +64,15 @@ const displayUrl = computed(() => {
   return currentUrl.value || 'about:blank'
 })
 
-// Generate blob URL from HTML content
-const blobUrl = computed(() => {
-  if (!props.htmlContent) return ''
+// Generate blob URL from HTML content (managed to avoid memory leaks)
+function createBlobUrl(htmlContent: string): string {
+  // Revoke previous blob URL to prevent memory leak
+  if (currentBlobUrl.value) {
+    URL.revokeObjectURL(currentBlobUrl.value)
+  }
   
   // Wrap content in full HTML if needed
-  let html = props.htmlContent
+  let html = htmlContent
   if (!html.includes('<html') && !html.includes('<!DOCTYPE')) {
     html = `<!DOCTYPE html>
 <html>
@@ -87,12 +91,13 @@ ${html}
   }
   
   const blob = new Blob([html], { type: 'text/html' })
-  return URL.createObjectURL(blob)
-})
+  currentBlobUrl.value = URL.createObjectURL(blob)
+  return currentBlobUrl.value
+}
 
 // Watch for content changes
-watch(() => props.htmlContent, () => {
-  if (props.htmlContent && iframeRef.value) {
+watch(() => props.htmlContent, (newContent) => {
+  if (newContent && iframeRef.value) {
     loadContent()
   }
 })
@@ -106,12 +111,11 @@ watch(() => props.url, (newUrl) => {
 
 // Methods
 function loadContent() {
-  if (!iframeRef.value) return
+  if (!iframeRef.value || !props.htmlContent) return
   isLoading.value = true
   
-  if (blobUrl.value) {
-    iframeRef.value.src = blobUrl.value
-  }
+  const url = createBlobUrl(props.htmlContent)
+  iframeRef.value.src = url
 }
 
 function loadUrl(url: string) {
@@ -135,7 +139,13 @@ function handleIframeLoad() {
 function refresh() {
   if (!iframeRef.value) return
   isLoading.value = true
-  iframeRef.value.src = iframeRef.value.src
+  const currentSrc = iframeRef.value.src
+  iframeRef.value.src = 'about:blank'
+  setTimeout(() => {
+    if (iframeRef.value) {
+      iframeRef.value.src = currentSrc
+    }
+  }, 0)
 }
 
 function goBack() {
@@ -178,8 +188,8 @@ function copyCode() {
 function openExternal() {
   if (props.url) {
     window.open(props.url, '_blank')
-  } else if (blobUrl.value) {
-    window.open(blobUrl.value, '_blank')
+  } else if (currentBlobUrl.value) {
+    window.open(currentBlobUrl.value, '_blank')
   }
 }
 
@@ -188,6 +198,13 @@ onMounted(() => {
     loadContent()
   } else if (props.url) {
     loadUrl(props.url)
+  }
+})
+
+onUnmounted(() => {
+  // Clean up blob URL to prevent memory leak
+  if (currentBlobUrl.value) {
+    URL.revokeObjectURL(currentBlobUrl.value)
   }
 })
 </script>
@@ -309,7 +326,7 @@ onMounted(() => {
           ref="iframeRef"
           class="preview-iframe"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-          :src="blobUrl || url || 'about:blank'"
+          :src="currentBlobUrl || url || 'about:blank'"
           @load="handleIframeLoad"
         />
 

@@ -1,9 +1,11 @@
 /**
  * API Client configuration with axios
  * Handles authentication, error handling, and request/response interceptors
+ * Integrated with Token Manager for automatic token refresh
  */
 import axios from 'axios'
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { tokenManager } from '@/utils/tokenManager'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -16,18 +18,29 @@ const apiClient: AxiosInstance = axios.create({
   },
 })
 
-// Request interceptor - add auth token and logging
+// Request interceptor - add auth token and check if refresh needed
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
+    // Check and refresh token if needed (before every request)
+    const isAuthRequest = config.url?.includes('/auth/login') ||
+                         config.url?.includes('/auth/register') ||
+                         config.url?.includes('/auth/wechat') ||
+                         config.url?.includes('/auth/gmail') ||
+                         config.url?.includes('/auth/refresh')
+
+    if (!isAuthRequest) {
+      await tokenManager.refreshIfNeeded()
+    }
+
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
+
     // Add request ID for tracing
     const requestId = crypto.randomUUID()
     config.headers['X-Request-ID'] = requestId
-    
+
     // Log full request details
     console.log('[API Request]', {
       requestId,
@@ -40,7 +53,7 @@ apiClient.interceptors.request.use(
       data: config.data,
       timeout: config.timeout,
     })
-    
+
     return config
   },
   (error: AxiosError) => {
@@ -71,7 +84,7 @@ apiClient.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const requestId = error.config?.headers?.['X-Request-ID']
-    
+
     // Log full error details
     console.error('[API Response Error]', {
       requestId,
@@ -84,8 +97,8 @@ apiClient.interceptors.response.use(
       errorMessage: error.message,
       errorCode: error.code,
     })
-    
-    // Handle 401 Unauthorized - try refresh token first
+
+    // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || ''
       const isAuthRequest = requestUrl.includes('/auth/login') ||
@@ -93,53 +106,26 @@ apiClient.interceptors.response.use(
                            requestUrl.includes('/auth/wechat') ||
                            requestUrl.includes('/auth/gmail') ||
                            requestUrl.includes('/auth/refresh')
-      
+
       // Don't redirect for auth requests - let the component handle the error
       if (isAuthRequest) {
         return Promise.reject(error)
       }
-      
-      // Try to refresh token
-      const refreshToken = localStorage.getItem('refresh_token')
-      if (refreshToken && error.config) {
-        try {
-          console.log('[Token Refresh] Attempting to refresh access token...')
-          
-          // Call refresh endpoint
-          const refreshResponse = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
-            refresh_token: refreshToken
-          })
-          
-          const { access_token, refresh_token: newRefreshToken } = refreshResponse.data
-          
-          // Save new tokens
-          localStorage.setItem('access_token', access_token)
-          if (newRefreshToken) {
-            localStorage.setItem('refresh_token', newRefreshToken)
-          }
-          
-          console.log('[Token Refresh] Successfully refreshed token')
-          
-          // Retry original request with new token
-          error.config.headers.Authorization = `Bearer ${access_token}`
-          return apiClient(error.config)
-          
-        } catch (refreshError) {
-          console.error('[Token Refresh] Failed to refresh token:', refreshError)
-          // Refresh failed - clear tokens and redirect
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          window.location.href = '/login'
-          return Promise.reject(refreshError)
-        }
-      } else {
-        // No refresh token - clear and redirect
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
+
+      // Token expired or invalid - clear and redirect
+      console.error('[API] 401 Unauthorized - clearing tokens and redirecting to login')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+
+      // Stop token manager
+      tokenManager.stop()
+
+      // Redirect to login
+      if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login'
       }
     }
-    
+
     return Promise.reject(error)
   }
 )
