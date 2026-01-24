@@ -503,7 +503,16 @@ function startActualExecution(taskInput: string) {
 // Initialize execution - In-Place principle: no blocking pages
 async function initializeExecution() {
   try {
-    // Validate sessionId
+    // Project Mode: Skip session-based initialization
+    // Project loading is handled by the watch(projectId, ...) already
+    if (isProjectMode.value) {
+      // In project mode, start in 'ready' state - wait for user to send a message
+      // The project and its conversations are loaded by the watcher
+      initPhase.value = 'ready'
+      return
+    }
+
+    // Session Mode: Validate sessionId
     if (!sessionId.value) {
       throw new Error('Session ID is required')
     }
