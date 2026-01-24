@@ -142,6 +142,40 @@ export interface HITLRequest {
   timestamp: number
 }
 
+/**
+ * Research Progress State (深度研究进度 - 与 StreamingInfo 同步)
+ */
+export type ResearchPhase = 'planning' | 'searching' | 'reading' | 'analyzing' | 'writing'
+
+export interface ResearchQuery {
+  id: string
+  text: string
+  status: 'pending' | 'running' | 'done' | 'failed'
+  resultCount?: number
+}
+
+export interface ResearchSource {
+  id: string
+  url: string
+  domain: string
+  title: string
+  type: 'academic' | 'report' | 'news' | 'blog' | 'official' | 'unknown'
+  credibility: number
+  credibilityLevel: 'authoritative' | 'reliable' | 'moderate' | 'low' | 'questionable'
+  status: 'pending' | 'reading' | 'done' | 'skipped' | 'failed'
+  extractedFacts?: string[]
+}
+
+export interface ResearchProgressState {
+  phase: ResearchPhase
+  phaseProgress: number
+  overallProgress: number
+  queries: ResearchQuery[]
+  sources: ResearchSource[]
+  currentAction: string
+  estimatedTimeRemaining?: number
+}
+
 export const useExecutionStore = defineStore('execution', () => {
   // Session state
   const sessionId = ref<string | null>(null)
@@ -189,6 +223,9 @@ export const useExecutionStore = defineStore('execution', () => {
   // Research report state (for citation tracking)
   const reportContent = ref<string>('')
   const citations = ref<Citation[]>([])
+
+  // Research progress state (深度研究进度)
+  const researchProgress = ref<ResearchProgressState | null>(null)
 
   // SSE connection
   let sseConnection: SSEConnection | null = null
@@ -471,11 +508,154 @@ export const useExecutionStore = defineStore('execution', () => {
         })
         break
 
+      // ========== Research Progress events (深度研究进度透明化) ==========
+      case SSEEventType.RESEARCH_PHASE_CHANGE: {
+        // 阶段切换
+        const phase = event.data.phase as ResearchPhase
+        const phaseProgress = event.data.phase_progress || 0
+        if (!researchProgress.value) {
+          initResearchProgress()
+        }
+        researchProgress.value!.phase = phase
+        researchProgress.value!.phaseProgress = phaseProgress
+        researchProgress.value!.currentAction = event.data.phase_name || phase
+        console.log('[ExecutionStore] Research phase changed:', phase, phaseProgress)
+        break
+      }
+
+      case SSEEventType.RESEARCH_QUERY_START: {
+        // 搜索开始
+        const queryId = event.data.query_id
+        const queryText = event.data.text
+        if (!researchProgress.value) {
+          initResearchProgress()
+        }
+        const existing = researchProgress.value!.queries.find(q => q.id === queryId)
+        if (existing) {
+          existing.status = 'running'
+        } else {
+          researchProgress.value!.queries.push({
+            id: queryId,
+            text: queryText,
+            status: 'running',
+          })
+        }
+        researchProgress.value!.currentAction = `搜索: ${queryText.slice(0, 50)}`
+        console.log('[ExecutionStore] Research query started:', queryId, queryText)
+        break
+      }
+
+      case SSEEventType.RESEARCH_QUERY_RESULT: {
+        // 搜索结果
+        const queryId = event.data.query_id
+        const resultCount = event.data.result_count || 0
+        if (researchProgress.value) {
+          const query = researchProgress.value.queries.find(q => q.id === queryId)
+          if (query) {
+            query.status = 'done'
+            query.resultCount = resultCount
+          }
+        }
+        console.log('[ExecutionStore] Research query result:', queryId, resultCount)
+        break
+      }
+
+      case SSEEventType.RESEARCH_SOURCE_START: {
+        // 来源阅读开始
+        const sourceId = event.data.source_id
+        const url = event.data.url
+        const domain = event.data.domain
+        const title = event.data.title || ''
+        if (!researchProgress.value) {
+          initResearchProgress()
+        }
+        const existing = researchProgress.value!.sources.find(s => s.id === sourceId)
+        if (existing) {
+          existing.status = 'reading'
+        } else {
+          researchProgress.value!.sources.push({
+            id: sourceId,
+            url,
+            domain,
+            title,
+            type: 'unknown',
+            credibility: 50,
+            credibilityLevel: 'moderate',
+            status: 'reading',
+          })
+        }
+        researchProgress.value!.currentAction = `阅读: ${title || domain}`
+        console.log('[ExecutionStore] Research source started:', sourceId, url)
+        break
+      }
+
+      case SSEEventType.RESEARCH_SOURCE_DONE: {
+        // 来源阅读完成
+        const sourceId = event.data.source_id
+        const credibility = event.data.credibility || 50
+        const sourceType = event.data.type || 'unknown'
+        const extractedFacts = event.data.extracted_facts || []
+        if (researchProgress.value) {
+          const source = researchProgress.value.sources.find(s => s.id === sourceId)
+          if (source) {
+            source.status = 'done'
+            source.credibility = credibility
+            source.credibilityLevel = getCredibilityLevel(credibility)
+            source.type = sourceType
+            source.extractedFacts = extractedFacts
+            if (event.data.title) source.title = event.data.title
+          }
+        }
+        console.log('[ExecutionStore] Research source done:', sourceId, credibility)
+        break
+      }
+
+      case SSEEventType.RESEARCH_SOURCE_SKIP: {
+        // 来源跳过
+        const sourceId = event.data.source_id
+        if (researchProgress.value) {
+          const source = researchProgress.value.sources.find(s => s.id === sourceId)
+          if (source) {
+            source.status = 'skipped'
+          }
+        }
+        console.log('[ExecutionStore] Research source skipped:', sourceId)
+        break
+      }
+
+      case SSEEventType.RESEARCH_PROGRESS_UPDATE: {
+        // 进度更新
+        if (!researchProgress.value) {
+          initResearchProgress()
+        }
+        if (event.data.current_action) {
+          researchProgress.value!.currentAction = event.data.current_action
+        }
+        if (event.data.overall_progress !== undefined) {
+          researchProgress.value!.overallProgress = event.data.overall_progress
+        }
+        if (event.data.phase_progress !== undefined) {
+          researchProgress.value!.phaseProgress = event.data.phase_progress
+        }
+        if (event.data.estimated_time !== undefined) {
+          researchProgress.value!.estimatedTimeRemaining = event.data.estimated_time
+        }
+        console.log('[ExecutionStore] Research progress update:', event.data)
+        break
+      }
+
       // Research report ready (with citations)
       case SSEEventType.RESEARCH_REPORT_READY:
         if (event.data.citations && Array.isArray(event.data.citations)) {
           citations.value = event.data.citations
           console.log('[ExecutionStore] Citations received:', citations.value.length)
+        }
+        // 标记研究完成
+        if (researchProgress.value) {
+          researchProgress.value.phase = 'writing'
+          researchProgress.value.phaseProgress = 100
+          researchProgress.value.overallProgress = 100
+          researchProgress.value.currentAction = '报告已生成'
         }
         break
       
@@ -934,6 +1114,31 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   /**
+   * Initialize research progress state
+   */
+  function initResearchProgress() {
+    researchProgress.value = {
+      phase: 'planning',
+      phaseProgress: 0,
+      overallProgress: 0,
+      queries: [],
+      sources: [],
+      currentAction: '正在分析研究主题...',
+    }
+  }
+
+  /**
+   * Get credibility level from score
+   */
+  function getCredibilityLevel(score: number): ResearchSource['credibilityLevel'] {
+    if (score >= 95) return 'authoritative'
+    if (score >= 70) return 'reliable'
+    if (score >= 50) return 'moderate'
+    if (score >= 30) return 'low'
+    return 'questionable'
+  }
+
+  /**
    * Add log entry
    */
   function addLog(entry: Omit<LogEntry, 'id' | 'timestamp'>) {
@@ -1099,6 +1304,8 @@ export const useExecutionStore = defineStore('execution', () => {
     // Reset research report state
     reportContent.value = ''
     citations.value = []
+    // Reset research progress state
+    researchProgress.value = null
   }
 
   return {
@@ -1126,6 +1333,7 @@ export const useExecutionStore = defineStore('execution', () => {
     artifacts,
     reportContent,
     citations,
+    researchProgress,  // 深度研究进度
 
     // Computed
     isRunning,
