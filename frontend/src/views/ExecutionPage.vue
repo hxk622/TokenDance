@@ -92,18 +92,42 @@ watch(projectId, async (newProjectId) => {
     try {
       // Check if already loaded
       if (projectStore.currentProject?.id === newProjectId) {
+        // Project already loaded, check if we need to send initial task
+        if (initialTask.value && initPhase.value === 'ready') {
+          await sendInitialTaskForProject()
+        }
         return
       }
       // Load project via API and set as current
       const { projectApi } = await import('@/api/project')
       const project = await projectApi.getProject(newProjectId)
       await projectStore.setCurrentProject(project)
+
+      // After project is loaded, send initial task if present
+      if (initialTask.value && initPhase.value === 'ready') {
+        await sendInitialTaskForProject()
+      }
     } catch (error) {
       console.error('[ExecutionPage] Failed to load project:', error)
       executionStore.error = 'Failed to load project'
     }
   }
 }, { immediate: true })
+
+// Helper to send initial task for project mode
+async function sendInitialTaskForProject() {
+  if (!projectStore.currentProject || !initialTask.value) return
+
+  try {
+    await projectStore.sendMessage(initialTask.value)
+    console.log('[ExecutionPage] Initial task sent for project:', initialTask.value)
+    // Clear initialTask so it won't be sent again
+    initialTask.value = null
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to send initial task:', error)
+    // Don't set error - let user see the chat input and retry manually
+  }
+}
 
 // User initial for avatar
 const userInitial = computed(() => {
@@ -504,10 +528,8 @@ function startActualExecution(taskInput: string) {
 async function initializeExecution() {
   try {
     // Project Mode: Skip session-based initialization
-    // Project loading is handled by the watch(projectId, ...) already
+    // Project loading and initialTask are handled by watch(projectId, ...)
     if (isProjectMode.value) {
-      // In project mode, start in 'ready' state - wait for user to send a message
-      // The project and its conversations are loaded by the watcher
       initPhase.value = 'ready'
       return
     }
