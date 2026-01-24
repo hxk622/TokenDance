@@ -5,7 +5,7 @@
  */
 
 // Message content types
-export type MessageContentType = 'text' | 'form' | 'code' | 'image'
+export type MessageContentType = 'text' | 'form' | 'code' | 'image' | 'browser'
 
 // Message role (who sent the message)
 export type MessageRole = 'user' | 'assistant' | 'system'
@@ -163,4 +163,19 @@ export interface FormSubmitPayload {
 export interface EditMessagePayload {
   messageId: string
   newContent: string
+}
+
+// Browser action types (for inline browser preview cards)
+export type BrowserAction = 'navigate' | 'click' | 'scroll' | 'type' | 'screenshot' | 'extract'
+
+// Browser event for inline preview card
+export interface BrowserEvent {
+  id: string
+  url: string
+  action: BrowserAction
+  actionDescription?: string
+  screenshot?: string  // Base64 encoded
+  title?: string
+  timestamp: number
+  loading?: boolean
 }

@@ -7,7 +7,7 @@ import StreamingInfo from '@/components/execution/workflow/StreamingInfo.vue'
 import ArtifactTabs, { type TabType } from '@/components/execution/ArtifactTabs.vue'
 import PreviewArea from '@/components/execution/PreviewArea.vue'
 import HITLConfirmDialog from '@/components/execution/HITLConfirmDialog.vue'
-import BrowserPip from '@/components/execution/BrowserPip.vue'
+// BrowserPip removed - browser screenshots now inline in StreamingInfo (Flatten principle)
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import ProjectSidebar from '@/components/project/ProjectSidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
@@ -330,10 +330,8 @@ const streamingInfoRef = ref<InstanceType<typeof StreamingInfo> | null>(null)
 const isFocusMode = ref(false)
 const focusedNodeId = ref<string | null>(null)
 
-// Browser PiP state
-const showBrowserPip = ref(true) // 默认显示
-const browserPipUrl = ref('https://www.google.com/search?q=AI+Agent+market')
-const browserPipScreenshot = ref('')
+// Browser state (screenshots now inline in StreamingInfo)
+// See: docs/ux/EXECUTION-PAGE-LAYOUT.md - Zone Responsibility & Flatten principle
 
 // Collapse Mode state (mini-graph view)
 const isCollapsed = ref(false)
@@ -733,11 +731,7 @@ function toggleCollapse() {
   }
 }
 
-// Browser PiP handlers
-function closeBrowserPip() {
-  showBrowserPip.value = false
-}
-
+// Browser URL handler (used by StreamingInfo inline cards)
 function openBrowserUrl(url: string) {
   window.open(url, '_blank')
 }
@@ -1177,15 +1171,8 @@ onUnmounted(() => {
           @confirmed="handleHITLConfirmed"
         />
       
-        <!-- 浏览器画中画 -->
-        <BrowserPip
-          :visible="showBrowserPip && isRunning"
-          :url="browserPipUrl"
-          :screenshot="browserPipScreenshot"
-          title="Manus 浏览器"
-          @close="closeBrowserPip"
-          @open-url="openBrowserUrl"
-        />
+        <!-- Browser screenshots now inline in StreamingInfo (Flatten principle) -->
+        <!-- See: docs/ux/EXECUTION-PAGE-LAYOUT.md - Zone Responsibility -->
       </div>
     </template>
   </div>

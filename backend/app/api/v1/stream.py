@@ -267,130 +267,6 @@ async def stop_session(
     )
 
 
-async def mock_agent_execution_stream(session_id: str) -> AsyncGenerator[str, None]:
-    """
-    Mock agent execution stream for demonstration.
-
-    In production, this would:
-    1. Subscribe to Redis pub/sub for session events
-    2. Stream events as they occur
-    3. Handle reconnection and keepalive
-    """
-
-    # Send session started
-    yield format_sse(SSEEventType.SESSION_STARTED, {
-        "session_id": session_id,
-        "timestamp": time.time(),
-    })
-
-    # Simulate skill matching
-    yield format_sse(SSEEventType.SKILL_MATCHED, {
-        "skill_id": "deep_research",
-        "skill_name": "deep_research",
-        "display_name": "Deep Research",
-        "description": "深度研究技能，用于复杂信息检索和分析",
-        "icon": "search",
-        "color": "blue",
-        "confidence": 0.92,
-        "timestamp": time.time(),
-    })
-    await asyncio.sleep(0.3)
-
-    # Simulate workflow execution
-    nodes = [
-        {"id": "1", "type": "manus", "label": "搜索市场数据"},
-        {"id": "2", "type": "manus", "label": "分析竞品"},
-        {"id": "3", "type": "coworker", "label": "生成报告"},
-    ]
-
-    for node in nodes:
-        # Node started
-        yield format_sse(SSEEventType.NODE_STARTED, {
-            "node_id": node["id"],
-            "node_type": node["type"],
-            "label": node["label"],
-            "status": "active",
-            "timestamp": time.time(),
-        })
-
-        # Agent thinking
-        yield format_sse(SSEEventType.AGENT_THINKING, {
-            "content": f"正在执行: {node['label']}...",
-            "node_id": node["id"],
-            "timestamp": time.time(),
-        })
-        await asyncio.sleep(0.5)
-
-        # Tool call
-        if node["type"] == "manus":
-            yield format_sse(SSEEventType.AGENT_TOOL_CALL, {
-                "tool_name": "web_search" if node["id"] == "1" else "analyze_data",
-                "arguments": {"query": "AI Agent market analysis"} if node["id"] == "1" else {"data_source": "search_results"},
-                "node_id": node["id"],
-                "timestamp": time.time(),
-            })
-            await asyncio.sleep(0.3)
-
-            # Tool result
-            yield format_sse(SSEEventType.AGENT_TOOL_RESULT, {
-                "tool_name": "web_search" if node["id"] == "1" else "analyze_data",
-                "success": True,
-                "result": {"found": 3, "sources": ["report1", "report2", "report3"]} if node["id"] == "1" else {"insights": ["insight1", "insight2"]},
-                "node_id": node["id"],
-                "timestamp": time.time(),
-            })
-        elif node["type"] == "coworker":
-            # File operations
-            yield format_sse(SSEEventType.FILE_CREATED, {
-                "path": "findings.md",
-                "action": "created",
-                "timestamp": time.time(),
-            })
-            await asyncio.sleep(0.2)
-
-            yield format_sse(SSEEventType.FILE_MODIFIED, {
-                "path": "report.md",
-                "action": "modified",
-                "timestamp": time.time(),
-            })
-
-        await asyncio.sleep(0.5)
-
-        # Node completed
-        yield format_sse(SSEEventType.NODE_COMPLETED, {
-            "node_id": node["id"],
-            "node_type": node["type"],
-            "label": node["label"],
-            "status": "success",
-            "duration_ms": 1000,
-            "timestamp": time.time(),
-        })
-
-        await asyncio.sleep(0.3)
-
-    # Final message
-    yield format_sse(SSEEventType.AGENT_MESSAGE, {
-        "content": "任务执行完成！已生成研究报告。",
-        "role": "assistant",
-        "timestamp": time.time(),
-    })
-
-    # Skill completed
-    yield format_sse(SSEEventType.SKILL_COMPLETED, {
-        "skill_id": "deep_research",
-        "status": "success",
-        "duration_ms": 3500,
-        "timestamp": time.time(),
-    })
-
-    # Session completed
-    yield format_sse(SSEEventType.SESSION_COMPLETED, {
-        "session_id": session_id,
-        "status": "completed",
-        "timestamp": time.time(),
-    })
-
-
 async def keepalive_generator(
     stream: AsyncGenerator[str, None],
     interval: int = 15,
@@ -433,7 +309,7 @@ async def stream_session_events(
     P1-3: Supports event replay via last_seq parameter.
 
     If task is provided, starts Agent execution.
-    Otherwise, returns mock stream for demo purposes.
+    Otherwise, returns current session status.
 
     Events include:
     - agent_thinking: Agent's reasoning process

@@ -210,17 +210,17 @@ class SSEEventStore:
     async def extend_ttl(self, session_id: str, additional_seconds: int = 600) -> bool:
         """
         Extend TTL for session events (e.g., when session is still active).
-        
+
         Args:
             session_id: Session ID
             additional_seconds: Seconds to add to TTL
-            
+
         Returns:
             bool: True if TTL was extended
         """
         events_key = self._get_events_key(session_id)
         seq_key = self._get_seq_key(session_id)
-        
+
         # Get current TTL and extend
         events_ttl = await self.redis.ttl(events_key)
         if events_ttl > 0:
@@ -229,6 +229,92 @@ class SSEEventStore:
             await self.redis.expire(seq_key, new_ttl)
             return True
         return False
+
+    async def get_events(self, session_id: str) -> list[dict]:
+        """
+        Get all events for a session (alias for get_all_events).
+
+        This method is used by the Turn streaming endpoint to retrieve
+        historical events for completed turns.
+
+        Args:
+            session_id: Session ID or Turn ID
+
+        Returns:
+            list of events with 'type' and 'data' keys
+        """
+        events = await self.get_all_events(session_id)
+        # Transform to match expected format
+        return [
+            {
+                "type": event.get("event"),
+                "data": event.get("data", {}),
+                "seq": event.get("seq"),
+                "timestamp": event.get("timestamp"),
+            }
+            for event in events
+        ]
+
+    async def stream_events(
+        self,
+        session_id: str,
+        timeout: int = 300,
+        poll_interval: float = 0.5,
+    ):
+        """
+        Stream events in real-time using polling.
+
+        This is a generator that yields events as they arrive. It polls
+        Redis for new events and yields them as they become available.
+
+        Args:
+            session_id: Session ID or Turn ID
+            timeout: Maximum time to wait for events (seconds)
+            poll_interval: How often to poll for new events (seconds)
+
+        Yields:
+            dict: Event with 'type' and 'data' keys
+        """
+        import asyncio
+
+        start_time = time.time()
+        last_seq = 0
+
+        while True:
+            # Check timeout
+            if time.time() - start_time > timeout:
+                logger.info(
+                    "sse_stream_timeout",
+                    session_id=session_id,
+                    timeout=timeout,
+                )
+                break
+
+            # Get new events since last_seq
+            new_events = await self.get_events_since(session_id, last_seq, max_events=50)
+
+            for event in new_events:
+                # Update last_seq
+                last_seq = event.get("seq", last_seq)
+
+                # Yield event in expected format
+                yield {
+                    "type": event.get("event"),
+                    "data": event.get("data", {}),
+                }
+
+                # Check if this is a terminal event
+                event_type = event.get("event")
+                if event_type in ("done", "error"):
+                    logger.info(
+                        "sse_stream_completed",
+                        session_id=session_id,
+                        event_type=event_type,
+                    )
+                    return
+
+            # Wait before next poll
+            await asyncio.sleep(poll_interval)
 
 
 # Global instance

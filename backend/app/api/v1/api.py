@@ -7,6 +7,7 @@ from app.api.v1 import (
     auth,
     browser,
     chat,
+    conversations,
     demo_stream,
     files,
     financial,
@@ -32,6 +33,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(workspace.router, prefix="/workspaces", tags=["workspaces"])
 api_router.include_router(project.router, tags=["projects"])  # Project-First architecture
+api_router.include_router(conversations.router)  # Multi-turn conversations
 api_router.include_router(session.router, prefix="/sessions", tags=["sessions"])
 api_router.include_router(messages.router, prefix="/sessions", tags=["messages"])  # New Agent Engine integration
 api_router.include_router(stream.router, prefix="/sessions", tags=["stream"])  # SSE streaming

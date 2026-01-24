@@ -403,22 +403,11 @@ async def get_working_memory(
 
     except ImportError:
         # Fallback if filesystem modules not available
-        logger.warning("Working Memory modules not available, returning mock data")
-        return {
-            "session_id": session_id,
-            "task_plan": {
-                "content": "# Task Plan\n\n## 目标\n（任务目标待填写）\n\n## 当前进度\n- [ ] 等待开始",
-                "metadata": {"status": "pending"}
-            },
-            "findings": {
-                "content": "# Findings\n\n## 研究发现\n（暂无研究发现）",
-                "metadata": {}
-            },
-            "progress": {
-                "content": "# Progress Log\n\n## 执行记录\n（暂无执行记录）",
-                "metadata": {}
-            },
-        }
+        logger.error("Working Memory modules not available")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Working Memory service is not available. Please ensure the agent engine is properly configured."
+        )
     except Exception as e:
         logger.error(f"Error reading working memory: {e}")
         raise HTTPException(

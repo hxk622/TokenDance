@@ -3,7 +3,7 @@ import { ref, computed, nextTick, watch } from 'vue'
 import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
-import { ChatInput, ChatFormMessage } from '@/components/execution/chat'
+import { ChatInput, ChatFormMessage, BrowserPreviewCard } from '@/components/execution/chat'
 import { ResearchProgress, InterventionPanel } from '@/components/execution/research'
 import MessageActions from '@/components/chat/MessageActions.vue'
 import { messageApi } from '@/api/message'
@@ -24,7 +24,9 @@ import type {
   FormSubmitPayload,
   FormField,
   FormGroup,
-  MessageStatus
+  MessageStatus,
+  BrowserEvent,
+  BrowserAction
 } from '@/components/execution/chat/types'
 
 // Re-export types for external use
@@ -217,6 +219,48 @@ function openUrl(url: string) {
   window.open(url, '_blank')
 }
 
+// ========================================
+// Browser Events (内联浏览器截图卡片)
+// ========================================
+
+/** 添加浏览器事件 (用于内联展示浏览器操作) */
+function addBrowserEvent(
+  url: string,
+  action: BrowserAction = 'navigate',
+  actionDescription?: string,
+  screenshot?: string,
+  title?: string
+) {
+  const event: BrowserEvent = {
+    id: `browser-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    url,
+    action,
+    actionDescription,
+    screenshot,
+    title,
+    timestamp: Date.now(),
+    loading: !screenshot
+  }
+  browserEvents.value.push(event)
+  scrollToBottom()
+  return event.id
+}
+
+/** 更新浏览器事件截图 */
+function updateBrowserScreenshot(eventId: string, screenshot: string, title?: string) {
+  const event = browserEvents.value.find(e => e.id === eventId)
+  if (event) {
+    event.screenshot = screenshot
+    event.loading = false
+    if (title) event.title = title
+  }
+}
+
+/** 清除所有浏览器事件 */
+function clearBrowserEvents() {
+  browserEvents.value = []
+}
+
 // 研究干预处理
 function handleResearchIntervene(intervention: ResearchIntervention) {
   emit('research-intervene', intervention)
@@ -232,6 +276,7 @@ function setInterventionSending(sending: boolean) {
 // ========================================
 
 const messages = ref<ChatMessage[]>([])
+const browserEvents = ref<BrowserEvent[]>([])
 const chatContainerRef = ref<HTMLElement | null>(null)
 const isScrollLocked = ref(false)
 const userScrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -405,8 +450,9 @@ function handleSendMessage(payload: SendMessagePayload) {
   messages.value.push(newMsg)
   scrollToBottom()
   
-  // Clear quote
+  // Clear quote and input (explicit clear as safety measure)
   currentQuote.value = null
+  chatInputRef.value?.clear()
   
   // Emit to parent to handle the message (e.g., trigger execution in chat mode)
   emit('send-message', payload.content)
@@ -497,6 +543,28 @@ const visibleMessages = computed(() => {
   return messages.value.filter(m => !m.deprecated)
 })
 
+// Combined timeline: messages + browser events, sorted by timestamp
+type TimelineItem = 
+  | { type: 'message'; data: ChatMessage }
+  | { type: 'browser'; data: BrowserEvent }
+
+const timelineItems = computed<TimelineItem[]>(() => {
+  const items: TimelineItem[] = []
+  
+  // Add visible messages
+  visibleMessages.value.forEach(msg => {
+    items.push({ type: 'message', data: msg })
+  })
+  
+  // Add browser events
+  browserEvents.value.forEach(event => {
+    items.push({ type: 'browser', data: event })
+  })
+  
+  // Sort by timestamp
+  return items.sort((a, b) => a.data.timestamp - b.data.timestamp)
+})
+
 // ========================================
 // Legacy methods for compatibility
 // ========================================
@@ -566,6 +634,11 @@ defineExpose({
   researchBlockListRef,
   // Research intervention methods (研究干预)
   setInterventionSending,
+  // Browser events (内联浏览器截图卡片 - Flatten 原则)
+  browserEvents,
+  addBrowserEvent,
+  updateBrowserScreenshot,
+  clearBrowserEvents,
 })
 </script>
 
@@ -780,197 +853,213 @@ defineExpose({
       @toggle-collapse="isInterventionPanelCollapsed = !isInterventionPanelCollapsed"
     />
 
-    <!-- Chat Messages (Dialog Style) -->
+    <!-- Chat Messages & Browser Events (Dialog Style - Flatten principle) -->
     <div
       v-if="initPhase === 'executing' || initPhase === 'ready'"
       ref="chatContainerRef"
       class="chat-container"
       @scroll="handleUserScroll"
     >
-      <div
-        v-for="msg in visibleMessages"
-        :key="msg.id"
-        :class="['chat-message', msg.role, { editing: editingMessageId === msg.id }]"
-        @mouseenter="hoveredMessageId = msg.id"
-        @mouseleave="hoveredMessageId = null"
-      >
-        <!-- User Message (Right side) -->
-        <template v-if="msg.role === 'user'">
-          <div class="message-content user-message">
-            <!-- Quoted message preview -->
-            <div
-              v-if="msg.quotedContent"
-              class="quoted-preview"
-            >
-              <span class="quoted-label">回复:</span>
-              <span class="quoted-text">{{ msg.quotedContent }}</span>
-            </div>
-            
-            <!-- Editing mode -->
-            <div
-              v-if="editingMessageId === msg.id"
-              class="edit-container"
-            >
-              <textarea
-                v-model="editingContent"
-                class="edit-textarea"
-                rows="3"
-              />
-              <div class="edit-actions">
-                <button
-                  class="edit-btn-cancel"
-                  @click="cancelEditMessage"
-                >
-                  取消
-                </button>
-                <button
-                  class="edit-btn-save"
-                  @click="saveEditMessage(msg.id)"
-                >
-                  <RotateCcw class="w-3.5 h-3.5" />
-                  重新发送
-                </button>
-              </div>
-            </div>
-            
-            <!-- Normal message bubble -->
-            <div
-              v-else
-              class="message-bubble"
-            >
-              {{ msg.content }}
-              <span
-                v-if="msg.edited"
-                class="edited-badge"
-              >(已编辑)</span>
-            </div>
-            
-            <!-- Message actions (hover) -->
-            <div
-              v-if="hoveredMessageId === msg.id && editingMessageId !== msg.id"
-              class="message-actions"
-            >
-              <button
-                class="action-btn"
-                title="编辑"
-                @click="startEditMessage(msg)"
-              >
-                <Edit3 class="w-3.5 h-3.5" />
-              </button>
-              <button
-                class="action-btn"
-                title="引用"
-                @click="handleQuoteMessage(msg)"
-              >
-                <MessageSquareQuote class="w-3.5 h-3.5" />
-              </button>
-            </div>
-            
-            <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
-          </div>
-          <div class="avatar user-avatar">
-            <img
-              v-if="userAvatarDisplay.type === 'image'"
-              :src="userAvatarDisplay.src"
-              alt="User"
-            >
-            <span v-else>{{ userAvatarDisplay.text }}</span>
-          </div>
-        </template>
+      <template v-for="item in timelineItems" :key="item.data.id">
+        <!-- Browser Preview Card (inline) -->
+        <BrowserPreviewCard
+          v-if="item.type === 'browser'"
+          :url="item.data.url"
+          :screenshot="item.data.screenshot"
+          :title="item.data.title"
+          :timestamp="item.data.timestamp"
+          :action="item.data.action"
+          :action-description="item.data.actionDescription"
+          :loading="item.data.loading"
+          class="browser-card-item"
+          @open-url="openUrl"
+        />
 
-        <!-- AI Message (Left side) -->
-        <template v-else>
-          <div class="avatar ai-avatar">
-            <img
-              src="/logo.svg"
-              alt="AI"
-            >
-          </div>
-          <div class="message-content ai-message">
-            <!-- Thinking indicator with statusText -->
-            <div
-              v-if="msg.status === 'thinking'"
-              class="thinking-indicator"
-            >
-              <Loader2 class="thinking-spinner" />
-              <span>{{ msg.statusText || '正在思考...' }}</span>
-            </div>
-            
-            <!-- Form message -->
-            <ChatFormMessage
-              v-else-if="msg.contentType === 'form'"
-              :title="msg.content"
-              :fields="msg.formFields"
-              :groups="msg.formGroups"
-              :interactive="msg.isInteractive !== false"
-              :submitted="msg.formSubmitted"
-              :submitted-values="msg.formValues"
-              @submit="(values) => handleFormSubmit(msg.id, values)"
-              @edit="handleFormEdit(msg.id)"
-            />
-            
-            <!-- Message bubble with content -->
-            <div
-              v-else
-              class="message-bubble"
-            >
-              <!-- Tool calls badge -->
+        <!-- Chat Message -->
+        <div
+          v-else
+          :class="['chat-message', item.data.role, { editing: editingMessageId === item.data.id }]"
+          @mouseenter="hoveredMessageId = item.data.id"
+          @mouseleave="hoveredMessageId = null"
+        >
+          <!-- User Message (Right side) -->
+          <template v-if="(item.data as ChatMessage).role === 'user'">
+            <div class="message-content user-message">
+              <!-- Quoted message preview -->
               <div
-                v-if="msg.toolCalls && msg.toolCalls.length > 0"
-                class="tool-calls"
+                v-if="(item.data as ChatMessage).quotedContent"
+                class="quoted-preview"
               >
-                <div
-                  v-for="(tool, idx) in msg.toolCalls"
-                  :key="idx"
-                  class="tool-call-badge"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
+                <span class="quoted-label">回复:</span>
+                <span class="quoted-text">{{ (item.data as ChatMessage).quotedContent }}</span>
+              </div>
+              
+              <!-- Editing mode -->
+              <div
+                v-if="editingMessageId === item.data.id"
+                class="edit-container"
+              >
+                <textarea
+                  v-model="editingContent"
+                  class="edit-textarea"
+                  rows="3"
+                />
+                <div class="edit-actions">
+                  <button
+                    class="edit-btn-cancel"
+                    @click="cancelEditMessage"
                   >
-                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                  </svg>
-                  <span>{{ tool.name }}</span>
+                    取消
+                  </button>
+                  <button
+                    class="edit-btn-save"
+                    @click="saveEditMessage(item.data.id)"
+                  >
+                    <RotateCcw class="w-3.5 h-3.5" />
+                    重新发送
+                  </button>
                 </div>
               </div>
               
-              <!-- Message text (supports markdown-like formatting) -->
-              <div class="message-text">
-                {{ msg.content }}
+              <!-- Normal message bubble -->
+              <div
+                v-else
+                class="message-bubble"
+              >
+                {{ (item.data as ChatMessage).content }}
+                <span
+                  v-if="(item.data as ChatMessage).edited"
+                  class="edited-badge"
+                >(已编辑)</span>
               </div>
               
-              <!-- Streaming indicator -->
-              <span
-                v-if="msg.status === 'streaming'"
-                class="streaming-cursor"
-              />
+              <!-- Message actions (hover) -->
+              <div
+                v-if="hoveredMessageId === item.data.id && editingMessageId !== item.data.id"
+                class="message-actions"
+              >
+                <button
+                  class="action-btn"
+                  title="编辑"
+                  @click="startEditMessage(item.data as ChatMessage)"
+                >
+                  <Edit3 class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  class="action-btn"
+                  title="引用"
+                  @click="handleQuoteMessage(item.data as ChatMessage)"
+                >
+                  <MessageSquareQuote class="w-3.5 h-3.5" />
+                </button>
+              </div>
+              
+              <span class="message-time">{{ formatTime(item.data.timestamp) }}</span>
             </div>
-            
-            <!-- Message actions -->
-            <MessageActions
-              v-if="msg.status === 'complete'"
-              :message-id="msg.id"
-              :content="msg.content || ''"
-              :feedback="(msg as any).feedback"
-              :is-last-message="isLastAssistantMessage(msg.id)"
-              :is-streaming="isAnyMessageStreaming"
-              @feedback="(fb, onError) => handleMessageFeedback(msg.id, fb, onError)"
-              @regenerate="handleRegenerateMessage"
-            />
-            
-            <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
-          </div>
-        </template>
-      </div>
+            <div class="avatar user-avatar">
+              <img
+                v-if="userAvatarDisplay.type === 'image'"
+                :src="userAvatarDisplay.src"
+                alt="User"
+              >
+              <span v-else>{{ userAvatarDisplay.text }}</span>
+            </div>
+          </template>
+
+          <!-- AI Message (Left side) -->
+          <template v-else>
+            <div class="avatar ai-avatar">
+              <img
+                src="/logo.svg"
+                alt="AI"
+              >
+            </div>
+            <div class="message-content ai-message">
+              <!-- Thinking indicator with statusText -->
+              <div
+                v-if="(item.data as ChatMessage).status === 'thinking'"
+                class="thinking-indicator"
+              >
+                <Loader2 class="thinking-spinner" />
+                <span>{{ (item.data as ChatMessage).statusText || '正在思考...' }}</span>
+              </div>
+              
+              <!-- Form message -->
+              <ChatFormMessage
+                v-else-if="(item.data as ChatMessage).contentType === 'form'"
+                :title="(item.data as ChatMessage).content"
+                :fields="(item.data as ChatMessage).formFields"
+                :groups="(item.data as ChatMessage).formGroups"
+                :interactive="(item.data as ChatMessage).isInteractive !== false"
+                :submitted="(item.data as ChatMessage).formSubmitted"
+                :submitted-values="(item.data as ChatMessage).formValues"
+                @submit="(values) => handleFormSubmit(item.data.id, values)"
+                @edit="handleFormEdit(item.data.id)"
+              />
+              
+              <!-- Message bubble with content -->
+              <div
+                v-else
+                class="message-bubble"
+              >
+                <!-- Tool calls badge -->
+                <div
+                  v-if="(item.data as ChatMessage).toolCalls && (item.data as ChatMessage).toolCalls!.length > 0"
+                  class="tool-calls"
+                >
+                  <div
+                    v-for="(tool, idx) in (item.data as ChatMessage).toolCalls"
+                    :key="idx"
+                    class="tool-call-badge"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                    </svg>
+                    <span>{{ tool.name }}</span>
+                  </div>
+                </div>
+                
+                <!-- Message text (supports markdown-like formatting) -->
+                <div class="message-text">
+                  {{ (item.data as ChatMessage).content }}
+                </div>
+                
+                <!-- Streaming indicator -->
+                <span
+                  v-if="(item.data as ChatMessage).status === 'streaming'"
+                  class="streaming-cursor"
+                />
+              </div>
+              
+              <!-- Message actions -->
+              <MessageActions
+                v-if="(item.data as ChatMessage).status === 'complete'"
+                :message-id="item.data.id"
+                :content="(item.data as ChatMessage).content || ''"
+                :feedback="(item.data as any).feedback"
+                :is-last-message="isLastAssistantMessage(item.data.id)"
+                :is-streaming="isAnyMessageStreaming"
+                @feedback="(fb, onError) => handleMessageFeedback(item.data.id, fb, onError)"
+                @regenerate="handleRegenerateMessage"
+              />
+              
+              <span class="message-time">{{ formatTime(item.data.timestamp) }}</span>
+            </div>
+          </template>
+        </div>
+      </template>
       
       <!-- Empty state -->
       <div
-        v-if="visibleMessages.length === 0"
+        v-if="timelineItems.length === 0"
         class="empty-chat"
       >
         <p>等待对话开始...</p>
@@ -1095,6 +1184,14 @@ defineExpose({
 
 .chat-container::-webkit-scrollbar-thumb:hover {
   background: var(--any-text-muted);
+}
+
+/* ========================================
+   Browser Preview Card (Inline)
+   ======================================== */
+.browser-card-item {
+  margin: 0;
+  max-width: 100%;
 }
 
 /* ========================================
