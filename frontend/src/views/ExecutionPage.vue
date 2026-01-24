@@ -977,10 +977,10 @@ onUnmounted(() => {
           </div>
         </header>
 
-        <!-- Error Banner (execution mode only) -->
+        <!-- Error Banner (shown in all modes when there's an error) -->
         <Transition name="slide-down">
           <div
-            v-if="layoutMode !== 'chat' && (sessionStatus === 'error' || sseError)"
+            v-if="sessionStatus === 'error' || sseError"
             class="error-banner"
             role="alert"
             aria-live="assertive"
