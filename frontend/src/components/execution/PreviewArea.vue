@@ -1,8 +1,16 @@
 <template>
   <div class="preview-area">
+    <!-- Project Context Tab -->
+    <div
+      v-if="currentTab === 'project-context' && projectId"
+      class="project-context-container"
+    >
+      <ProjectContextPanel :project-id="projectId" />
+    </div>
+
     <!-- Working Memory Tab -->
     <div
-      v-if="currentTab === 'working-memory'"
+      v-else-if="currentTab === 'working-memory'"
       class="working-memory-container"
     >
       <div
@@ -159,6 +167,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import WorkingMemory from './WorkingMemory.vue'
+import ProjectContextPanel from '@/components/project/ProjectContextPanel.vue'
 import { CitationRenderer } from './research'
 import type { Citation, ReportWithCitations } from './research/types'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
@@ -181,6 +190,8 @@ interface Props {
   citations?: Citation[]
   /** 报告内容是否为 HTML */
   isReportHtml?: boolean
+  /** Project ID（用于项目上下文 Tab） */
+  projectId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -375,6 +386,13 @@ p {
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* Project Context */
+.project-context-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
 }
 
 /* Working Memory */

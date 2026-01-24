@@ -860,7 +860,10 @@ defineExpose({
       class="chat-container"
       @scroll="handleUserScroll"
     >
-      <template v-for="item in timelineItems" :key="item.data.id">
+      <template
+        v-for="item in timelineItems"
+        :key="item.data.id"
+      >
         <!-- Browser Preview Card (inline) -->
         <BrowserPreviewCard
           v-if="item.type === 'browser'"

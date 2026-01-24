@@ -23,6 +23,8 @@ import {
   FolderOpen,
   ChevronRight,
   MoreHorizontal,
+  FileStack,
+  MessageSquare,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -153,6 +155,24 @@ onMounted(async () => {
               <span class="project-type">{{
                 getProjectTypeLabel(project.project_type)
               }}</span>
+              <span class="project-stats">
+                <span
+                  v-if="project.artifact_count > 0"
+                  class="stat-item"
+                  title="Artifacts"
+                >
+                  <FileStack class="stat-icon" />
+                  {{ project.artifact_count }}
+                </span>
+                <span
+                  v-if="project.conversation_count > 0"
+                  class="stat-item"
+                  title="Conversations"
+                >
+                  <MessageSquare class="stat-icon" />
+                  {{ project.conversation_count }}
+                </span>
+              </span>
               <span class="project-time">{{
                 formatTime(project.updated_at)
               }}</span>
@@ -321,6 +341,24 @@ onMounted(async () => {
   padding: 1px 6px;
   border-radius: var(--any-radius-sm);
   background: var(--any-bg-primary);
+}
+
+.project-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--any-text-muted);
+}
+
+.stat-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .chevron {

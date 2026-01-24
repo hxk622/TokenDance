@@ -22,14 +22,17 @@ import {
   PresentationChartBarIcon,
   DocumentDuplicateIcon,
   CircleStackIcon,
+  LightBulbIcon,
 } from '@heroicons/vue/24/outline'
 
-export type TabType = 'report' | 'ppt' | 'file-diff' | 'working-memory'
+export type TabType = 'report' | 'ppt' | 'file-diff' | 'working-memory' | 'project-context'
 
 interface Props {
   sessionId: string
   currentTab: TabType
   taskType?: 'deep-research' | 'ppt-generation' | 'code-refactor' | 'file-operations' | 'default'
+  /** 是否为 Project 模式（显示项目上下文 Tab） */
+  isProjectMode?: boolean
 }
 
 interface Emits {
@@ -42,18 +45,24 @@ const emit = defineEmits<Emits>()
 
 const allTabs = [
   // 最终成果
-  { id: '1', type: 'report' as const, title: '研究报告', icon: DocumentTextIcon, showFor: ['deep-research', 'default'] },
-  { id: '2', type: 'ppt' as const, title: 'PPT', icon: PresentationChartBarIcon, showFor: ['ppt-generation', 'default'] },
-  { id: '3', type: 'file-diff' as const, title: '文件变更', icon: DocumentDuplicateIcon, showFor: ['code-refactor', 'file-operations', 'default'] },
+  { id: '1', type: 'report' as const, title: '研究报告', icon: DocumentTextIcon, showFor: ['deep-research', 'default'], projectOnly: false },
+  { id: '2', type: 'ppt' as const, title: 'PPT', icon: PresentationChartBarIcon, showFor: ['ppt-generation', 'default'], projectOnly: false },
+  { id: '3', type: 'file-diff' as const, title: '文件变更', icon: DocumentDuplicateIcon, showFor: ['code-refactor', 'file-operations', 'default'], projectOnly: false },
   // 工作记忆 - 统一使用中文
-  { id: '4', type: 'working-memory' as const, title: '工作记忆', icon: CircleStackIcon, showFor: ['deep-research', 'ppt-generation', 'code-refactor', 'file-operations', 'default'] },
+  { id: '4', type: 'working-memory' as const, title: '工作记忆', icon: CircleStackIcon, showFor: ['deep-research', 'ppt-generation', 'code-refactor', 'file-operations', 'default'], projectOnly: false },
+  // 项目上下文 - 只在 project mode 下显示
+  { id: '5', type: 'project-context' as const, title: '项目上下文', icon: LightBulbIcon, showFor: ['deep-research', 'ppt-generation', 'code-refactor', 'file-operations', 'default'], projectOnly: true },
 ]
 
 const tabs = computed(() => {
   const taskType = props.taskType || 'default'
-  return allTabs.filter(tab => 
-    tab.showFor.includes(taskType) || tab.showFor.includes('default')
-  )
+  return allTabs.filter(tab => {
+    // 检查 taskType 是否匹配
+    const matchesTask = tab.showFor.includes(taskType) || tab.showFor.includes('default')
+    // 检查是否为 project-only tab
+    if (tab.projectOnly && !props.isProjectMode) return false
+    return matchesTask
+  })
 })
 
 function selectTab(tab: TabType) {

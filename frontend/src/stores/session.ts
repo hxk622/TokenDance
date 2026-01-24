@@ -1,10 +1,31 @@
 /**
  * Session store using Pinia
+ *
+ * @deprecated This store is LEGACY - use `useProjectStore` instead.
+ *
+ * The Session-based architecture has been replaced by the Project-First architecture.
+ * This store is kept for backward compatibility with existing session-based pages
+ * (e.g., ExecutionPage when accessed via /session/:id route).
+ *
+ * New features should use:
+ * - `useProjectStore` for project management
+ * - `/project/:projectId` route for project-based execution
+ *
+ * Migration plan:
+ * 1. All new code should use Project-First architecture
+ * 2. Existing session routes will continue to work
+ * 3. This store will be removed in a future release
+ *
+ * @see useProjectStore
+ * @see docs/architecture/Project-First-Architecture.md
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { sessionApi, type Session, type SessionCreate, type SessionUpdate, type Message } from '@/api/session'
 
+/**
+ * @deprecated Use `useProjectStore` instead. See module docs for migration guide.
+ */
 export const useSessionStore = defineStore('session', () => {
   // State
   const sessions = ref<Session[]>([])

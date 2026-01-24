@@ -83,7 +83,10 @@ function toggleExpand() {
 <template>
   <div :class="['browser-preview-card', { loading, expanded: isExpanded }]">
     <!-- Header -->
-    <div class="card-header" @click="toggleExpand">
+    <div
+      class="card-header"
+      @click="toggleExpand"
+    >
       <div class="header-left">
         <Globe class="header-icon" />
         <span class="action-label">{{ actionInfo.label }}</span>
@@ -99,18 +102,33 @@ function toggleExpand() {
         >
           <ExternalLink class="w-3.5 h-3.5" />
         </button>
-        <button class="btn-icon btn-expand" :title="isExpanded ? '收起' : '展开'">
-          <ChevronUp v-if="isExpanded" class="w-3.5 h-3.5" />
-          <ChevronDown v-else class="w-3.5 h-3.5" />
+        <button
+          class="btn-icon btn-expand"
+          :title="isExpanded ? '收起' : '展开'"
+        >
+          <ChevronUp
+            v-if="isExpanded"
+            class="w-3.5 h-3.5"
+          />
+          <ChevronDown
+            v-else
+            class="w-3.5 h-3.5"
+          />
         </button>
       </div>
     </div>
 
     <!-- Content (Screenshot) -->
     <Transition name="expand">
-      <div v-if="isExpanded" class="card-content">
+      <div
+        v-if="isExpanded"
+        class="card-content"
+      >
         <!-- Action Description -->
-        <div v-if="actionDescription" class="action-description">
+        <div
+          v-if="actionDescription"
+          class="action-description"
+        >
           {{ actionDescription }}
         </div>
 
@@ -122,18 +140,27 @@ function toggleExpand() {
             :alt="title || 'Browser Screenshot'"
             class="screenshot-image"
           >
-          <div v-else-if="loading" class="screenshot-placeholder loading">
+          <div
+            v-else-if="loading"
+            class="screenshot-placeholder loading"
+          >
             <RefreshCw class="placeholder-icon spin" />
             <span>正在加载页面...</span>
           </div>
-          <div v-else class="screenshot-placeholder">
+          <div
+            v-else
+            class="screenshot-placeholder"
+          >
             <Globe class="placeholder-icon" />
             <span>等待截图...</span>
           </div>
         </div>
 
         <!-- Page Title -->
-        <div v-if="title" class="page-title">
+        <div
+          v-if="title"
+          class="page-title"
+        >
           {{ title }}
         </div>
       </div>

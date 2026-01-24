@@ -5,6 +5,8 @@ import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { Sun, Moon, Monitor, Bell, Sparkles, User, LogOut } from 'lucide-vue-next'
+import WorkspaceSelector from '@/components/workspace/WorkspaceSelector.vue'
+import type { Workspace } from '@/api/workspace'
 
 // Stores
 const router = useRouter()
@@ -50,6 +52,11 @@ const closeMenus = (e: MouseEvent) => {
   }
 }
 
+// Workspace change handler
+const handleWorkspaceChange = (workspace: Workspace) => {
+  console.log('[AnyHeader] Workspace changed:', workspace.name)
+}
+
 onMounted(() => {
   window.addEventListener('click', closeMenus)
 })
@@ -61,6 +68,15 @@ onUnmounted(() => {
 
 <template>
   <header class="any-header">
+    <!-- Workspace Selector (only when authenticated) -->
+    <WorkspaceSelector
+      v-if="authStore.isAuthenticated"
+      @change="handleWorkspaceChange"
+    />
+
+    <!-- Spacer -->
+    <div class="header-spacer" />
+
     <!-- Theme toggle -->
     <div class="theme-menu-container">
       <button
@@ -166,11 +182,17 @@ onUnmounted(() => {
 .any-header {
   position: fixed;
   top: 12px;
+  left: 280px; /* After sidebar */
   right: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   z-index: 100;
+}
+
+/* Spacer to push right-side items */
+.header-spacer {
+  flex: 1;
 }
 
 /* Icon sizes */

@@ -524,7 +524,10 @@ defineExpose({
 
     <!-- Drag Overlay -->
     <Transition name="fade">
-      <div v-if="isDragging" class="drag-overlay">
+      <div
+        v-if="isDragging"
+        class="drag-overlay"
+      >
         <div class="drag-content">
           <Paperclip class="w-8 h-8" />
           <span>拖放文件到此处</span>
@@ -559,7 +562,10 @@ defineExpose({
         class="attachments-preview"
       >
         <!-- Images Grid -->
-        <div v-if="hasImages" class="images-grid">
+        <div
+          v-if="hasImages"
+          class="images-grid"
+        >
           <div
             v-for="img in pendingImages"
             :key="img.id"
@@ -582,13 +588,19 @@ defineExpose({
         </div>
 
         <!-- Files List -->
-        <div v-if="hasFiles" class="files-list">
+        <div
+          v-if="hasFiles"
+          class="files-list"
+        >
           <div
             v-for="f in pendingFiles"
             :key="f.id"
             class="file-item"
           >
-            <component :is="getFileIcon(f.file)" class="file-icon" />
+            <component
+              :is="getFileIcon(f.file)"
+              class="file-icon"
+            />
             <div class="file-info">
               <span class="file-name">{{ f.file.name }}</span>
               <span class="file-size">{{ (f.file.size / 1024).toFixed(1) }} KB</span>

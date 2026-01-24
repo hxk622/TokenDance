@@ -1150,6 +1150,7 @@ onUnmounted(() => {
                 v-model:current-tab="currentTab" 
                 :session-id="sessionId"
                 :task-type="taskType"
+                :is-project-mode="isProjectMode"
                 @tab-change="handleTabChange"
               />
               <PreviewArea 
@@ -1158,6 +1159,7 @@ onUnmounted(() => {
                 :is-executing="isRunning"
                 :report-content="executionStore.reportContent"
                 :citations="executionStore.citations"
+                :project-id="projectId"
               />
             </div>
           </template>
