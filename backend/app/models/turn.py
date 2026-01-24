@@ -6,6 +6,7 @@ Turn 是多轮对话架构的核心概念:
 - Turn 连接了 Conversation 和 Session
 - 支持重试、分支等高级功能
 """
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Optional, TYPE_CHECKING
@@ -13,7 +14,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base, generate_ulid
+from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
@@ -47,7 +48,7 @@ class Turn(Base):
     __tablename__ = "turns"
 
     # 基础字段
-    id = Column(String(26), primary_key=True, default=generate_ulid)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     conversation_id = Column(String(26), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
     turn_number = Column(Integer, nullable=False)  # 轮次序号 (从 1 开始)
 
