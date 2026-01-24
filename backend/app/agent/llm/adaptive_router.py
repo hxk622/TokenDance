@@ -103,11 +103,10 @@ class AdaptiveRouter(AdvancedRouter):
 
     def __init__(
         self,
-        use_openrouter: bool = True,
         context_graph_client = None,
         enable_exploration: bool = True
     ):
-        super().__init__(use_openrouter)
+        super().__init__()
 
         # Context Graph 客户端（Neo4j）
         self.context_graph = context_graph_client
