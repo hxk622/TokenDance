@@ -266,6 +266,10 @@ watch(
 // 是否为深度研究模式
 const isDeepResearch = computed(() => taskType.value === 'deep-research')
 
+// Horizontal ratio (left vs right) - MUST be declared before watch that uses it
+const leftWidth = ref(layoutRatios[taskType.value].left)
+const rightWidth = ref(layoutRatios[taskType.value].right)
+
 // taskType 变化时的统一响应（布局比例 + 默认 Tab）
 const defaultTabs: Record<TaskType, TabType> = {
   'deep-research': 'report',
@@ -284,7 +288,7 @@ watch(taskType, (newType) => {
     rightWidth.value = ratio.right
     console.log('[ExecutionPage] Layout ratio updated for taskType:', newType, ratio)
   }
-  
+
   // 2. 更新默认 Tab
   currentTab.value = defaultTabs[newType] || 'report'
 }, { immediate: true })
@@ -311,10 +315,6 @@ watch(shouldShowExecution, (show) => {
     layoutMode.value = 'execution'
   }
 }, { immediate: true })
-
-// Horizontal ratio (left vs right)
-const leftWidth = ref(layoutRatios[taskType.value].left)
-const rightWidth = ref(layoutRatios[taskType.value].right)
 
 // Vertical ratio (top vs bottom in left panel)
 const topHeight = ref(40)
