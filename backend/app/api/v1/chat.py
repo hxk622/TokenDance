@@ -20,7 +20,10 @@ try:
         BasicAgent,
         create_working_memory,
     )
+    from app.agent.llm.base import BaseLLM
+    from app.agent.llm.openrouter import create_openrouter_llm
     from app.agent.llm.router import TaskType, get_free_llm_for_task
+    from app.agent.llm.vision_router import VisionTaskType, get_vision_model
     from app.agent.tools import ToolRegistry
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
@@ -109,8 +112,23 @@ async def send_message(
                 # Create Tool Registry (empty for now)
                 tools = ToolRegistry()
 
-                # 使用智能路由选择免费 LLM (OpenRouter)
-                llm = get_free_llm_for_task(task_type=TaskType.GENERAL, max_tokens=4096)
+                # 检查是否有图片附件
+                has_images = request.attachments and any(
+                    a.type == "image" for a in request.attachments
+                )
+
+                # 根据是否有图片选择模型
+                if has_images:
+                    # 使用 Vision 模型
+                    vision_model = get_vision_model(
+                        task_type=VisionTaskType.CHART_ANALYSIS,  # 默认图表分析
+                        max_cost=5.0  # 成本限制
+                    )
+                    llm: BaseLLM = create_openrouter_llm(model=vision_model, max_tokens=4096)
+                    logger.info(f"Using Vision model: {vision_model}")
+                else:
+                    # 使用智能路由选择免费 LLM (OpenRouter)
+                    llm = get_free_llm_for_task(task_type=TaskType.GENERAL, max_tokens=4096)
 
                 # Create Agent (using BasicAgent for now)
                 agent = BasicAgent(
@@ -122,8 +140,20 @@ async def send_message(
                     max_iterations=50
                 )
 
+                # 将附件转换为 Agent 格式
+                attachments_for_agent = None
+                if request.attachments:
+                    attachments_for_agent = [
+                        {
+                            "type": a.type,
+                            "url": a.url,
+                            "name": a.name
+                        }
+                        for a in request.attachments
+                    ]
+
                 # Run Agent and stream events
-                async for event in agent.run(request.content):
+                async for event in agent.run(request.content, attachments=attachments_for_agent):
                     # Convert SSEEvent to SSE format
                     yield format_sse_event(event.type.value, event.data)
 

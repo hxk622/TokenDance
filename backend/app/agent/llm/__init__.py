@@ -4,7 +4,7 @@ LLM 客户端模块
 from .adaptive_router import AdaptiveRouter
 from .advanced_router import AdvancedRouter, RoutingConstraints, get_llm_with_constraints
 from .anthropic import ClaudeLLM
-from .base import BaseLLM, LLMMessage, LLMResponse
+from .base import BaseLLM, ImageContent, LLMMessage, LLMResponse, MultimodalContent, TextContent
 from .openrouter import OpenRouterLLM, create_openrouter_llm
 from .qwen import QwenLLM, create_qwen_llm
 
@@ -18,6 +18,9 @@ __all__ = [
     "BaseLLM",
     "LLMMessage",
     "LLMResponse",
+    "TextContent",
+    "ImageContent",
+    "MultimodalContent",
     "ClaudeLLM",
     "QwenLLM",
     "create_qwen_llm",

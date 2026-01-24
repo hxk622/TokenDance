@@ -107,7 +107,11 @@ class BaseAgent(ABC):
 
     # ==================== 主运行循环 ====================
 
-    async def run(self, user_input: str) -> AsyncGenerator[SSEEvent, None]:
+    async def run(
+        self,
+        user_input: str,
+        attachments: list[dict[str, Any]] | None = None
+    ) -> AsyncGenerator[SSEEvent, None]:
         """主运行循环 - SSE 流式输出
 
         这是 Agent 的核心方法，负责：
@@ -119,15 +123,16 @@ class BaseAgent(ABC):
         6. 循环直到完成或停止
 
         Args:
-            user_input: 用户输入
+            user_input: 用户输入文本
+            attachments: 可选的附件列表，格式: [{"type": "image", "url": "data:image/...", "name": "..."}]
 
         Yields:
             SSEEvent: SSE 事件流
         """
         try:
-            # 1. 添加用户消息
+            # 1. 添加用户消息（支持多模态）
             self.current_message_id = str(uuid.uuid4())
-            await self._add_user_message(user_input)
+            await self._add_user_message(user_input, attachments)
 
             # 记录到 progress.md
             await self.memory.log_action(
@@ -618,20 +623,57 @@ class BaseAgent(ABC):
             'can_remember': True,
         }
 
-    async def _add_user_message(self, content: str) -> None:
-        """添加用户消息到 context
+    async def _add_user_message(
+        self,
+        content: str,
+        attachments: list[dict[str, Any]] | None = None
+    ) -> None:
+        """添加用户消息到 context，支持多模态内容
 
         Args:
-            content: 消息内容
+            content: 消息文本内容
+            attachments: 可选的附件列表，格式: [{"type": "image", "url": "data:image/..."}]
         """
-        # 添加到 context.messages
-        self.context.messages.append({
-            "role": "user",
-            "content": content
-        })
+        # 构建消息内容
+        if attachments:
+            # 多模态消息：图片 + 文本
+            message_content = []
 
-        # TODO: 实际需要创建 Message 对象并存入数据库
-        logger.info(f"User message added: {content[:50]}...")
+            # 先添加图片
+            for attachment in attachments:
+                if attachment.get("type") == "image" and attachment.get("url"):
+                    message_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": attachment["url"]}
+                    })
+                    logger.info(f"Image attachment added: {attachment.get('name', 'unnamed')}")
+
+            # 再添加文本
+            if content:
+                message_content.append({
+                    "type": "text",
+                    "text": content
+                })
+
+            # 如果只有图片没有文本，添加默认提示
+            if not content and message_content:
+                message_content.append({
+                    "type": "text",
+                    "text": "请分析这张图片"
+                })
+
+            self.context.messages.append({
+                "role": "user",
+                "content": message_content
+            })
+            logger.info(f"Multimodal message added: {len(attachments)} images, text: {content[:30] if content else '(none)'}...")
+        else:
+            # 纯文本消息
+            self.context.messages.append({
+                "role": "user",
+                "content": content
+            })
+            logger.info(f"User message added: {content[:50]}...")
 
     def _should_continue(self) -> bool:
         """判断是否应该继续执行

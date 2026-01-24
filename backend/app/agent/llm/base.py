@@ -9,10 +9,31 @@ from typing import Any
 from pydantic import BaseModel
 
 
+class ImageContent(BaseModel):
+    """图片内容（用于多模态消息）"""
+    type: str = "image_url"
+    image_url: dict[str, str]  # {"url": "data:image/png;base64,..."}
+
+
+class TextContent(BaseModel):
+    """文本内容（用于多模态消息）"""
+    type: str = "text"
+    text: str
+
+
+# 多模态消息内容类型
+MultimodalContent = list[TextContent | ImageContent]
+
+
 class LLMMessage(BaseModel):
-    """LLM 消息格式"""
+    """LLM 消息格式
+
+    支持两种 content 格式：
+    1. 纯文本: content = "Hello"
+    2. 多模态: content = [{"type": "text", "text": ".."}, {"type": "image_url", "image_url": {...}}]
+    """
     role: str  # "user" | "assistant" | "system"
-    content: str
+    content: str | MultimodalContent  # 支持纯文本或多模态内容
 
 
 @dataclass

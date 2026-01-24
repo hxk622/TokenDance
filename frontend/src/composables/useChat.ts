@@ -3,7 +3,7 @@
  */
 import { useChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
-import { chatApi, type ChatRequest, type SSEEvent, type SSEEventType } from '@/api/chat'
+import { chatApi, type ChatRequest, type SSEEvent, type SSEEventType, type Attachment } from '@/api/chat'
 import type { Message } from '@/api/session'
 
 export function useChat() {
@@ -13,7 +13,7 @@ export function useChat() {
   /**
    * Send a message and stream the response
    */
-  async function sendMessage(content: string, attachments?: ChatRequest['attachments']) {
+  async function sendMessage(content: string, attachments?: Attachment[]) {
     const session = sessionStore.currentSession
     if (!session) {
       throw new Error('No active session')

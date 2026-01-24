@@ -102,18 +102,33 @@ export interface QuoteInfo {
   role: MessageRole
 }
 
+// Image attachment for preview
+export interface ImageAttachment {
+  id: string
+  file: File
+  previewUrl: string // blob URL for preview
+  dataUrl?: string   // base64 data URL for sending
+}
+
 // Chat input state
 export interface ChatInputState {
   text: string
   quote?: QuoteInfo
-  attachments?: File[]
+  images?: ImageAttachment[]
+}
+
+// Attachment format for API (matches backend schema)
+export interface Attachment {
+  type: 'image' | 'file'
+  url: string  // base64 data URL
+  name?: string
 }
 
 // Event payloads
 export interface SendMessagePayload {
   content: string
   quote?: QuoteInfo
-  attachments?: File[]
+  attachments?: Attachment[]  // API format
 }
 
 export interface FormSubmitPayload {

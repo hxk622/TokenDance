@@ -92,8 +92,8 @@ class OpenRouterLLM(BaseLLM):
         }
 
         if tools:
-            api_params["functions"] = self._format_tools(tools)
-            api_params["function_call"] = "auto"
+            api_params["tools"] = tools
+            api_params["tool_choice"] = "auto"
 
         if stop_sequences:
             api_params["stop"] = stop_sequences
@@ -155,11 +155,19 @@ class OpenRouterLLM(BaseLLM):
                 content = message.get("content", "")
                 tool_calls = []
 
-                # 处理 function calling
-                if "function_call" in message:
+                # 处理新的 tool_calls 格式 (OpenAI tools API)
+                if "tool_calls" in message and message["tool_calls"]:
+                    for tc in message["tool_calls"]:
+                        tool_calls.append({
+                            "id": tc.get("id", f"call_{hash(tc['function']['name'])}"),
+                            "name": tc["function"]["name"],
+                            "input": json.loads(tc["function"]["arguments"])
+                        })
+                # 兼容旧的 function_call 格式
+                elif "function_call" in message:
                     func_call = message["function_call"]
                     tool_calls.append({
-                        "id": f"call_{hash(func_call['name'])}",  # 生成虚拟 ID
+                        "id": f"call_{hash(func_call['name'])}",
                         "name": func_call["name"],
                         "input": json.loads(func_call["arguments"])
                     })
@@ -257,8 +265,8 @@ class OpenRouterLLM(BaseLLM):
         }
 
         if tools:
-            api_params["functions"] = self._format_tools(tools)
-            api_params["function_call"] = "auto"
+            api_params["tools"] = tools
+            api_params["tool_choice"] = "auto"
 
         if stop_sequences:
             api_params["stop"] = stop_sequences
@@ -296,8 +304,10 @@ class OpenRouterLLM(BaseLLM):
         self,
         messages: list[Any],
         system: str | None = None
-    ) -> list[dict[str, str]]:
+    ) -> list[dict[str, Any]]:
         """格式化消息为 OpenAI Chat Completions API 格式
+
+        支持多模态内容（图片 + 文本）
 
         Args:
             messages: 消息列表（LLMMessage 或 dict）
@@ -323,10 +333,60 @@ class OpenRouterLLM(BaseLLM):
                 content = msg.content
 
             # 过滤已经处理的 system 消息
-            if role != "system":
-                formatted.append({"role": role, "content": content})
+            if role == "system":
+                continue
+
+            # 处理内容格式
+            formatted_content = self._format_content(content)
+            formatted.append({"role": role, "content": formatted_content})
 
         return formatted
+
+    def _format_content(self, content: Any) -> Any:
+        """格式化消息内容，支持多模态
+
+        Args:
+            content: 消息内容，可以是字符串或多模态内容列表
+
+        Returns:
+            格式化后的内容（字符串或 OpenAI Vision 格式数组）
+        """
+        # 纯文本内容
+        if isinstance(content, str):
+            return content
+
+        # 多模态内容（列表格式）
+        if isinstance(content, list):
+            formatted_parts = []
+            for part in content:
+                if isinstance(part, dict):
+                    part_type = part.get("type")
+                    if part_type == "text":
+                        formatted_parts.append({
+                            "type": "text",
+                            "text": part.get("text", "")
+                        })
+                    elif part_type == "image_url":
+                        formatted_parts.append({
+                            "type": "image_url",
+                            "image_url": part.get("image_url", {})
+                        })
+                elif hasattr(part, "type"):
+                    # Pydantic model (TextContent or ImageContent)
+                    if part.type == "text":
+                        formatted_parts.append({
+                            "type": "text",
+                            "text": part.text
+                        })
+                    elif part.type == "image_url":
+                        formatted_parts.append({
+                            "type": "image_url",
+                            "image_url": part.image_url
+                        })
+            return formatted_parts if formatted_parts else ""
+
+        # 未知格式，尝试转换为字符串
+        return str(content) if content else ""
 
     def _format_tools(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """将 Claude Tool Use 格式转换为 OpenAI Function Calling 格式
