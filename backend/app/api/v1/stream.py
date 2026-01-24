@@ -633,14 +633,63 @@ async def stream_session_events(
                         "timestamp": time.time(),
                     })
                 # For RUNNING status, don't send anything - let the original stream continue
+            elif not task:
+                # No task provided - this is a reconnection to an existing session
+                # Send current session status and keep connection alive with pings
+                logger.info(
+                    "sse_reconnection_without_task",
+                    session_id=session_id,
+                    session_status=session.status.value,
+                )
+
+                # Send current session status immediately
+                if session.status == SessionStatus.COMPLETED:
+                    yield format_sse(SSEEventType.SESSION_COMPLETED, {
+                        "session_id": session_id,
+                        "status": "completed",
+                        "timestamp": time.time(),
+                    })
+                elif session.status == SessionStatus.FAILED:
+                    yield format_sse(SSEEventType.SESSION_FAILED, {
+                        "session_id": session_id,
+                        "status": "failed",
+                        "timestamp": time.time(),
+                    })
+                elif session.status == SessionStatus.CANCELLED:
+                    yield format_sse(SSEEventType.SESSION_COMPLETED, {
+                        "session_id": session_id,
+                        "status": "cancelled",
+                        "timestamp": time.time(),
+                    })
+                elif session.status == SessionStatus.RUNNING:
+                    # Session is running, keep connection alive for real-time updates
+                    # The actual events will come from the agent execution
+                    logger.info(
+                        "sse_waiting_for_running_session",
+                        session_id=session_id,
+                    )
+                    # Keep connection alive with periodic pings
+                    while not await request.is_disconnected():
+                        yield format_sse(SSEEventType.PING, {"timestamp": time.time()})
+                        await asyncio.sleep(15)
+                else:
+                    # PENDING status - waiting for task
+                    yield format_sse(SSEEventType.SESSION_STARTED, {
+                        "session_id": session_id,
+                        "status": "pending",
+                        "timestamp": time.time(),
+                    })
             else:
-                # Use mock stream for demo
-                stream = mock_agent_execution_stream(session_id)
-                async for event in keepalive_generator(stream):
-                    if await request.is_disconnected():
-                        logger.info("sse_client_disconnected", session_id=session_id)
-                        break
-                    yield event
+                # Agent Engine not available - return error instead of mock data
+                logger.warning(
+                    "sse_agent_engine_unavailable",
+                    session_id=session_id,
+                )
+                yield format_sse(SSEEventType.ERROR, {
+                    "message": "Agent Engine is not available",
+                    "session_id": session_id,
+                    "timestamp": time.time(),
+                })
 
         except asyncio.CancelledError:
             logger.info("sse_stream_cancelled", session_id=session_id)

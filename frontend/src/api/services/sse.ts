@@ -318,6 +318,7 @@ export class SSEConnection {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private isClosed = false
   private hasFatalError = false // Track fatal errors (404, 403)
+  private sessionCompleted = false // Track if session is completed/failed/cancelled
   private task: string | null = null
   
   /** P1-3: Track last received sequence number for replay */
@@ -400,8 +401,8 @@ export class SSEConnection {
    * Connect to SSE stream
    */
   connect(): void {
-    if (this.isClosed || this.hasFatalError) {
-      console.warn('[SSE] Connection is closed or has fatal error, cannot reconnect')
+    if (this.isClosed || this.hasFatalError || this.sessionCompleted) {
+      console.warn('[SSE] Connection is closed, has fatal error, or session completed - cannot reconnect')
       return
     }
 
@@ -419,19 +420,26 @@ export class SSEConnection {
       this.eventSource.onmessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data) as SSEEvent
-          
+
           // P1-3: Track sequence number for replay
           if (data.data?._seq) {
             this.lastSeq = data.data._seq
           }
-          
+
           // P1-3: Handle replay events
           if (data.event === SSEEventType.REPLAY_START) {
             this.options.onReplayStart(data.data?.last_seq || 0)
           } else if (data.event === SSEEventType.REPLAY_END) {
             this.options.onReplayEnd(data.data?.replayed_count || 0)
           }
-          
+
+          // Mark session as completed to prevent reconnection
+          if (data.event === SSEEventType.SESSION_COMPLETED ||
+              data.event === SSEEventType.SESSION_FAILED) {
+            console.log(`[SSE] Session ended with status: ${data.event}, stopping reconnection`)
+            this.sessionCompleted = true
+          }
+
           this.options.onEvent(data)
         } catch (error) {
           console.error('[SSE] Failed to parse event data:', error)
@@ -534,6 +542,13 @@ export class SSEConnection {
               this.options.onReplayStart(parsedData.last_seq || 0)
             } else if (eventType === SSEEventType.REPLAY_END) {
               this.options.onReplayEnd(parsedData.replayed_count || 0)
+            }
+
+            // Mark session as completed to prevent reconnection
+            if (eventType === SSEEventType.SESSION_COMPLETED ||
+                eventType === SSEEventType.SESSION_FAILED) {
+              console.log(`[SSE] Session ended with status: ${eventType}, stopping reconnection`)
+              this.sessionCompleted = true
             }
 
             this.options.onEvent(sseEvent)

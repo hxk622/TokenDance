@@ -53,8 +53,8 @@ dist-ssr/
 *~
 .DS_Store
 
-# Environment variables
-.env
+# Environment variables (we track backend/.env with empty secrets)
+# .env  # REMOVED - we commit .env with placeholder secrets
 .env.local
 .env.*.local
 

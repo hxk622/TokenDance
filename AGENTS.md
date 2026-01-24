@@ -31,6 +31,19 @@ pnpm install
 cd backend && uv sync --all-extras
 ```
 
+### Environment Variables
+
+**规则**: 不使用 `.env.example`，直接使用 `backend/.env`
+
+- 所有环境变量配置在 `backend/.env`
+- 添加新的环境变量时，直接修改 `.env` 文件
+- 敏感信息（API Key 等）留空或使用占位符，由开发者本地填写
+- `.env` 已在 `.gitignore` 中，不会提交到仓库
+
+**当前 LLM 配置优先级**:
+1. **SiliconFlow (硅基流动)** - 国内优先，便宜，免费额度多
+2. OpenRouter - 备用/海外
+
 ## Commands Reference
 
 | Command | Purpose |
