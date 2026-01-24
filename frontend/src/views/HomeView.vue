@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useSessionStore } from '@/stores/session'
 import { useProjectStore } from '@/stores/project'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { 
@@ -17,7 +16,6 @@ import type { NavItem } from '@/components/common/AnySidebar.vue'
 import type { Project, ProjectType } from '@/types/project'
 
 const router = useRouter()
-const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
 const { requireAuth } = useAuthGuard()
 
@@ -165,7 +163,7 @@ const filteredTemplates = computed(() => {
 // Placeholder 提示
 const placeholderText = '描述你要完成的任务...'
 
-// 处理提交 - 直接创建 session 并跳转到执行页，预检查在执行页进行
+// 处理提交 - 创建 Project 并跳转到项目执行页
 const handleSubmit = async () => {
   if (!inputValue.value.trim() || isLoading.value) return
   
@@ -175,20 +173,16 @@ const handleSubmit = async () => {
   
   isLoading.value = true
   try {
-    const workspaceId = sessionStore.currentWorkspaceId || 'default'
+    // 使用 Project-First 架构
+    const project = await projectStore.quickCreate(inputValue.value)
     
-    const session = await sessionStore.createSession({
-      workspace_id: workspaceId,
-      title: inputValue.value.slice(0, 50)
-    })
-    
-    // 跳转到执行页，预检查将在执行页进行
+    // 跳转到项目执行页
     router.push({
-      path: `/execution/${session.id}`,
+      path: `/project/${project.id}`,
       query: { task: inputValue.value }
     })
   } catch (error) {
-    console.error('Failed to create session:', error)
+    console.error('Failed to create project:', error)
     showError('哎呀，遇到了一点小问题，请稍后再试试看 😅')
   } finally {
     isLoading.value = false
@@ -203,7 +197,7 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
-// 处理快捷芯片点击 - 创建 session 并跳转到执行页面
+// 处理快捷芯片点击 - 创建 Project 并跳转到项目执行页面
 const handleChipClick = async (chip: typeof quickChips[0]) => {
   if (isLoading.value) return
   
@@ -213,25 +207,22 @@ const handleChipClick = async (chip: typeof quickChips[0]) => {
   
   isLoading.value = true
   try {
-    const workspaceId = sessionStore.currentWorkspaceId || 'default'
-    const session = await sessionStore.createSession({
-      workspace_id: workspaceId,
-      title: chip.label
-    })
+    const intent = `我想要${chip.label}`
+    const project = await projectStore.quickCreate(intent)
     
     router.push({
-      path: `/execution/${session.id}`,
-      query: { task: `我想要${chip.label}` }
+      path: `/project/${project.id}`,
+      query: { task: intent }
     })
   } catch (error) {
-    console.error('Failed to create session:', error)
+    console.error('Failed to create project:', error)
     showError('系统开小差了，请稍等片刻再试 ☕')
   } finally {
     isLoading.value = false
   }
 }
 
-// 处理模板点击 - 创建 session 并跳转到执行页面
+// 处理模板点击 - 创建 Project 并跳转到项目执行页面
 const handleTemplateClick = async (template: typeof templates[0]) => {
   if (isLoading.value) return
   
@@ -241,18 +232,15 @@ const handleTemplateClick = async (template: typeof templates[0]) => {
   
   isLoading.value = true
   try {
-    const workspaceId = sessionStore.currentWorkspaceId || 'default'
-    const session = await sessionStore.createSession({
-      workspace_id: workspaceId,
-      title: template.title
-    })
+    const intent = `请帮我${template.title}`
+    const project = await projectStore.quickCreate(intent)
     
     router.push({
-      path: `/execution/${session.id}`,
-      query: { task: `请帮我${template.title}` }
+      path: `/project/${project.id}`,
+      query: { task: intent }
     })
   } catch (error) {
-    console.error('Failed to create session:', error)
+    console.error('Failed to create project:', error)
     showError('有点小状况，请稍后再试试 🙏')
   } finally {
     isLoading.value = false
@@ -264,7 +252,7 @@ const handleAttachClick = () => {
   fileInputRef.value?.click()
 }
 
-// 处理文件选择 - 创建 session 并跳转到执行页面
+// 处理文件选择 - 创建 Project 并跳转到项目执行页面
 const handleFileSelect = async (e: Event) => {
   const input = e.target as HTMLInputElement
   if (input.files && input.files.length > 0 && !isLoading.value) {
@@ -279,19 +267,16 @@ const handleFileSelect = async (e: Event) => {
     
     isLoading.value = true
     try {
-      const workspaceId = sessionStore.currentWorkspaceId || 'default'
-      const session = await sessionStore.createSession({
-        workspace_id: workspaceId,
-        title: `处理文件: ${fileNames.slice(0, 30)}`
-      })
+      const intent = `请帮我处理这些文件: ${fileNames}`
+      const project = await projectStore.quickCreate(intent)
       
       // TODO: 实际项目中应先上传文件
       router.push({
-        path: `/execution/${session.id}`,
-        query: { task: `请帮我处理这些文件: ${fileNames}` }
+        path: `/project/${project.id}`,
+        query: { task: intent }
       })
     } catch (error) {
-      console.error('Failed to create session:', error)
+      console.error('Failed to create project:', error)
       showError('文件处理遇到了麻烦，请稍后重试 📁')
     } finally {
       isLoading.value = false
@@ -341,7 +326,7 @@ onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown)
   
   // Load recent projects
-  const workspaceId = sessionStore.currentWorkspaceId || 'default'
+  const workspaceId = projectStore.currentWorkspaceId || 'default'
   projectStore.setCurrentWorkspace(workspaceId)
   try {
     await projectStore.loadProjects(workspaceId)

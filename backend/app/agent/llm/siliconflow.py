@@ -45,6 +45,31 @@ SILICONFLOW_PAID_MODELS = [
     "Qwen/QwQ-32B",  # 推理模型
 ]
 
+# 任务类型 -> 模型映射（硅基流动）
+SILICONFLOW_TASK_MODEL_MAP = {
+    # 深度推理/研究 -> DeepSeek-R1 (推理能力强)
+    "deep_research": "deepseek-ai/DeepSeek-R1",
+    # 金融分析 -> DeepSeek-R1 (复杂推理)
+    "financial_analysis": "deepseek-ai/DeepSeek-R1",
+    # PPT/文档生成 -> Qwen2.5-72B (创意+结构化)
+    "ppt_generation": "Qwen/Qwen2.5-72B-Instruct",
+    # 代码生成 -> DeepSeek-V2.5 (代码能力强)
+    "code_generation": "deepseek-ai/DeepSeek-V2.5",
+    # 快速问答 -> Qwen2.5-7B 免费模型 (快速便宜)
+    "quick_qa": "Qwen/Qwen2.5-7B-Instruct",
+    # 通用任务 -> Qwen2.5-72B (平衡性能)
+    "general": "Qwen/Qwen2.5-72B-Instruct",
+    # 多模态 -> Qwen2.5-72B (支持 vision)
+    "multimodal": "Qwen/Qwen2.5-72B-Instruct",
+}
+
+# Fallback 链 - 当主模型不可用时的备选
+SILICONFLOW_FALLBACK_CHAIN = [
+    "Qwen/Qwen2.5-72B-Instruct",  # 首选性价比
+    "deepseek-ai/DeepSeek-V2.5",   # DeepSeek 备选
+    "Qwen/Qwen2.5-7B-Instruct",    # 免费备选
+]
+
 
 class SiliconFlowLLM(BaseLLM):
     """SiliconFlow API 客户端
@@ -390,3 +415,79 @@ def is_siliconflow_free_model(model: str) -> bool:
         bool: 是否为免费模型
     """
     return model in SILICONFLOW_FREE_MODELS
+
+
+def select_siliconflow_model(
+    task_type: str,
+    prefer_free: bool = False,
+    context_length: int = 0
+) -> str:
+    """根据任务类型选择硅基流动模型
+
+    Args:
+        task_type: 任务类型 (deep_research, code_generation, quick_qa, etc.)
+        prefer_free: 是否优先使用免费模型
+        context_length: 上下文长度 (tokens)
+
+    Returns:
+        str: 模型名称
+    """
+    # 如果优先免费，使用免费模型
+    if prefer_free:
+        logger.info("[SiliconFlow] prefer_free=True, using free model")
+        return "Qwen/Qwen2.5-7B-Instruct"
+
+    # 超长上下文 -> Qwen2.5-72B (128K context)
+    if context_length > 64000:
+        logger.info(f"[SiliconFlow] Long context ({context_length}), using Qwen2.5-72B")
+        return "Qwen/Qwen2.5-72B-Instruct"
+
+    # 按任务类型选择
+    model = SILICONFLOW_TASK_MODEL_MAP.get(task_type, SILICONFLOW_TASK_MODEL_MAP["general"])
+    logger.info(f"[SiliconFlow] Selected model '{model}' for task '{task_type}'")
+    return model
+
+
+def get_siliconflow_llm_for_task(
+    task_type: str,
+    prefer_free: bool = False,
+    context_length: int = 0,
+    **llm_kwargs
+) -> SiliconFlowLLM:
+    """根据任务类型获取硅基流动 LLM
+
+    Args:
+        task_type: 任务类型
+        prefer_free: 是否优先免费模型
+        context_length: 上下文长度
+        **llm_kwargs: 其他 LLM 参数
+
+    Returns:
+        SiliconFlowLLM: LLM 实例
+
+    Example:
+        >>> # 深度研究
+        >>> llm = get_siliconflow_llm_for_task("deep_research")
+
+        >>> # 快速问答（免费）
+        >>> llm = get_siliconflow_llm_for_task("quick_qa", prefer_free=True)
+
+        >>> # 代码生成
+        >>> llm = get_siliconflow_llm_for_task("code_generation", temperature=0.3)
+    """
+    model = select_siliconflow_model(
+        task_type=task_type,
+        prefer_free=prefer_free,
+        context_length=context_length
+    )
+    return create_siliconflow_llm(model=model, **llm_kwargs)
+
+
+def is_siliconflow_available() -> bool:
+    """检查硅基流动 API 是否可用（是否配置了 API Key）
+
+    Returns:
+        bool: 是否可用
+    """
+    api_key = os.getenv("SILICONFLOW_API_KEY")
+    return bool(api_key and api_key.strip())

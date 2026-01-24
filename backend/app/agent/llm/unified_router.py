@@ -2,6 +2,10 @@
 统一 LLM 路由入口
 
 整合所有路由策略，提供统一接口和 Fallback 机制
+
+路由优先级:
+1. SiliconFlow (硅基流动) - 国内优先，价格便宜
+2. OpenRouter - 备用/海外
 """
 import asyncio
 import logging
@@ -14,6 +18,12 @@ from .advanced_router import AdvancedRouter, RoutingConstraints, get_llm_with_co
 from .base import BaseLLM, LLMMessage, LLMResponse
 from .openrouter import create_openrouter_llm
 from .router import MODEL_REGISTRY, SimpleRouter, TaskType, get_llm_for_task
+from .siliconflow import (
+    SILICONFLOW_FALLBACK_CHAIN,
+    create_siliconflow_llm,
+    is_siliconflow_available,
+    select_siliconflow_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,36 +37,43 @@ class FallbackConfig:
     # 重试间隔（秒）
     retry_delay: float = 1.0
 
-    # 是否启用 OpenRouter 自动调度作为 fallback
-    enable_openrouter_auto: bool = True
+    # 是否使用 SiliconFlow 作为首选
+    prefer_siliconflow: bool = True
 
-    # 模型降级链
-    fallback_chain: list[str] = None
+    # 是否启用 OpenRouter 作为 fallback
+    enable_openrouter_fallback: bool = True
+
+    # SiliconFlow 降级链
+    siliconflow_fallback_chain: list[str] = None
+
+    # OpenRouter 降级链
+    openrouter_fallback_chain: list[str] = None
 
     def __post_init__(self):
-        if self.fallback_chain is None:
-            # 默认降级链：高性能 → 平衡 → 快速便宜
-            self.fallback_chain = [
-                "anthropic/claude-3-5-sonnet",
+        if self.siliconflow_fallback_chain is None:
+            self.siliconflow_fallback_chain = list(SILICONFLOW_FALLBACK_CHAIN)
+
+        if self.openrouter_fallback_chain is None:
+            # OpenRouter 降级链：免费模型优先
+            self.openrouter_fallback_chain = [
+                "deepseek/deepseek-r1:free",
+                "meta-llama/llama-3.3-70b-instruct:free",
                 "anthropic/claude-3-haiku",
-                "deepseek/deepseek-coder"
             ]
 
 
 class UnifiedRouter:
     """统一 LLM 路由器
 
-    提供统一入口，整合所有路由策略：
-    - 简单规则路由 (Phase 1)
-    - 高级约束路由 (Phase 2)
-    - 自适应学习路由 (Phase 3)
-    - Fallback 降级机制 (Phase 4)
+    路由优先级:
+    1. SiliconFlow (硅基流动) - 国内优先，价格便宜，免费额度多
+    2. OpenRouter - 备用/海外
 
     Features:
+    - SiliconFlow 作为首选 LLM 提供商
     - 自动重试和降级
     - OpenRouter 作为最终 fallback
-    - 错误跟踪和监控
-    - 统一的调用记录
+    - 错误跟踪和熔断
     """
 
     def __init__(
@@ -89,6 +106,13 @@ class UnifiedRouter:
         self._circuit_breaker_threshold = 5  # 5 次错误触发熔断
         self._circuit_breaker_window = 300   # 5 分钟窗口
 
+        # 检查 SiliconFlow 是否可用
+        self._siliconflow_available = is_siliconflow_available()
+        if self._siliconflow_available:
+            logger.info("UnifiedRouter: SiliconFlow is PRIMARY provider")
+        else:
+            logger.info("UnifiedRouter: SiliconFlow not available, using OpenRouter only")
+
         logger.info(f"UnifiedRouter initialized (adaptive={enable_adaptive})")
 
     async def get_llm(
@@ -100,7 +124,7 @@ class UnifiedRouter:
     ) -> BaseLLM:
         """获取 LLM 客户端（主入口）
 
-        自动选择最优模型，支持约束和自适应学习
+        优先级: SiliconFlow > OpenRouter
 
         Args:
             task_type: 任务类型
@@ -111,10 +135,21 @@ class UnifiedRouter:
         Returns:
             BaseLLM: LLM 客户端
         """
-        # 选择模型
-        model = await self._select_model(task_type, constraints, session_id)
+        # 转换任务类型为字符串
+        task_type_str = task_type.value if isinstance(task_type, TaskType) else task_type
 
-        # 创建 LLM 客户端
+        # 优先使用 SiliconFlow
+        if self._siliconflow_available and self.fallback_config.prefer_siliconflow:
+            try:
+                model = select_siliconflow_model(task_type_str)
+                logger.info(f"[UnifiedRouter] Using SiliconFlow: {model}")
+                return create_siliconflow_llm(model=model, **llm_kwargs)
+            except Exception as e:
+                logger.warning(f"[UnifiedRouter] SiliconFlow failed: {e}, falling back to OpenRouter")
+
+        # Fallback 到 OpenRouter
+        model = await self._select_model(task_type, constraints, session_id)
+        logger.info(f"[UnifiedRouter] Using OpenRouter: {model}")
         return create_openrouter_llm(model=model, **llm_kwargs)
 
     async def call_llm(
@@ -129,7 +164,7 @@ class UnifiedRouter:
     ) -> LLMResponse:
         """调用 LLM（带自动重试和 Fallback）
 
-        这是推荐的调用方式，自动处理错误和降级
+        路由优先级: SiliconFlow > OpenRouter
 
         Args:
             task_type: 任务类型
@@ -151,20 +186,25 @@ class UnifiedRouter:
                 task_type = TaskType.GENERAL
 
         # 构建尝试链
-        models_to_try = await self._build_attempt_chain(task_type, constraints, session_id)
+        attempts = await self._build_attempt_chain(task_type, constraints, session_id)
 
         last_error = None
         start_time = datetime.now()
 
-        for attempt, model in enumerate(models_to_try):
+        for attempt_idx, (provider, model) in enumerate(attempts):
             # 检查熔断
-            if self._is_circuit_open(model):
-                logger.warning(f"Circuit breaker open for {model}, skipping")
+            model_key = f"{provider}:{model}"
+            if self._is_circuit_open(model_key):
+                logger.warning(f"Circuit breaker open for {model_key}, skipping")
                 continue
 
             try:
-                # 创建 LLM 并调用
-                llm = create_openrouter_llm(model=model, **llm_kwargs)
+                # 根据 provider 创建 LLM
+                if provider == "siliconflow":
+                    llm = create_siliconflow_llm(model=model, **llm_kwargs)
+                else:
+                    llm = create_openrouter_llm(model=model, **llm_kwargs)
+
                 response = await llm.complete(
                     messages=messages,
                     system=system,
@@ -174,7 +214,7 @@ class UnifiedRouter:
                 # 记录成功
                 latency_ms = (datetime.now() - start_time).total_seconds() * 1000
                 await self._record_result(
-                    model=model,
+                    model=model_key,
                     task_type=task_type,
                     success=True,
                     cost_usd=self._estimate_cost(model, response.usage) if response.usage else 0,
@@ -183,25 +223,26 @@ class UnifiedRouter:
                 )
 
                 # 重置错误计数
-                self._reset_error_count(model)
+                self._reset_error_count(model_key)
 
-                logger.info(f"LLM call succeeded: model={model}, attempt={attempt+1}")
+                logger.info(f"[UnifiedRouter] Success: provider={provider}, model={model}, attempt={attempt_idx+1}")
                 return response
 
             except Exception as e:
                 last_error = e
-                logger.warning(f"LLM call failed: model={model}, error={e}")
+                logger.warning(f"[UnifiedRouter] Failed: provider={provider}, model={model}, error={e}")
 
                 # 记录错误
-                self._record_error(model)
+                self._record_error(model_key)
 
                 # 等待后重试
-                if attempt < len(models_to_try) - 1:
+                if attempt_idx < len(attempts) - 1:
                     await asyncio.sleep(self.fallback_config.retry_delay)
 
         # 所有尝试都失败
+        last_model = attempts[-1][1] if attempts else "unknown"
         await self._record_result(
-            model=models_to_try[-1] if models_to_try else "unknown",
+            model=last_model,
             task_type=task_type,
             success=False,
             session_id=session_id
@@ -240,24 +281,35 @@ class UnifiedRouter:
         task_type: TaskType,
         constraints: RoutingConstraints | None,
         session_id: str | None
-    ) -> list[str]:
-        """构建尝试链（主模型 + 降级模型）"""
-        chain = []
+    ) -> list[tuple[str, str]]:
+        """构建尝试链: [(provider, model), ...]
 
-        # 1. 首选模型
-        primary_model = await self._select_model(task_type, constraints, session_id)
-        chain.append(primary_model)
+        优先级: SiliconFlow > OpenRouter
+        """
+        chain: list[tuple[str, str]] = []
+        task_type_str = task_type.value if isinstance(task_type, TaskType) else str(task_type)
 
-        # 2. 添加降级链中未包含的模型
-        for fallback in self.fallback_config.fallback_chain:
-            if fallback not in chain:
-                chain.append(fallback)
+        # 1. SiliconFlow 作为首选
+        if self._siliconflow_available and self.fallback_config.prefer_siliconflow:
+            # 主模型
+            primary_model = select_siliconflow_model(task_type_str)
+            chain.append(("siliconflow", primary_model))
 
-        # 3. 如果启用 OpenRouter 自动调度，添加默认模型
-        if self.fallback_config.enable_openrouter_auto:
-            default_model = "anthropic/claude-3-5-sonnet"
-            if default_model not in chain:
-                chain.append(default_model)
+            # SiliconFlow 降级链
+            for model in self.fallback_config.siliconflow_fallback_chain:
+                if model != primary_model:
+                    chain.append(("siliconflow", model))
+
+        # 2. OpenRouter 作为 Fallback
+        if self.fallback_config.enable_openrouter_fallback:
+            # OpenRouter 主模型
+            openrouter_model = await self._select_model(task_type, constraints, session_id)
+            chain.append(("openrouter", openrouter_model))
+
+            # OpenRouter 降级链
+            for model in self.fallback_config.openrouter_fallback_chain:
+                if model != openrouter_model:
+                    chain.append(("openrouter", model))
 
         return chain[:self.fallback_config.max_retries + 1]
 
