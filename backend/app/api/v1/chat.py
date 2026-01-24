@@ -96,8 +96,10 @@ def parse_document_attachment(attachment: Attachment) -> str | None:
             file_ext = '.pdf'
         elif 'word' in header or 'docx' in header:
             file_ext = '.docx'
-        elif 'excel' in header or 'xlsx' in header:
+        elif 'excel' in header or 'xlsx' in header or 'spreadsheet' in header:
             file_ext = '.xlsx'
+        elif 'powerpoint' in header or 'pptx' in header or 'presentation' in header:
+            file_ext = '.pptx'
         elif 'text/plain' in header:
             file_ext = '.txt'
         elif 'text/csv' in header:

@@ -484,9 +484,9 @@ watch(() => props.quote, (newQuote) => {
   }
 })
 
-// Cleanup blob URLs on unmount
+// Cleanup attachments on unmount
 onUnmounted(() => {
-  clearImages()
+  clearAllAttachments()
 })
 
 // Expose methods

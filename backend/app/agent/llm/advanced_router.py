@@ -81,8 +81,8 @@ class AdvancedRouter(SimpleRouter):
         TaskType.GENERAL: ["balanced"],
     }
 
-    def __init__(self, use_openrouter: bool = True):
-        super().__init__(use_openrouter)
+    def __init__(self):
+        super().__init__()
         self._routing_history: list[RoutingContext] = []
         logger.info("AdvancedRouter initialized")
 

@@ -711,14 +711,35 @@ defineExpose({
             </div>
           </div>
 
-          <!-- Suggested Questions (Selectable) -->
+          <!-- Clarification Options (Selectable) -->
           <div
-            v-if="preflightResult.suggested_questions?.length"
+            v-if="preflightResult.clarification_options?.length || preflightResult.suggested_questions?.length"
             class="suggested-options"
           >
+            <!-- New format: clarification_options with label/value -->
             <button
-              v-for="(q, idx) in preflightResult.suggested_questions"
-              :key="idx"
+              v-for="(opt, idx) in preflightResult.clarification_options"
+              :key="'opt-' + idx"
+              :class="['option-btn', { selected: selectedOptions.includes(opt.value) }]"
+              @click="toggleOption(opt.value)"
+            >
+              <span class="option-checkbox">
+                <svg
+                  v-if="selectedOptions.includes(opt.value)"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+              <span class="option-text">{{ opt.label }}</span>
+            </button>
+            <!-- Legacy fallback: suggested_questions (string array) -->
+            <button
+              v-for="(q, idx) in (preflightResult.clarification_options?.length ? [] : preflightResult.suggested_questions)"
+              :key="'q-' + idx"
               :class="['option-btn', { selected: selectedOptions.includes(q) }]"
               @click="toggleOption(q)"
             >
