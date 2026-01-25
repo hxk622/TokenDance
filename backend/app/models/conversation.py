@@ -19,6 +19,7 @@ from app.core.datetime_utils import utc_now_naive
 if TYPE_CHECKING:
     from app.models.message import Message
     from app.models.project import Project
+    from app.models.turn import Turn
 
 
 class ConversationStatus(PyEnum):
@@ -150,6 +151,12 @@ class Conversation(Base):
         back_populates="conversation",
         cascade="all, delete-orphan",
         order_by="Message.created_at"
+    )
+    turns: Mapped[list["Turn"]] = relationship(
+        "Turn",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="Turn.turn_number"
     )
 
     def __repr__(self) -> str:

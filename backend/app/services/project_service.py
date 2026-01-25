@@ -8,7 +8,6 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.datetime_utils import utc_now_naive
-
 from app.models.conversation import Conversation, ConversationPurpose, ConversationStatus
 from app.models.project import Project, ProjectStatus, ProjectType
 from app.models.project_version import ProjectVersion, VersionChangeType
