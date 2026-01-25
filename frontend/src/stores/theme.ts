@@ -73,8 +73,8 @@ export const useThemeStore = defineStore('theme', () => {
     if (stored && ['light', 'dark', 'system'].includes(stored)) {
       mode.value = stored
     } else {
-      // 默认使用 dark 主题（TokenDance 品牌风格）
-      mode.value = 'dark'
+      // 默认使用 light 主题
+      mode.value = 'light'
     }
     
     // 设置系统监听

@@ -343,7 +343,6 @@ export class SSEConnection {
   private isClosed = false
   private hasFatalError = false // Track fatal errors (404, 403)
   private sessionCompleted = false // Track if session is completed/failed/cancelled
-  private task: string | null = null
   
   /** P1-3: Track last received sequence number for replay */
   private lastSeq = 0
@@ -352,6 +351,13 @@ export class SSEConnection {
   /** Fallback JWT token (deprecated) */
   private jwtToken: string | null = null
 
+  /**
+   * @param sessionId - Session ID
+   * @param options - SSE options
+   * @param useDemo - Whether to use demo endpoint
+   * @param task - DEPRECATED: No longer used. Use POST /api/v1/chat/{session_id}/message instead.
+   * @param sseToken - P1-1: Short-lived SSE token (preferred over JWT)
+   */
   constructor(
     sessionId: string,
     options: SSEOptions = {},
@@ -360,7 +366,10 @@ export class SSEConnection {
     sseToken: string | null = null
   ) {
     this.sessionId = sessionId
-    this.task = task
+    // DEPRECATED: task parameter is no longer used
+    if (task) {
+      console.warn('[SSE] DEPRECATED: The task parameter is no longer supported. Use POST /api/v1/chat/{session_id}/message instead.')
+    }
     this.sseToken = sseToken
     this.jwtToken = localStorage.getItem('access_token')
     
@@ -409,9 +418,8 @@ export class SSEConnection {
       params.set('token', this.jwtToken)
     }
     
-    if (this.task) {
-      params.set('task', this.task)
-    }
+    // DEPRECATED: task parameter is no longer sent to backend
+    // All messages should be sent via POST /api/v1/chat/{session_id}/message
     
     // P1-3: Include last_seq for replay on reconnection
     if (this.lastSeq > 0) {
@@ -645,7 +653,7 @@ export class SSEConnection {
  * @param sessionId - Session ID
  * @param options - SSE options
  * @param useDemo - Whether to use demo endpoint
- * @param task - Task to execute (triggers agent execution if provided)
+ * @param task - DEPRECATED: No longer used. Use POST /api/v1/chat/{session_id}/message instead.
  * @param sseToken - P1-1: Short-lived SSE token (preferred over JWT)
  */
 export function createSSEConnection(

@@ -20,6 +20,8 @@ import type { IntentValidationResponse } from '@/api/services/session'
 import { researchService } from '@/api/services/research'
 import type { ResearchIntervention } from '@/components/execution/research/types'
 import { hitlApi, type HITLRequest } from '@/api/hitl'
+import { sendMessage as sendChatMessage, type MessagePayload, type SSEEvent } from '@/services/messageService'
+import type { SendMessagePayload } from '@/components/execution/chat/types'
 import {
   Home, History, FolderOpen, Settings, Search, LayoutGrid,
   PauseCircle, StopCircle, ChevronDown, ChevronUp, X, Check,
@@ -498,10 +500,10 @@ function detectTaskTypeFromInput(input: string): string {
 }
 
 // Handle proceed from StreamingInfo (after clarification)
-function handleStreamingProceed(updatedInput?: string) {
+async function handleStreamingProceed(updatedInput?: string) {
   const taskInput = updatedInput || initialTask.value || ''
   initPhase.value = 'executing'
-  startActualExecution(taskInput)
+  await startActualExecution(taskInput)
 }
 
 // 处理研究干预
@@ -517,10 +519,33 @@ async function handleResearchIntervene(intervention: ResearchIntervention) {
   }
 }
 
-// Start the actual agent execution
-function startActualExecution(taskInput: string) {
+// Start the actual agent execution with optional attachments
+// New architecture: Send initial message via REST API, then connect SSE for events
+async function startActualExecution(taskInput: string, attachments?: MessagePayload['attachments']) {
   executionStore.sessionId = sessionId.value
-  executionStore.connectSSE(taskInput)
+  
+  // Use REST API to send initial message (with attachment support)
+  if (sessionId.value) {
+    try {
+      await sendChatMessage(
+        sessionId.value,
+        { content: taskInput, attachments },
+        (event: SSEEvent) => {
+          // Handle SSE events from the REST API response stream
+          executionStore.handleSSEEventFromREST(event)
+        }
+      )
+    } catch (error) {
+      console.error('[ExecutionPage] Failed to send initial message:', error)
+      executionStore.error = error instanceof Error ? error.message : 'Failed to start execution'
+      return
+    }
+  } else {
+    // Fallback: connect SSE with task parameter (deprecated path)
+    console.warn('[ExecutionPage] No sessionId, falling back to SSE task parameter (deprecated)')
+    executionStore.connectSSE(taskInput)
+  }
+  
   startElapsedTimer()
 }
 
@@ -546,7 +571,7 @@ async function initializeExecution() {
       executionStore.nodes = []
       executionStore.edges = []
       initPhase.value = 'executing'
-      startActualExecution(initialTask.value || '')
+      await startActualExecution(initialTask.value || '')
       return
     }
 
@@ -601,7 +626,7 @@ async function initializeExecution() {
       // If intent is complete with high confidence, start execution immediately
       if (result.is_complete && result.confidence_score >= 0.8) {
         initPhase.value = 'executing'
-        startActualExecution(initialTask.value)
+        await startActualExecution(initialTask.value)
       } else {
         // Show clarification UI in StreamingInfo area
         initPhase.value = 'needs-clarification'
@@ -814,9 +839,15 @@ function openBrowserUrl(url: string) {
   window.open(url, '_blank')
 }
 
-// Handle chat message from StreamingInfo
-async function handleChatMessage(message: string) {
-  console.log('Chat message received:', message)
+// Handle chat message from StreamingInfo - now receives full payload with attachments
+async function handleChatMessage(payload: SendMessagePayload) {
+  console.log('Chat message received:', payload.content, 'attachments:', payload.attachments?.length || 0)
+
+  // Convert SendMessagePayload to MessagePayload for messageService
+  const messagePayload: MessagePayload = {
+    content: payload.content,
+    attachments: payload.attachments,
+  }
 
   // Project Mode: Use project store for chat with SSE streaming
   if (isProjectMode.value) {
@@ -828,18 +859,20 @@ async function handleChatMessage(message: string) {
 
     try {
       // Send message through project API - returns session_id for SSE
-      const response = await projectStore.sendMessage(message)
+      const response = await projectStore.sendMessage(payload.content)
 
       // Update sessionId for SSE connection and research intervention
       sessionId.value = response.session_id
-      initialTask.value = message
+      initialTask.value = payload.content
 
       // Switch to executing phase
       initPhase.value = 'executing'
 
       // Connect to SSE stream using the returned session_id
       executionStore.sessionId = response.session_id
-      executionStore.connectSSE(message)
+      // Note: For project mode, we still use the old SSE connection for now
+      // Attachments will be supported in a future project API update
+      executionStore.connectSSE(payload.content)
       startElapsedTimer()
 
       console.log('[ExecutionPage] Project SSE connected:', response.session_id)
@@ -852,15 +885,28 @@ async function handleChatMessage(message: string) {
 
   // Session Mode: In ready state (no execution yet), treat as initial task and start execution
   if (initPhase.value === 'ready' && !isRunning.value) {
-    initialTask.value = message
+    initialTask.value = payload.content
     initPhase.value = 'executing'
-    startActualExecution(message)
+    await startActualExecution(payload.content, messagePayload.attachments)
     return
   }
 
-  // Session Mode: During or after execution, send as supplementary message
+  // Session Mode: During or after execution, send as supplementary message via REST API
   if (sessionId.value) {
-    executionStore.sendSupplementMessage(message)
+    try {
+      // Use new messageService to send with attachments support
+      await sendChatMessage(
+        sessionId.value,
+        messagePayload,
+        (event: SSEEvent) => {
+          // Handle SSE events from the REST API response
+          executionStore.handleSSEEventFromREST(event)
+        }
+      )
+    } catch (error) {
+      console.error('[ExecutionPage] Failed to send supplement message:', error)
+      executionStore.error = error instanceof Error ? error.message : 'Failed to send message'
+    }
   }
 }
 

@@ -470,69 +470,30 @@ async def stream_session_events(
                     "timestamp": time.time(),
                 })
 
-            # If task is provided and Agent Engine is available, run real agent
-            # Multi-turn conversation support: Allow new messages in COMPLETED sessions
-            # Only prevent re-triggering for RUNNING sessions (already executing)
+            # DEPRECATED: task parameter handling
+            # All message sending should now use POST /api/v1/chat/{session_id}/message
             from app.models.session import SessionStatus
 
-            should_start_agent = (
-                task and
-                AGENT_ENGINE_AVAILABLE and
-                session.status in (SessionStatus.PENDING, SessionStatus.COMPLETED, SessionStatus.FAILED, SessionStatus.CANCELLED)
-            )
-
-            # DEPRECATED: Log warning when task parameter is used
             if task:
+                # Task parameter is deprecated - log warning and send deprecation notice
                 logger.warning(
                     "sse_task_parameter_deprecated",
                     session_id=session_id,
-                    message="The 'task' parameter is deprecated. Use POST /api/v1/chat/{session_id}/message instead.",
+                    message="The 'task' parameter is DEPRECATED and NO LONGER PROCESSED. "
+                           "Use POST /api/v1/chat/{session_id}/message instead.",
                 )
+                # Send error event to inform client to use new API
+                yield format_sse(SSEEventType.ERROR, {
+                    "message": "DEPRECATED: The 'task' parameter is no longer supported. "
+                              "Please use POST /api/v1/chat/{session_id}/message to send messages.",
+                    "code": "DEPRECATED_TASK_PARAMETER",
+                    "session_id": session_id,
+                    "timestamp": time.time(),
+                })
+                # Fall through to reconnection logic
 
-            if should_start_agent:
-                logger.info(
-                    "sse_starting_agent",
-                    session_id=session_id,
-                    task=task[:100] if task else None,
-                )
-                async for event in run_agent_stream_with_store(
-                    session_id, task, session.workspace_id, str(current_user.id),
-                    db, redis, settings, event_store
-                ):
-                    if await request.is_disconnected():
-                        logger.info("sse_client_disconnected", session_id=session_id)
-                        # P0-1: Cancel session on disconnect
-                        await session_service.cancel_session(session_id)
-                        break
-                    yield event
-            elif task and session.status != SessionStatus.PENDING:
-                # Session already running or completed - don't re-trigger
-                logger.info(
-                    "sse_skipping_agent_already_processed",
-                    session_id=session_id,
-                    session_status=session.status.value,
-                )
-                # Send current session status to frontend so it can close connection
-                if session.status == SessionStatus.COMPLETED:
-                    yield format_sse(SSEEventType.SESSION_COMPLETED.value, {
-                        "session_id": session_id,
-                        "status": "completed",
-                        "timestamp": time.time(),
-                    })
-                elif session.status == SessionStatus.FAILED:
-                    yield format_sse(SSEEventType.SESSION_FAILED.value, {
-                        "session_id": session_id,
-                        "status": "failed",
-                        "timestamp": time.time(),
-                    })
-                elif session.status == SessionStatus.CANCELLED:
-                    yield format_sse(SSEEventType.SESSION_COMPLETED.value, {
-                        "session_id": session_id,
-                        "status": "cancelled",
-                        "timestamp": time.time(),
-                    })
-                # For RUNNING status, don't send anything - let the original stream continue
-            elif not task:
+            # No task - this is a reconnection to an existing session or waiting for REST API message
+            if True:
                 # No task provided - this is a reconnection to an existing session
                 # Send current session status and keep connection alive with pings
                 logger.info(

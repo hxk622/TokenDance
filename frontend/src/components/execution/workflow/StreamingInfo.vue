@@ -63,8 +63,8 @@ const emit = defineEmits<{
   'update-input': [input: string]
   /** 研究干预事件 */
   'research-intervene': [intervention: ResearchIntervention]
-  /** 用户发送消息事件 (Chat Mode 下触发执行) */
-  'send-message': [message: string]
+  /** 用户发送消息事件 (Chat Mode 下触发执行) - 传递完整 payload 包括附件 */
+  'send-message': [payload: SendMessagePayload]
 }>()
 
 // Selected clarification options
@@ -419,8 +419,8 @@ function handleSendMessage(payload: SendMessagePayload) {
   currentQuote.value = null
   chatInputRef.value?.clear()
   
-  // Emit to parent to handle the message (e.g., trigger execution in chat mode)
-  emit('send-message', payload.content)
+  // Emit full payload to parent (including attachments) for message service
+  emit('send-message', payload)
 }
 
 // Start editing a message
