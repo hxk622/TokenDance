@@ -1,5 +1,19 @@
 <template>
   <div class="preview-area">
+    <!-- Document Header - AnyGen Style -->
+    <DocumentHeader
+      v-if="showDocumentHeader"
+      :title="documentTitle"
+      :is-saved="true"
+      :is-streaming="isExecuting"
+      :show-version-history="false"
+      @update:title="handleTitleUpdate"
+      @download="handleDownload"
+      @share="handleShare"
+      @create="handleCreate"
+      @fullscreen="handleFullscreen"
+    />
+
     <!-- Project Context Tab -->
     <div
       v-if="currentTab === 'project-context' && projectId"
@@ -165,9 +179,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import WorkingMemory from './WorkingMemory.vue'
 import ProjectContextPanel from '@/components/project/ProjectContextPanel.vue'
+import DocumentHeader from './DocumentHeader.vue'
 import { CitationRenderer } from './research'
 import type { Citation, ReportWithCitations } from './research/types'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
@@ -192,13 +207,50 @@ interface Props {
   isReportHtml?: boolean
   /** Project ID（用于项目上下文 Tab） */
   projectId?: string
+  /** 文档标题 */
+  documentTitle?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   reportContent: '',
   citations: () => [],
   isReportHtml: true,
+  documentTitle: '研究报告',
 })
+
+const emit = defineEmits<{
+  'update:documentTitle': [title: string]
+  'download': [format: 'pdf' | 'docx' | 'md']
+  'share': []
+  'create': [type: 'ppt' | 'doc' | 'spreadsheet']
+  'fullscreen': []
+}>()
+
+// 是否显示 DocumentHeader (仅在 report/ppt tab 显示)
+const showDocumentHeader = computed(() => {
+  return props.currentTab === 'report' || props.currentTab === 'ppt'
+})
+
+// DocumentHeader 事件处理
+function handleTitleUpdate(title: string) {
+  emit('update:documentTitle', title)
+}
+
+function handleDownload(format: 'pdf' | 'docx' | 'md') {
+  emit('download', format)
+}
+
+function handleShare() {
+  emit('share')
+}
+
+function handleCreate(type: 'ppt' | 'doc' | 'spreadsheet') {
+  emit('create', type)
+}
+
+function handleFullscreen() {
+  emit('fullscreen')
+}
 
 // Working Memory 状态
 const workingMemoryData = ref<WorkingMemoryResponse | null>(null)
