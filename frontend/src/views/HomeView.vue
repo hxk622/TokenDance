@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
+import { useAuthStore } from '@/stores/auth'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { 
   Search, FileText, Presentation, BarChart3, 
@@ -16,6 +17,7 @@ import type { Project, ProjectType } from '@/types/project'
 
 const router = useRouter()
 const projectStore = useProjectStore()
+const authStore = useAuthStore()
 const { requireAuth } = useAuthGuard()
 
 const inputValue = ref('')
@@ -377,8 +379,8 @@ onUnmounted(() => {
     <AnySidebar
       :sections="sidebarSections"
       :recent-items="sidebarRecentItems"
-      :token-used="15"
-      :token-total="100"
+      :token-used="authStore.monthlyTokensUsed"
+      :token-total="authStore.maxMonthlyTokens"
       @new-click="handleNewClick"
       @nav-click="handleSidebarNavClick"
       @recent-click="handleRecentClick"

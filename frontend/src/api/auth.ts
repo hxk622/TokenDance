@@ -24,6 +24,18 @@ export interface GmailAuthRequest {
   state?: string
 }
 
+export interface UserQuota {
+  max_workspaces: number
+  max_monthly_tokens: number
+  max_storage_gb: number
+}
+
+export interface UserUsageStats {
+  current_workspaces: number
+  monthly_tokens_used: number
+  storage_used_gb: number
+}
+
 export interface User {
   id: string
   email: string
@@ -37,6 +49,8 @@ export interface User {
   created_at: string
   updated_at: string
   last_login_at?: string
+  personal_quota?: UserQuota
+  usage_stats?: UserUsageStats
 }
 
 export interface TokenResponse {

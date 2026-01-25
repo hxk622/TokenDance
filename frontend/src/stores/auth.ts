@@ -27,6 +27,10 @@ export const useAuthStore = defineStore('auth', () => {
   const userEmail = computed(() => user.value?.email || '')
   const userName = computed(() => user.value?.username || '')
   const displayName = computed(() => user.value?.display_name || user.value?.username || '')
+  
+  // Token quota computed
+  const monthlyTokensUsed = computed(() => user.value?.usage_stats?.monthly_tokens_used ?? 0)
+  const maxMonthlyTokens = computed(() => user.value?.personal_quota?.max_monthly_tokens ?? 1_000_000)
 
   /**
    * Login with email and password
@@ -274,6 +278,8 @@ export const useAuthStore = defineStore('auth', () => {
     userEmail,
     userName,
     displayName,
+    monthlyTokensUsed,
+    maxMonthlyTokens,
     
     // Actions
     login,
