@@ -351,8 +351,10 @@ export const useProjectStore = defineStore('project', () => {
   // ============ Chat Actions ============
 
   /**
-   * Send a chat message
-   * Note: This is a placeholder. Will integrate with SSE streaming later.
+   * Send a chat message and get session_id for SSE streaming
+   *
+   * Returns ChatResponse with session_id that can be used to connect
+   * to the SSE stream at /api/v1/sessions/{session_id}/stream
    */
   async function sendMessage(
     message: string,

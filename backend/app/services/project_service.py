@@ -12,6 +12,7 @@ from app.core.datetime_utils import utc_now_naive
 from app.models.conversation import Conversation, ConversationPurpose, ConversationStatus
 from app.models.project import Project, ProjectStatus, ProjectType
 from app.models.project_version import ProjectVersion, VersionChangeType
+from app.models.session import Session, SessionStatus
 from app.repositories.project_repository import ProjectRepository
 from app.schemas.conversation import ConversationCreate, SelectionContext
 from app.schemas.project import ProjectCreate, ProjectUpdate
@@ -354,3 +355,80 @@ class ProjectService:
         if count > 0:
             logger.info(f"Archived {count} inactive quick tasks in workspace {workspace_id}")
         return count
+
+    # ============ Session Integration for SSE ============
+
+    async def create_session_for_conversation(
+        self,
+        project_id: str,
+        conversation_id: str,
+        task: str,
+    ) -> Session | None:
+        """Create a Session for a Conversation to enable SSE streaming.
+
+        This bridges Project Mode with the existing Session/SSE infrastructure.
+        Each conversation execution maps to a Session for real-time streaming.
+
+        Args:
+            project_id: The project ID
+            conversation_id: The conversation ID
+            task: The user's message/task
+
+        Returns:
+            The created Session, or None if project not found
+        """
+        project = await self.repo.get_by_id(project_id)
+        if not project:
+            return None
+
+        # Get conversation
+        from sqlalchemy import select
+        query = select(Conversation).where(Conversation.id == conversation_id)
+        result = await self.db.execute(query)
+        conversation = result.scalar_one_or_none()
+        if not conversation:
+            return None
+
+        # Create a new Session linked to this project's workspace
+        session = Session(
+            id=str(uuid4()),
+            workspace_id=project.workspace_id,
+            title=task[:100] if task else "Project Task",
+            status=SessionStatus.PENDING,
+            extra_data={
+                "project_id": project_id,
+                "conversation_id": conversation_id,
+            }
+        )
+        self.db.add(session)
+
+        # Link session to conversation
+        conversation.current_session_id = session.id
+
+        await self.db.commit()
+        await self.db.refresh(session)
+
+        logger.info(
+            f"Created session {session.id} for conversation {conversation_id} "
+            f"in project {project_id}"
+        )
+        return session
+
+    async def get_conversation_session(
+        self,
+        conversation_id: str,
+    ) -> Session | None:
+        """Get the current session for a conversation."""
+        from sqlalchemy import select
+        query = select(Conversation).where(Conversation.id == conversation_id)
+        result = await self.db.execute(query)
+        conversation = result.scalar_one_or_none()
+
+        if not conversation or not conversation.current_session_id:
+            return None
+
+        session_query = select(Session).where(
+            Session.id == conversation.current_session_id
+        )
+        session_result = await self.db.execute(session_query)
+        return session_result.scalar_one_or_none()

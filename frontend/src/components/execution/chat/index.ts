@@ -14,5 +14,9 @@ export { default as ExecutionTimeline } from './ExecutionTimeline.vue'
 export { default as TimelineStep } from './TimelineStep.vue'
 export { default as SourceGroup } from './SourceGroup.vue'
 
+// AnyGen-style bubble components (Phase 2)
+export { default as AssistantBubble } from './AssistantBubble.vue'
+export { default as UserBubble } from './UserBubble.vue'
+
 // Types
 export * from './types'

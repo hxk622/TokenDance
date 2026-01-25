@@ -137,6 +137,7 @@ export interface ChatResponse {
   status: string
   project_id: string
   conversation_id: string
+  session_id: string  // For SSE streaming connection
   message: string
   context_available: {
     intent: boolean
@@ -146,6 +147,7 @@ export interface ChatResponse {
     artifacts_count: number
   }
   selection?: SelectionContext
+  sse_endpoint?: string  // SSE endpoint URL
 }
 
 export interface ProjectList {

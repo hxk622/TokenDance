@@ -12,7 +12,7 @@ import { ref, watch, computed } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 
 interface Props {
-  title: string
+  title?: string
   collapsed?: boolean
   showCollapseButton?: boolean
   /** 是否显示边框 */
@@ -22,6 +22,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  title: '',
   collapsed: false,
   showCollapseButton: true,
   bordered: true,

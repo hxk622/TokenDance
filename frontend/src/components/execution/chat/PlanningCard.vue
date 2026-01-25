@@ -23,7 +23,8 @@ const emit = defineEmits<{
   'update:collapsed': [value: boolean]
 }>()
 
-const isThinking = computed(() => props.data.status === 'thinking')
+// Support both status and streaming properties
+const isThinking = computed(() => props.data.status === 'thinking' || props.data.streaming === true)
 
 function handleToggle() {
   emit('update:collapsed', !props.data.collapsed)
@@ -32,7 +33,7 @@ function handleToggle() {
 
 <template>
   <CollapsibleCard
-    :title="data.title"
+    :title="data.title || 'Planning'"
     :collapsed="data.collapsed"
     padding="md"
     @toggle="handleToggle"

@@ -121,6 +121,19 @@ export enum SSEEventType {
 
   // LLM Reasoning events (DeepSeek R1 等模型的推理过程)
   LLM_REASONING = 'agent.thinking',  // LLM 推理/思考过程
+
+  // ========== AnyGen-style events (Chat 模式增强) ==========
+  // Planning events (规划/思考卡片)
+  PLANNING_START = 'planning.start',          // 规划开始
+  PLANNING_CONTENT = 'planning.content',      // 规划内容流式输出
+  PLANNING_DONE = 'planning.done',            // 规划完成
+  // Step events (执行步骤 Timeline)
+  STEP_START = 'step.start',                  // 步骤开始
+  STEP_UPDATE = 'step.update',                // 步骤更新(进度/内容)
+  STEP_DONE = 'step.done',                    // 步骤完成
+  STEP_FAILED = 'step.failed',                // 步骤失败
+  // Search result events (搜索结果来源)
+  SEARCH_SOURCES = 'search.sources',          // 搜索来源列表
 }
 
 export interface SSEEvent<T = any> {

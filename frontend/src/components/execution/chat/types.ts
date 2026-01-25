@@ -192,10 +192,11 @@ export interface BrowserEvent {
 
 // Planning data (思考/规划卡片)
 export interface PlanningData {
-  title: string          // e.g., "Planning financial analysis"
+  title?: string         // e.g., "Planning financial analysis" (可选)
   content: string        // 思考内容 (支持流式追加)
   collapsed: boolean
   status?: 'thinking' | 'done'
+  streaming?: boolean    // 是否正在流式输出
 }
 
 // Timeline step icon types
@@ -225,7 +226,8 @@ export interface StepChild {
 // Execution step (单个执行步骤)
 export interface ExecutionStep {
   id: string
-  title: string          // e.g., "搜索三季报与财务数据"
+  title?: string         // e.g., "搜索三季报与财务数据" (可以使用 label 替代)
+  label?: string         // 替代 title 的简短标签
   status: StepStatus
   collapsed: boolean
   icon: StepIconType
@@ -236,4 +238,6 @@ export interface ExecutionStep {
   // 开始和结束时间
   startTime?: number
   endTime?: number
+  // 步骤内容描述 (可选)
+  content?: string
 }

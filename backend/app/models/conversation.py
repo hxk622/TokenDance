@@ -84,6 +84,13 @@ class Conversation(Base):
         nullable=False, index=True
     )
 
+    # Session relationship - links to execution session for SSE streaming
+    # When a conversation is active, it has a corresponding session for agent execution
+    current_session_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("sessions.id", ondelete="SET NULL"),
+        nullable=True, index=True
+    )
+
     # Basic info
     title: Mapped[str] = mapped_column(String(200), default="New Conversation", nullable=False)
 

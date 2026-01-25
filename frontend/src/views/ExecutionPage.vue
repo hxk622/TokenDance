@@ -818,7 +818,7 @@ function openBrowserUrl(url: string) {
 async function handleChatMessage(message: string) {
   console.log('Chat message received:', message)
 
-  // Project Mode: Use project store for chat
+  // Project Mode: Use project store for chat with SSE streaming
   if (isProjectMode.value) {
     if (!projectStore.currentProject) {
       console.error('[ExecutionPage] No current project in project mode')
@@ -827,10 +827,22 @@ async function handleChatMessage(message: string) {
     }
 
     try {
-      // Send message through project API (creates conversation if needed)
-      await projectStore.sendMessage(message)
-      // TODO: Integrate with SSE streaming for project mode
-      console.log('[ExecutionPage] Project message sent')
+      // Send message through project API - returns session_id for SSE
+      const response = await projectStore.sendMessage(message)
+
+      // Update sessionId for SSE connection and research intervention
+      sessionId.value = response.session_id
+      initialTask.value = message
+
+      // Switch to executing phase
+      initPhase.value = 'executing'
+
+      // Connect to SSE stream using the returned session_id
+      executionStore.sessionId = response.session_id
+      executionStore.connectSSE(message)
+      startElapsedTimer()
+
+      console.log('[ExecutionPage] Project SSE connected:', response.session_id)
     } catch (error) {
       console.error('[ExecutionPage] Failed to send project message:', error)
       executionStore.error = 'Failed to send message'

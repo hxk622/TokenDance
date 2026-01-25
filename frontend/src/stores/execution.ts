@@ -18,6 +18,12 @@ import {
 } from '@/api/services'
 import { useWorkflowStore } from './workflow'
 import type { Citation } from '@/components/execution/research/types'
+import type {
+  ChatMessage,
+  PlanningData,
+  ExecutionStep,
+  Source,
+} from '@/components/execution/chat/types'
 
 /**
  * Workflow Node for UI
@@ -227,6 +233,9 @@ export const useExecutionStore = defineStore('execution', () => {
 
   // Research progress state (深度研究进度)
   const researchProgress = ref<ResearchProgressState | null>(null)
+
+  // AnyGen-style chat messages (Chat 模式增强)
+  const chatMessages = ref<ChatMessage[]>([])
 
   // SSE connection
   let sseConnection: SSEConnection | null = null
@@ -1110,7 +1119,111 @@ export const useExecutionStore = defineStore('execution', () => {
 
       case SSEEventType.PING:
         // Keepalive, no action needed
+        break;
+
+      // ========== AnyGen-style events (Chat 模式增强) ==========
+      case SSEEventType.PLANNING_START: {
+        // 创建或更新 planning 数据到当前 AI 消息
+        const msgId = event.data.message_id
+        if (msgId) {
+          updateMessagePlanning(msgId, {
+            content: '',
+            streaming: true,
+            collapsed: false,
+          })
+        }
+        console.log('[ExecutionStore] Planning started:', msgId)
         break
+      }
+
+      case SSEEventType.PLANNING_CONTENT: {
+        // 流式追加 planning 内容
+        const msgId = event.data.message_id
+        const content = event.data.content || ''
+        if (msgId) {
+          appendPlanningContent(msgId, content)
+        }
+        break
+      }
+
+      case SSEEventType.PLANNING_DONE: {
+        // 标记 planning 完成
+        const msgId = event.data.message_id
+        if (msgId) {
+          finishPlanning(msgId)
+        }
+        console.log('[ExecutionStore] Planning done:', msgId)
+        break
+      }
+
+      case SSEEventType.STEP_START: {
+        // 添加执行步骤
+        const msgId = event.data.message_id
+        const step = {
+          id: event.data.step_id,
+          icon: (event.data.icon || 'search') as any,
+          label: event.data.label || '',
+          status: 'running' as const,
+          collapsed: false,
+          children: [],
+          sources: [],
+        }
+        if (msgId) {
+          addExecutionStep(msgId, step)
+        }
+        console.log('[ExecutionStore] Step started:', event.data.step_id)
+        break
+      }
+
+      case SSEEventType.STEP_UPDATE: {
+        // 更新执行步骤
+        const msgId = event.data.message_id
+        const stepId = event.data.step_id
+        if (msgId && stepId) {
+          updateExecutionStep(msgId, stepId, {
+            label: event.data.label,
+            content: event.data.content,
+          })
+        }
+        break
+      }
+
+      case SSEEventType.STEP_DONE: {
+        // 标记步骤完成
+        const msgId = event.data.message_id
+        const stepId = event.data.step_id
+        if (msgId && stepId) {
+          updateExecutionStep(msgId, stepId, { status: 'done' })
+        }
+        console.log('[ExecutionStore] Step done:', stepId)
+        break
+      }
+
+      case SSEEventType.STEP_FAILED: {
+        // 标记步骤失败
+        const msgId = event.data.message_id
+        const stepId = event.data.step_id
+        if (msgId && stepId) {
+          updateExecutionStep(msgId, stepId, { status: 'pending' }) // 用 pending 表示失败
+        }
+        console.log('[ExecutionStore] Step failed:', stepId)
+        break
+      }
+
+      case SSEEventType.SEARCH_SOURCES: {
+        // 添加搜索来源到步骤
+        const msgId = event.data.message_id
+        const stepId = event.data.step_id
+        const sources = (event.data.sources || []).map((s: any) => ({
+          url: s.url,
+          favicon: s.favicon || `https://www.google.com/s2/favicons?domain=${new URL(s.url).hostname}`,
+          domain: s.domain || new URL(s.url).hostname,
+        }))
+        if (msgId && stepId && sources.length > 0) {
+          addStepSources(msgId, stepId, sources)
+        }
+        break
+      }
     }
   }
 
@@ -1231,6 +1344,101 @@ export const useExecutionStore = defineStore('execution', () => {
     currentSkill.value = null
   }
 
+  // ========== AnyGen-style ChatMessage 辅助函数 ==========
+
+  /**
+   * Add a chat message
+   */
+  function addChatMessage(msg: ChatMessage) {
+    chatMessages.value.push(msg)
+  }
+
+  /**
+   * Update message planning data
+   */
+  function updateMessagePlanning(msgId: string, planning: PlanningData) {
+    const msg = chatMessages.value.find(m => m.id === msgId)
+    if (msg) {
+      msg.planning = planning
+    }
+  }
+
+  /**
+   * Append content to message planning
+   */
+  function appendPlanningContent(msgId: string, content: string) {
+    const msg = chatMessages.value.find(m => m.id === msgId)
+    if (msg?.planning) {
+      msg.planning.content = (msg.planning.content || '') + content
+    }
+  }
+
+  /**
+   * Finish planning (mark streaming as false)
+   */
+  function finishPlanning(msgId: string) {
+    const msg = chatMessages.value.find(m => m.id === msgId)
+    if (msg?.planning) {
+      msg.planning.streaming = false
+    }
+  }
+
+  /**
+   * Add execution step to message
+   */
+  function addExecutionStep(msgId: string, step: ExecutionStep) {
+    const msg = chatMessages.value.find(m => m.id === msgId)
+    if (msg) {
+      if (!msg.executionSteps) {
+        msg.executionSteps = []
+      }
+      msg.executionSteps.push(step)
+    }
+  }
+
+  /**
+   * Update execution step
+   */
+  function updateExecutionStep(msgId: string, stepId: string, update: Partial<ExecutionStep>) {
+    const msg = chatMessages.value.find(m => m.id === msgId)
+    if (msg?.executionSteps) {
+      const step = msg.executionSteps.find(s => s.id === stepId)
+      if (step) {
+        Object.assign(step, update)
+      }
+    }
+  }
+
+  /**
+   * Add sources to a step
+   */
+  function addStepSources(msgId: string, stepId: string, sources: Source[]) {
+    const msg = chatMessages.value.find(m => m.id === msgId)
+    if (msg?.executionSteps) {
+      const step = msg.executionSteps.find(s => s.id === stepId)
+      if (step) {
+        if (!step.sources) {
+          step.sources = []
+        }
+        step.sources.push(...sources)
+      }
+    }
+  }
+
+  /**
+   * Get the last AI message (for streaming updates)
+   */
+  function getLastAIMessage(): ChatMessage | undefined {
+    return [...chatMessages.value].reverse().find(m => m.role === 'assistant')
+  }
+
+  /**
+   * Clear chat messages
+   */
+  function clearChatMessages() {
+    chatMessages.value = []
+  }
+
   /**
    * Clear HITL request
    */
@@ -1307,6 +1515,8 @@ export const useExecutionStore = defineStore('execution', () => {
     citations.value = []
     // Reset research progress state
     researchProgress.value = null
+    // Reset chat messages
+    chatMessages.value = []
   }
 
   return {
@@ -1335,6 +1545,7 @@ export const useExecutionStore = defineStore('execution', () => {
     reportContent,
     citations,
     researchProgress,  // 深度研究进度
+    chatMessages,      // AnyGen-style chat messages
 
     // Computed
     isRunning,
@@ -1359,5 +1570,15 @@ export const useExecutionStore = defineStore('execution', () => {
     setCurrentSkill,
     clearCurrentSkill,
     clearHITLRequest,
+    // AnyGen-style chat message actions
+    addChatMessage,
+    updateMessagePlanning,
+    appendPlanningContent,
+    finishPlanning,
+    addExecutionStep,
+    updateExecutionStep,
+    addStepSources,
+    getLastAIMessage,
+    clearChatMessages,
   }
 })

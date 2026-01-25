@@ -109,7 +109,7 @@ function handleSourceClick(source: Source) {
         @click="toggleCollapse"
       >
         <span class="step-title-group">
-          <span class="step-title">{{ step.title }}</span>
+          <span class="step-title">{{ step.title || step.label || '' }}</span>
         </span>
         
         <!-- Right side: sources + collapse button -->

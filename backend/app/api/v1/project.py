@@ -240,12 +240,13 @@ async def chat_in_project(
 
     This endpoint:
     1. Gets or creates a conversation
-    2. Builds context from project (intent, decisions, failures, artifacts)
-    3. Sends message to LLM
-    4. Streams response (TODO: implement SSE streaming)
+    2. Creates a Session for SSE streaming
+    3. Returns session_id for frontend to connect to /sessions/{session_id}/stream
 
-    For now, returns a placeholder response. Full streaming will be implemented
-    by integrating with the existing stream.py infrastructure.
+    The frontend should:
+    1. Call this endpoint to get session_id
+    2. Connect to SSE stream: /api/v1/sessions/{session_id}/stream?task={message}
+    3. Receive real-time execution updates
     """
     service = ProjectService(db)
 
@@ -263,16 +264,23 @@ async def chat_in_project(
     if not conversation:
         raise HTTPException(status_code=500, detail="Failed to create conversation")
 
-    # Build context for LLM (this will be used when integrating with stream.py)
+    # Create a Session for SSE streaming
+    session = await service.create_session_for_conversation(
+        project_id=project_id,
+        conversation_id=conversation.id,
+        task=data.message,
+    )
+    if not session:
+        raise HTTPException(status_code=500, detail="Failed to create session")
+
+    # Build context info for response
     context = await service.get_context_for_llm(project_id)
 
-    # TODO: Integrate with existing streaming infrastructure (stream.py)
-    # For now, return placeholder showing the endpoint is working
-
     return {
-        "status": "received",
+        "status": "ready",
         "project_id": project_id,
         "conversation_id": conversation.id,
+        "session_id": session.id,  # Key: Frontend uses this for SSE connection
         "message": data.message,
         "context_available": {
             "intent": bool(context.get("intent")),
@@ -282,7 +290,7 @@ async def chat_in_project(
             "artifacts_count": len(context.get("artifacts", [])),
         },
         "selection": data.selection.model_dump() if data.selection else None,
-        "note": "Full streaming response will be implemented in Phase 3",
+        "sse_endpoint": f"/api/v1/sessions/{session.id}/stream",
     }
 
 
