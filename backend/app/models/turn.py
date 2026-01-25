@@ -81,7 +81,7 @@ class Turn(Base):
     user_message = relationship("Message", foreign_keys=[user_message_id], post_update=True)
     assistant_message = relationship("Message", foreign_keys=[assistant_message_id], post_update=True)
     primary_session = relationship("Session", foreign_keys=[primary_session_id], post_update=True)
-    sessions = relationship("Session", back_populates="turn", foreign_keys="Session.turn_id")
+    # TODO: 添加 sessions 关系需要先在 Session 模型中添加 turn_id 字段
 
     def __repr__(self):
         return f"<Turn(id={self.id}, conversation_id={self.conversation_id}, turn_number={self.turn_number}, status={self.status})>"
