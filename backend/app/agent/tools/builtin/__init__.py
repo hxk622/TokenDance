@@ -42,6 +42,18 @@ from .image_generation import (
     create_image_generation_tools,
 )
 from .knowledge_graph import KnowledgeGraphTool, create_knowledge_graph_tool, knowledge_graph_tool
+from .memory_ops import (
+    MemDeleteTool,
+    MemListBlocksTool,
+    MemPinTool,
+    MemRetainTool,
+    MemSummarizeTool,
+    clear_block_store,
+    create_memory_tools,
+    get_block_store,
+    get_memory_tool_names,
+    register_block,
+)
 from .ppt_generator import (
     GeneratePPTTool,
     QuickPPTTool,
@@ -105,4 +117,15 @@ __all__ = [
     "KnowledgeGraphTool",
     "create_knowledge_graph_tool",
     "knowledge_graph_tool",
+    # Memory operations (MemAct)
+    "MemRetainTool",
+    "MemDeleteTool",
+    "MemSummarizeTool",
+    "MemPinTool",
+    "MemListBlocksTool",
+    "create_memory_tools",
+    "get_memory_tool_names",
+    "register_block",
+    "get_block_store",
+    "clear_block_store",
 ]

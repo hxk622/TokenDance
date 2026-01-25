@@ -156,6 +156,17 @@ def register_builtin_tools(registry: ToolRegistry) -> list[BaseTool]:
     except Exception as e:
         logger.error(f"Failed to register financial tools: {e}")
 
+    # Memory Operations Tools - MemAct 启发
+    try:
+        from app.agent.tools.builtin.memory_ops import create_memory_tools
+        memory_tools = create_memory_tools()
+        for tool in memory_tools:
+            registry.register(tool)
+            tools.append(tool)
+            logger.info(f"Registered memory tool: {tool.name}")
+    except Exception as e:
+        logger.error(f"Failed to register memory tools: {e}")
+
     logger.info(f"Total registered tools: {len(tools)}")
     return tools
 
@@ -167,6 +178,7 @@ def get_tool_categories() -> dict:
         "File Operations": ["file_ops", "create_document", "file_converter"],
         "System": ["shell", "exit"],
         "Content Generation": ["image_generation", "ppt_generator", "report_generator", "generate_diagram", "generate_knowledge_graph"],
+        "Memory Operations": ["mem_retain", "mem_delete", "mem_summarize", "mem_pin", "mem_list_blocks"],
         "Financial Data": [
             "get_stock_quote",
             "get_financial_statements",
@@ -197,6 +209,12 @@ def get_tool_descriptions() -> dict:
         "generate_diagram": "Generate professional diagrams (flowchart, architecture, sequence, ER, cloud) using draw.io format",
         "generate_knowledge_graph": "Generate knowledge graph from text content (concepts, citations, findings, timeline)",
         "exit": "Exit the current task",
+        # Memory Operations Tools (MemAct)
+        "mem_retain": "Mark a context block as important, prioritize retention",
+        "mem_delete": "Delete a context block that is no longer needed",
+        "mem_summarize": "Compress multiple context blocks into a summary",
+        "mem_pin": "Pin important content to long-term memory",
+        "mem_list_blocks": "List all context blocks and their status",
         # Financial Data Tools
         "get_stock_quote": "Get real-time/delayed stock quote (US, A-share, HK)",
         "get_financial_statements": "Get company financial statements (income, balance, cashflow)",

@@ -154,6 +154,57 @@ class ToolCallRecord:
     completed_at: datetime | None = None
 
 
+class ContextBlockStatus(str, Enum):
+    """Context Block 状态"""
+    ACTIVE = "active"          # 活跃，正常参与 Context
+    RETAINED = "retained"      # 被 Agent 标记为重要，优先保留
+    SUMMARIZED = "summarized"  # 已被压缩，原始内容可恢复
+    DELETED = "deleted"        # 已删除（软删除，24h 内可恢复）
+    PINNED = "pinned"          # 已固定到长期记忆
+
+
+@dataclass
+class ContextBlock:
+    """Context 内容块 (MemAct Memory-as-Action)
+
+    每个消息/工具结果/摘要都是一个 Block，Agent 可通过 block_id 引用和操作。
+    这是 MemAct 框架的核心数据结构，让 Agent 可以主动管理自己的 Context。
+    """
+    block_id: str                              # 唯一标识 (e.g., "b_001", "b_002")
+    content: str                               # 内容
+    block_type: str                            # 类型: user_message, assistant_message, tool_result, summary
+    token_count: int = 0                       # Token 数（估算）
+    importance: float = 0.5                    # 重要性 (0-1)，影响压缩决策
+    status: ContextBlockStatus = ContextBlockStatus.ACTIVE
+
+    # 元数据
+    source_block_ids: list[str] = field(default_factory=list)  # 如果是 summary，记录原始 block IDs
+    metadata: dict[str, Any] = field(default_factory=dict)     # 扩展字段
+
+    # 时间戳
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+    deleted_at: datetime | None = None        # 软删除时间
+
+    def estimate_tokens(self) -> int:
+        """估算 token 数"""
+        # 粗略估算：中文约 2 字符/token，英文约 4 字符/token
+        return len(self.content) // 3
+
+    def to_dict(self) -> dict[str, Any]:
+        """转换为字典"""
+        return {
+            "block_id": self.block_id,
+            "content": self.content,
+            "block_type": self.block_type,
+            "token_count": self.token_count,
+            "importance": self.importance,
+            "status": self.status.value,
+            "source_block_ids": self.source_block_ids,
+            "created_at": self.created_at.isoformat(),
+        }
+
+
 @dataclass
 class CitationSource:
     """引用来源"""

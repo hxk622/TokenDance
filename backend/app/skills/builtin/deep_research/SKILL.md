@@ -5,7 +5,7 @@ description: 深度研究能力，支持多源搜索、信息聚合、引用回�
 version: 1.2.0
 author: system
 tags: [research, search, analysis, investigation, report, survey, 调研, 研究, 分析, browser, automation, 舆情, sentiment, 口碑, 金融, finance, 投研, 股票, stock, 财报, 行业分析, 估值, investment, document, pdf, excel, 文档, 上传, 微信, wechat, 公众号]
-allowed_tools: [web_search, read_url, wechat_article, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close, file_converter]
+allowed_tools: [web_search, read_url, wechat_article, create_document, browser_open, browser_snapshot, browser_click, browser_fill, browser_screenshot, browser_close, file_converter, mem_retain, mem_delete, mem_summarize, mem_pin, mem_list_blocks]
 max_iterations: 30
 timeout: 600
 enabled: true
