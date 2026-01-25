@@ -78,6 +78,12 @@ uv run ruff check . && uv run mypy . && uv run pytest tests/ -x -q
 - `mypy .` - 类型不匹配、枚举用法错误
 - `pytest tests/ -x -q` - 运行测试，第一个失败即停止
 
+**模型修改后必跑:**
+```bash
+uv run pytest tests/test_models_init.py -v
+```
+这个测试会检测 ORM 关系配置错误（如缺少外键字段、循环引用等）
+
 **CI 必跑:** PR 合并前必须通过 ruff + mypy + pytest
 
 ## Enum 定义规范 (必须遵循)
