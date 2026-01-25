@@ -166,6 +166,53 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false
     }
   },
+  // User Account Pages
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: {
+      title: '个人资料 - TokenDance',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/billing',
+    name: 'Billing',
+    component: () => import('@/views/BillingView.vue'),
+    meta: {
+      title: '订阅与账单 - TokenDance',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/views/NotificationsView.vue'),
+    meta: {
+      title: '通知中心 - TokenDance',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('@/views/SettingsView.vue'),
+    meta: {
+      title: '设置 - TokenDance',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/settings/security',
+    name: 'SecuritySettings',
+    component: () => import('@/views/SettingsView.vue'),
+    props: { initialTab: 'security' },
+    meta: {
+      title: '账号安全 - TokenDance',
+      requiresAuth: true
+    }
+  },
 ]
 
 console.log('[Router] Routes defined, creating router instance')

@@ -36,16 +36,22 @@ export interface UserUsageStats {
   storage_used_gb: number
 }
 
+export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
+
 export interface User {
   id: string
   email: string
   username: string
   display_name?: string
   avatar_url?: string
+  bio?: string
+  phone?: string
+  location?: string
   auth_provider: string
   is_active: boolean
   is_verified: boolean
   email_verified: boolean
+  subscription_tier?: SubscriptionTier
   created_at: string
   updated_at: string
   last_login_at?: string
