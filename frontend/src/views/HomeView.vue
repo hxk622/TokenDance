@@ -9,7 +9,6 @@ import {
   Languages, FolderOpen, MoreHorizontal, Code2, Zap,
   History, Settings, Plus, ChevronRight, Paperclip, Sparkles
 } from 'lucide-vue-next'
-import AnyButton from '@/components/common/AnyButton.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
 import type { NavItem, RecentItem } from '@/components/common/AnySidebar.vue'

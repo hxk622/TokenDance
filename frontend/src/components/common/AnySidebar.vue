@@ -280,7 +280,7 @@ const defaultNavItems: NavItem[] = [
           </div>
           <div class="recent-list">
             <button
-              v-for="item in recentItems.slice(0, 8)"
+              v-for="item in recentItems"
               :key="item.id"
               class="recent-item"
               @click="handleRecentClick(item)"
