@@ -16,6 +16,7 @@ from app.models.project import Project, ProjectStatus, ProjectType  # noqa: F401
 from app.models.project_version import ProjectVersion, VersionChangeType  # noqa: F401
 from app.models.research_task import ResearchTask, ResearchTaskStatus  # noqa: F401
 from app.models.session import Session, SessionStatus  # noqa: F401
+from app.models.turn import Turn, TurnStatus  # noqa: F401
 from app.models.user_preference import (  # noqa: F401
     ExpertiseLevel,
     ReportStyle,
@@ -44,6 +45,9 @@ __all__ = [
     # Session (legacy, kept for compatibility)
     "Session",
     "SessionStatus",
+    # Turn (multi-turn conversation)
+    "Turn",
+    "TurnStatus",
     # Message
     "Message",
     "MessageRole",

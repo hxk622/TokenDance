@@ -95,6 +95,18 @@ class Session(Base):
     # Token tracking
     total_tokens_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # Multi-turn conversation support
+    conversation_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True, index=True
+    )
+    turn_id: Mapped[str | None] = mapped_column(
+        String(26), nullable=True, index=True
+    )
+    session_type: Mapped[str | None] = mapped_column(
+        String(20), default="primary", nullable=True
+    )  # primary, retry, branch, background
+
     # Extra data (named 'extra_data' to avoid conflict with SQLAlchemy reserved 'metadata')
     extra_data: Mapped[dict] = mapped_column(
         JSON,

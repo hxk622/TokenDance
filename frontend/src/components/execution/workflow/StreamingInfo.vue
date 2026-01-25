@@ -425,8 +425,11 @@ function handleSendMessage(payload: SendMessagePayload) {
 
 // Start editing a message
 function startEditMessage(msg: ChatMessage) {
-  editingMessageId.value = msg.id
-  editingContent.value = msg.content
+  // TODO: Implement inline edit UI
+  // For now, show alert that this feature is coming soon
+  alert('消息编辑功能即将上线...')
+  // editingMessageId.value = msg.id
+  // editingContent.value = msg.content
 }
 
 // Cancel editing
@@ -897,6 +900,7 @@ defineExpose({
           <UserBubble
             v-if="(item.data as ChatMessage).role === 'user'"
             :message="item.data as ChatMessage"
+            :avatar="userAvatar"
             :editable="editingMessageId !== item.data.id"
             @edit="startEditMessage(item.data as ChatMessage)"
             @copy="() => {}"

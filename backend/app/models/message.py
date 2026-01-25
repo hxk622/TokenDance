@@ -64,6 +64,11 @@ class Message(Base):
         nullable=True, index=True
     )
 
+    # Turn relationship (multi-turn conversation)
+    turn_id: Mapped[str | None] = mapped_column(
+        String(26), nullable=True, index=True
+    )
+
     # Message content
     role: Mapped[MessageRole] = mapped_column(
         Enum(MessageRole, values_callable=lambda x: [e.value for e in x]),

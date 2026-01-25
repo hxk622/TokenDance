@@ -128,6 +128,14 @@ class Conversation(Base):
     # Token tracking
     tokens_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # Multi-turn conversation tracking
+    turn_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    message_count_db: Mapped[int] = mapped_column(
+        "message_count", Integer, default=0, nullable=False
+    )  # DB column is 'message_count', avoid conflict with property
+    shared_memory: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+
     # Extra data for migration tracking and extensibility
     extra_data: Mapped[dict] = mapped_column(
         JSON,

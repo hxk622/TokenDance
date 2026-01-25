@@ -57,17 +57,8 @@ import type { InitPhase } from '@/components/execution/workflow/StreamingInfo.vu
 const initPhase = ref<InitPhase>('idle')
 const preflightResult = ref<IntentValidationResponse | null>(null)
 
-// Sidebar navigation
-const sidebarSections = [
-  {
-    id: 'main',
-    items: [
-      { id: 'home', label: '首页', icon: Home },
-      { id: 'history', label: '历史', icon: History },
-      { id: 'files', label: '文件', icon: FolderOpen },
-    ]
-  }
-]
+// Project sidebar visibility (only for project mode)
+const showProjectSidebar = ref(false)
 
 const handleNavClick = (item: { id: string }) => {
   switch (item.id) {
@@ -980,23 +971,13 @@ onUnmounted(() => {
 
     <!-- Main Execution UI (always visible - In-Place principle) -->
     <template v-if="true">
-      <!-- Sidebar: ProjectSidebar for project mode, AnySidebar for session mode -->
-      <ProjectSidebar v-if="isProjectMode" />
+      <!-- Sidebar: Use AnySidebar for both modes (consistent with home page) -->
+      <!-- ProjectSidebar only shows when explicitly expanded -->
+      <ProjectSidebar v-if="isProjectMode && showProjectSidebar" />
       <AnySidebar
-        v-else
-        :sections="sidebarSections"
         @nav-click="handleNavClick"
         @new-click="handleNewClick"
-      >
-        <template #footer>
-          <button
-            class="sidebar-footer-btn"
-            data-tooltip="设置"
-          >
-            <Settings class="icon" />
-          </button>
-        </template>
-      </AnySidebar>
+      />
 
       <!-- Main execution area -->
       <div class="execution-main">

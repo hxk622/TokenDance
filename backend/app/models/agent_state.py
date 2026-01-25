@@ -71,7 +71,7 @@ class AgentCheckpoint(Base):
 
     # Metadata
     reason = Column(Text, nullable=True)
-    checkpoint_metadata = Column(JSON, nullable=True, default=dict)
+    checkpoint_metadata = Column("metadata", JSON, nullable=True, default=dict)  # DB column is 'metadata'
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

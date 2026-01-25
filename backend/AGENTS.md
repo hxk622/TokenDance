@@ -80,9 +80,15 @@ uv run ruff check . && uv run mypy . && uv run pytest tests/ -x -q
 
 **模型修改后必跑:**
 ```bash
+# ORM 关系检测
 uv run pytest tests/test_models_init.py -v
+
+# 数据库 Schema 同步检测 (重要!)
+uv run python scripts/check_schema_sync.py
 ```
-这个测试会检测 ORM 关系配置错误（如缺少外键字段、循环引用等）
+这些检测会发现:
+- ORM 关系配置错误 (缺少外键字段、循环引用)
+- 模型与数据库不同步 (缺少列、额外列)
 
 **CI 必跑:** PR 合并前必须通过 ruff + mypy + pytest
 

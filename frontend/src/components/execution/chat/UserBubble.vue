@@ -25,11 +25,26 @@ interface Props {
   attachments?: Attachment[]
   /** 是否允许编辑 */
   editable?: boolean
+  /** 用户头像 URL 或首字母 */
+  avatar?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   attachments: () => [],
-  editable: true
+  editable: true,
+  avatar: 'U'
+})
+
+// Avatar computed
+const avatarUrl = computed(() => {
+  if (props.avatar.startsWith('http') || props.avatar.startsWith('/')) {
+    return props.avatar
+  }
+  return null
+})
+
+const avatarInitial = computed(() => {
+  return props.avatar.charAt(0).toUpperCase()
 })
 
 const emit = defineEmits<{
@@ -96,7 +111,7 @@ function formatTime(timestamp: number): string {
     <!-- Timestamp -->
     <span class="message-time">{{ formatTime(message.timestamp) }}</span>
 
-    <!-- Bubble container -->
+    <!-- Bubble container with avatar -->
     <div
       class="user-bubble"
       @mouseenter="isHovered = true"
@@ -111,7 +126,7 @@ function formatTime(timestamp: number): string {
           <button
             v-if="editable"
             class="action-btn"
-            title="编辑"
+            title="编辑消息"
             @click="handleEdit"
           >
             <Edit2 :size="14" />
@@ -161,6 +176,20 @@ function formatTime(timestamp: number): string {
         <div class="message-text">
           {{ content }}
         </div>
+      </div>
+
+      <!-- User Avatar (right side) -->
+      <div class="user-avatar">
+        <img
+          v-if="avatarUrl"
+          :src="avatarUrl"
+          alt="用户头像"
+          class="avatar-img"
+        >
+        <span
+          v-else
+          class="avatar-initial"
+        >{{ avatarInitial }}</span>
       </div>
     </div>
   </div>
@@ -239,6 +268,33 @@ function formatTime(timestamp: number): string {
 :root.dark .bubble-body,
 .dark .bubble-body {
   background: var(--any-accent-bg-dark, #1E3A5F);
+}
+
+/* User Avatar */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--any-accent, #2196F3);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initial {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* Attachments */
