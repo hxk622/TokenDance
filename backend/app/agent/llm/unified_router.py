@@ -44,12 +44,12 @@ class FallbackConfig:
     enable_openrouter_fallback: bool = True
 
     # SiliconFlow 降级链
-    siliconflow_fallback_chain: list[str] = None
+    siliconflow_fallback_chain: list[str] | None = None
 
     # OpenRouter 降级链
-    openrouter_fallback_chain: list[str] = None
+    openrouter_fallback_chain: list[str] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.siliconflow_fallback_chain is None:
             self.siliconflow_fallback_chain = list(SILICONFLOW_FALLBACK_CHAIN)
 
@@ -79,9 +79,9 @@ class UnifiedRouter:
     def __init__(
         self,
         fallback_config: FallbackConfig | None = None,
-        context_graph_client = None,
+        context_graph_client: Any = None,
         enable_adaptive: bool = True
-    ):
+    ) -> None:
         """
         Args:
             fallback_config: Fallback 配置
@@ -120,7 +120,7 @@ class UnifiedRouter:
         task_type: TaskType | str,
         constraints: RoutingConstraints | None = None,
         session_id: str | None = None,
-        **llm_kwargs
+        **llm_kwargs: Any
     ) -> BaseLLM:
         """获取 LLM 客户端（主入口）
 
@@ -159,8 +159,8 @@ class UnifiedRouter:
         constraints: RoutingConstraints | None = None,
         session_id: str | None = None,
         system: str | None = None,
-        tools: list[dict] | None = None,
-        **llm_kwargs
+        tools: list[dict[str, Any]] | None = None,
+        **llm_kwargs: Any
     ) -> LLMResponse:
         """调用 LLM（带自动重试和 Fallback）
 
@@ -200,6 +200,7 @@ class UnifiedRouter:
 
             try:
                 # 根据 provider 创建 LLM
+                llm: BaseLLM
                 if provider == "siliconflow":
                     llm = create_siliconflow_llm(model=model, **llm_kwargs)
                 else:
@@ -296,7 +297,8 @@ class UnifiedRouter:
             chain.append(("siliconflow", primary_model))
 
             # SiliconFlow 降级链
-            for model in self.fallback_config.siliconflow_fallback_chain:
+            sf_fallback = self.fallback_config.siliconflow_fallback_chain or []
+            for model in sf_fallback:
                 if model != primary_model:
                     chain.append(("siliconflow", model))
 
@@ -307,7 +309,8 @@ class UnifiedRouter:
             chain.append(("openrouter", openrouter_model))
 
             # OpenRouter 降级链
-            for model in self.fallback_config.openrouter_fallback_chain:
+            or_fallback = self.fallback_config.openrouter_fallback_chain or []
+            for model in or_fallback:
                 if model != openrouter_model:
                     chain.append(("openrouter", model))
 
@@ -321,7 +324,7 @@ class UnifiedRouter:
         cost_usd: float = 0.0,
         latency_ms: float = 0.0,
         session_id: str | None = None
-    ):
+    ) -> None:
         """记录调用结果"""
         if self.adaptive_router:
             await self.adaptive_router.record_call_result(
@@ -333,18 +336,18 @@ class UnifiedRouter:
                 session_id=session_id
             )
 
-    def _estimate_cost(self, model: str, usage: dict) -> float:
+    def _estimate_cost(self, model: str, usage: dict[str, Any]) -> float:
         """估算成本"""
         config = MODEL_REGISTRY.get(model)
         if not config or not usage:
             return 0.0
 
-        return (
+        return float(
             (usage.get("input_tokens", 0) / 1000) * config.cost_per_1k_input +
             (usage.get("output_tokens", 0) / 1000) * config.cost_per_1k_output
         )
 
-    def _record_error(self, model: str):
+    def _record_error(self, model: str) -> None:
         """记录错误（用于熔断）"""
         now = datetime.now()
 
@@ -357,7 +360,7 @@ class UnifiedRouter:
         self._error_counts[model] = self._error_counts.get(model, 0) + 1
         self._error_timestamps[model] = now
 
-    def _reset_error_count(self, model: str):
+    def _reset_error_count(self, model: str) -> None:
         """重置错误计数"""
         self._error_counts[model] = 0
 
@@ -381,7 +384,7 @@ class UnifiedRouter:
     def get_simple_llm(
         self,
         task_type: TaskType | str,
-        **llm_kwargs
+        **llm_kwargs: Any
     ) -> BaseLLM:
         """简单获取 LLM（同步，无约束）"""
         return get_llm_for_task(task_type, **llm_kwargs)
@@ -391,7 +394,7 @@ class UnifiedRouter:
         task_type: TaskType | str,
         max_cost: float | None = None,
         max_latency_ms: float | None = None,
-        **llm_kwargs
+        **llm_kwargs: Any
     ) -> BaseLLM:
         """根据约束获取 LLM（同步）"""
         return get_llm_with_constraints(
@@ -403,13 +406,13 @@ class UnifiedRouter:
 
     # ========== A/B 测试代理 ==========
 
-    def create_ab_test(self, *args, **kwargs):
+    def create_ab_test(self, *args: Any, **kwargs: Any) -> Any:
         """创建 A/B 测试"""
         if self.adaptive_router:
             return self.adaptive_router.create_ab_test(*args, **kwargs)
         raise RuntimeError("Adaptive router not enabled")
 
-    def get_ab_test_results(self, name: str):
+    def get_ab_test_results(self, name: str) -> dict[str, Any] | None:
         """获取 A/B 测试结果"""
         if self.adaptive_router:
             return self.adaptive_router.get_ab_test_results(name)
@@ -455,10 +458,11 @@ class UnifiedRouter:
 
     def list_available_models(self) -> list[dict[str, Any]]:
         """列出所有可用模型"""
-        return [
+        result = [
             self.get_model_info(model)
             for model in MODEL_REGISTRY.keys()
         ]
+        return [m for m in result if m is not None]
 
 
 # ========== 全局单例 ==========
@@ -467,7 +471,7 @@ _router_instance: UnifiedRouter | None = None
 
 
 def get_router(
-    context_graph_client = None,
+    context_graph_client: Any = None,
     enable_adaptive: bool = True
 ) -> UnifiedRouter:
     """获取全局路由器实例
@@ -488,7 +492,7 @@ def get_router(
     return _router_instance
 
 
-def reset_router():
+def reset_router() -> None:
     """重置全局路由器（用于测试）"""
     global _router_instance
     _router_instance = None

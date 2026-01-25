@@ -5,6 +5,7 @@ LLM 路由器模块
 """
 import logging
 from enum import Enum
+from typing import Any
 
 from .base import BaseLLM
 from .openrouter import create_openrouter_llm
@@ -34,8 +35,8 @@ class ModelConfig:
         cost_per_1k_output: float,
         context_window: int,
         avg_latency_ms: float = 2000,
-        capabilities: list[str] = None
-    ):
+        capabilities: list[str] | None = None
+    ) -> None:
         self.name = name
         self.provider = provider
         self.cost_per_1k_input = cost_per_1k_input
@@ -233,7 +234,7 @@ class SimpleRouter:
         TaskType.GENERAL: "anthropic/claude-3-5-sonnet",           # 通用场景
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化路由器，统一使用 OpenRouter"""
         logger.info("SimpleRouter initialized (OpenRouter only)")
 
@@ -241,7 +242,7 @@ class SimpleRouter:
         self,
         task_type: TaskType | str,
         vision_task_type: str | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """选择最优模型
 
@@ -285,7 +286,7 @@ class SimpleRouter:
     def create_llm(
         self,
         task_type: TaskType | str,
-        **llm_kwargs
+        **llm_kwargs: Any
     ) -> BaseLLM:
         """创建 LLM 客户端
 
@@ -300,14 +301,14 @@ class SimpleRouter:
         # 统一使用 OpenRouter
         return create_openrouter_llm(model=model, **llm_kwargs)
 
-    def get_model_info(self, model_name: str) -> ModelConfig:
+    def get_model_info(self, model_name: str) -> ModelConfig | None:
         """获取模型配置信息
 
         Args:
             model_name: 模型名称
 
         Returns:
-            ModelConfig: 模型配置
+            ModelConfig | None: 模型配置
         """
         return MODEL_REGISTRY.get(model_name)
 
@@ -366,7 +367,7 @@ class FreeModelRouter(SimpleRouter):
         "zhipu/glm-4.5-air:free",                   # GLM - 中文友好
     ]
 
-    def __init__(self, use_free_only: bool = True, fallback_to_paid: bool = False):
+    def __init__(self, use_free_only: bool = True, fallback_to_paid: bool = False) -> None:
         """
         Args:
             use_free_only: 是否仅使用免费模型
@@ -377,13 +378,13 @@ class FreeModelRouter(SimpleRouter):
         self.fallback_to_paid = fallback_to_paid
         logger.info(f"FreeModelRouter initialized (use_free_only={use_free_only})")
 
-    def select_model(
+    def select_model(  # type: ignore[override]
         self,
         task_type: TaskType | str,
         context_length: int = 0,
         prefer_speed: bool = False,
         prefer_chinese: bool = False,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """智能选择免费模型
 
@@ -447,7 +448,7 @@ class FreeModelRouter(SimpleRouter):
 # 便捷函数
 def get_llm_for_task(
     task_type: TaskType | str,
-    **llm_kwargs
+    **llm_kwargs: Any
 ) -> BaseLLM:
     """快捷方式：根据任务类型获取 LLM (统一使用 OpenRouter)
 
@@ -471,7 +472,7 @@ def get_free_llm_for_task(
     context_length: int = 0,
     prefer_speed: bool = False,
     prefer_chinese: bool = False,
-    **llm_kwargs
+    **llm_kwargs: Any
 ) -> BaseLLM:
     """快捷方式：获取免费 LLM
 

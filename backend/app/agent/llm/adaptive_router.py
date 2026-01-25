@@ -234,8 +234,8 @@ class AdaptiveRouter(AdvancedRouter):
         task_type: TaskType
     ) -> bool:
         """检查是否有足够的历史数据"""
-        total_samples = sum(d.get("total_calls", 0) for d in history_data)
-        return total_samples >= self.MIN_SAMPLES
+        total_samples = sum(int(d.get("total_calls", 0)) for d in history_data)
+        return bool(total_samples >= self.MIN_SAMPLES)
 
     def _has_sufficient_local_data(self, task_type: TaskType) -> bool:
         """检查本地缓存是否有足够数据"""
@@ -277,7 +277,7 @@ class AdaptiveRouter(AdvancedRouter):
 
         # 选择最高分
         scored_models.sort(key=lambda x: x[1], reverse=True)
-        return scored_models[0][0]
+        return str(scored_models[0][0])
 
     def _select_by_local_history(
         self,
