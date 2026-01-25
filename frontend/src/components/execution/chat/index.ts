@@ -7,5 +7,12 @@ export { default as ChatTagSelector } from './ChatTagSelector.vue'
 export { default as ChatCollapsible } from './ChatCollapsible.vue'
 export { default as BrowserPreviewCard } from './BrowserPreviewCard.vue'
 
+// AnyGen-style components (Phase 1)
+export { default as CollapsibleCard } from './CollapsibleCard.vue'
+export { default as PlanningCard } from './PlanningCard.vue'
+export { default as ExecutionTimeline } from './ExecutionTimeline.vue'
+export { default as TimelineStep } from './TimelineStep.vue'
+export { default as SourceGroup } from './SourceGroup.vue'
+
 // Types
 export * from './types'

@@ -83,6 +83,12 @@ export interface ChatMessage {
   // For code content type
   language?: string
   
+  // AnyGen-style: Planning card data
+  planning?: PlanningData
+  
+  // AnyGen-style: Execution timeline steps
+  executionSteps?: ExecutionStep[]
+  
   // Message metadata
   edited?: boolean
   editedAt?: number
@@ -178,4 +184,56 @@ export interface BrowserEvent {
   title?: string
   timestamp: number
   loading?: boolean
+}
+
+// ========================================
+// AnyGen-style Planning & Timeline Types
+// ========================================
+
+// Planning data (思考/规划卡片)
+export interface PlanningData {
+  title: string          // e.g., "Planning financial analysis"
+  content: string        // 思考内容 (支持流式追加)
+  collapsed: boolean
+  status?: 'thinking' | 'done'
+}
+
+// Timeline step icon types
+export type StepIconType = 'search' | 'analyze' | 'write' | 'tool' | 'read' | 'plan'
+
+// Timeline step status
+export type StepStatus = 'pending' | 'running' | 'done' | 'failed'
+
+// Source (来源信息，带 favicon)
+export interface Source {
+  url: string
+  domain: string
+  favicon?: string       // favicon URL, defaults to Google's favicon service
+  title?: string
+}
+
+// Step child content (步骤内的子内容)
+export interface StepChild {
+  id: string
+  type: 'search' | 'read' | 'analyze' | 'extract'
+  title: string
+  sources?: Source[]     // 来源 favicon 列表
+  collapsed: boolean
+  content?: string       // 可选的详细内容
+}
+
+// Execution step (单个执行步骤)
+export interface ExecutionStep {
+  id: string
+  title: string          // e.g., "搜索三季报与财务数据"
+  status: StepStatus
+  collapsed: boolean
+  icon: StepIconType
+  // 子内容 (搜索结果等)
+  children?: StepChild[]
+  // 直接关联的来源 (用于简单展示)
+  sources?: Source[]
+  // 开始和结束时间
+  startTime?: number
+  endTime?: number
 }
