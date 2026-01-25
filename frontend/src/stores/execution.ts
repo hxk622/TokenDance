@@ -1463,23 +1463,6 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   /**
-   * Send supplementary message during execution
-   * @deprecated Use messageService.sendChatMessage() instead with handleSSEEventFromREST
-   */
-  async function sendSupplementMessage(message: string) {
-    if (!sessionId.value) {
-      console.error('[ExecutionStore] Cannot send message: no session ID')
-      return
-    }
-
-    // Disconnect current SSE connection
-    disconnect()
-
-    // Reconnect with the new message as task
-    await connectSSE(message)
-  }
-
-  /**
    * Handle SSE event from REST API response stream
    * This is the new unified way to process events from POST /api/v1/chat/{session_id}/message
    * Reuses the same event handling logic as the SSE connection
@@ -1570,7 +1553,6 @@ export const useExecutionStore = defineStore('execution', () => {
     pause,
     resume,
     connectSSE,
-    sendSupplementMessage,
     stopExecution,  // P1-2
     handleSSEEventFromREST,  // New unified way to process SSE events from REST API
     disconnect,

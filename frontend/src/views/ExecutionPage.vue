@@ -25,7 +25,8 @@ import type { SendMessagePayload } from '@/components/execution/chat/types'
 import {
   Home, History, FolderOpen, Settings, Search, LayoutGrid,
   PauseCircle, StopCircle, ChevronDown, ChevronUp, X, Check,
-  AlertTriangle as ExclamationTriangleIcon
+  AlertTriangle as ExclamationTriangleIcon,
+  Columns3, Columns2, Maximize2, PanelLeftClose, PanelLeft
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -363,6 +364,32 @@ const focusedNodeId = ref<string | null>(null)
 const isCollapsed = ref(false)
 const collapsedHeight = 80 // px for mini-graph
 
+// ========================================
+// Column Layout Mode (AnyGen-style)
+// ========================================
+// three-column: Graph + Chat + Preview (默认)
+// two-column: Chat + Preview (Graph 完全隐藏)
+// focus: 仅 Preview 全屏
+type ColumnLayoutMode = 'three-column' | 'two-column' | 'focus'
+const columnLayoutMode = ref<ColumnLayoutMode>('three-column')
+
+// 是否显示 Workflow Graph
+const showWorkflowGraph = computed(() => columnLayoutMode.value === 'three-column')
+
+// 切换布局模式
+function setColumnLayout(mode: ColumnLayoutMode) {
+  columnLayoutMode.value = mode
+  // 保存到 localStorage
+  localStorage.setItem('execution-column-layout', mode)
+}
+
+// 布局模式图标和标签
+const layoutModes = [
+  { mode: 'three-column' as ColumnLayoutMode, label: '三栏', icon: 'columns-3' },
+  { mode: 'two-column' as ColumnLayoutMode, label: '两栏', icon: 'columns-2' },
+  { mode: 'focus' as ColumnLayoutMode, label: '聚焦', icon: 'maximize-2' },
+]
+
 // Responsive layout state
 const isCompactMode = ref(false)
 const activePanel = ref<'left' | 'right'>('left') // Which panel is visible in compact mode
@@ -386,6 +413,12 @@ onMounted(async () => {
         leftWidth.value = left
         rightWidth.value = right
       }
+    }
+
+    // Load saved column layout mode
+    const savedColumnLayout = localStorage.getItem('execution-column-layout') as ColumnLayoutMode | null
+    if (savedColumnLayout && ['three-column', 'two-column', 'focus'].includes(savedColumnLayout)) {
+      columnLayoutMode.value = savedColumnLayout
     }
 
     if (savedVertical) {
@@ -522,28 +555,28 @@ async function handleResearchIntervene(intervention: ResearchIntervention) {
 // Start the actual agent execution with optional attachments
 // New architecture: Send initial message via REST API, then connect SSE for events
 async function startActualExecution(taskInput: string, attachments?: MessagePayload['attachments']) {
+  if (!sessionId.value) {
+    console.error('[ExecutionPage] Cannot start execution: no sessionId')
+    executionStore.error = 'Session ID is required'
+    return
+  }
+
   executionStore.sessionId = sessionId.value
   
   // Use REST API to send initial message (with attachment support)
-  if (sessionId.value) {
-    try {
-      await sendChatMessage(
-        sessionId.value,
-        { content: taskInput, attachments },
-        (event: SSEEvent) => {
-          // Handle SSE events from the REST API response stream
-          executionStore.handleSSEEventFromREST(event)
-        }
-      )
-    } catch (error) {
-      console.error('[ExecutionPage] Failed to send initial message:', error)
-      executionStore.error = error instanceof Error ? error.message : 'Failed to start execution'
-      return
-    }
-  } else {
-    // Fallback: connect SSE with task parameter (deprecated path)
-    console.warn('[ExecutionPage] No sessionId, falling back to SSE task parameter (deprecated)')
-    executionStore.connectSSE(taskInput)
+  try {
+    await sendChatMessage(
+      sessionId.value,
+      { content: taskInput, attachments },
+      (event: SSEEvent) => {
+        // Handle SSE events from the REST API response stream
+        executionStore.handleSSEEventFromREST(event)
+      }
+    )
+  } catch (error) {
+    console.error('[ExecutionPage] Failed to send initial message:', error)
+    executionStore.error = error instanceof Error ? error.message : 'Failed to start execution'
+    return
   }
   
   startElapsedTimer()
@@ -1055,6 +1088,25 @@ onUnmounted(() => {
           </div>
         
           <div class="header-actions">
+            <!-- 布局模式切换按钮组 -->
+            <div class="layout-mode-switcher">
+              <button
+                v-for="item in layoutModes"
+                :key="item.mode"
+                :class="['layout-mode-btn', { active: columnLayoutMode === item.mode }]"
+                :title="item.label + '布局'"
+                :aria-label="item.label + '布局'"
+                :aria-pressed="columnLayoutMode === item.mode"
+                @click="setColumnLayout(item.mode)"
+              >
+                <Columns3 v-if="item.icon === 'columns-3'" class="w-4 h-4" />
+                <Columns2 v-else-if="item.icon === 'columns-2'" class="w-4 h-4" />
+                <Maximize2 v-else class="w-4 h-4" />
+              </button>
+            </div>
+
+            <div class="header-divider" />
+
             <AnyButton
               variant="secondary"
               :disabled="!isRunning || isRequestingIntervention"
