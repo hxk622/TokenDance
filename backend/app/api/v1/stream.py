@@ -292,7 +292,11 @@ async def keepalive_generator(
 async def stream_session_events(
     session_id: str,
     request: Request,
-    task: str | None = Query(None, description="Task to execute"),
+    task: str | None = Query(
+        None,
+        description="DEPRECATED: Task to execute. Use POST /api/v1/chat/{session_id}/message instead.",
+        deprecated=True,
+    ),
     token: str | None = Query(None, description="JWT auth token (deprecated, use sse_token)"),
     sse_token: str | None = Query(None, description="P1-1: Short-lived SSE token from /sse-token"),
     last_seq: int | None = Query(None, description="P1-3: Last received sequence number for replay"),
@@ -305,11 +309,17 @@ async def stream_session_events(
     """
     Stream SSE events for a session.
 
+    IMPORTANT: The `task` parameter is DEPRECATED.
+    Use POST /api/v1/chat/{session_id}/message to send messages instead.
+    This endpoint should only be used for receiving events (SSE connection).
+
     P1-1: Supports both JWT token (deprecated) and short-lived SSE token.
     P1-3: Supports event replay via last_seq parameter.
 
-    If task is provided, starts Agent execution.
-    Otherwise, returns current session status.
+    Recommended usage:
+        1. Send message via POST /api/v1/chat/{session_id}/message
+        2. Connect to this endpoint to receive SSE events
+        3. For reconnection, use last_seq parameter
 
     Events include:
     - agent_thinking: Agent's reasoning process
@@ -322,12 +332,17 @@ async def stream_session_events(
     - replay_start/replay_end: P1-3 event replay markers
     - ping: Keepalive
 
-    Usage (recommended - P1-1):
-        1. POST /api/v1/sessions/sse-token to get short-lived token
-        2. const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}`);
+    Example:
+        // Step 1: Send message
+        fetch(`/api/v1/chat/${sessionId}/message`, {
+            method: 'POST',
+            body: JSON.stringify({ content: 'Hello', attachments: [] })
+        });
 
-    Usage (reconnection - P1-3):
-        const eventSource = new EventSource(`/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}&last_seq=${lastSeq}`);
+        // Step 2: Connect SSE for events
+        const eventSource = new EventSource(
+            `/api/v1/sessions/${sessionId}/stream?sse_token=${sseToken}`
+        );
     """
     # Handle HEAD requests - browsers send these to check if SSE endpoint is available
     if request.method == "HEAD":
@@ -465,6 +480,14 @@ async def stream_session_events(
                 AGENT_ENGINE_AVAILABLE and
                 session.status in (SessionStatus.PENDING, SessionStatus.COMPLETED, SessionStatus.FAILED, SessionStatus.CANCELLED)
             )
+
+            # DEPRECATED: Log warning when task parameter is used
+            if task:
+                logger.warning(
+                    "sse_task_parameter_deprecated",
+                    session_id=session_id,
+                    message="The 'task' parameter is deprecated. Use POST /api/v1/chat/{session_id}/message instead.",
+                )
 
             if should_start_agent:
                 logger.info(

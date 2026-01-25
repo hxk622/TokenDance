@@ -1,19 +1,35 @@
 """
 Chat API endpoints - includes SSE streaming for real-time Agent responses.
+
+This is the PRIMARY endpoint for sending messages to the Agent.
+All message sending should go through this endpoint (not SSE task parameter).
 """
 import base64
 import io
 import json
 import logging
-import tempfile
+import os
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings, get_settings
 from app.core.database import get_db
+from app.core.dependencies import (
+    get_current_user,
+    get_permission_service,
+)
+from app.core.redis import get_redis
+from app.models.user import User
+from app.repositories.message_repository import MessageRepository
 from app.schemas.message import Attachment, ChatRequest, ConfirmRequest
+from app.services.agent_stop_service import get_agent_stop_service
+from app.services.permission_service import PermissionError, PermissionService
 from app.services.session_service import SessionService
+from app.services.sse_event_store import get_sse_event_store
 
 # Document conversion imports
 try:
@@ -30,11 +46,13 @@ try:
         BasicAgent,
         create_working_memory,
     )
+    from app.agent.agents.deep_research import DeepResearchAgent
     from app.agent.llm.base import BaseLLM
     from app.agent.llm.openrouter import create_openrouter_llm
     from app.agent.llm.router import TaskType, get_free_llm_for_task
     from app.agent.llm.vision_router import VisionTaskType, get_vision_model
     from app.agent.tools import ToolRegistry
+    from app.agent.tools.init_tools import register_builtin_tools
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
     AGENT_ENGINE_AVAILABLE = False
@@ -169,106 +187,290 @@ def process_document_attachments(attachments: list[Attachment] | None) -> tuple[
 async def send_message(
     session_id: str,
     request: ChatRequest,
-    service: SessionService = Depends(get_session_service),
+    current_user: User = Depends(get_current_user),
+    permission_service: PermissionService = Depends(get_permission_service),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
 ):
     """
     Send a message to the Agent and stream the response using SSE.
 
+    This is the PRIMARY endpoint for sending messages. Features:
+    - Authentication required
+    - Permission checking
+    - Message persistence to database
+    - Session status management
+    - DeepResearchAgent with full tool support
+    - Event storage to Redis for replay
+    - Attachment support (images + documents)
+
     Returns a Server-Sent Events stream with the following event types:
-    - thinking: Agent reasoning process
-    - tool_call: Tool execution start
-    - tool_result: Tool execution result
-    - content: Content chunks from Agent
+    - session_started: Agent started processing
+    - skill_matched: Task type identified
+    - thinking/agent_thinking: Agent reasoning process
+    - tool_call/agent_tool_call: Tool execution start
+    - tool_result/agent_tool_result: Tool execution result
+    - content/agent_message: Content chunks from Agent
     - confirm_required: HITL confirmation needed
     - done: Task completed
+    - session_completed: Session finished successfully
+    - session_failed: Session encountered error
     - error: Error occurred
     """
-    # Verify session exists
-    session = await service.get_session(session_id)
+    # Check session access permission
+    try:
+        await permission_service.check_session_access(current_user, session_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from e
+
+    # Get session service and verify session exists
+    session_service = SessionService(db)
+    session = await session_service.get_session(session_id)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session {session_id} not found",
         )
 
+    # Check if session is already running
+    from app.models.session import SessionStatus
+    if session.status == SessionStatus.RUNNING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Session is already running. Please wait or stop the current execution.",
+        )
+
+    # Get event store for replay support
+    event_store = get_sse_event_store(redis)
+
     async def event_stream():
-        """Generate SSE events from Agent execution."""
+        """Generate SSE events from Agent execution with full features."""
         if not AGENT_ENGINE_AVAILABLE:
-            # Fallback if Agent Engine is not available
             yield format_sse_event('error', {
                 'message': 'Agent Engine not available',
                 'type': 'ConfigurationError'
             })
             return
 
+        message_repo = MessageRepository(db)
+        stop_service = get_agent_stop_service(redis)
+        total_tokens = 0
+
+        async def emit_event(event_type: str, data: dict) -> str:
+            """Emit event, store it in Redis, and return formatted SSE."""
+            seq = await event_store.store_event(session_id, event_type, data)
+            return format_sse_event(event_type, {**data, '_seq': seq})
+
         try:
-            # Create temporary workspace for this session
-            # TODO: Use persistent workspace path from config
-            with tempfile.TemporaryDirectory() as tmpdir:
-                # Initialize Working Memory
-                memory = await create_working_memory(
-                    workspace_path=tmpdir,
-                    session_id=session_id,
-                    initial_task=request.content
+            # Mark session as RUNNING
+            await session_service.start_session(session_id)
+
+            # Process attachments: parse documents, keep images for vision
+            attachments_for_agent, document_context = process_document_attachments(
+                request.attachments
+            )
+
+            # Build final user message with document context
+            user_message = request.content
+            if document_context:
+                user_message = f"{request.content}\n\n{document_context}"
+                logger.info(f"Added document context ({len(document_context)} chars) to user message")
+
+            # Send session started event
+            yield await emit_event('session_started', {
+                'session_id': session_id,
+                'task': request.content,
+                'has_attachments': len(attachments_for_agent) > 0 or bool(document_context),
+                'timestamp': time.time(),
+            })
+
+            # Use persistent workspace path
+            workspace_path = os.path.join(
+                settings.SESSIONS_DATA_PATH,
+                str(session.workspace_id),
+                session_id
+            )
+            os.makedirs(workspace_path, exist_ok=True)
+
+            # Save user message to database
+            await message_repo.create_user_message(
+                session_id=session_id,
+                content=user_message,
+            )
+
+            # Initialize Working Memory
+            memory = await create_working_memory(
+                workspace_path=workspace_path,
+                session_id=session_id,
+                initial_task=user_message
+            )
+
+            # Create Agent Context
+            context = AgentContext(
+                session_id=session_id,
+                user_id=str(current_user.id),
+                workspace_id=str(session.workspace_id)
+            )
+
+            # Create Tool Registry and register built-in tools
+            tools = ToolRegistry()
+            register_builtin_tools(tools)
+
+            # Check if we have images - use Vision model
+            has_images = len(attachments_for_agent) > 0
+
+            if has_images:
+                # Use Vision model for image analysis
+                vision_model = get_vision_model(
+                    task_type=VisionTaskType.CHART_ANALYSIS,
+                    max_cost=5.0
                 )
+                llm: BaseLLM = create_openrouter_llm(model=vision_model, max_tokens=4096)
+                logger.info(f"Using Vision model: {vision_model}")
 
-                # Create Agent Context
-                context = AgentContext(
-                    session_id=session_id,
-                    user_id=str(session.user_id),
-                    workspace_id=str(session.workspace_id)
-                )
+                # Send skill matched event
+                yield await emit_event('skill_matched', {
+                    'skill_id': 'vision_analysis',
+                    'skill_name': 'vision_analysis',
+                    'display_name': '图像分析',
+                    'description': '分析图片内容',
+                    'icon': 'image',
+                    'color': '#00D9FF',
+                    'confidence': 1.0,
+                    'timestamp': time.time(),
+                })
 
-                # Create Tool Registry (empty for now)
-                tools = ToolRegistry()
-
-                # Process attachments: parse documents, keep images for vision
-                attachments_for_agent, document_context = process_document_attachments(
-                    request.attachments
-                )
-
-                # Build final user message with document context
-                user_message = request.content
-                if document_context:
-                    user_message = f"{request.content}\n\n{document_context}"
-                    logger.info(f"Added document context ({len(document_context)} chars) to user message")
-
-                # 检查是否有图片附件
-                has_images = len(attachments_for_agent) > 0
-
-                # 根据是否有图片选择模型
-                if has_images:
-                    # 使用 Vision 模型
-                    vision_model = get_vision_model(
-                        task_type=VisionTaskType.CHART_ANALYSIS,  # 默认图表分析
-                        max_cost=5.0  # 成本限制
-                    )
-                    llm: BaseLLM = create_openrouter_llm(model=vision_model, max_tokens=4096)
-                    logger.info(f"Using Vision model: {vision_model}")
-                else:
-                    # 使用智能路由选择免费 LLM (OpenRouter)
-                    llm = get_free_llm_for_task(task_type=TaskType.GENERAL, max_tokens=4096)
-
-                # Create Agent (using BasicAgent for now)
+                # Use BasicAgent for vision tasks
                 agent = BasicAgent(
                     context=context,
                     llm=llm,
                     tools=tools,
                     memory=memory,
-                    db=service.db,
+                    db=db,
+                    max_iterations=50
+                )
+            else:
+                # Use DeepResearchAgent for text tasks
+                llm = get_free_llm_for_task(
+                    task_type=TaskType.DEEP_RESEARCH,
+                    max_tokens=8192
+                )
+
+                # Send skill matched event
+                yield await emit_event('skill_matched', {
+                    'skill_id': 'deep_research',
+                    'skill_name': 'deep_research',
+                    'display_name': '深度研究',
+                    'description': '深度研究技能，用于复杂信息检索和分析',
+                    'icon': 'search',
+                    'color': '#00D9FF',
+                    'confidence': 1.0,
+                    'timestamp': time.time(),
+                })
+
+                # Use DeepResearchAgent
+                agent = DeepResearchAgent(
+                    context=context,
+                    llm=llm,
+                    tools=tools,
+                    memory=memory,
+                    db=db,
                     max_iterations=50
                 )
 
-                # Run Agent and stream events
-                async for event in agent.run(
-                    user_message,
-                    attachments=attachments_for_agent if attachments_for_agent else None
-                ):
-                    # Convert SSEEvent to SSE format
-                    yield format_sse_event(event.type.value, event.data)
+            # Collect assistant response for saving
+            assistant_content_parts = []
+            assistant_thinking = None
+            assistant_tool_calls = []
+            iteration_count = 0
+
+            # Run Agent and stream events
+            async for event in agent.run(
+                user_message,
+                attachments=attachments_for_agent if attachments_for_agent else None
+            ):
+                # Check stop signal periodically
+                iteration_count += 1
+                if iteration_count % 5 == 0:
+                    if await stop_service.should_stop(session_id):
+                        logger.info(f"Stop signal received for session {session_id}")
+                        await stop_service.clear_stop_signal(session_id)
+                        agent.stopped = True
+                        break
+
+                # Emit event with storage
+                event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
+                yield await emit_event(event_type, event.data)
+
+                # Collect response data for message saving
+                if event_type in ('thinking', 'agent_thinking'):
+                    assistant_thinking = event.data.get('content', '')
+                elif event_type in ('content', 'agent_message'):
+                    assistant_content_parts.append(event.data.get('content', ''))
+                elif event_type in ('tool_call', 'agent_tool_call'):
+                    assistant_tool_calls.append({
+                        'id': event.data.get('id'),
+                        'name': event.data.get('name'),
+                        'args': event.data.get('args'),
+                        'status': event.data.get('status'),
+                    })
+                elif event_type in ('tool_result', 'agent_tool_result'):
+                    tool_id = event.data.get('id')
+                    for tc in assistant_tool_calls:
+                        if tc.get('id') == tool_id:
+                            tc['status'] = 'success' if event.data.get('success') else 'error'
+                            tc['result'] = event.data.get('result')
+                            break
+                elif event_type == 'done':
+                    total_tokens = event.data.get('tokens_used', 0)
+
+            # Save assistant message to database
+            assistant_content = ''.join(assistant_content_parts)
+            if assistant_content or assistant_tool_calls:
+                await message_repo.create_assistant_message(
+                    session_id=session_id,
+                    content=assistant_content if assistant_content else None,
+                    thinking=assistant_thinking,
+                    tool_calls=assistant_tool_calls if assistant_tool_calls else None,
+                    tokens_used=total_tokens,
+                )
+
+            # Mark session as COMPLETED
+            await session_service.complete_session(
+                session_id,
+                total_tokens_used=total_tokens,
+            )
+
+            # Send session completed event
+            yield await emit_event('session_completed', {
+                'session_id': session_id,
+                'status': 'completed',
+                'total_tokens': total_tokens,
+                'timestamp': time.time(),
+            })
 
         except Exception as e:
             logger.error(f"Error in Agent execution: {e}", exc_info=True)
+
+            # Mark session as FAILED
+            try:
+                await session_service.fail_session(
+                    session_id,
+                    error_message=str(e),
+                )
+            except Exception as fail_err:
+                logger.error(f"Failed to mark session as failed: {fail_err}")
+
+            # Send error events
+            yield await emit_event('session_failed', {
+                'session_id': session_id,
+                'error': str(e),
+                'timestamp': time.time(),
+            })
             yield format_sse_event('error', {
                 'message': str(e),
                 'type': 'AgentExecutionError'
@@ -279,7 +481,8 @@ async def send_message(
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
         },
     )
 

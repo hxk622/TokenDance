@@ -29,7 +29,7 @@ class ModelPerformance:
     total_cost: float = 0.0
     total_latency_ms: float = 0.0
     avg_quality_score: float = 0.0  # 用户反馈的质量评分
-    last_used: datetime = None
+    last_used: datetime | None = None
 
     @property
     def success_rate(self) -> float:
@@ -69,8 +69,8 @@ class ABTestConfig:
     control_model: str
     treatment_model: str
     traffic_split: float = 0.5  # treatment 组的流量比例
-    start_time: datetime = None
-    end_time: datetime = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     task_types: list[str] = field(default_factory=list)  # 空列表表示所有任务类型
     is_active: bool = True
 
@@ -103,9 +103,9 @@ class AdaptiveRouter(AdvancedRouter):
 
     def __init__(
         self,
-        context_graph_client = None,
+        context_graph_client: Any = None,
         enable_exploration: bool = True
-    ):
+    ) -> None:
         super().__init__()
 
         # Context Graph 客户端（Neo4j）
@@ -127,7 +127,7 @@ class AdaptiveRouter(AdvancedRouter):
         task_type: TaskType | str,
         constraints: RoutingConstraints | None = None,
         session_id: str | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """异步智能选择模型（支持 Context Graph 查询）
 
@@ -172,11 +172,11 @@ class AdaptiveRouter(AdvancedRouter):
         # 5. 回退到高级路由
         return super().select_model(task_type, constraints)
 
-    def select_model(
+    def select_model(  # type: ignore[override]
         self,
         task_type: TaskType | str,
         constraints: RoutingConstraints | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """同步版本（使用本地缓存）"""
         # 转换任务类型
@@ -198,7 +198,7 @@ class AdaptiveRouter(AdvancedRouter):
     async def _fetch_performance_from_graph(
         self,
         task_type: TaskType
-    ) -> list[dict] | None:
+    ) -> list[dict[str, Any]] | None:
         """从 Context Graph 获取模型历史表现"""
         if not self.context_graph:
             return None
@@ -223,14 +223,14 @@ class AdaptiveRouter(AdvancedRouter):
                 task_type=task_type.value
             )
 
-            return result
+            return list(result) if result else None
         except Exception as e:
             logger.warning(f"Failed to fetch from Context Graph: {e}")
             return None
 
     def _has_sufficient_data(
         self,
-        history_data: list[dict],
+        history_data: list[dict[str, Any]],
         task_type: TaskType
     ) -> bool:
         """检查是否有足够的历史数据"""
@@ -249,7 +249,7 @@ class AdaptiveRouter(AdvancedRouter):
 
     def _select_by_history(
         self,
-        history_data: list[dict],
+        history_data: list[dict[str, Any]],
         task_type: TaskType,
         constraints: RoutingConstraints | None
     ) -> str | None:
@@ -333,7 +333,7 @@ class AdaptiveRouter(AdvancedRouter):
 
         return True
 
-    def _calculate_adaptive_score(self, data: dict) -> float:
+    def _calculate_adaptive_score(self, data: dict[str, Any]) -> float:
         """计算自适应分数
 
         综合考虑：
@@ -360,7 +360,7 @@ class AdaptiveRouter(AdvancedRouter):
         confidence = min(total_calls / 100, 1.0)  # 100 样本达到满置信
         confidence_score = confidence * 10
 
-        return success_score + quality_score + cost_score + confidence_score
+        return float(success_score + quality_score + cost_score + confidence_score)
 
     def _select_for_exploration(self, task_type: TaskType) -> str | None:
         """选择用于探索的模型（随机选择一个较少使用的）"""
@@ -420,7 +420,7 @@ class AdaptiveRouter(AdvancedRouter):
         latency_ms: float = 0.0,
         quality_score: float | None = None,
         session_id: str | None = None
-    ):
+    ) -> None:
         """记录调用结果（用于学习）
 
         Args:
@@ -480,7 +480,7 @@ class AdaptiveRouter(AdvancedRouter):
         latency_ms: float,
         quality_score: float | None,
         session_id: str | None
-    ):
+    ) -> None:
         """写入 Context Graph"""
         query = """
         CREATE (call:LLMCall {
@@ -515,7 +515,7 @@ class AdaptiveRouter(AdvancedRouter):
         treatment_model: str,
         traffic_split: float = 0.5,
         duration_days: int = 7,
-        task_types: list[str] = None
+        task_types: list[str] | None = None
     ) -> ABTestConfig:
         """创建 A/B 测试
 
@@ -545,7 +545,7 @@ class AdaptiveRouter(AdvancedRouter):
         logger.info(f"A/B test created: {name} ({control_model} vs {treatment_model})")
         return config
 
-    def stop_ab_test(self, name: str):
+    def stop_ab_test(self, name: str) -> None:
         """停止 A/B 测试"""
         if name in self._ab_tests:
             self._ab_tests[name].is_active = False
@@ -608,7 +608,7 @@ class AdaptiveRouter(AdvancedRouter):
         }
         return json.dumps(state, indent=2, default=str)
 
-    def import_state(self, state_json: str):
+    def import_state(self, state_json: str) -> None:
         """导入路由器状态"""
         state = json.loads(state_json)
 

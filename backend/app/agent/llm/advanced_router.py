@@ -81,16 +81,16 @@ class AdvancedRouter(SimpleRouter):
         TaskType.GENERAL: ["balanced"],
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._routing_history: list[RoutingContext] = []
         logger.info("AdvancedRouter initialized")
 
-    def select_model(
+    def select_model(  # type: ignore[override]
         self,
         task_type: TaskType | str,
         constraints: RoutingConstraints | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str:
         """智能选择模型
 
@@ -203,7 +203,7 @@ class AdvancedRouter(SimpleRouter):
             scores[model_name] = self._calculate_score(model_name, task_type, constraints)
 
         # 选择最高分
-        best_model = max(scores, key=scores.get)
+        best_model = max(scores, key=lambda x: scores[x])
 
         # 确定选择原因
         config = MODEL_REGISTRY[best_model]
@@ -273,7 +273,7 @@ class AdvancedRouter(SimpleRouter):
         self,
         task_type: TaskType | str,
         constraints: RoutingConstraints,
-        **llm_kwargs
+        **llm_kwargs: Any
     ) -> BaseLLM:
         """根据约束创建 LLM
 
@@ -292,7 +292,7 @@ class AdvancedRouter(SimpleRouter):
         """获取路由历史（用于分析和调试）"""
         return [ctx.to_dict() for ctx in self._routing_history[-100:]]  # 保留最近 100 条
 
-    def clear_routing_history(self):
+    def clear_routing_history(self) -> None:
         """清空路由历史"""
         self._routing_history.clear()
 
@@ -303,7 +303,7 @@ def get_llm_with_constraints(
     max_cost: float | None = None,
     max_latency_ms: float | None = None,
     context_length: int = 0,
-    **llm_kwargs
+    **llm_kwargs: Any
 ) -> BaseLLM:
     """快捷方式：根据约束获取 LLM
 

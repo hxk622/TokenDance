@@ -33,7 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'edit': [content: string]
+  'edit': [message: ChatMessage]
   'copy': []
 }>()
 
@@ -63,7 +63,7 @@ async function handleCopy() {
 
 // Edit message
 function handleEdit() {
-  emit('edit', content.value)
+  emit('edit', props.message)
 }
 
 // Format file size

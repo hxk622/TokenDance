@@ -65,10 +65,8 @@ const hasTextContent = computed(() => {
 })
 
 // Event handlers
-function handlePlanningToggle() {
-  if (planning.value) {
-    emit('planning-toggle', !planning.value.collapsed)
-  }
+function handlePlanningToggle(collapsed: boolean) {
+  emit('planning-toggle', collapsed)
 }
 
 function handleStepToggle(stepId: string, collapsed: boolean) {

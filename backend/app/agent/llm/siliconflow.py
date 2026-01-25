@@ -467,7 +467,7 @@ def get_siliconflow_llm_for_task(
     task_type: str,
     prefer_free: bool = False,
     context_length: int = 0,
-    **llm_kwargs
+    **llm_kwargs: Any
 ) -> SiliconFlowLLM:
     """根据任务类型获取硅基流动 LLM
 

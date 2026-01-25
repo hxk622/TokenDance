@@ -234,9 +234,13 @@ function setInterventionSending(sending: boolean) {
 
 // ========================================
 // Chat Messages (replacing old LogEntry)
+// 使用 store 的 chatMessages 作为单一数据源
+// SSE 事件处理会自动更新 store 的 chatMessages
 // ========================================
 
-const messages = ref<ChatMessage[]>([])
+// 注意: messages 现在直接引用 store 的 chatMessages
+// 任何对 messages.value 的修改都会直接影响 store
+const messages = toRef(executionStore, 'chatMessages')
 const browserEvents = ref<BrowserEvent[]>([])
 const chatContainerRef = ref<HTMLElement | null>(null)
 const isScrollLocked = ref(false)
