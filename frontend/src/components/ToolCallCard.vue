@@ -23,6 +23,8 @@ const statusClasses = computed(() => {
       return 'border-green-400 bg-green-50'
     case 'error':
       return 'border-red-400 bg-red-50'
+    default:
+      return 'border-gray-400 bg-gray-50'
   }
 })
 
@@ -34,6 +36,8 @@ const statusIconColor = computed(() => {
       return 'text-green-600'
     case 'error':
       return 'text-red-600'
+    default:
+      return 'text-gray-600'
   }
 })
 
@@ -45,6 +49,8 @@ const statusText = computed(() => {
       return '成功'
     case 'error':
       return '失败'
+    default:
+      return '未知'
   }
 })
 

@@ -200,23 +200,67 @@ function handleSourceClick(source: Source) {
   justify-content: center;
 }
 
-/* Done state: black with white checkmark */
+/* Done state: black with white checkmark + completion animation */
 .bullet-inner.done {
   background: #1A1A1A;
   outline: white solid 6px;
   outline-offset: -6px;
+  animation: checkmark-pop 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .bullet-inner.done .check-icon {
   width: 12px;
   height: 12px;
   color: white;
+  animation: checkmark-draw 300ms ease-out 100ms forwards;
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
 }
 
-/* Running state: cyan animated */
+@keyframes checkmark-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes checkmark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Running state: cyan with ripple effect */
 .bullet-inner.running {
   background: var(--td-state-thinking, #00D9FF);
   animation: pulse-bullet 1.5s ease-in-out infinite;
+  position: relative;
+}
+
+.bullet-inner.running::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--td-state-thinking, #00D9FF);
+  animation: ripple-out 1.5s ease-out infinite;
+}
+
+.bullet-inner.running::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid var(--td-state-thinking, #00D9FF);
+  animation: ripple-out 1.5s ease-out infinite 0.5s;
+  opacity: 0.5;
 }
 
 @keyframes pulse-bullet {
@@ -225,19 +269,41 @@ function handleSourceClick(source: Source) {
     box-shadow: 0 0 0 0 rgba(0, 217, 255, 0.4);
   }
   50% { 
-    transform: scale(1.1);
-    box-shadow: 0 0 0 6px rgba(0, 217, 255, 0);
+    transform: scale(1.05);
+    box-shadow: 0 0 8px 2px rgba(0, 217, 255, 0.3);
   }
 }
 
-/* Failed state: red */
+@keyframes ripple-out {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Failed state: red with subtle pulse */
 .bullet-inner.failed {
   background: var(--td-state-error, #FF3B30);
+  animation: failed-pulse 2s ease-in-out infinite;
+}
+
+@keyframes failed-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+  }
+  50% {
+    box-shadow: 0 0 8px 2px rgba(255, 59, 48, 0.4);
+  }
 }
 
 /* Pending state: gray */
 .bullet-inner.pending {
   background: var(--any-text-muted);
+  opacity: 0.5;
 }
 
 /* Vertical line */

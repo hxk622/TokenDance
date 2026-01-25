@@ -331,6 +331,17 @@ const handleNewClick = () => {
   inputRef.value?.focus()
 }
 
+// Token click handler - show usage details
+const handleTokenClick = () => {
+  // TODO: Open token usage modal or navigate to billing page
+  showError('Token 用量详情功能即将上线 🚀')
+}
+
+// Mobile app click handler
+const handleMobileClick = () => {
+  showError('移动端 App 即将上线，敬请期待 📱')
+}
+
 // Cmd+K 键盘快捷键
 function handleGlobalKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -384,6 +395,8 @@ onUnmounted(() => {
       @new-click="handleNewClick"
       @nav-click="handleSidebarNavClick"
       @recent-click="handleRecentClick"
+      @token-click="handleTokenClick"
+      @mobile-click="handleMobileClick"
     />
     
     <!-- Header -->

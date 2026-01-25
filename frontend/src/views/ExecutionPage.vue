@@ -1099,9 +1099,18 @@ onUnmounted(() => {
                 :aria-pressed="columnLayoutMode === item.mode"
                 @click="setColumnLayout(item.mode)"
               >
-                <Columns3 v-if="item.icon === 'columns-3'" class="w-4 h-4" />
-                <Columns2 v-else-if="item.icon === 'columns-2'" class="w-4 h-4" />
-                <Maximize2 v-else class="w-4 h-4" />
+                <Columns3
+                  v-if="item.icon === 'columns-3'"
+                  class="w-4 h-4"
+                />
+                <Columns2
+                  v-else-if="item.icon === 'columns-2'"
+                  class="w-4 h-4"
+                />
+                <Maximize2
+                  v-else
+                  class="w-4 h-4"
+                />
               </button>
             </div>
 
@@ -1269,7 +1278,9 @@ onUnmounted(() => {
         <main
           :class="['execution-content', { 
             'compact-mode': isCompactMode,
-            'chat-mode': layoutMode === 'chat'
+            'chat-mode': layoutMode === 'chat',
+            'two-column-mode': columnLayoutMode === 'two-column',
+            'focus-mode': columnLayoutMode === 'focus'
           }]"
         >
           <!-- Chat Mode: Only StreamingInfo (centered, single column) -->
@@ -1291,10 +1302,32 @@ onUnmounted(() => {
             />
           </div>
 
-          <!-- Execution Mode: Full two-column layout -->
+          <!-- Focus Mode: Only Preview Area (full width) -->
+          <template v-else-if="columnLayoutMode === 'focus'">
+            <div class="focus-panel">
+              <ArtifactTabs 
+                v-model:current-tab="currentTab" 
+                :session-id="sessionId"
+                :task-type="taskType"
+                :is-project-mode="isProjectMode"
+                @tab-change="handleTabChange"
+              />
+              <PreviewArea 
+                :session-id="sessionId" 
+                :current-tab="currentTab"
+                :is-executing="isRunning"
+                :report-content="executionStore.reportContent"
+                :citations="executionStore.citations"
+                :project-id="projectId"
+              />
+            </div>
+          </template>
+
+          <!-- Execution Mode: Two-column (AnyGen style) or Three-column -->
           <template v-else>
-            <!-- Left Panel: Execution Area -->
+            <!-- Left Panel: Execution Area (hidden in two-column mode) -->
             <div
+              v-if="showWorkflowGraph"
               class="left-panel"
               :class="{ hidden: isCompactMode && activePanel !== 'left' }"
               :style="isCompactMode ? {} : { width: `${leftWidth}%` }"
@@ -1315,7 +1348,7 @@ onUnmounted(() => {
                 />
               </button>
 
-              <!-- Top: Workflow Graph - 高度自适应，不随 streaming 区域增长 -->
+              <!-- Top: Workflow Graph -->
               <div 
                 class="workflow-graph-container" 
                 :class="{ collapsed: isCollapsed }"
@@ -1328,10 +1361,8 @@ onUnmounted(() => {
                 />
               </div>
 
-              <!-- Bottom: Streaming Info - 填充剩余空间 -->
-              <div 
-                class="streaming-info-container"
-              >
+              <!-- Bottom: Streaming Info -->
+              <div class="streaming-info-container">
                 <StreamingInfo 
                   ref="streamingInfoRef"
                   :session-id="sessionId"
@@ -1347,6 +1378,25 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <!-- Two-column mode: Chat panel (left side) -->
+            <div
+              v-if="columnLayoutMode === 'two-column'"
+              class="chat-column"
+            >
+              <StreamingInfo 
+                ref="streamingInfoRef"
+                :session-id="sessionId"
+                :init-phase="initPhase"
+                :preflight-result="preflightResult"
+                :user-input="initialTask || ''"
+                :user-avatar="userInitial"
+                :is-deep-research="isDeepResearch"
+                @proceed="handleStreamingProceed"
+                @research-intervene="handleResearchIntervene"
+                @send-message="handleChatMessage"
+              />
+            </div>
+
             <!-- Horizontal Divider (hidden in compact mode) -->
             <ResizableDivider
               v-if="!isCompactMode"
@@ -1358,8 +1408,11 @@ onUnmounted(() => {
             <!-- Right Panel: Preview Area -->
             <div 
               class="right-panel" 
-              :class="{ hidden: isCompactMode && activePanel !== 'right' }"
-              :style="isCompactMode ? {} : { width: `${rightWidth}%` }"
+              :class="{ 
+                hidden: isCompactMode && activePanel !== 'right',
+                'expanded': columnLayoutMode === 'two-column'
+              }"
+              :style="isCompactMode ? {} : columnLayoutMode === 'two-column' ? { width: '60%' } : { width: `${rightWidth}%` }"
             >
               <ArtifactTabs 
                 v-model:current-tab="currentTab" 
@@ -1764,6 +1817,55 @@ onUnmounted(() => {
   gap: 8px;
 }
 
+/* Header divider */
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--exec-border);
+  margin: 0 4px;
+}
+
+/* Layout mode switcher */
+.layout-mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--exec-bg-tertiary);
+  border-radius: var(--any-radius-md);
+  border: 1px solid var(--exec-border);
+}
+
+.layout-mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  border: none;
+  border-radius: var(--any-radius-sm);
+  background: transparent;
+  color: var(--exec-text-secondary);
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-default);
+}
+
+.layout-mode-btn:hover {
+  background: var(--exec-border);
+  color: var(--exec-text-primary);
+}
+
+.layout-mode-btn.active {
+  background: var(--exec-accent);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 217, 255, 0.3);
+}
+
+.layout-mode-btn:focus-visible {
+  outline: 2px solid var(--exec-accent);
+  outline-offset: 2px;
+}
+
 /* Stop button warning style */
 .btn-stop:hover {
   color: var(--exec-error) !important;
@@ -1845,6 +1947,57 @@ onUnmounted(() => {
   .chat-panel {
     max-width: 100%;
     padding: 0 16px;
+  }
+}
+
+/* ========== Two-Column Mode (AnyGen style) ========== */
+.execution-content.two-column-mode {
+  /* No workflow graph, just chat + preview */
+}
+
+.chat-column {
+  width: 40%;
+  min-width: 360px;
+  max-width: 480px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--exec-bg-primary);
+  border-right: 1px solid var(--exec-border);
+}
+
+.right-panel.expanded {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ========== Focus Mode ========== */
+.execution-content.focus-mode {
+  justify-content: center;
+}
+
+.focus-panel {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--exec-bg-secondary);
+}
+
+/* Responsive adjustments for new modes */
+@media (max-width: 1024px) {
+  .chat-column {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  
+  .execution-content.two-column-mode {
+    flex-direction: column;
+  }
+  
+  .right-panel.expanded {
+    width: 100% !important;
   }
 }
 

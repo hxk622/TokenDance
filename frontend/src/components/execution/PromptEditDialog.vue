@@ -123,12 +123,9 @@ function handleKeydown(e: KeyboardEvent) {
             >
               <svg
                 v-if="isSubmitting"
-                class="w-4 h-4 animate-spin\"
-                fill="\&quot;none\&quot;"
-                viewBox="\&quot;0"
-                0
-                24
-                24\"
+                class="w-4 h-4 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
               >
                 <circle
                   class="opacity-25"

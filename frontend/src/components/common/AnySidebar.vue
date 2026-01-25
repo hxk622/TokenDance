@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, type Component } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   Plus, Search, BookOpen, FolderOpen, Clock,
   HelpCircle, MessageCircle, Smartphone, ChevronRight,
-  PanelLeftClose, PanelLeft
+  PanelLeftClose, PanelLeft, ExternalLink
 } from 'lucide-vue-next'
+
+// Constants
+const SIDEBAR_STORAGE_KEY = 'tokendance-sidebar-expanded'
 
 // Types
 export interface NavItem {
@@ -54,10 +58,41 @@ const emit = defineEmits<{
   'nav-click': [item: NavItem]
   'recent-click': [item: RecentItem]
   'expand-change': [expanded: boolean]
+  'token-click': []
+  'help-click': []
+  'community-click': []
+  'mobile-click': []
+  'projects-click': []
 }>()
 
-// State
+// Router
+const router = useRouter()
+
+// State - restore from localStorage
 const isExpanded = ref(false)
+
+// Initialize from localStorage
+onMounted(() => {
+  const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+  if (stored === 'true') {
+    isExpanded.value = true
+  }
+  
+  // Add keyboard shortcut listener
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+// Keyboard shortcut: Cmd+B to toggle sidebar
+const handleKeydown = (e: KeyboardEvent) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+    e.preventDefault()
+    toggleExpand()
+  }
+}
 
 // Computed
 const tokenPercentage = computed(() => {
@@ -73,6 +108,7 @@ const strokeDashoffset = computed(() => {
 // Methods
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
+  localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isExpanded.value))
   emit('expand-change', isExpanded.value)
 }
 
@@ -81,6 +117,16 @@ const handleNewClick = () => {
 }
 
 const handleNavClick = (item: NavItem) => {
+  // Built-in navigation handling
+  switch (item.id) {
+    case 'search':
+      // Emit for parent to handle (focus input)
+      break
+    case 'library':
+      router.push('/files')
+      break
+  }
+  
   if (item.onClick) {
     item.onClick()
   }
@@ -89,6 +135,32 @@ const handleNavClick = (item: NavItem) => {
 
 const handleRecentClick = (item: RecentItem) => {
   emit('recent-click', item)
+}
+
+const handleProjectsClick = () => {
+  router.push('/history')
+  emit('projects-click')
+}
+
+const handleTokenClick = () => {
+  emit('token-click')
+}
+
+const handleHelpClick = () => {
+  // Open help docs in new tab
+  window.open('https://docs.tokendance.ai', '_blank')
+  emit('help-click')
+}
+
+const handleCommunityClick = () => {
+  // Open Discord/community in new tab
+  window.open('https://discord.gg/tokendance', '_blank')
+  emit('community-click')
+}
+
+const handleMobileClick = () => {
+  // For now, emit event - parent can show a toast or modal
+  emit('mobile-click')
 }
 
 // Default nav items (AnyGen style)
@@ -171,9 +243,10 @@ const defaultNavItems: NavItem[] = [
       
       <div class="collapsed-bottom">
         <!-- Token Progress Ring -->
-        <div
+        <button
           class="token-ring-mini"
           data-tooltip="Token usage"
+          @click="handleTokenClick"
         >
           <svg
             width="26"
@@ -203,12 +276,13 @@ const defaultNavItems: NavItem[] = [
             />
           </svg>
           <span class="ring-text">{{ tokenPercentage }}%</span>
-        </div>
+        </button>
         
         <!-- Help -->
         <button
           class="sidebar-icon-btn"
           data-tooltip="Help"
+          @click="handleHelpClick"
         >
           <HelpCircle class="icon" />
         </button>
@@ -264,10 +338,13 @@ const defaultNavItems: NavItem[] = [
       <!-- Recents List -->
       <div class="expanded-list">
         <div class="list-section">
-          <div class="section-header">
+          <button 
+            class="section-header clickable"
+            @click="handleProjectsClick"
+          >
             <span class="section-title">Projects</span>
             <ChevronRight class="w-4 h-4 text-tertiary" />
-          </div>
+          </button>
         </div>
         
         <div 
@@ -300,7 +377,10 @@ const defaultNavItems: NavItem[] = [
       <!-- Bottom Section -->
       <div class="expanded-bottom">
         <!-- Token Progress -->
-        <div class="token-progress-card">
+        <button
+          class="token-progress-card"
+          @click="handleTokenClick"
+        >
           <div class="token-ring-wrapper">
             <svg
               width="26"
@@ -331,27 +411,30 @@ const defaultNavItems: NavItem[] = [
             </svg>
             <span class="ring-text-sm">{{ tokenPercentage }}%</span>
           </div>
-          <span class="token-label">Get started</span>
+          <span class="token-label">Token Usage</span>
           <span class="token-pct">{{ tokenPercentage }}%</span>
-        </div>
+        </button>
         
         <!-- Footer Links -->
         <div class="footer-links">
           <button
             class="footer-link"
             data-tooltip="Help"
+            @click="handleHelpClick"
           >
             <HelpCircle class="w-5 h-5" />
           </button>
           <button
             class="footer-link"
             data-tooltip="Community"
+            @click="handleCommunityClick"
           >
             <MessageCircle class="w-5 h-5" />
           </button>
           <button
             class="footer-link"
             data-tooltip="Mobile App"
+            @click="handleMobileClick"
           >
             <Smartphone class="w-5 h-5" />
           </button>
@@ -626,8 +709,16 @@ const defaultNavItems: NavItem[] = [
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 8px 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
+  transition: opacity var(--any-duration-fast) var(--any-ease-out);
+}
+
+.section-header.clickable:hover {
+  opacity: 0.7;
 }
 
 .section-title {
