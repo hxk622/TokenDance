@@ -19,64 +19,104 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_multi_turn_conversation'
-down_revision = None  # Replace with actual previous revision
+down_revision = '8a9b0c1d2e3f'  # Link to main branch
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
     """Apply migration"""
+    from sqlalchemy import text
+    conn = op.get_bind()
 
-    # 1. Add new columns to conversations table
-    op.add_column('conversations', sa.Column('turn_count', sa.Integer(), nullable=False, server_default='0'))
-    op.add_column('conversations', sa.Column('message_count', sa.Integer(), nullable=False, server_default='0'))
-    op.add_column('conversations', sa.Column('shared_memory', sa.JSON(), nullable=True))
-    op.add_column('conversations', sa.Column('last_message_at', sa.DateTime(), nullable=True))
-    op.create_index('ix_conversations_last_message_at', 'conversations', ['last_message_at'])
+    # 0. Create enums if not exist (PostgreSQL doesn't support IF NOT EXISTS for TYPE)
+    conn.execute(text("""
+        DO $$ BEGIN
+            CREATE TYPE turnstatus AS ENUM ('pending', 'running', 'completed', 'failed', 'cancelled');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    """))
+    conn.execute(text("""
+        DO $$ BEGIN
+            CREATE TYPE sessiontype AS ENUM ('primary', 'retry', 'branch', 'background');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    """))
 
-    # 2. Create turns table
-    op.create_table(
-        'turns',
-        sa.Column('id', sa.String(length=26), nullable=False),
-        sa.Column('conversation_id', sa.String(length=36), nullable=False),
-        sa.Column('turn_number', sa.Integer(), nullable=False),
-        sa.Column('status', sa.Enum('pending', 'running', 'completed', 'failed', 'cancelled', name='turnstatus'), nullable=False),
-        sa.Column('user_message_id', sa.String(length=26), nullable=False),
-        sa.Column('user_input', sa.String(length=2000), nullable=False),
-        sa.Column('primary_session_id', sa.String(length=26), nullable=True),
-        sa.Column('skill_id', sa.String(length=50), nullable=True),
-        sa.Column('assistant_message_id', sa.String(length=26), nullable=True),
-        sa.Column('assistant_response', sa.String(length=5000), nullable=True),
-        sa.Column('tokens_used', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('duration_ms', sa.Integer(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('started_at', sa.DateTime(), nullable=True),
-        sa.Column('completed_at', sa.DateTime(), nullable=True),
-        sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['user_message_id'], ['messages.id']),
-        sa.ForeignKeyConstraint(['assistant_message_id'], ['messages.id']),
-        sa.ForeignKeyConstraint(['primary_session_id'], ['sessions.id']),
-    )
-    op.create_index('ix_turns_conversation_id', 'turns', ['conversation_id'])
-    op.create_index('ix_turns_status', 'turns', ['status'])
+    # 1. Add new columns to conversations table (skip if exists)
+    # Check and add each column individually
+    columns_to_add = [
+        ('turn_count', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS turn_count INTEGER NOT NULL DEFAULT 0"),
+        ('message_count', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS message_count INTEGER NOT NULL DEFAULT 0"),
+        ('shared_memory', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS shared_memory JSON"),
+        ('last_message_at', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMP"),
+        ('current_session_id', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS current_session_id VARCHAR(36) REFERENCES sessions(id) ON DELETE SET NULL"),
+    ]
+    for col_name, sql in columns_to_add:
+        conn.execute(text(sql))
 
-    # 3. Add conversation_id and turn_id to messages table
-    op.add_column('messages', sa.Column('conversation_id', sa.String(length=36), nullable=True))
-    op.add_column('messages', sa.Column('turn_id', sa.String(length=26), nullable=True))
-    op.create_index('ix_messages_conversation_id', 'messages', ['conversation_id'])
-    op.create_index('ix_messages_turn_id', 'messages', ['turn_id'])
-    op.create_foreign_key('fk_messages_conversation_id', 'messages', 'conversations', ['conversation_id'], ['id'])
-    op.create_foreign_key('fk_messages_turn_id', 'messages', 'turns', ['turn_id'], ['id'])
+    # Create index if not exists
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_conversations_last_message_at ON conversations (last_message_at)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_conversations_current_session_id ON conversations (current_session_id)"))
 
-    # 4. Add conversation_id and turn_id to sessions table
-    op.add_column('sessions', sa.Column('conversation_id', sa.String(length=36), nullable=True))
-    op.add_column('sessions', sa.Column('turn_id', sa.String(length=26), nullable=True))
-    op.add_column('sessions', sa.Column('session_type', sa.Enum('primary', 'retry', 'branch', 'background', name='sessiontype'), nullable=True, server_default='primary'))
-    op.create_index('ix_sessions_conversation_id', 'sessions', ['conversation_id'])
-    op.create_index('ix_sessions_turn_id', 'sessions', ['turn_id'])
-    op.create_foreign_key('fk_sessions_conversation_id', 'sessions', 'conversations', ['conversation_id'], ['id'])
-    op.create_foreign_key('fk_sessions_turn_id', 'sessions', 'turns', ['turn_id'], ['id'])
+    # 2. Create turns table if not exists
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS turns (
+            id VARCHAR(36) PRIMARY KEY,
+            conversation_id VARCHAR(36) NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            turn_number INTEGER NOT NULL,
+            status turnstatus NOT NULL,
+            user_message_id VARCHAR(26) NOT NULL REFERENCES messages(id),
+            user_input VARCHAR(2000) NOT NULL,
+            primary_session_id VARCHAR(26) REFERENCES sessions(id),
+            skill_id VARCHAR(50),
+            assistant_message_id VARCHAR(26) REFERENCES messages(id),
+            assistant_response VARCHAR(5000),
+            tokens_used INTEGER NOT NULL DEFAULT 0,
+            duration_ms INTEGER,
+            created_at TIMESTAMP NOT NULL,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP
+        )
+    """))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_turns_conversation_id ON turns (conversation_id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_turns_status ON turns (status)"))
+
+    # 3. Add conversation_id
+    conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS conversation_id VARCHAR(36)"))
+    conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS turn_id VARCHAR(26)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_messages_conversation_id ON messages (conversation_id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_messages_turn_id ON messages (turn_id)"))
+    # Foreign keys - check if not exists
+    conn.execute(text("""
+        DO $$ BEGIN
+            ALTER TABLE messages ADD CONSTRAINT fk_messages_conversation_id 
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id);
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    """))
+    conn.execute(text("""
+        DO $$ BEGIN
+            ALTER TABLE messages ADD CONSTRAINT fk_messages_turn_id 
+                FOREIGN KEY (turn_id) REFERENCES turns(id);
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    """))
+
+    # 4. Add conversation_id and turn_id to sessions table (using IF NOT EXISTS)
+    conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS conversation_id VARCHAR(36)"))
+    conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS turn_id VARCHAR(26)"))
+    conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS session_type sessiontype DEFAULT 'primary'"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_conversation_id ON sessions (conversation_id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_turn_id ON sessions (turn_id)"))
+    conn.execute(text("""
+        DO $$ BEGIN
+            ALTER TABLE sessions ADD CONSTRAINT fk_sessions_conversation_id 
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id);
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    """))
+    conn.execute(text("""
+        DO $$ BEGIN
+            ALTER TABLE sessions ADD CONSTRAINT fk_sessions_turn_id 
+                FOREIGN KEY (turn_id) REFERENCES turns(id);
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    """))
 
     # 5. Migrate existing data
     # For existing conversations, set turn_count and message_count based on existing messages
