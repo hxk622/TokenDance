@@ -45,6 +45,8 @@ dependencies = [
     "flagembedding>=1.3.5",
     # OpenAI SDK - for SiliconFlow and Qwen OpenAI-compatible APIs
     "openai>=1.0.0",
+    # PyMuPDF - PDF 复杂度检测 (用于 MinerU 智能路由)
+    "pymupdf>=1.24.0",
 ]
 
 [project.optional-dependencies]

@@ -1,8 +1,9 @@
 """
 File Converter Tool - 文件转 Markdown 转换工具
 
-使用 Microsoft MarkItDown 将各类文件格式转换为 Markdown，
-便于 LLM 分析和处理。
+使用智能路由选择最优解析引擎：
+- MarkItDown: 简单文档（快速）
+- MinerU: 复杂文档/金融报告（高精度）
 
 支持的格式：
 - Office文档: PDF, DOCX, PPTX, XLSX, XLS
@@ -10,15 +11,23 @@ File Converter Tool - 文件转 Markdown 转换工具
 - 音频: WAV, MP3 (需语音识别)
 - Web/结构化: HTML, CSV, JSON, XML
 - 压缩包: ZIP (递归处理)
+
+PDF 智能路由：
+- 简单 PDF → MarkItDown (快速)
+- 复杂 PDF/金融报告 → MinerU (高精度，需配置 MINERU_API_TOKEN)
 """
 from __future__ import annotations
 
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from app.agent.tools.base import BaseTool
+from app.agent.tools.smart_document_converter import (
+    ConversionMetrics,
+    SmartDocumentConverter,
+)
 
 # Export MarkItDown for testing
 try:
@@ -60,6 +69,12 @@ class FileConverterTool(BaseTool):
                 "type": "boolean",
                 "description": "是否提取图片描述（需要 LLM，默认 False）",
                 "default": False
+            },
+            "force_engine": {
+                "type": "string",
+                "enum": ["auto", "markitdown", "mineru"],
+                "description": "强制使用指定引擎: auto=智能选择, markitdown=快速, mineru=高精度",
+                "default": "auto"
             }
         },
         "required": ["file_path"]
@@ -70,7 +85,8 @@ class FileConverterTool(BaseTool):
         llm_client: Any | None = None,
         openrouter_api_key: str | None = None,
         vision_model: str | None = None,
-        vision_task_type: str = "general"
+        vision_task_type: str = "general",
+        mineru_api_token: str | None = None,
     ):
         """
         初始化文件转换工具
@@ -80,10 +96,17 @@ class FileConverterTool(BaseTool):
             openrouter_api_key: OpenRouter API Key（推荐方式）
             vision_model: 视觉模型名称（如 anthropic/claude-3-haiku）
             vision_task_type: 视觉任务类型（"ocr", "chart", "diagram", "general"）
+            mineru_api_token: MinerU API Token（用于复杂 PDF 解析）
         """
         super().__init__()
         self.llm_client = llm_client  # 保留向后兼容
         self.vision_task_type = vision_task_type
+
+        # 智能文档转换器（用于 PDF）
+        self._smart_converter = SmartDocumentConverter(
+            mineru_api_token=mineru_api_token or os.getenv("MINERU_API_TOKEN"),
+            log_metrics=True,
+        )
 
         # 确定 Vision 模型（根据任务类型智能选择）
         if vision_model:
@@ -125,7 +148,7 @@ class FileConverterTool(BaseTool):
             )
 
         # 延迟导入 MarkItDown（避免启动时加载）
-        self._converter = None
+        self._converter: Any = None
 
     def _select_default_vision_model(self, task_type: str) -> str:
         """
@@ -146,7 +169,7 @@ class FileConverterTool(BaseTool):
         }
         return task_to_model.get(task_type, "anthropic/claude-3-5-sonnet")
 
-    def _get_markitdown(self):
+    def _get_markitdown(self) -> Any:
         """延迟初始化 MarkItDown"""
         if self._converter is None:
             try:
@@ -176,11 +199,12 @@ class FileConverterTool(BaseTool):
                 ) from e
         return self._converter
 
-    def execute(
+    def execute(  # type: ignore[override]
         self,
         file_path: str = "",
         extract_images: bool = False,
-        **kwargs
+        force_engine: Literal["auto", "markitdown", "mineru"] = "auto",
+        **kwargs: Any
     ) -> str:
         """
         执行文件转换（同步方法）
@@ -188,6 +212,10 @@ class FileConverterTool(BaseTool):
         Args:
             file_path: 文件路径
             extract_images: 是否提取图片描述
+            force_engine: 强制使用指定引擎 (仅对 PDF 有效)
+                - "auto": 智能选择（默认）
+                - "markitdown": 强制使用 MarkItDown（快速）
+                - "mineru": 强制使用 MinerU（高精度）
 
         Returns:
             str: 转换后的 Markdown 文本
@@ -220,55 +248,121 @@ class FileConverterTool(BaseTool):
             )
 
         try:
-            # 获取 MarkItDown 实例
-            md = self._get_markitdown()
+            file_ext = path.suffix.lower()
+            file_size = path.stat().st_size
 
-            # 如果需要提取图片但没有 Vision client，警告用户
-            if extract_images and not self._openai_client and not self.llm_client:
-                logger.warning(
-                    "extract_images=True but no Vision client configured. "
-                    "Image descriptions will not be generated. "
-                    "Set OPENROUTER_API_KEY to enable Vision."
+            # PDF 使用智能转换器
+            if file_ext == ".pdf":
+                return self._convert_pdf_smart(
+                    path, file_size, force_engine
                 )
 
-            # 转换文件
-            logger.info(f"Converting file: {file_path}")
-            result = md.convert(str(path))
-
-            # 提取元数据
-            file_size = path.stat().st_size
-            file_ext = path.suffix.lower()
-
-            markdown_content = result.text_content
-            char_count = len(markdown_content)
-            line_count = markdown_content.count('\n') + 1
-
-            logger.info(
-                f"Conversion successful: {file_path} "
-                f"({file_size} bytes -> {char_count} chars, {line_count} lines)"
+            # 其他格式使用 MarkItDown
+            return self._convert_with_markitdown(
+                path, file_size, file_ext, extract_images
             )
-
-            # 返回带元信息的结果（使用 YAML front matter）
-            header = (
-                f"---\n"
-                f"Source: {path.name}\n"
-                f"Format: {file_ext}\n"
-                f"Size: {file_size} bytes\n"
-                f"Lines: {line_count}\n"
-                f"---\n\n"
-            )
-            return header + markdown_content
 
         except ImportError as e:
-            logger.error(f"MarkItDown dependency error: {e}")
-            raise ImportError(
-                "MarkItDown not installed. Install with: uv pip install markitdown"
-            ) from e
+            logger.error(f"Dependency error: {e}")
+            raise
         except Exception as e:
             logger.error(f"File conversion failed for {file_path}: {e}", exc_info=True)
             raise
 
-    def get_supported_formats(self) -> dict[str, list]:
+    def _convert_pdf_smart(
+        self,
+        path: Path,
+        file_size: int,
+        force_engine: Literal["auto", "markitdown", "mineru"],
+    ) -> str:
+        """
+        使用智能转换器处理 PDF
+
+        自动根据文档复杂度选择最优引擎：
+        - 简单 PDF → MarkItDown
+        - 复杂 PDF/金融报告 → MinerU
+        """
+        # 设置强制引擎
+        self._smart_converter.force_engine = force_engine
+
+        # 转换
+        markdown_content, metrics = self._smart_converter.convert(str(path))
+
+        line_count = markdown_content.count('\n') + 1
+
+        # 构建元信息头（包含引擎选择信息）
+        header = (
+            f"---\n"
+            f"Source: {path.name}\n"
+            f"Format: .pdf\n"
+            f"Size: {file_size} bytes\n"
+            f"Lines: {line_count}\n"
+            f"Engine: {metrics.engine_used}\n"
+            f"EngineReason: {metrics.engine_reason}\n"
+            f"ComplexityScore: {metrics.complexity_score}\n"
+            f"Latency: {metrics.total_latency_ms:.0f}ms\n"
+            f"---\n\n"
+        )
+        return header + markdown_content
+
+    def _convert_with_markitdown(
+        self,
+        path: Path,
+        file_size: int,
+        file_ext: str,
+        extract_images: bool,
+    ) -> str:
+        """
+        使用 MarkItDown 转换非 PDF 文件
+        """
+        # 获取 MarkItDown 实例
+        md = self._get_markitdown()
+
+        # 如果需要提取图片但没有 Vision client，警告用户
+        if extract_images and not self._openai_client and not self.llm_client:
+            logger.warning(
+                "extract_images=True but no Vision client configured. "
+                "Image descriptions will not be generated. "
+                "Set OPENROUTER_API_KEY to enable Vision."
+            )
+
+        # 转换文件
+        logger.info(f"Converting file with MarkItDown: {path}")
+        result = md.convert(str(path))
+
+        markdown_content = result.text_content
+        char_count = len(markdown_content)
+        line_count = markdown_content.count('\n') + 1
+
+        logger.info(
+            f"Conversion successful: {path} "
+            f"({file_size} bytes -> {char_count} chars, {line_count} lines)"
+        )
+
+        # 返回带元信息的结果（使用 YAML front matter）
+        header = (
+            f"---\n"
+            f"Source: {path.name}\n"
+            f"Format: {file_ext}\n"
+            f"Size: {file_size} bytes\n"
+            f"Lines: {line_count}\n"
+            f"Engine: markitdown\n"
+            f"---\n\n"
+        )
+        return str(header + markdown_content)
+
+    def get_last_metrics(self) -> ConversionMetrics | None:
+        """
+        获取最后一次 PDF 转换的详细指标
+
+        Returns:
+            ConversionMetrics 或 None（如果没有进行过 PDF 转换）
+        """
+        # SmartDocumentConverter 不保存历史，这里返回 None
+        # 如果需要，可以扩展 SmartDocumentConverter 保存最后一次的 metrics
+        return None
+
+    def get_supported_formats(self) -> dict[str, list[str]]:
         """
         获取支持的文件格式列表
 
