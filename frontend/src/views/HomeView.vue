@@ -5,14 +5,14 @@ import { useProjectStore } from '@/stores/project'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { 
   Search, FileText, Presentation, BarChart3, 
-  Users, Mic, ArrowUp, Sparkles, Globe, FileVideo,
+  Mic, ArrowUp, Globe, FileVideo,
   Languages, FolderOpen, MoreHorizontal, Code2, Zap,
-  History, Settings, LayoutGrid, Plus, ChevronRight
+  History, Settings, Plus, ChevronRight, Paperclip, Sparkles
 } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
-import type { NavItem } from '@/components/common/AnySidebar.vue'
+import type { NavItem, RecentItem } from '@/components/common/AnySidebar.vue'
 import type { Project, ProjectType } from '@/types/project'
 
 const router = useRouter()
@@ -37,6 +37,16 @@ const showError = (msg: string) => {
 // Project list
 const recentProjects = computed(() => projectStore.activeProjects.slice(0, 6))
 const hasProjects = computed(() => recentProjects.value.length > 0)
+
+// Convert projects to sidebar recent items
+const sidebarRecentItems = computed<RecentItem[]>(() => 
+  projectStore.activeProjects.slice(0, 8).map(p => ({
+    id: p.id,
+    title: p.title,
+    type: 'task' as const,
+    icon: getProjectIcon(p.project_type)
+  }))
+)
 
 // Project type icons
 const projectTypeIcons: Record<ProjectType, typeof FileText> = {
@@ -290,10 +300,8 @@ const sidebarSections = [
   {
     id: 'main',
     items: [
-      { id: 'search', label: '搜索', icon: Search },
-      { id: 'templates', label: '模板', icon: LayoutGrid },
-      { id: 'files', label: '文件', icon: FolderOpen },
-      { id: 'history', label: '历史', icon: History },
+      { id: 'files', label: 'Files', icon: FolderOpen },
+      { id: 'history', label: 'History', icon: History },
     ] as NavItem[]
   }
 ]
@@ -306,7 +314,15 @@ const handleSidebarNavClick = (item: NavItem) => {
     case 'history':
       router.push('/history')
       break
+    case 'library':
+      // TODO: open library
+      break
   }
+}
+
+// Handle recent item click
+const handleRecentClick = (item: RecentItem) => {
+  router.push(`/project/${item.id}`)
 }
 
 // New button handler
@@ -358,24 +374,19 @@ onUnmounted(() => {
 
 <template>
   <div class="home-view">
-    <!-- 左侧边栏 - 固定宽度图标栏 -->
+    <!-- Sidebar with collapse/expand -->
     <AnySidebar
       :sections="sidebarSections"
+      :recent-items="sidebarRecentItems"
+      :token-used="15"
+      :token-total="100"
       @new-click="handleNewClick"
       @nav-click="handleSidebarNavClick"
-    >
-      <template #footer>
-        <button
-          class="sidebar-footer-btn"
-          data-tooltip="设置"
-        >
-          <Settings class="icon" />
-        </button>
-      </template>
-    </AnySidebar>
+      @recent-click="handleRecentClick"
+    />
     
-    <!-- 右上角个人信息栏 - 固定定位 -->
-    <AnyHeader />
+    <!-- Header -->
+    <AnyHeader :transparent="true" />
     
     <!-- 错误提示 Toast -->
     <Transition name="toast">
@@ -389,42 +400,43 @@ onUnmounted(() => {
 
     <!-- Main Content -->
     <main class="home-main">
-      <!-- Hero: 大标题 -->
+      <!-- Hero Title -->
       <section class="hero-section">
         <h1 class="hero-title">
           How can I help you today?
         </h1>
       </section>
 
-      <!-- 核心输入框 - AnyGen 风格 -->
+      <!-- Input Box - AnyGen Style -->
       <section class="input-section">
         <div class="input-box">
-          <!-- 输入区 -->
-          <textarea
-            ref="inputRef"
-            v-model="inputValue"
-            class="main-textarea"
-            :placeholder="placeholderText"
-            rows="1"
-            @keydown="handleKeydown"
-            @input="e => {
-              const target = e.target as HTMLTextAreaElement
-              target.style.height = 'auto'
-              target.style.height = Math.min(target.scrollHeight, 120) + 'px'
-            }"
-          />
+          <!-- Textarea -->
+          <div class="input-content">
+            <textarea
+              ref="inputRef"
+              v-model="inputValue"
+              class="main-textarea"
+              :placeholder="placeholderText"
+              rows="1"
+              @keydown="handleKeydown"
+              @input="e => {
+                const target = e.target as HTMLTextAreaElement
+                target.style.height = 'auto'
+                target.style.height = Math.min(target.scrollHeight, 120) + 'px'
+              }"
+            />
+          </div>
           
-          <!-- 工具栏 -->
+          <!-- Toolbar -->
           <div class="input-toolbar">
             <div class="toolbar-left">
-              <AnyButton
-                variant="ghost"
-                size="sm"
-                title="添加文件"
+              <button
+                class="toolbar-btn"
+                title="Attach files"
                 @click="handleAttachClick"
               >
-                <Plus class="w-5 h-5" />
-              </AnyButton>
+                <Paperclip class="w-5 h-5" />
+              </button>
               <input
                 ref="fileInputRef"
                 type="file"
@@ -432,22 +444,14 @@ onUnmounted(() => {
                 multiple
                 @change="handleFileSelect"
               >
-              <AnyButton
-                variant="ghost"
-                size="sm"
-                title="添加协作者"
-              >
-                <Users class="w-5 h-5" />
-              </AnyButton>
             </div>
             <div class="toolbar-right">
-              <AnyButton
-                variant="ghost"
-                size="sm"
-                title="语音输入"
+              <button
+                class="toolbar-btn"
+                title="Voice input"
               >
                 <Mic class="w-5 h-5" />
-              </AnyButton>
+              </button>
               <button 
                 class="submit-btn"
                 :class="{ active: inputValue.trim() }"
@@ -623,65 +627,9 @@ onUnmounted(() => {
    ============================================ */
 
 .home-view {
-  @apply relative min-h-screen;
-  background: var(--any-bg-secondary);
-}
-
-/* Sidebar footer button - reuses AnySidebar styling */
-.sidebar-footer-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--any-radius-md);
-  color: var(--any-text-secondary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-}
-
-.sidebar-footer-btn:hover {
-  color: var(--any-text-primary);
-  background: var(--any-bg-tertiary);
-}
-
-.sidebar-footer-btn .icon {
-  width: 20px;
-  height: 20px;
-}
-
-.sidebar-footer-btn[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 8px;
-  padding: 6px 10px;
-  background: var(--any-text-primary);
-  color: var(--any-bg-primary);
-  font-size: 12px;
-  white-space: nowrap;
-  border-radius: var(--any-radius-sm);
-  opacity: 0;
-  visibility: hidden;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.sidebar-footer-btn[data-tooltip]:hover::after {
-  opacity: 1;
-  visibility: visible;
-}
-
-
-.sign-in-btn:hover {
-  background: var(--any-bg-tertiary);
-  border-color: var(--any-border-hover);
+  min-height: 100vh;
+  background: var(--any-bg-primary);
 }
 
 /* Main Content */
@@ -691,126 +639,198 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 24px;
-  padding-top: max(15vh, 120px);
+  padding: 0 16px;
+  padding-top: 70px;
   padding-bottom: 4rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+@media (min-width: 768px) {
+  .home-main {
+    padding-top: max(12vh, 100px);
+  }
 }
 
 /* Hero Section */
 .hero-section {
-  @apply text-center mb-10;
+  text-align: center;
+  margin-bottom: 24px;
   width: 100%;
   max-width: 720px;
 }
 
+@media (min-width: 768px) {
+  .hero-section {
+    margin-bottom: 40px;
+  }
+}
+
 .hero-title {
-  @apply text-3xl md:text-4xl font-normal;
+  font-size: 24px;
+  font-weight: 500;
   color: var(--any-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.02em;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .hero-title {
+    font-size: 32px;
+  }
 }
 
 /* ============================================
    Input Box - AnyGen Style
    ============================================ */
 .input-section {
-  @apply mb-6;
+  margin-bottom: 12px;
   width: 100%;
   max-width: 720px;
 }
 
 .input-box {
-  @apply rounded-2xl shadow-sm;
+  position: relative;
   background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
-  width: 100%;
-  padding: 16px 20px;
-  transition: all var(--any-duration-normal) var(--any-ease-default);
+  border-radius: 20px;
+  box-shadow: 0 12px 20px 0 rgba(28, 28, 32, 0.05);
+  overflow: hidden;
+  transition: all var(--any-duration-normal) var(--any-ease-out);
 }
 
 .input-box:focus-within {
   border-color: var(--any-border-hover);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 24px 0 rgba(28, 28, 32, 0.08);
+}
+
+.input-content {
+  min-height: 52px;
+  max-height: 200px;
+  padding: 14px 16px;
+  padding-bottom: 0;
 }
 
 .main-textarea {
-  @apply w-full text-base bg-transparent border-none resize-none;
-  color: var(--any-text-primary);
-  min-height: 24px;
+  width: 100%;
+  min-height: 26px;
   max-height: 120px;
-  line-height: 1.5;
-}
-
-.main-textarea::placeholder {
-  color: var(--any-text-muted);  /* 规范: placeholder 使用 muted 色，避免视觉疲劳 */
-}
-
-.main-textarea:focus {
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--any-text-primary);
+  background: transparent;
+  border: none;
+  resize: none;
   outline: none;
 }
 
+.main-textarea::placeholder {
+  color: var(--any-text-muted);
+}
+
 .input-toolbar {
-  @apply flex items-center justify-between mt-4 pt-3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: none;
 }
 
 .toolbar-left,
 .toolbar-right {
-  @apply flex items-center gap-2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--any-text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
+}
+
+.toolbar-btn:hover {
+  color: var(--any-text-primary);
+  background: var(--any-bg-hover);
 }
 
 .submit-btn {
-  @apply p-2.5 rounded-full cursor-pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
   background: var(--any-bg-tertiary);
-  color: var(--any-text-tertiary);  /* 默认状态使用 tertiary 色，保证可见性 */
-  border: 1px solid var(--any-border);
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  color: var(--any-text-tertiary);
+  border: none;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .submit-btn.active {
   background: var(--any-text-primary);
-  color: var(--any-text-inverse);  /* 使用 inverse 色确保在深色/浅色模式下箭头都可见 */
-  border-color: var(--any-text-primary);
+  color: var(--any-text-inverse);
 }
 
 .submit-btn:disabled {
-  @apply cursor-not-allowed;
-  opacity: 0.7;  /* 提高 disabled 状态可见度 */
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* ============================================
    Projects Section
    ============================================ */
 .projects-section {
-  @apply mb-10;
+  margin-bottom: 40px;
   width: 100%;
   max-width: 720px;
 }
 
 .section-header {
-  @apply flex items-center justify-between mb-4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .section-title {
-  @apply text-lg font-medium;
+  font-size: 18px;
+  font-weight: 500;
   color: var(--any-text-primary);
 }
 
 .see-all-btn {
-  @apply flex items-center gap-1 px-3 py-1.5
-         text-sm rounded-lg cursor-pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
   color: var(--any-text-secondary);
   background: transparent;
   border: none;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .see-all-btn:hover {
   color: var(--any-text-primary);
-  background: var(--any-bg-tertiary);
+  background: var(--any-bg-hover);
 }
 
 .projects-grid {
-  @apply grid gap-3;
+  display: grid;
+  gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
@@ -827,48 +847,69 @@ onUnmounted(() => {
 }
 
 .project-card {
-  @apply flex items-center gap-3 p-3
-         rounded-xl cursor-pointer text-left;
-  background: var(--any-bg-primary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  background: var(--any-bg-secondary);
   border: 1px solid var(--any-border);
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .project-card:hover {
   border-color: var(--any-border-hover);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--any-bg-tertiary);
 }
 
 .project-icon-wrapper {
-  @apply flex items-center justify-center w-10 h-10
-         rounded-lg flex-shrink-0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
   background: var(--any-bg-tertiary);
 }
 
 .project-icon {
-  @apply w-5 h-5;
+  width: 20px;
+  height: 20px;
   color: var(--any-text-secondary);
 }
 
 .project-info {
-  @apply flex-1 min-w-0;
+  flex: 1;
+  min-width: 0;
 }
 
 .project-title {
-  @apply block text-sm font-medium truncate;
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--any-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-meta {
-  @apply block text-xs mt-0.5;
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
   color: var(--any-text-tertiary);
 }
 
 .project-chevron {
-  @apply w-4 h-4 flex-shrink-0;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
   color: var(--any-text-tertiary);
   opacity: 0;
-  transition: opacity var(--any-duration-fast) var(--any-ease-default);
+  transition: opacity var(--any-duration-fast) var(--any-ease-out);
 }
 
 .project-card:hover .project-chevron {
@@ -879,50 +920,63 @@ onUnmounted(() => {
    Quick Chips - AnyGen Style
    ============================================ */
 .chips-section {
-  @apply mb-12;
+  margin-bottom: 32px;
   width: 100%;
   max-width: 720px;
 }
 
 .chips-row {
-  @apply flex flex-wrap items-center justify-center gap-2.5 mb-2.5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .chip {
-  @apply flex items-center gap-2 px-4 py-2
-         text-sm rounded-full cursor-pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 9999px;
+  cursor: pointer;
   color: var(--any-text-secondary);
-  background: var(--any-bg-primary);
+  background: var(--any-bg-secondary);
   border: 1px solid var(--any-border);
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .chip:hover:not(:disabled) {
   border-color: var(--any-border-hover);
   background: var(--any-bg-tertiary);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .chip:disabled {
-  @apply opacity-50 cursor-not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .chip-more {
-  color: var(--any-text-secondary);  /* 使用 secondary 色保证可见性 */
+  color: var(--any-text-secondary);
 }
 
 /* ============================================
    Categories Tabs - AnyGen Style
    ============================================ */
 .categories-section {
-  @apply mb-6;
+  margin-bottom: 24px;
   width: 100%;
   max-width: 960px;
   border-bottom: 1px solid var(--any-border);
 }
 
 .categories-scroll {
-  @apply flex items-center gap-0 overflow-x-auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -932,13 +986,21 @@ onUnmounted(() => {
 }
 
 .category-tab {
-  @apply flex items-center gap-1.5 px-5 py-3
-         text-sm whitespace-nowrap
-         border-b-2 border-transparent
-         cursor-pointer;
-  color: var(--any-text-tertiary);  /* 未激活状态使用 tertiary 色，保证可见性 */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  font-size: 14px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--any-text-tertiary);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
   margin-bottom: -1px;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .category-tab:hover {
@@ -946,13 +1008,15 @@ onUnmounted(() => {
 }
 
 .category-tab.active {
-  @apply font-medium;
+  font-weight: 500;
   color: var(--any-text-primary);
-  border-color: var(--any-text-primary);
+  border-bottom-color: var(--any-text-primary);
 }
 
 .category-badge {
-  @apply text-xs px-1.5 py-0.5 rounded;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
   background: rgba(239, 68, 68, 0.15);
   color: var(--any-error);
 }
@@ -961,14 +1025,15 @@ onUnmounted(() => {
    Template Cards - AnyGen Style
    ============================================ */
 .templates-section {
-  @apply py-6;
+  padding: 24px 0;
   width: 100%;
   max-width: 960px;
 }
 
 .templates-grid {
-  @apply grid gap-5;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
 @media (min-width: 1400px) {
@@ -978,13 +1043,18 @@ onUnmounted(() => {
 }
 
 .template-card {
-  @apply flex flex-col bg-transparent
-         cursor-pointer text-left;
-  transition: all var(--any-duration-normal) var(--any-ease-default);
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  transition: all var(--any-duration-normal) var(--any-ease-out);
 }
 
 .template-card:disabled {
-  @apply opacity-50 cursor-not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .template-card:hover:not(:disabled) .template-preview {
@@ -992,28 +1062,38 @@ onUnmounted(() => {
   transform: translateY(-4px);
 }
 
-/* 预览图区域 */
+/* Preview area */
 .template-preview {
-  @apply w-full flex items-center justify-center overflow-hidden;
-  background: var(--any-bg-primary);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--any-bg-secondary);
   border: 1px solid var(--any-border);
-  border-radius: var(--any-radius-lg);
+  border-radius: 12px;
   aspect-ratio: 4 / 3;
-  transition: all var(--any-duration-normal) var(--any-ease-bounce);
+  transition: all var(--any-duration-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .template-preview.has-preview {
-  @apply p-0;
+  padding: 0;
 }
 
-/* 图标类型卡片 */
+/* Icon type card */
 .template-icon-wrapper {
-  @apply w-20 h-20 rounded-2xl flex items-center justify-center;
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 缩略图类型卡片 */
+/* Thumbnail type card */
 .template-thumbnail {
-  @apply w-full h-full;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center;
 }
@@ -1034,22 +1114,29 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
 }
 
-/* 文字信息 */
+/* Text info */
 .template-info {
-  @apply py-3;
+  padding: 12px 0;
 }
 
 .template-title {
-  @apply text-sm font-medium block mb-1;
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
   color: var(--any-text-primary);
 }
 
 .template-meta {
-  @apply flex items-center gap-2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .template-tag {
-  @apply text-xs px-2 py-0.5 rounded;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .tag--slides {
@@ -1063,17 +1150,17 @@ onUnmounted(() => {
 }
 
 .tag--doc {
-  background: rgba(0, 217, 255, 0.15);
+  background: rgba(139, 92, 246, 0.15);
   color: #8B5CF6;
 }
 
 [data-theme="dark"] .tag--doc {
-  background: rgba(0, 217, 255, 0.25);
+  background: rgba(139, 92, 246, 0.25);
   color: #A78BFA;
 }
 
 .template-uses {
-  @apply text-xs;
+  font-size: 12px;
   color: var(--any-text-muted);
 }
 

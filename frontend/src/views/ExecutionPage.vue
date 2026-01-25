@@ -682,17 +682,20 @@ function handleStop() {
 }
 
 // Handle error retry
-function handleRetry() {
+async function handleRetry() {
   try {
     // Clear error state
     executionStore.error = null
     executionStore.sseError = null
 
-    // Reconnect SSE
-    executionStore.connectSSE(initialTask.value)
-
-    // Restart timer
-    startElapsedTimer()
+    // Retry using REST API (new architecture)
+    if (sessionId.value && initialTask.value) {
+      await startActualExecution(initialTask.value)
+    } else {
+      // Fallback: reconnect SSE without task (just to receive events)
+      executionStore.connectSSE(null)
+      startElapsedTimer()
+    }
   } catch (error) {
     console.error('[ExecutionPage] Error retrying execution:', error)
     executionStore.error = error instanceof Error ? error.message : '重试失败'
@@ -868,14 +871,18 @@ async function handleChatMessage(payload: SendMessagePayload) {
       // Switch to executing phase
       initPhase.value = 'executing'
 
-      // Connect to SSE stream using the returned session_id
+      // Use REST API to send message (new unified architecture)
       executionStore.sessionId = response.session_id
-      // Note: For project mode, we still use the old SSE connection for now
-      // Attachments will be supported in a future project API update
-      executionStore.connectSSE(payload.content)
+      await sendChatMessage(
+        response.session_id,
+        messagePayload,
+        (event: SSEEvent) => {
+          executionStore.handleSSEEventFromREST(event)
+        }
+      )
       startElapsedTimer()
 
-      console.log('[ExecutionPage] Project SSE connected:', response.session_id)
+      console.log('[ExecutionPage] Project message sent via REST API:', response.session_id)
     } catch (error) {
       console.error('[ExecutionPage] Failed to send project message:', error)
       executionStore.error = 'Failed to send message'

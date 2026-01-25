@@ -4,9 +4,7 @@ import { useRouter } from 'vue-router'
 import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useAuthGuard } from '@/composables/useAuthGuard'
-import { Sun, Moon, Monitor, Bell, Sparkles, User, LogOut } from 'lucide-vue-next'
-import WorkspaceSelector from '@/components/workspace/WorkspaceSelector.vue'
-import type { Workspace } from '@/api/workspace'
+import { Sun, Moon, Monitor, Bell, Sparkles, User, LogOut, Settings } from 'lucide-vue-next'
 
 // Stores
 const router = useRouter()
@@ -14,15 +12,24 @@ const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const { showLogin } = useAuthGuard()
 
+// Props
+interface Props {
+  transparent?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  transparent: true
+})
+
 // State
 const showThemeMenu = ref(false)
 const showUserMenu = ref(false)
 
 // Theme options
 const themeOptions: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
-  { mode: 'light', label: '浅色', icon: Sun },
-  { mode: 'dark', label: '深色', icon: Moon },
-  { mode: 'system', label: '跟随系统', icon: Monitor },
+  { mode: 'light', label: 'Light', icon: Sun },
+  { mode: 'dark', label: 'Dark', icon: Moon },
+  { mode: 'system', label: 'System', icon: Monitor },
 ]
 
 // Computed
@@ -52,11 +59,6 @@ const closeMenus = (e: MouseEvent) => {
   }
 }
 
-// Workspace change handler
-const handleWorkspaceChange = (workspace: Workspace) => {
-  console.log('[AnyHeader] Workspace changed:', workspace.name)
-}
-
 onMounted(() => {
   window.addEventListener('click', closeMenus)
 })
@@ -67,138 +69,184 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="any-header">
-    <!-- Workspace Selector (only when authenticated) -->
-    <WorkspaceSelector
-      v-if="authStore.isAuthenticated"
-      @change="handleWorkspaceChange"
-    />
-
-    <!-- Spacer -->
-    <div class="header-spacer" />
-
-    <!-- Theme toggle -->
-    <div class="theme-menu-container">
-      <button
-        class="header-icon-btn"
-        data-tooltip="主题"
-        @click.stop="showThemeMenu = !showThemeMenu"
-      >
-        <component
-          :is="themeIcon"
-          class="icon"
-        />
-      </button>
-      <!-- Theme dropdown -->
-      <Transition name="dropdown">
-        <div
-          v-if="showThemeMenu"
-          class="theme-dropdown"
-        >
-          <button
-            v-for="opt in themeOptions"
-            :key="opt.mode"
-            class="dropdown-item"
-            :class="{ active: themeStore.mode === opt.mode }"
-            @click="selectTheme(opt.mode)"
-          >
-            <component
-              :is="opt.icon"
-              class="icon-sm"
-            />
-            <span>{{ opt.label }}</span>
-            <span
-              v-if="themeStore.mode === opt.mode"
-              class="check-mark"
-            >✓</span>
-          </button>
-        </div>
-      </Transition>
+  <header 
+    class="any-header" 
+    :class="{ 'header-transparent': transparent }"
+  >
+    <!-- Left section (empty or breadcrumb) -->
+    <div class="header-left">
+      <slot name="left" />
     </div>
     
-    <!-- Guest mode: Sign in button -->
-    <template v-if="!authStore.isAuthenticated">
-      <button 
-        class="sign-in-btn"
-        @click="showLogin()"
-      >
-        <User class="icon-sm" />
-        <span>Sign in</span>
-      </button>
-    </template>
+    <!-- Center section -->
+    <div class="header-center">
+      <slot name="center" />
+    </div>
     
-    <!-- Authenticated: notifications, credits, avatar -->
-    <template v-else>
-      <!-- Notifications -->
-      <button
-        class="header-icon-btn"
-        data-tooltip="通知"
-      >
-        <Bell class="icon" />
-        <span class="notification-badge">4</span>
-      </button>
-      
-      <!-- Credits -->
-      <div class="credits-badge">
-        <Sparkles class="icon-xs" />
-        <span>1,200</span>
-      </div>
-      
-      <!-- User avatar and menu -->
-      <div class="user-menu-container">
-        <button 
-          class="avatar-btn"
-          @click.stop="showUserMenu = !showUserMenu"
+    <!-- Right section -->
+    <div class="header-right">
+      <!-- Theme toggle -->
+      <div class="theme-menu-container">
+        <button
+          class="header-icon-btn"
+          @click.stop="showThemeMenu = !showThemeMenu"
         >
-          <span>{{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}</span>
+          <component
+            :is="themeIcon"
+            class="icon"
+          />
         </button>
-        <!-- User dropdown -->
+        <!-- Theme dropdown -->
         <Transition name="dropdown">
           <div
-            v-if="showUserMenu"
-            class="user-dropdown"
+            v-if="showThemeMenu"
+            class="theme-dropdown"
           >
-            <div class="dropdown-header">
-              <span class="user-name">{{ authStore.user?.display_name || authStore.user?.username }}</span>
-              <span class="user-email">{{ authStore.user?.email }}</span>
-            </div>
-            <div class="dropdown-divider" />
             <button
+              v-for="opt in themeOptions"
+              :key="opt.mode"
               class="dropdown-item"
-              @click="handleLogout"
+              :class="{ active: themeStore.mode === opt.mode }"
+              @click="selectTheme(opt.mode)"
             >
-              <LogOut class="icon-sm" />
-              <span>退出登录</span>
+              <component
+                :is="opt.icon"
+                class="icon-sm"
+              />
+              <span>{{ opt.label }}</span>
+              <span
+                v-if="themeStore.mode === opt.mode"
+                class="check-mark"
+              >✓</span>
             </button>
           </div>
         </Transition>
       </div>
-    </template>
+      
+      <!-- Guest mode: Sign in button -->
+      <template v-if="!authStore.isAuthenticated">
+        <button
+          class="sign-in-btn"
+          @click="showLogin()"
+        >
+          <User class="icon-sm" />
+          <span>Sign in</span>
+        </button>
+      </template>
+      
+      <!-- Authenticated: notifications, credits, avatar -->
+      <template v-else>
+        <!-- Notifications -->
+        <button class="header-icon-btn notification-btn">
+          <Bell class="icon" />
+          <span class="notification-badge">5</span>
+        </button>
+        
+        <!-- Credits/Token Badge -->
+        <button class="credits-badge">
+          <Sparkles class="icon-xs" />
+          <span>1,431</span>
+        </button>
+        
+        <!-- User avatar and menu -->
+        <div class="user-menu-container">
+          <button 
+            class="avatar-btn"
+            @click.stop="showUserMenu = !showUserMenu"
+          >
+            <span v-if="!authStore.user?.avatar_url">
+              {{ authStore.user?.display_name?.charAt(0) || authStore.user?.username?.charAt(0) || 'U' }}
+            </span>
+            <img 
+              v-else 
+              :src="authStore.user.avatar_url" 
+              alt="avatar"
+              class="avatar-img"
+            >
+          </button>
+          <!-- User dropdown -->
+          <Transition name="dropdown">
+            <div
+              v-if="showUserMenu"
+              class="user-dropdown"
+            >
+              <div class="dropdown-header">
+                <span class="user-name">{{ authStore.user?.display_name || authStore.user?.username }}</span>
+                <span class="user-email">{{ authStore.user?.email }}</span>
+              </div>
+              <div class="dropdown-divider" />
+              <button
+                class="dropdown-item"
+                @click="router.push('/settings')"
+              >
+                <Settings class="icon-sm" />
+                <span>Settings</span>
+              </button>
+              <button
+                class="dropdown-item"
+                @click="handleLogout"
+              >
+                <LogOut class="icon-sm" />
+                <span>Sign out</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
+      </template>
+    </div>
   </header>
 </template>
 
 <style scoped>
-/* Fixed top-right header */
+/* ============================================
+   Header - AnyGen Style (Transparent)
+   ============================================ */
 .any-header {
   position: fixed;
-  top: 12px;
-  left: 72px; /* Default: after narrow sidebar (56px + 16px gap) */
-  right: 16px;
+  top: 0;
+  left: 56px; /* After sidebar */
+  right: 0;
+  height: 52px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  z-index: 100;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 90;
+  background: var(--any-bg-secondary);
+  transition: background var(--any-duration-normal) var(--any-ease-out);
 }
 
-/* Spacer to push right-side items */
-.header-spacer {
+.any-header.header-transparent {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* Header sections */
+.header-left,
+.header-center,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-left {
+  flex: 0 0 auto;
+}
+
+.header-center {
   flex: 1;
+  justify-content: center;
+}
+
+.header-right {
+  flex: 0 0 auto;
 }
 
 /* Icon sizes */
 .icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 .icon-sm {
@@ -207,51 +255,34 @@ onUnmounted(() => {
 }
 
 .icon-xs {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 
 /* Header icon button */
 .header-icon-btn {
   position: relative;
-  padding: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 9999px;
   cursor: pointer;
-  color: var(--any-text-secondary);
+  color: var(--any-text-tertiary);
   background: transparent;
   border: none;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .header-icon-btn:hover {
   color: var(--any-text-primary);
-  background: var(--any-bg-tertiary);
+  background: var(--any-bg-hover);
 }
 
-/* Header tooltip */
-.header-icon-btn[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 6px;
-  padding: 4px 8px;
-  background: var(--any-text-primary);
-  color: var(--any-bg-primary);
-  font-size: 11px;
-  white-space: nowrap;
-  border-radius: var(--any-radius-sm);
-  opacity: 0;
-  visibility: hidden;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.header-icon-btn[data-tooltip]:hover::after {
-  opacity: 1;
-  visibility: visible;
+/* Notification button */
+.notification-btn {
+  position: relative;
 }
 
 /* Notification badge */
@@ -259,51 +290,67 @@ onUnmounted(() => {
   position: absolute;
   top: -2px;
   right: -2px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   font-weight: 500;
   color: white;
-  background: #ef4444;
+  background: #E95151;
   border-radius: 9999px;
 }
 
-/* Credits badge */
+/* Credits/Token badge */
 .credits-badge {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 12px;
+  font-weight: 400;
   color: var(--any-text-secondary);
   background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
   border-radius: 9999px;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
+}
+
+.credits-badge:hover {
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
 }
 
 /* Avatar button */
 .avatar-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: 500;
   color: white;
-  background: #00B8D9;
+  background: linear-gradient(135deg, #00B8D9, #00D9FF);
   border: none;
   border-radius: 9999px;
   cursor: pointer;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  overflow: hidden;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .avatar-btn:hover {
-  background: #00D9FF;
+  transform: scale(1.05);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Sign in button */
@@ -311,19 +358,20 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  font-size: 14px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--any-text-primary);
   background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
   border-radius: 9999px;
   cursor: pointer;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .sign-in-btn:hover {
-  background: var(--any-bg-tertiary);
+  background: var(--any-bg-hover);
   border-color: var(--any-border-hover);
 }
 
@@ -362,10 +410,11 @@ onUnmounted(() => {
   box-shadow: var(--any-shadow-lg);
   overflow: hidden;
   z-index: 1000;
+  padding: 4px;
 }
 
 .dropdown-header {
-  padding: 12px 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -384,6 +433,7 @@ onUnmounted(() => {
 
 .dropdown-divider {
   height: 1px;
+  margin: 4px 0;
   background: var(--any-border);
 }
 
@@ -392,23 +442,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   font-size: 14px;
   color: var(--any-text-secondary);
   background: transparent;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all var(--any-duration-fast) var(--any-ease-default);
+  transition: all var(--any-duration-fast) var(--any-ease-out);
 }
 
 .dropdown-item:hover {
   color: var(--any-text-primary);
-  background: var(--any-bg-tertiary);
-}
-
-.theme-dropdown .dropdown-item {
-  border-radius: 8px;
-  padding: 8px 12px;
+  background: var(--any-bg-hover);
 }
 
 .theme-dropdown .dropdown-item.active {
@@ -432,5 +478,17 @@ onUnmounted(() => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .any-header {
+    left: 0;
+    padding: 0 12px;
+  }
+  
+  .credits-badge span {
+    display: none;
+  }
 }
 </style>
