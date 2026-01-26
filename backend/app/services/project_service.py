@@ -46,14 +46,16 @@ class ProjectService:
         project_id: str,
         include_conversations: bool = False,
         include_artifacts: bool = False,
+        include_versions: bool = False,
     ) -> Project | None:
         """Get project by ID."""
         project = await self.repo.get_by_id(
             project_id,
             include_conversations=include_conversations,
             include_artifacts=include_artifacts,
+            include_versions=include_versions,
         )
-        if project:
+        if project and not (include_conversations or include_artifacts or include_versions):
             # Touch to update last_accessed_at
             await self.repo.touch(project_id)
         return project

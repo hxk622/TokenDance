@@ -3,7 +3,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import { useAuthStore } from '@/stores/auth'
-import { useSearchStore } from '@/stores/search'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { 
   Search, FileText, Presentation, BarChart3, 
@@ -20,7 +19,6 @@ const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
-const searchStore = useSearchStore()
 const { requireAuth } = useAuthGuard()
 
 const inputValue = ref('')
@@ -312,9 +310,6 @@ const sidebarSections = computed<SidebarSection[]>(() => [
 
 const handleSidebarNavClick = (item: NavItem) => {
   switch (item.id) {
-    case 'search':
-      searchStore.open()
-      break
     case 'history':
       router.push('/history')
       break
@@ -337,16 +332,6 @@ const handleNewClick = () => {
   inputRef.value?.focus()
 }
 
-// Token click handler - show usage details
-const handleTokenClick = () => {
-  // TODO: Open token usage modal or navigate to billing page
-  showError('Token 用量详情功能即将上线')
-}
-
-// Mobile app click handler
-const handleMobileClick = () => {
-  showError('移动端 App 即将上线，敬请期待')
-}
 
 
 onMounted(async () => {
@@ -389,8 +374,6 @@ watch(
       @new-click="handleNewClick"
       @nav-click="handleSidebarNavClick"
       @recent-click="handleRecentClick"
-      @token-click="handleTokenClick"
-      @mobile-click="handleMobileClick"
     />
     
     <!-- Header -->

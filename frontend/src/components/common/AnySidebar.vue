@@ -5,10 +5,11 @@ import { useSearchStore } from '@/stores/search'
 import { useGlobalShortcut } from '@/composables/useGlobalShortcut'
 import { EXTERNAL_LINKS } from '@/config/externalLinks'
 import { trackEvent } from '@/utils/telemetry'
+import AnyModal from '@/components/common/AnyModal.vue'
 import { 
   Plus, Search, BookOpen, Clock,
   HelpCircle, MessageCircle, Smartphone, ChevronRight,
-  PanelLeftClose, PanelLeft
+  PanelLeftClose, PanelLeft, Sparkles, QrCode, ArrowUpRight
 } from 'lucide-vue-next'
 
 // Constants
@@ -78,6 +79,8 @@ const searchStore = useSearchStore()
 // State - restore from localStorage
 const isExpanded = ref(false)
 const isRecentsOpen = ref(true)
+const showTokenModal = ref(false)
+const showMobileModal = ref(false)
 
 const applySidebarState = () => {
   if (typeof document === 'undefined') return
@@ -130,9 +133,9 @@ const tokenUsageText = computed(() => {
 })
 
 const tokenRingStyle = computed(() => {
-  if (tokenUsageClass.value === 'danger') return { '--token-ring-color': '#EF4444' }
-  if (tokenUsageClass.value === 'warning') return { '--token-ring-color': '#F59E0B' }
-  return { '--token-ring-color': '#9652DE' }
+  if (tokenUsageClass.value === 'danger') return { '--token-ring-color': 'var(--any-error)' }
+  if (tokenUsageClass.value === 'warning') return { '--token-ring-color': 'var(--any-warning)' }
+  return { '--token-ring-color': 'var(--any-accent-primary)' }
 })
 
 // Methods
@@ -192,6 +195,7 @@ const handleProjectsClick = () => {
 }
 
 const handleTokenClick = () => {
+  showTokenModal.value = true
   emit('token-click')
   trackEvent('sidebar_token_open', { source: 'sidebar' })
 }
@@ -212,8 +216,20 @@ const handleCommunityClick = () => {
 
 const handleMobileClick = () => {
   // Parent can show modal or toast
+  showMobileModal.value = true
   emit('mobile-click')
   trackEvent('sidebar_mobile_open', { source: 'sidebar' })
+}
+
+const openBilling = () => {
+  showTokenModal.value = false
+  trackEvent('sidebar_billing_open', { source: 'sidebar' })
+  router.push('/billing')
+}
+
+const openMobileLink = () => {
+  trackEvent('sidebar_mobile_link_open', { source: 'sidebar' })
+  window.open(EXTERNAL_LINKS.mobile, '_blank')
 }
 
 const toggleRecents = () => {
@@ -340,7 +356,7 @@ const isItemActive = (item: NavItem) => {
               cy="13"
               r="12" 
               fill="none" 
-              stroke="var(--token-ring-color, #9652DE)" 
+              stroke="var(--token-ring-color, var(--any-accent-primary))" 
               stroke-width="2" 
               stroke-linecap="round"
               :stroke-dasharray="2 * Math.PI * 12"
@@ -505,7 +521,7 @@ const isItemActive = (item: NavItem) => {
                 cy="13"
                 r="12" 
                 fill="none" 
-                stroke="var(--token-ring-color, #9652DE)" 
+                stroke="var(--token-ring-color, var(--any-accent-primary))" 
                 stroke-width="2" 
                 stroke-linecap="round"
                 :stroke-dasharray="2 * Math.PI * 12"
@@ -549,6 +565,92 @@ const isItemActive = (item: NavItem) => {
         </div>
       </div>
     </div>
+    <!-- Token Usage Modal -->
+    <AnyModal
+      v-model="showTokenModal"
+      title="Token 用量"
+      width="420px"
+    >
+      <div class="token-modal">
+        <div class="token-modal-header">
+          <div class="token-icon">
+            <Sparkles class="w-5 h-5" />
+          </div>
+          <div class="token-meta">
+            <div class="token-amount">
+              {{ tokenUsageText }}
+            </div>
+            <div class="token-subtitle">
+              本月用量
+            </div>
+          </div>
+          <div class="token-rate">
+            {{ tokenPercentage }}%
+          </div>
+        </div>
+        <div class="token-bar">
+          <div
+            class="token-fill"
+            :class="tokenUsageClass"
+            :style="{ width: `${tokenPercentage}%` }"
+          />
+        </div>
+        <div class="token-hint">
+          用量接近上限时会影响任务创建
+        </div>
+      </div>
+      <template #footer>
+        <button
+          class="modal-secondary-btn"
+          type="button"
+          @click="showTokenModal = false"
+        >
+          关闭
+        </button>
+        <button
+          class="modal-primary-btn"
+          type="button"
+          @click="openBilling"
+        >
+          去充值
+          <ArrowUpRight class="w-4 h-4" />
+        </button>
+      </template>
+    </AnyModal>
+
+    <!-- Mobile Download Modal -->
+    <AnyModal
+      v-model="showMobileModal"
+      title="移动端下载"
+      width="420px"
+    >
+      <div class="mobile-modal">
+        <div class="qr-card">
+          <QrCode class="qr-icon" />
+          <span>扫码下载</span>
+        </div>
+        <div class="mobile-desc">
+          在手机浏览器打开下载页，可获取最新安装包
+        </div>
+      </div>
+      <template #footer>
+        <button
+          class="modal-secondary-btn"
+          type="button"
+          @click="showMobileModal = false"
+        >
+          稍后
+        </button>
+        <button
+          class="modal-primary-btn"
+          type="button"
+          @click="openMobileLink"
+        >
+          打开下载页
+          <Smartphone class="w-4 h-4" />
+        </button>
+      </template>
+    </AnyModal>
   </aside>
 </template>
 
@@ -714,11 +816,11 @@ const isItemActive = (item: NavItem) => {
 }
 
 .token-ring-mini.warning .ring-text {
-  color: #F59E0B;
+  color: var(--any-warning);
 }
 
 .token-ring-mini.danger .ring-text {
-  color: #EF4444;
+  color: var(--any-error);
 }
 
 /* ============================================
@@ -951,11 +1053,11 @@ const isItemActive = (item: NavItem) => {
 }
 
 .token-progress-card.warning {
-  border-color: rgba(245, 158, 11, 0.4);
+  border-color: var(--any-warning);
 }
 
 .token-progress-card.danger {
-  border-color: rgba(239, 68, 68, 0.5);
+  border-color: var(--any-error);
 }
 
 .token-ring-wrapper {
@@ -1015,5 +1117,144 @@ const isItemActive = (item: NavItem) => {
 .footer-link:hover {
   color: var(--any-text-secondary);
   background: var(--any-bg-hover);
+}
+
+/* ============================================
+   Modal Styles
+   ============================================ */
+.token-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.token-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.token-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--any-bg-tertiary);
+  color: var(--any-text-secondary);
+}
+
+.token-meta {
+  flex: 1;
+}
+
+.token-amount {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+}
+
+.token-subtitle {
+  font-size: 12px;
+  color: var(--any-text-tertiary);
+}
+
+.token-rate {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+}
+
+.token-bar {
+  height: 8px;
+  background: var(--any-bg-tertiary);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.token-fill {
+  height: 100%;
+  background: var(--any-accent-primary);
+  transition: width var(--any-duration-normal) var(--any-ease-out);
+}
+
+.token-fill.warning {
+  background: var(--any-warning);
+}
+
+.token-fill.danger {
+  background: var(--any-error);
+}
+
+.token-hint {
+  font-size: 12px;
+  color: var(--any-text-tertiary);
+}
+
+.modal-primary-btn,
+.modal-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
+}
+
+.modal-primary-btn {
+  background: var(--any-brand-primary);
+  color: var(--any-text-inverse);
+  border: none;
+}
+
+.modal-primary-btn:hover {
+  background: var(--any-brand-hover);
+}
+
+.modal-secondary-btn {
+  background: transparent;
+  color: var(--any-text-secondary);
+  border: 1px solid var(--any-border);
+}
+
+.modal-secondary-btn:hover {
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
+}
+
+.mobile-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-card {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  border: 1px dashed var(--any-border);
+  background: var(--any-bg-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--any-text-tertiary);
+}
+
+.qr-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.mobile-desc {
+  text-align: center;
+  font-size: 12px;
+  color: var(--any-text-tertiary);
 }
 </style>

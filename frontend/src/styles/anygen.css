@@ -35,6 +35,7 @@
   --any-brand-primary: #1a1a1a;
   --any-brand-hover: #333333;
   --any-brand-active: #000000;
+  --any-accent-primary: #9652DE;
   
   /* Status Colors */
   --any-success: #00C853;
@@ -149,6 +150,7 @@
   --any-brand-primary: #ffffff;
   --any-brand-hover: #e0e0e0;
   --any-brand-active: #cccccc;
+  --any-accent-primary: #9652DE;
   
   --any-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --any-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
