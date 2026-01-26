@@ -121,6 +121,34 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
+        # Skip response body logging for streaming/SSE responses
+        try:
+            from starlette.responses import StreamingResponse
+
+            content_type = response.headers.get("content-type", "")
+            is_streaming = isinstance(response, StreamingResponse) or "text/event-stream" in content_type
+        except Exception:
+            is_streaming = False
+
+        if is_streaming:
+            # Choose log level based on status code
+            level = "info"
+            if response.status_code >= 500:
+                level = "error"
+            elif response.status_code >= 400:
+                level = "warning"
+
+            self._log_json({
+                "request_id": request_id,
+                "type": "RESPONSE",
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round(duration_ms, 2),
+                "body": "<streaming response>",
+            }, level=level)
+
+            return response
 
         # Read response body for logging (need to create new response)
         response_body = None

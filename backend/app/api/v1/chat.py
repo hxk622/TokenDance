@@ -49,7 +49,8 @@ try:
     from app.agent.agents.deep_research import DeepResearchAgent
     from app.agent.llm.base import BaseLLM
     from app.agent.llm.openrouter import create_openrouter_llm
-    from app.agent.llm.router import TaskType, get_free_llm_for_task
+    from app.agent.llm.router import TaskType
+    from app.agent.llm.unified_router import get_router
     from app.agent.llm.vision_router import VisionTaskType, get_vision_model
     from app.agent.tools import ToolRegistry
     from app.agent.tools.init_tools import register_builtin_tools
@@ -355,7 +356,8 @@ async def send_message(
                 )
             else:
                 # Use DeepResearchAgent for text tasks
-                llm = get_free_llm_for_task(
+                router = get_router()
+                llm = await router.get_llm(
                     task_type=TaskType.DEEP_RESEARCH,
                     max_tokens=8192
                 )

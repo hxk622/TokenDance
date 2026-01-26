@@ -400,6 +400,7 @@ class ProjectService:
             }
         )
         self.db.add(session)
+        await self.db.flush()
 
         # Link session to conversation
         conversation.current_session_id = session.id

@@ -110,6 +110,15 @@
   --any-z-modal: 300;
   --any-z-popover: 400;
   --any-z-tooltip: 500;
+
+  /* -------- Layout -------- */
+  --sidebar-collapsed-width: 56px;
+  --sidebar-expanded-width: 280px;
+  --sidebar-width: var(--sidebar-collapsed-width);
+}
+
+:root.sidebar-expanded {
+  --sidebar-width: var(--sidebar-expanded-width);
 }
 
 /* ============================================

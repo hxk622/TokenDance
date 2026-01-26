@@ -126,6 +126,7 @@ async def send_message(
 
     # 获取 Agent Engine
     try:
+        message_id = str(uuid.uuid4())
         agent = get_agent_engine(session_id, str(session.workspace_id))
     except Exception as e:
         logger.error(f"Failed to create Agent Engine: {e}")
@@ -363,6 +364,7 @@ async def stream_agent_execute(
         yield format_sse("start", {
             "session_id": session_id,
             "mode": mode.value,
+            "message_id": message_id,
             "message": "Agent started processing..."
         })
 
@@ -374,6 +376,7 @@ async def stream_agent_execute(
 
             # 添加 session_id 到数据中
             event_data["session_id"] = session_id
+            event_data["message_id"] = message_id
 
             yield format_sse(event_type, event_data)
 

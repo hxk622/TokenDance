@@ -9,12 +9,12 @@ Neo4j 知识图谱存储服务
 """
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import Any
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
+from app.core.config import settings
 
 from .models import (
     Entity,
@@ -54,9 +54,9 @@ class Neo4jStorage:
             password: 密码
             database: 数据库名
         """
-        self.uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        self.username = username or os.getenv("NEO4J_USER", "neo4j")
-        self.password = password or os.getenv("NEO4J_PASSWORD", "password")
+        self.uri = uri or settings.NEO4J_URI
+        self.username = username or settings.NEO4J_USER
+        self.password = password or settings.NEO4J_PASSWORD or "password"
         self.database = database
 
         self._driver: AsyncDriver | None = None
@@ -765,7 +765,11 @@ async def get_neo4j_storage() -> Neo4jStorage:
     global _storage_instance
 
     if _storage_instance is None:
-        _storage_instance = Neo4jStorage()
+        _storage_instance = Neo4jStorage(
+            uri=settings.NEO4J_URI,
+            username=settings.NEO4J_USER,
+            password=settings.NEO4J_PASSWORD,
+        )
         await _storage_instance.connect()
         await _storage_instance.initialize_schema()
 

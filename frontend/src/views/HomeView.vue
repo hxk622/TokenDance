@@ -1,23 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import { useAuthStore } from '@/stores/auth'
+import { useSearchStore } from '@/stores/search'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import { 
   Search, FileText, Presentation, BarChart3, 
   Mic, ArrowUp, Globe, FileVideo,
   Languages, FolderOpen, MoreHorizontal, Code2, Zap,
-  History, Settings, Plus, ChevronRight, Paperclip, Sparkles
+  History, ChevronRight, Paperclip, Sparkles
 } from 'lucide-vue-next'
 import AnySidebar from '@/components/common/AnySidebar.vue'
 import AnyHeader from '@/components/common/AnyHeader.vue'
-import type { NavItem, RecentItem } from '@/components/common/AnySidebar.vue'
+import type { NavItem, RecentItem, SidebarSection } from '@/components/common/AnySidebar.vue'
 import type { Project, ProjectType } from '@/types/project'
 
 const router = useRouter()
+const route = useRoute()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
+const searchStore = useSearchStore()
 const { requireAuth } = useAuthGuard()
 
 const inputValue = ref('')
@@ -297,26 +300,29 @@ const handleFileSelect = async (e: Event) => {
 
 
 // Sidebar navigation
-const sidebarSections = [
+const sidebarSections = computed<SidebarSection[]>(() => [
   {
     id: 'main',
     items: [
-      { id: 'files', label: 'Files', icon: FolderOpen },
-      { id: 'history', label: 'History', icon: History },
+      { id: 'files', label: '文件', icon: FolderOpen, href: '/files', active: route.path.startsWith('/files') },
+      { id: 'history', label: '历史', icon: History, href: '/history', active: route.path.startsWith('/history') },
     ] as NavItem[]
   }
-]
+])
 
 const handleSidebarNavClick = (item: NavItem) => {
   switch (item.id) {
     case 'search':
-      inputRef.value?.focus()
+      searchStore.open()
       break
     case 'history':
       router.push('/history')
       break
     case 'library':
-      // TODO: open library
+      router.push('/files')
+      break
+    case 'files':
+      router.push('/files')
       break
   }
 }
@@ -334,25 +340,16 @@ const handleNewClick = () => {
 // Token click handler - show usage details
 const handleTokenClick = () => {
   // TODO: Open token usage modal or navigate to billing page
-  showError('Token 用量详情功能即将上线 🚀')
+  showError('Token 用量详情功能即将上线')
 }
 
 // Mobile app click handler
 const handleMobileClick = () => {
-  showError('移动端 App 即将上线，敬请期待 📱')
+  showError('移动端 App 即将上线，敬请期待')
 }
 
-// Cmd+K 键盘快捷键
-function handleGlobalKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault()
-    inputRef.value?.focus()
-  }
-}
 
 onMounted(async () => {
-  window.addEventListener('keydown', handleGlobalKeydown)
-  
   // Load recent projects if workspace is set
   // Note: WorkspaceSelector in AnyHeader will auto-load and set workspace if none selected
   const workspaceId = projectStore.currentWorkspaceId
@@ -379,9 +376,6 @@ watch(
   }
 )
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeydown)
-})
 </script>
 
 <template>
@@ -417,7 +411,7 @@ onUnmounted(() => {
       <!-- Hero Title -->
       <section class="hero-section">
         <h1 class="hero-title">
-          How can I help you today?
+          今天我能帮你做什么？
         </h1>
       </section>
 
@@ -446,7 +440,7 @@ onUnmounted(() => {
             <div class="toolbar-left">
               <button
                 class="toolbar-btn"
-                title="Attach files"
+                title="添加附件"
                 @click="handleAttachClick"
               >
                 <Paperclip class="w-5 h-5" />
@@ -462,7 +456,7 @@ onUnmounted(() => {
             <div class="toolbar-right">
               <button
                 class="toolbar-btn"
-                title="Voice input"
+                title="语音输入"
               >
                 <Mic class="w-5 h-5" />
               </button>
@@ -648,7 +642,7 @@ onUnmounted(() => {
 
 /* Main Content */
 .home-main {
-  margin-left: 56px;
+  margin-left: var(--sidebar-width);
   min-height: 100vh;
   display: flex;
   flex-direction: column;

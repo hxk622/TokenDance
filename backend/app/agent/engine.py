@@ -1534,6 +1534,7 @@ class AgentEngine:
         context.add_user_message(query)
 
         # 使用 TaskExecutor 流式执行
+        yield self.plan_event_emitter.step_start(task)
         async for event in self.task_executor.execute_stream(task, context):
             # 转发事件
             yield event
@@ -1543,8 +1544,10 @@ class AgentEngine:
                 data = event.data or {}
                 if data.get("status") == "success":
                     logger.info("Direct execution completed successfully")
+                    yield self.plan_event_emitter.step_done(task)
                 else:
                     logger.warning(f"Direct execution ended: {data.get('status')}")
+                    yield self.plan_event_emitter.step_failed(task, data.get("error"))
 
     async def _execute_skill_unified(
         self,
@@ -1780,6 +1783,7 @@ Output the code wrapped in ```python and ``` markers."""
                 type=SSEEventType.STATUS,
                 data={"phase": "planning", "message": "正在分析任务并制定计划..."}
             )
+            yield self.plan_event_emitter.planning_start(user_message)
 
             # 生成 Plan
             self._current_plan = await self.planner.plan(user_message)
@@ -1787,6 +1791,10 @@ Output the code wrapped in ```python and ``` markers."""
 
             # 推送 Plan 创建事件
             yield self.plan_event_emitter.plan_created(self._current_plan)
+            yield self.plan_event_emitter.planning_content(
+                self._format_plan_summary(self._current_plan)
+            )
+            yield self.plan_event_emitter.planning_done()
 
             logger.info(
                 f"Plan created: {self._current_plan.id} "
@@ -1927,6 +1935,7 @@ Output the code wrapped in ```python and ``` markers."""
         # 标记所有任务开始
         for task in tasks:
             self.scheduler.start_task(task.id)
+            yield self.plan_event_emitter.step_start(task)
             yield self.plan_event_emitter.task_start(task)
 
         # 创建事件队列用于合并多个流
@@ -1967,6 +1976,7 @@ Output the code wrapped in ```python and ``` markers."""
                 error_msg = str(error)
                 _, decision = self.scheduler.fail_task(task_obj.id, error_msg)
                 yield self.plan_event_emitter.task_failed(task_obj)
+                yield self.plan_event_emitter.step_failed(task_obj, error_msg)
 
                 yield SSEEvent(
                     type=SSEEventType.ERROR,
@@ -2003,6 +2013,7 @@ Output the code wrapped in ```python and ``` markers."""
                     ))
 
                     yield self.plan_event_emitter.task_complete(task_obj)
+                    yield self.plan_event_emitter.step_done(task_obj)
                     yield SSEEvent(
                         type=SSEEventType.CONTENT,
                         data={"content": f"\n✅ {task_obj.title} 完成\n", "taskId": task_obj.id}
@@ -2012,6 +2023,7 @@ Output the code wrapped in ```python and ``` markers."""
                     error_msg = task_error or f"Task {task_status}"
                     _, decision = self.scheduler.fail_task(task_obj.id, error_msg)
                     yield self.plan_event_emitter.task_failed(task_obj)
+                    yield self.plan_event_emitter.step_failed(task_obj, error_msg)
                     yield SSEEvent(
                         type=SSEEventType.ERROR,
                         data={
@@ -2061,6 +2073,7 @@ Output the code wrapped in ```python and ``` markers."""
 
         # 标记任务开始
         self.scheduler.start_task(task.id)
+        yield self.plan_event_emitter.step_start(task)
         yield self.plan_event_emitter.task_start(task)
 
         try:
@@ -2099,6 +2112,7 @@ Output the code wrapped in ```python and ``` markers."""
                 ))
 
                 yield self.plan_event_emitter.task_complete(task)
+                yield self.plan_event_emitter.step_done(task)
                 yield SSEEvent(
                     type=SSEEventType.CONTENT,
                     data={"content": f"\n✅ {task.title} 完成\n", "taskId": task.id}
@@ -2108,6 +2122,7 @@ Output the code wrapped in ```python and ``` markers."""
                 error_msg = task_error or f"Task {task_status}"
                 _, decision = self.scheduler.fail_task(task.id, error_msg)
                 yield self.plan_event_emitter.task_failed(task)
+                yield self.plan_event_emitter.step_failed(task, error_msg)
 
                 yield SSEEvent(
                     type=SSEEventType.ERROR,
@@ -2128,6 +2143,7 @@ Output the code wrapped in ```python and ``` markers."""
             # 标记任务失败
             _, decision = self.scheduler.fail_task(task.id, str(e))
             yield self.plan_event_emitter.task_failed(task)
+            yield self.plan_event_emitter.step_failed(task, str(e))
 
             yield SSEEvent(
                 type=SSEEventType.ERROR,
@@ -2211,6 +2227,8 @@ Output the code wrapped in ```python and ``` markers."""
             type=SSEEventType.THINKING,
             data={"content": "正在重新规划...\n"}
         )
+        if self._current_plan:
+            yield self.plan_event_emitter.planning_start(self._current_plan.goal)
 
         assert self._current_plan is not None, "Plan must exist to replan"
 
@@ -2227,11 +2245,36 @@ Output the code wrapped in ```python and ``` markers."""
 
         # 推送重规划事件
         yield self.plan_event_emitter.plan_revised(new_plan, error)
+        yield self.plan_event_emitter.planning_content(
+            self._format_plan_summary(new_plan, reason=error)
+        )
+        yield self.plan_event_emitter.planning_done()
 
         yield SSEEvent(
             type=SSEEventType.CONTENT,
             data={"content": f"\n🔄 计划已重新调整，新版本: v{new_plan.version}\n"}
         )
+
+    def _format_plan_summary(self, plan: Plan, reason: str | None = None) -> str:
+        """
+        格式化 Plan 为 PlanningCard 文本内容
+        """
+        paragraphs: list[str] = []
+        if reason:
+            paragraphs.append(f"Replan reason: {reason}")
+        if plan.goal:
+            paragraphs.append(f"Goal: {plan.goal}")
+
+        for idx, task in enumerate(plan.tasks, start=1):
+            dep_text = f" (depends on {', '.join(task.depends_on)})" if task.depends_on else ""
+            line = f"Step {idx}: {task.title}{dep_text}"
+            if task.description:
+                line += f" — {task.description}"
+            if task.acceptance_criteria:
+                line += f" [Acceptance: {task.acceptance_criteria}]"
+            paragraphs.append(line)
+
+        return "\n\n".join(paragraphs)
 
     def get_current_plan(self) -> Plan | None:
         """获取当前 Plan"""

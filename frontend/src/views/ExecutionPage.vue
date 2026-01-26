@@ -113,8 +113,26 @@ async function sendInitialTaskForProject() {
   if (!projectStore.currentProject || !initialTask.value) return
 
   try {
-    await projectStore.sendMessage(initialTask.value)
-    console.log('[ExecutionPage] Initial task sent for project:', initialTask.value)
+    const task = initialTask.value
+    // Send message through project API - returns session_id for SSE
+    const response = await projectStore.sendMessage(task)
+
+    // Update sessionId for SSE connection
+    sessionId.value = response.session_id
+    initPhase.value = 'executing'
+
+    // Start SSE streaming via REST API
+    executionStore.sessionId = response.session_id
+    await sendChatMessage(
+      response.session_id,
+      { content: task },
+      (event: SSEEvent) => {
+        executionStore.handleSSEEventFromREST(event)
+      }
+    )
+    startElapsedTimer()
+
+    console.log('[ExecutionPage] Initial task sent for project:', task)
     // Clear initialTask so it won't be sent again
     initialTask.value = null
   } catch (error) {
@@ -1460,7 +1478,7 @@ onUnmounted(() => {
 .task-title-bar {
   position: fixed;
   top: 12px;
-  left: 72px; /* sidebar width (56px) + gap (16px) */
+  left: calc(var(--sidebar-width) + 16px);
   z-index: 100;
 }
 
@@ -1480,17 +1498,17 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 56px;
+  margin-left: var(--sidebar-width);
 }
 
 /* Project mode: wider sidebar */
 .execution-page.project-mode .execution-main {
-  margin-left: 280px;
+  margin-left: var(--sidebar-expanded-width);
 }
 
 /* Project mode: adjust header position */
 .execution-page.project-mode :deep(.any-header) {
-  left: 296px; /* 280px sidebar + 16px gap */
+  left: calc(var(--sidebar-expanded-width) + 16px);
 }
 
 /* Sidebar footer button */

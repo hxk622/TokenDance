@@ -55,6 +55,19 @@ class SSEEventType(str, Enum):
     ANSWER_GENERATING = "answer.generating"    # 正在生成答案
     ANSWER_READY = "answer.ready"              # 答案已就绪
 
+    # ========== AnyGen-style events (Chat 模式增强) ==========
+    # Planning events (规划/思考卡片)
+    PLANNING_START = "planning.start"          # 规划开始
+    PLANNING_CONTENT = "planning.content"      # 规划内容流式输出
+    PLANNING_DONE = "planning.done"            # 规划完成
+    # Step events (执行步骤 Timeline)
+    STEP_START = "step.start"                  # 步骤开始
+    STEP_UPDATE = "step.update"                # 步骤更新(进度/内容)
+    STEP_DONE = "step.done"                    # 步骤完成
+    STEP_FAILED = "step.failed"                # 步骤失败
+    # Search result events (搜索结果来源)
+    SEARCH_SOURCES = "search.sources"          # 搜索来源列表
+
     # Timeline 事件 (时光长廊)
     TIMELINE_SEARCH = "timeline_search"
     TIMELINE_READ = "timeline_read"

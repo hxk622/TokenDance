@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent import AgentContext, create_working_memory
 from app.agent.agents.deep_research import DeepResearchAgent
-from app.agent.llm.router import TaskType, get_free_llm_for_task
+from app.agent.llm.router import TaskType
+from app.agent.llm.unified_router import get_router
 from app.agent.tools import ToolRegistry
 from app.agent.tools.init_tools import register_builtin_tools
 from app.core.config import Settings
@@ -163,8 +164,9 @@ class AgentWorker:
             tools = ToolRegistry()
             register_builtin_tools(tools)
 
-            llm = get_free_llm_for_task(
-                task_type=TaskType.GENERAL,
+            router = get_router()
+            llm = await router.get_llm(
+                task_type=TaskType.DEEP_RESEARCH,
                 max_tokens=4096,
             )
 

@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch, type Component } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useSearchStore } from '@/stores/search'
+import { useGlobalShortcut } from '@/composables/useGlobalShortcut'
+import { EXTERNAL_LINKS } from '@/config/externalLinks'
+import { trackEvent } from '@/utils/telemetry'
 import { 
-  Plus, Search, BookOpen, FolderOpen, Clock,
+  Plus, Search, BookOpen, Clock,
   HelpCircle, MessageCircle, Smartphone, ChevronRight,
-  PanelLeftClose, PanelLeft, ExternalLink
+  PanelLeftClose, PanelLeft
 } from 'lucide-vue-next'
 
 // Constants
@@ -19,6 +23,7 @@ export interface NavItem {
   active?: boolean
   onClick?: () => void
 }
+
 
 export interface RecentItem {
   id: string
@@ -47,7 +52,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   logoText: 'TD',
   showNewButton: true,
-  newButtonTooltip: 'New task',
+  newButtonTooltip: '新建任务',
   tokenUsed: 0,
   tokenTotal: 100
 })
@@ -67,9 +72,17 @@ const emit = defineEmits<{
 
 // Router
 const router = useRouter()
+const route = useRoute()
+const searchStore = useSearchStore()
 
 // State - restore from localStorage
 const isExpanded = ref(false)
+const isRecentsOpen = ref(true)
+
+const applySidebarState = () => {
+  if (typeof document === 'undefined') return
+  document.documentElement.classList.toggle('sidebar-expanded', isExpanded.value)
+}
 
 // Initialize from localStorage
 onMounted(() => {
@@ -77,22 +90,17 @@ onMounted(() => {
   if (stored === 'true') {
     isExpanded.value = true
   }
-  
-  // Add keyboard shortcut listener
-  window.addEventListener('keydown', handleKeydown)
+  applySidebarState()
 })
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
+watch(isExpanded, () => {
+  applySidebarState()
 })
 
 // Keyboard shortcut: Cmd+B to toggle sidebar
-const handleKeydown = (e: KeyboardEvent) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-    e.preventDefault()
-    toggleExpand()
-  }
-}
+useGlobalShortcut('b', () => {
+  toggleExpand()
+}, { metaOrCtrl: true })
 
 // Computed
 const tokenPercentage = computed(() => {
@@ -103,6 +111,28 @@ const tokenPercentage = computed(() => {
 const strokeDashoffset = computed(() => {
   const circumference = 2 * Math.PI * 12 // r=12
   return circumference - (tokenPercentage.value / 100) * circumference
+})
+
+const tokenUsageClass = computed(() => {
+  if (tokenPercentage.value >= 95) return 'danger'
+  if (tokenPercentage.value >= 80) return 'warning'
+  return 'normal'
+})
+
+const formatTokens = (value: number) => {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`
+  return value.toString()
+}
+
+const tokenUsageText = computed(() => {
+  return `${formatTokens(props.tokenUsed)} / ${formatTokens(props.tokenTotal)}`
+})
+
+const tokenRingStyle = computed(() => {
+  if (tokenUsageClass.value === 'danger') return { '--token-ring-color': '#EF4444' }
+  if (tokenUsageClass.value === 'warning') return { '--token-ring-color': '#F59E0B' }
+  return { '--token-ring-color': '#9652DE' }
 })
 
 // Methods
@@ -118,15 +148,33 @@ const handleNewClick = () => {
 
 const handleNavClick = (item: NavItem) => {
   // Built-in navigation handling
+  let handled = false
   switch (item.id) {
     case 'search':
-      // Emit for parent to handle (focus input)
+      searchStore.open()
+      trackEvent('sidebar_search_open', { source: 'sidebar' })
+      handled = true
+      break
+    case 'files':
+      router.push('/files')
+      trackEvent('sidebar_files_open', { source: 'sidebar' })
+      handled = true
+      break
+    case 'history':
+      router.push('/history')
+      trackEvent('sidebar_history_open', { source: 'sidebar' })
+      handled = true
       break
     case 'library':
       router.push('/files')
+      trackEvent('sidebar_library_open', { source: 'sidebar' })
+      handled = true
       break
   }
   
+  if (item.href && !handled) {
+    router.push(item.href)
+  }
   if (item.onClick) {
     item.onClick()
   }
@@ -140,34 +188,49 @@ const handleRecentClick = (item: RecentItem) => {
 const handleProjectsClick = () => {
   router.push('/history')
   emit('projects-click')
+  trackEvent('sidebar_projects_open', { source: 'sidebar' })
 }
 
 const handleTokenClick = () => {
   emit('token-click')
+  trackEvent('sidebar_token_open', { source: 'sidebar' })
 }
 
 const handleHelpClick = () => {
   // Open help docs in new tab
-  window.open('https://docs.tokendance.ai', '_blank')
+  window.open(EXTERNAL_LINKS.docs, '_blank')
   emit('help-click')
+  trackEvent('sidebar_help_open', { source: 'sidebar' })
 }
 
 const handleCommunityClick = () => {
   // Open Discord/community in new tab
-  window.open('https://discord.gg/tokendance', '_blank')
+  window.open(EXTERNAL_LINKS.community, '_blank')
   emit('community-click')
+  trackEvent('sidebar_community_open', { source: 'sidebar' })
 }
 
 const handleMobileClick = () => {
-  // For now, emit event - parent can show a toast or modal
+  // Parent can show modal or toast
   emit('mobile-click')
+  trackEvent('sidebar_mobile_open', { source: 'sidebar' })
+}
+
+const toggleRecents = () => {
+  isRecentsOpen.value = !isRecentsOpen.value
 }
 
 // Default nav items (AnyGen style)
-const defaultNavItems: NavItem[] = [
-  { id: 'search', label: 'Search', icon: Search },
-  { id: 'library', label: 'Library', icon: BookOpen },
-]
+const defaultNavItems = computed<NavItem[]>(() => [
+  { id: 'search', label: '搜索', icon: Search },
+  { id: 'library', label: '文件库', icon: BookOpen, active: route.path.startsWith('/files') },
+])
+
+const isItemActive = (item: NavItem) => {
+  if (item.active) return true
+  if (item.href) return route.path.startsWith(item.href)
+  return false
+}
 </script>
 
 <template>
@@ -185,7 +248,9 @@ const defaultNavItems: NavItem[] = [
         <button
           class="sidebar-icon-btn"
           type="button"
-          data-tooltip="Expand"
+          data-tooltip="展开侧边栏"
+          :aria-label="isExpanded ? '收起侧边栏' : '展开侧边栏'"
+          :aria-expanded="isExpanded"
           @click="toggleExpand"
         >
           <PanelLeft class="icon" />
@@ -197,6 +262,7 @@ const defaultNavItems: NavItem[] = [
           class="sidebar-icon-btn"
           type="button"
           :data-tooltip="newButtonTooltip"
+          :aria-label="newButtonTooltip"
           @click="handleNewClick"
         >
           <Plus class="icon" />
@@ -207,8 +273,10 @@ const defaultNavItems: NavItem[] = [
           v-for="item in defaultNavItems"
           :key="item.id"
           class="sidebar-icon-btn"
-          :class="{ active: item.active }"
+          :class="{ active: isItemActive(item) }"
           :data-tooltip="item.label"
+          :aria-label="item.label"
+          :aria-current="isItemActive(item) ? 'page' : undefined"
           @click="handleNavClick(item)"
         >
           <component
@@ -227,8 +295,10 @@ const defaultNavItems: NavItem[] = [
               v-for="item in section.items"
               :key="item.id"
               class="sidebar-icon-btn"
-              :class="{ active: item.active }"
+              :class="{ active: isItemActive(item) }"
               :data-tooltip="item.label"
+              :aria-label="item.label"
+              :aria-current="isItemActive(item) ? 'page' : undefined"
               @click="handleNavClick(item)"
             >
               <component
@@ -245,7 +315,10 @@ const defaultNavItems: NavItem[] = [
         <!-- Token Progress Ring -->
         <button
           class="token-ring-mini"
-          data-tooltip="Token usage"
+          :class="tokenUsageClass"
+          :style="tokenRingStyle"
+          :data-tooltip="`Token 用量 ${tokenUsageText}`"
+          aria-label="Token 用量"
           @click="handleTokenClick"
         >
           <svg
@@ -281,7 +354,8 @@ const defaultNavItems: NavItem[] = [
         <!-- Help -->
         <button
           class="sidebar-icon-btn"
-          data-tooltip="Help"
+          data-tooltip="帮助"
+          aria-label="帮助"
           @click="handleHelpClick"
         >
           <HelpCircle class="icon" />
@@ -301,6 +375,8 @@ const defaultNavItems: NavItem[] = [
           <button
             class="sidebar-icon-btn"
             type="button"
+            aria-label="收起侧边栏"
+            :aria-expanded="isExpanded"
             @click="toggleExpand"
           >
             <PanelLeftClose class="icon" />
@@ -316,7 +392,7 @@ const defaultNavItems: NavItem[] = [
           @click="handleNewClick"
         >
           <Plus class="w-5 h-5" />
-          <span>New task</span>
+          <span>新建任务</span>
         </button>
         
         <!-- Nav Links -->
@@ -324,7 +400,8 @@ const defaultNavItems: NavItem[] = [
           v-for="item in defaultNavItems"
           :key="item.id"
           class="nav-item"
-          :class="{ active: item.active }"
+          :class="{ active: isItemActive(item) }"
+          :aria-current="isItemActive(item) ? 'page' : undefined"
           @click="handleNavClick(item)"
         >
           <component
@@ -340,36 +417,60 @@ const defaultNavItems: NavItem[] = [
         <div class="list-section">
           <button 
             class="section-header clickable"
+            aria-label="查看所有项目"
             @click="handleProjectsClick"
           >
-            <span class="section-title">Projects</span>
+            <span class="section-title">项目</span>
             <ChevronRight class="w-4 h-4 text-tertiary" />
           </button>
         </div>
         
-        <div 
-          v-if="recentItems && recentItems.length > 0" 
-          class="list-section"
-        >
-          <div class="section-header">
-            <span class="section-title">Recents</span>
-            <ChevronRight class="w-4 h-4 text-tertiary" />
-          </div>
-          <div class="recent-list">
-            <button
-              v-for="item in recentItems"
-              :key="item.id"
-              class="recent-item"
-              @click="handleRecentClick(item)"
+        <div class="list-section">
+          <button
+            class="section-header"
+            :aria-expanded="isRecentsOpen"
+            aria-label="展开或收起最近"
+            @click="toggleRecents"
+          >
+            <span class="section-title">最近</span>
+            <ChevronRight
+              class="w-4 h-4 text-tertiary"
+              :class="{ rotated: isRecentsOpen }"
+            />
+          </button>
+          <div v-if="isRecentsOpen">
+            <div
+              v-if="recentItems && recentItems.length > 0"
+              class="recent-list"
             >
-              <div class="recent-icon">
-                <component
-                  :is="item.icon || Clock"
-                  class="w-4 h-4"
-                />
-              </div>
-              <span class="recent-title">{{ item.title }}</span>
-            </button>
+              <button
+                v-for="item in recentItems"
+                :key="item.id"
+                class="recent-item"
+                :title="item.title"
+                @click="handleRecentClick(item)"
+              >
+                <div class="recent-icon">
+                  <component
+                    :is="item.icon || Clock"
+                    class="w-4 h-4"
+                  />
+                </div>
+                <span class="recent-title">{{ item.title }}</span>
+              </button>
+            </div>
+            <div
+              v-else
+              class="empty-recents"
+            >
+              <span>暂无最近项目</span>
+              <button
+                class="empty-cta"
+                @click="handleNewClick"
+              >
+                新建任务
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -379,6 +480,9 @@ const defaultNavItems: NavItem[] = [
         <!-- Token Progress -->
         <button
           class="token-progress-card"
+          :class="tokenUsageClass"
+          :style="tokenRingStyle"
+          aria-label="Token 用量"
           @click="handleTokenClick"
         >
           <div class="token-ring-wrapper">
@@ -411,29 +515,33 @@ const defaultNavItems: NavItem[] = [
             </svg>
             <span class="ring-text-sm">{{ tokenPercentage }}%</span>
           </div>
-          <span class="token-label">Token Usage</span>
-          <span class="token-pct">{{ tokenPercentage }}%</span>
+          <span class="token-label">Token 用量</span>
+          <span class="token-pct">{{ tokenUsageText }}</span>
+          <span class="token-percent">{{ tokenPercentage }}%</span>
         </button>
         
         <!-- Footer Links -->
         <div class="footer-links">
           <button
             class="footer-link"
-            data-tooltip="Help"
+            data-tooltip="帮助"
+            aria-label="帮助"
             @click="handleHelpClick"
           >
             <HelpCircle class="w-5 h-5" />
           </button>
           <button
             class="footer-link"
-            data-tooltip="Community"
+            data-tooltip="社区"
+            aria-label="社区"
             @click="handleCommunityClick"
           >
             <MessageCircle class="w-5 h-5" />
           </button>
           <button
             class="footer-link"
-            data-tooltip="Mobile App"
+            data-tooltip="移动端"
+            aria-label="移动端"
             @click="handleMobileClick"
           >
             <Smartphone class="w-5 h-5" />
@@ -453,7 +561,7 @@ const defaultNavItems: NavItem[] = [
   left: 0;
   top: 0;
   bottom: 0;
-  width: 56px;
+  width: var(--sidebar-collapsed-width);
   display: flex;
   flex-direction: column;
   background: var(--any-bg-primary);
@@ -463,7 +571,7 @@ const defaultNavItems: NavItem[] = [
 }
 
 .any-sidebar.expanded {
-  width: 280px;
+  width: var(--sidebar-expanded-width);
 }
 
 /* Hidden state */
@@ -605,6 +713,14 @@ const defaultNavItems: NavItem[] = [
   color: var(--any-text-secondary);
 }
 
+.token-ring-mini.warning .ring-text {
+  color: #F59E0B;
+}
+
+.token-ring-mini.danger .ring-text {
+  color: #EF4444;
+}
+
 /* ============================================
    Expanded View
    ============================================ */
@@ -720,6 +836,10 @@ const defaultNavItems: NavItem[] = [
 .section-header.clickable:hover {
   opacity: 0.7;
 }
+.section-header .rotated {
+  transform: rotate(90deg);
+  transition: transform var(--any-duration-fast) var(--any-ease-out);
+}
 
 .section-title {
   font-size: 13px;
@@ -778,6 +898,32 @@ const defaultNavItems: NavItem[] = [
   white-space: nowrap;
 }
 
+.empty-recents {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  color: var(--any-text-tertiary);
+  font-size: 13px;
+}
+
+.empty-cta {
+  align-self: flex-start;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: var(--any-radius-sm);
+  border: 1px solid var(--any-border);
+  background: transparent;
+  color: var(--any-text-secondary);
+  cursor: pointer;
+  transition: all var(--any-duration-fast) var(--any-ease-out);
+}
+
+.empty-cta:hover {
+  background: var(--any-bg-hover);
+  color: var(--any-text-primary);
+}
+
 /* ============================================
    Expanded Bottom
    ============================================ */
@@ -802,6 +948,14 @@ const defaultNavItems: NavItem[] = [
 
 .token-progress-card:hover {
   background: var(--any-bg-hover);
+}
+
+.token-progress-card.warning {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.token-progress-card.danger {
+  border-color: rgba(239, 68, 68, 0.5);
 }
 
 .token-ring-wrapper {
@@ -829,6 +983,11 @@ const defaultNavItems: NavItem[] = [
 
 .token-pct {
   font-size: 12px;
+  color: var(--any-text-tertiary);
+}
+
+.token-percent {
+  font-size: 11px;
   color: var(--any-text-tertiary);
 }
 

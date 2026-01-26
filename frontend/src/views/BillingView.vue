@@ -260,7 +260,7 @@ function handleBuyTokens() {
 }
 
 .billing-main {
-  margin-left: 56px;
+  margin-left: var(--sidebar-width);
   padding: 80px 24px 40px;
 }
 

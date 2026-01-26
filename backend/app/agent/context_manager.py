@@ -18,6 +18,12 @@ from app.agent.tools.registry import ToolRegistry
 from app.agent.working_memory.three_files import ThreeFilesManager
 from app.core.logging import get_logger
 
+try:
+    from app.agent.tools.builtin.memory_ops import clear_block_store, register_block
+except Exception:  # pragma: no cover - optional dependency safety
+    clear_block_store = None
+    register_block = None
+
 logger = get_logger(__name__)
 
 
@@ -130,9 +136,19 @@ class ContextManager:
         Args:
             content: 消息内容
         """
+        metadata = {}
+        block_id = self._register_context_block(
+            content=content,
+            block_type="user_message",
+            metadata=metadata
+        )
+        if block_id:
+            metadata["block_id"] = block_id
+
         self.messages.append(Message(
             role="user",
-            content=content
+            content=content,
+            metadata=metadata if metadata else None
         ))
         logger.info(f"Added user message: {content[:100]}...")
 
@@ -144,10 +160,18 @@ class ContextManager:
             content: 消息内容
             metadata: 元数据（如 token usage）
         """
+        merged_metadata = dict(metadata) if metadata else {}
+        block_id = self._register_context_block(
+            content=content,
+            block_type="assistant_message",
+            metadata=merged_metadata
+        )
+        if block_id:
+            merged_metadata["block_id"] = block_id
         self.messages.append(Message(
             role="assistant",
             content=content,
-            metadata=metadata
+            metadata=merged_metadata if merged_metadata else None
         ))
         logger.info(f"Added assistant message: {content[:100]}...")
 
@@ -158,9 +182,18 @@ class ContextManager:
         Args:
             tool_results_text: 格式化后的工具结果
         """
+        metadata = {}
+        block_id = self._register_context_block(
+            content=tool_results_text,
+            block_type="tool_result",
+            metadata=metadata
+        )
+        if block_id:
+            metadata["block_id"] = block_id
         self.messages.append(Message(
             role="user",
-            content=tool_results_text
+            content=tool_results_text,
+            metadata=metadata if metadata else None
         ))
         logger.info(f"Added tool results: {tool_results_text[:100]}...")
 
@@ -271,9 +304,18 @@ class ContextManager:
         summary = self.get_working_memory_summary()
 
         # 作为 user 消息注入
+        metadata = {"type": "working_memory_snapshot"}
+        block_id = self._register_context_block(
+            content=summary,
+            block_type="summary",
+            metadata=metadata
+        )
+        if block_id:
+            metadata["block_id"] = block_id
         self.messages.append(Message(
             role="user",
-            content=f"📋 **Working Memory Snapshot**\n\n{summary}"
+            content=f"📋 **Working Memory Snapshot**\n\n{summary}",
+            metadata=metadata
         ))
         logger.info("Injected working memory summary")
 
@@ -345,6 +387,7 @@ class ContextManager:
         """
         self.messages.clear()
         self._active_skill = None
+        self._clear_context_blocks()
         logger.warning("Context cleared!")
 
     # =========================================================================
@@ -425,10 +468,18 @@ class ContextManager:
         self.messages.clear()
 
         # 添加摘要作为第一条消息
+        metadata = {"type": "summary_injection", "replaced_count": replaced_count}
+        block_id = self._register_context_block(
+            content=summary,
+            block_type="summary",
+            metadata=metadata
+        )
+        if block_id:
+            metadata["block_id"] = block_id
         self.messages.append(Message(
             role="user",
             content=f"📋 **Accumulated Context (from working memory files)**\n\n{summary}",
-            metadata={"type": "summary_injection", "replaced_count": replaced_count}
+            metadata=metadata
         ))
 
         # 恢复最近的消息
@@ -446,12 +497,60 @@ class ContextManager:
         Args:
             summary: 摘要内容
         """
+        metadata = {"type": "periodic_summary"}
+        block_id = self._register_context_block(
+            content=summary,
+            block_type="summary",
+            metadata=metadata
+        )
+        if block_id:
+            metadata["block_id"] = block_id
+
         self.messages.append(Message(
             role="user",
             content=f"📋 **Working Memory Update**\n\n{summary}",
-            metadata={"type": "periodic_summary"}
+            metadata=metadata
         ))
         logger.info("File summary injected")
+
+    # =========================================================================
+    # MemAct: Context Block 注册
+    # =========================================================================
+
+    def _register_context_block(
+        self,
+        content: str,
+        block_type: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> str | None:
+        """注册 ContextBlock，用于 mem_* 工具操作。
+
+        Args:
+            content: 内容
+            block_type: block 类型
+            metadata: 附加元数据
+
+        Returns:
+            block_id 或 None
+        """
+        if not register_block:
+            return None
+        if not content:
+            return None
+        try:
+            return register_block(content=content, block_type=block_type, metadata=metadata or {})
+        except Exception as e:
+            logger.debug(f"Failed to register context block: {e}")
+            return None
+
+    def _clear_context_blocks(self) -> None:
+        """清空所有 Context Blocks（用于清空 Context）"""
+        if not clear_block_store:
+            return
+        try:
+            clear_block_store()
+        except Exception as e:
+            logger.debug(f"Failed to clear context blocks: {e}")
 
     def should_compress(self, threshold_messages: int = 20, threshold_chars: int = 50000) -> bool:
         """

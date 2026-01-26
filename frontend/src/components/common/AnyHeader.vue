@@ -4,9 +4,12 @@ import { useRouter } from 'vue-router'
 import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { useSearchStore } from '@/stores/search'
 import { useAuthGuard } from '@/composables/useAuthGuard'
 import NotificationPanel from './NotificationPanel.vue'
 import GlobalSearch from './GlobalSearch.vue'
+import { EXTERNAL_LINKS } from '@/config/externalLinks'
+import { trackEvent } from '@/utils/telemetry'
 import { 
   Sun, Moon, Monitor, Bell, Sparkles, User, LogOut, Settings,
   Search, HelpCircle, MessageSquare, CreditCard, Shield, Crown
@@ -17,12 +20,24 @@ const router = useRouter()
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const searchStore = useSearchStore()
 const { showLogin } = useAuthGuard()
 
 // Props
 interface Props {
   transparent?: boolean
 }
+
+const showSearchModal = computed({
+  get: () => searchStore.isOpen,
+  set: (value: boolean) => {
+    if (value) {
+      searchStore.open()
+    } else {
+      searchStore.close()
+    }
+  }
+})
 
 withDefaults(defineProps<Props>(), {
   transparent: true
@@ -32,13 +47,12 @@ withDefaults(defineProps<Props>(), {
 const showThemeMenu = ref(false)
 const showUserMenu = ref(false)
 const showNotifications = ref(false)
-const showSearchModal = ref(false)
 
 // Theme options
 const themeOptions: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
-  { mode: 'light', label: 'Light', icon: Sun },
-  { mode: 'dark', label: 'Dark', icon: Moon },
-  { mode: 'system', label: 'System', icon: Monitor },
+  { mode: 'light', label: '浅色', icon: Sun },
+  { mode: 'dark', label: '深色', icon: Moon },
+  { mode: 'system', label: '跟随系统', icon: Monitor },
 ]
 
 // Computed
@@ -55,6 +69,16 @@ const formattedTokens = computed(() => {
     return `${(remaining / 1_000).toFixed(0)}K`
   }
   return remaining.toString()
+})
+
+const formatTokens = (value: number) => {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`
+  return value.toString()
+}
+
+const tokenUsageTitle = computed(() => {
+  return `本月 Token：${formatTokens(authStore.monthlyTokensUsed)} / ${formatTokens(authStore.maxMonthlyTokens)}`
 })
 
 // Token usage percentage
@@ -95,13 +119,23 @@ const navigateTo = (path: string) => {
   showUserMenu.value = false
   router.push(path)
 }
+const openSearch = () => {
+  searchStore.open()
+  trackEvent('header_search_open', { source: 'header' })
+}
+const openBilling = () => {
+  trackEvent('header_billing_open', { source: 'header' })
+  navigateTo('/billing')
+}
 
 const openHelp = () => {
-  window.open('https://docs.tokendance.ai', '_blank')
+  window.open(EXTERNAL_LINKS.docs, '_blank')
+  trackEvent('header_help_open', { source: 'header' })
 }
 
 const openFeedback = () => {
-  window.open('https://feedback.tokendance.ai', '_blank')
+  window.open(EXTERNAL_LINKS.feedback, '_blank')
+  trackEvent('header_feedback_open', { source: 'header' })
 }
 
 const closeMenus = (e: MouseEvent) => {
@@ -151,7 +185,8 @@ onUnmounted(() => {
       <button
         class="search-btn"
         title="搜索 (⌘K)"
-        @click="showSearchModal = true"
+        aria-label="搜索"
+        @click="openSearch"
       >
         <Search class="icon-sm" />
         <span class="search-label">搜索</span>
@@ -213,7 +248,7 @@ onUnmounted(() => {
           @click="showLogin()"
         >
           <User class="icon-sm" />
-          <span>Sign in</span>
+          <span>登录</span>
         </button>
       </template>
       
@@ -247,8 +282,9 @@ onUnmounted(() => {
         <!-- Credits/Token Badge -->
         <button
           class="credits-badge"
-          title="Token 余额 - 点击充值"
-          @click="navigateTo('/billing')"
+          :title="tokenUsageTitle"
+          aria-label="Token 用量"
+          @click="openBilling"
         >
           <Sparkles class="icon-xs" />
           <span>{{ formattedTokens }}</span>
@@ -298,7 +334,9 @@ onUnmounted(() => {
               <div class="dropdown-divider" />
               
               <!-- Account section -->
-              <div class="dropdown-section-label">账户</div>
+              <div class="dropdown-section-label">
+                账户
+              </div>
               <button
                 class="dropdown-item"
                 @click="navigateTo('/profile')"
@@ -370,7 +408,7 @@ onUnmounted(() => {
 .any-header {
   position: fixed;
   top: 0;
-  left: 56px; /* After sidebar */
+  left: var(--sidebar-width); /* After sidebar */
   right: 0;
   height: 52px;
   display: flex;

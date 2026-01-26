@@ -7,8 +7,11 @@
  * - 搜索任务、项目、文件
  * - 快捷操作入口
  */
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useGlobalShortcut } from '@/composables/useGlobalShortcut'
+import { EXTERNAL_LINKS } from '@/config/externalLinks'
+import { trackEvent } from '@/utils/telemetry'
 import { 
   Search, FileText, FolderOpen, History, Settings,
   Sparkles, HelpCircle, MessageSquare, X, ArrowRight,
@@ -44,6 +47,16 @@ interface SearchResult {
 }
 
 // Quick actions (always shown when query is empty)
+const openDocs = () => {
+  window.open(EXTERNAL_LINKS.docs, '_blank')
+  trackEvent('search_help_open', { source: 'global_search' })
+}
+
+const openFeedback = () => {
+  window.open(EXTERNAL_LINKS.feedback, '_blank')
+  trackEvent('search_feedback_open', { source: 'global_search' })
+}
+
 const quickActions = computed<SearchResult[]>(() => [
   {
     id: 'new-task',
@@ -84,7 +97,7 @@ const quickActions = computed<SearchResult[]>(() => [
     title: '帮助中心',
     description: '查看使用文档',
     icon: HelpCircle,
-    action: () => window.open('https://docs.tokendance.ai', '_blank')
+    action: openDocs
   },
   {
     id: 'feedback',
@@ -92,7 +105,7 @@ const quickActions = computed<SearchResult[]>(() => [
     title: '反馈建议',
     description: '告诉我们您的想法',
     icon: MessageSquare,
-    action: () => window.open('https://feedback.tokendance.ai', '_blank')
+    action: openFeedback
   }
 ])
 
@@ -177,6 +190,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 // Handle selection
 function handleSelect(result: SearchResult) {
+  trackEvent('search_select', { type: result.type, id: result.id, title: result.title })
   if (result.action) {
     result.action()
   } else if (result.link) {
@@ -191,20 +205,10 @@ function close() {
 }
 
 // Global keyboard shortcut
-function handleGlobalKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault()
-    emit('update:modelValue', !props.modelValue)
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', handleGlobalKeydown)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeydown)
-})
+useGlobalShortcut('k', () => {
+  trackEvent('search_toggle', { source: 'shortcut' })
+  emit('update:modelValue', !props.modelValue)
+}, { metaOrCtrl: true })
 </script>
 
 <template>

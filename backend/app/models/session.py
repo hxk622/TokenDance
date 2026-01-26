@@ -39,6 +39,14 @@ class SessionStatus(PyEnum):
     ARCHIVED = "archived"
 
 
+class SessionType(PyEnum):
+    """Session type enum for multi-turn execution."""
+    PRIMARY = "primary"
+    RETRY = "retry"
+    BRANCH = "branch"
+    BACKGROUND = "background"
+
+
 class Session(Base):
     """
     Session model - a chat conversation within a workspace.
@@ -101,11 +109,14 @@ class Session(Base):
         nullable=True, index=True
     )
     turn_id: Mapped[str | None] = mapped_column(
-        String(26), nullable=True, index=True
+        String(26), ForeignKey("turns.id", ondelete="SET NULL"),
+        nullable=True, index=True
     )
-    session_type: Mapped[str | None] = mapped_column(
-        String(20), default="primary", nullable=True
-    )  # primary, retry, branch, background
+    session_type: Mapped[SessionType] = mapped_column(
+        Enum(SessionType, values_callable=lambda x: [e.value for e in x]),
+        default=SessionType.PRIMARY,
+        nullable=True
+    )
 
     # Extra data (named 'extra_data' to avoid conflict with SQLAlchemy reserved 'metadata')
     extra_data: Mapped[dict] = mapped_column(

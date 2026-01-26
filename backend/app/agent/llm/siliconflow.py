@@ -12,12 +12,14 @@ SiliconFlow LLM 客户端实现
 import json
 import logging
 import os
+import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 
 import httpx
 
 from .base import BaseLLM, LLMMessage, LLMResponse
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -133,17 +135,28 @@ class SiliconFlowLLM(BaseLLM):
 
         try:
             # 使用 httpx 直接调用（禁用 SSL 验证，绕过证书问题）
-            async with httpx.AsyncClient(verify=False, timeout=120.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json=api_params
-                )
-                response.raise_for_status()
-                data = response.json()
+            timeout = httpx.Timeout(300.0, connect=20.0)
+            max_retries = 2
+            data = None
+            for attempt in range(max_retries + 1):
+                try:
+                    async with httpx.AsyncClient(verify=False, timeout=timeout) as client:
+                        response = await client.post(
+                            f"{self.base_url}/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {self.api_key}",
+                                "Content-Type": "application/json"
+                            },
+                            json=api_params
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                    break
+                except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.TimeoutException) as e:
+                    logger.warning(f"[SiliconFlow] Timeout on attempt {attempt + 1}/{max_retries + 1}: {e}")
+                    if attempt >= max_retries:
+                        raise
+                    await asyncio.sleep(1.0 * (attempt + 1))
 
             # 解析响应
             message = data["choices"][0]["message"]
@@ -371,7 +384,7 @@ def create_siliconflow_llm(
     """
     # 读取 API Key
     if api_key is None:
-        api_key = os.getenv("SILICONFLOW_API_KEY")
+        api_key = os.getenv("SILICONFLOW_API_KEY") or settings.SILICONFLOW_API_KEY
         if not api_key:
             raise ValueError(
                 "API Key not found. Set SILICONFLOW_API_KEY environment variable"
@@ -379,7 +392,7 @@ def create_siliconflow_llm(
 
     # 读取模型名称
     if model is None:
-        model = os.getenv("SILICONFLOW_MODEL")
+        model = os.getenv("SILICONFLOW_MODEL") or settings.SILICONFLOW_MODEL
         if not model:
             if prefer_free:
                 model = "Qwen/Qwen2.5-7B-Instruct"  # 免费模型
@@ -388,10 +401,7 @@ def create_siliconflow_llm(
 
     # 读取 Base URL
     if base_url is None:
-        base_url = os.getenv(
-            "SILICONFLOW_BASE_URL",
-            "https://api.siliconflow.cn/v1"
-        )
+        base_url = os.getenv("SILICONFLOW_BASE_URL") or settings.SILICONFLOW_BASE_URL
 
     return SiliconFlowLLM(
         api_key=api_key,
@@ -504,5 +514,5 @@ def is_siliconflow_available() -> bool:
     Returns:
         bool: 是否可用
     """
-    api_key = os.getenv("SILICONFLOW_API_KEY")
+    api_key = os.getenv("SILICONFLOW_API_KEY") or settings.SILICONFLOW_API_KEY
     return bool(api_key and api_key.strip())
