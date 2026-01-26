@@ -131,6 +131,11 @@ class Settings(BaseSettings):
     DEFAULT_LLM_MODEL: str = "deepseek/deepseek-chat"
     MAX_CONTEXT_TOKENS: int = 128000
 
+    # SiliconFlow (primary provider)
+    SILICONFLOW_API_KEY: str | None = None
+    SILICONFLOW_MODEL: str | None = None
+    SILICONFLOW_BASE_URL: str = "https://api.siliconflow.cn/v1"
+
     # WeChat OAuth
     WECHAT_APP_ID: str | None = None
     WECHAT_APP_SECRET: str | None = None
@@ -144,6 +149,11 @@ class Settings(BaseSettings):
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
+    # Context Graph
+    CONTEXT_GRAPH_MODE: Literal["memory", "neo4j"] = "memory"
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USER: str = "neo4j"
+    NEO4J_PASSWORD: str = ""
 
     # Monitoring
     ENABLE_METRICS: bool = True

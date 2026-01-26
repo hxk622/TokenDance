@@ -9,12 +9,12 @@ ContextGraphService - 统一的 Context Graph 服务
 """
 
 import logging
-import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+from app.core.config import settings
 
 from ..knowledge_graph import (
     Entity,
@@ -118,9 +118,9 @@ class ContextGraphService:
             neo4j_password: Neo4j 密码
         """
         self.mode = mode
-        self._neo4j_uri = neo4j_uri or os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        self._neo4j_user = neo4j_user or os.getenv("NEO4J_USER", "neo4j")
-        self._neo4j_password = neo4j_password or os.getenv("NEO4J_PASSWORD", "")
+        self._neo4j_uri = neo4j_uri or settings.NEO4J_URI
+        self._neo4j_user = neo4j_user or settings.NEO4J_USER
+        self._neo4j_password = neo4j_password or settings.NEO4J_PASSWORD
 
         # 内存存储
         self._graph = ResearchKnowledgeGraph()
@@ -665,7 +665,7 @@ async def get_context_graph_service(
     if _service_instance is None:
         # 从环境变量读取模式
         if mode is None:
-            mode_str = os.getenv("CONTEXT_GRAPH_MODE", "memory").lower()
+            mode_str = settings.CONTEXT_GRAPH_MODE.lower()
             mode = StorageMode.NEO4J if mode_str == "neo4j" else StorageMode.MEMORY
 
         _service_instance = ContextGraphService(mode=mode)
