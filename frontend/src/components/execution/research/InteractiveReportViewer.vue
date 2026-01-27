@@ -8,6 +8,7 @@
  * - 修订历史
  */
 import { ref, computed, watch } from 'vue'
+import { sanitizeHtml } from '@/utils/sanitize'
 import {
   FileText,
   ZoomIn,
@@ -159,6 +160,8 @@ const formatDate = (dateStr: string) => {
     minute: '2-digit',
   })
 }
+
+const getSectionContent = (content: string) => sanitizeHtml(content || '')
 </script>
 
 <template>
@@ -237,9 +240,10 @@ const formatDate = (dateStr: string) => {
             v-show="expandedSections.has(section.id)"
             class="section-content"
           >
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <div
               class="content-text"
-              v-html="section.content"
+              v-html="getSectionContent(section.content)"
             />
             
             <!-- Sources -->

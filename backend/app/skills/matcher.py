@@ -14,9 +14,7 @@ SkillMatcher - Skill意图匹配器
 
 import logging
 import re
-from typing import Protocol
-
-from typing import Any
+from typing import Any, Protocol
 
 from .registry import SkillRegistry
 from .types import SkillMatch, SkillMetadata
@@ -177,12 +175,13 @@ class SkillMatcher:
             embedding_candidates = [
                 SkillMatch(
                     skill_id=sid,
-                    score=0.5,  # 默认分数
+                    score=self._calculate_keyword_score(user_message, sid),
                     reason="Keyword match",
                     metadata=self.registry.get(sid)
                 )
                 for sid in keyword_candidates[:top_k]
             ]
+            embedding_candidates.sort(key=lambda x: -x.score)
 
         if not embedding_candidates:
             return None

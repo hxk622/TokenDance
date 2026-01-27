@@ -9,9 +9,8 @@ Conversation API - 多轮对话 API
 5. 列出对话
 6. 归档对话
 """
-import logging
 import json
-from typing import Optional, List
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -22,9 +21,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.redis import get_redis
-from app.models.user import User
-from app.models.conversation import ConversationStatus, ConversationType
+from app.models.conversation import ConversationPurpose, ConversationStatus
 from app.models.turn import TurnStatus
+from app.models.user import User
 from app.services.conversation_service import ConversationService
 from app.services.sse_event_store import SSEEventStore
 
@@ -36,35 +35,35 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 class CreateConversationRequest(BaseModel):
     """创建对话请求"""
-    workspace_id: str = Field(..., description="工作空间 ID")
-    title: Optional[str] = Field(None, description="对话标题 (可选,不提供则使用默认值)")
-    conversation_type: ConversationType = Field(ConversationType.CHAT, description="对话类型")
-    initial_message: Optional[str] = Field(None, description="初始消息 (可选)")
+    project_id: str = Field(..., description="项目 ID")
+    title: str | None = Field(None, description="对话标题 (可选,不提供则使用默认值)")
+    purpose: ConversationPurpose = Field(ConversationPurpose.GENERAL, description="对话目的")
+    initial_message: str | None = Field(None, description="初始消息 (可选)")
 
 
 class SendMessageRequest(BaseModel):
     """发送消息请求"""
     content: str = Field(..., min_length=1, max_length=10000, description="消息内容")
-    parent_message_id: Optional[str] = Field(None, description="父消息 ID (用于分支对话)")
+    parent_message_id: str | None = Field(None, description="父消息 ID (用于分支对话)")
 
 
 class ConversationResponse(BaseModel):
     """对话响应"""
     id: str
-    workspace_id: str
+    project_id: str
     title: str
     status: str
-    conversation_type: str
+    purpose: str
     turn_count: int
     message_count: int
     created_at: str
-    last_message_at: Optional[str]
+    last_message_at: str | None
 
 
 class TurnResponse(BaseModel):
     """Turn 响应"""
     turn_id: str
-    session_id: Optional[str]
+    session_id: str | None
     turn_number: int
     status: str
     stream_url: str
@@ -77,28 +76,28 @@ class TurnDetail(BaseModel):
     turn_number: int
     status: str
     user_input: str
-    assistant_response: Optional[str]
+    assistant_response: str | None
     tokens_used: int
-    duration_ms: Optional[int]
+    duration_ms: int | None
     created_at: str
-    completed_at: Optional[str]
+    completed_at: str | None
 
 
 class ConversationDetail(BaseModel):
     """对话详情"""
     id: str
-    workspace_id: str
+    project_id: str
     title: str
     status: str
-    conversation_type: str
+    purpose: str
     turn_count: int
     message_count: int
     total_tokens_used: int
-    turns: List[TurnDetail]
-    shared_memory: Optional[dict]
-    context_summary: Optional[str]
+    turns: list[TurnDetail]
+    shared_memory: dict | None
+    context_summary: str | None
     created_at: str
-    last_message_at: Optional[str]
+    last_message_at: str | None
 
 
 # ==================== API Endpoints ====================
@@ -123,9 +122,9 @@ async def create_conversation(
 
         # 创建对话
         conversation, turn = await service.create_conversation(
-            workspace_id=request.workspace_id,
+            project_id=request.project_id,
             title=request.title,
-            conversation_type=request.conversation_type,
+            purpose=request.purpose,
             initial_message=request.initial_message,
         )
 
@@ -135,21 +134,21 @@ async def create_conversation(
 
         return ConversationResponse(
             id=conversation.id,
-            workspace_id=conversation.workspace_id,
+            project_id=conversation.project_id,
             title=conversation.title,
             status=conversation.status.value,
-            conversation_type=conversation.conversation_type.value,
+            purpose=conversation.purpose.value,
             turn_count=conversation.turn_count,
-            message_count=conversation.message_count,
+            message_count=conversation.message_count_db,
             created_at=conversation.created_at.isoformat(),
             last_message_at=conversation.last_message_at.isoformat() if conversation.last_message_at else None,
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Failed to create conversation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to create conversation")
+        raise HTTPException(status_code=500, detail="Failed to create conversation") from e
 
 
 @router.post("/{conversation_id}/messages", response_model=TurnResponse)
@@ -197,10 +196,10 @@ async def send_message(
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Failed to send message: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to send message")
+        raise HTTPException(status_code=500, detail="Failed to send message") from e
 
 
 @router.get("/{conversation_id}", response_model=ConversationDetail)
@@ -252,13 +251,13 @@ async def get_conversation(
 
         return ConversationDetail(
             id=conversation.id,
-            workspace_id=conversation.workspace_id,
+            project_id=conversation.project_id,
             title=conversation.title,
             status=conversation.status.value,
-            conversation_type=conversation.conversation_type.value,
+            purpose=conversation.purpose.value,
             turn_count=conversation.turn_count,
-            message_count=conversation.message_count,
-            total_tokens_used=conversation.total_tokens_used,
+            message_count=conversation.message_count_db,
+            total_tokens_used=conversation.tokens_used,
             turns=turns,
             shared_memory=conversation.shared_memory,
             context_summary=conversation.context_summary,
@@ -270,13 +269,13 @@ async def get_conversation(
         raise
     except Exception as e:
         logger.error(f"Failed to get conversation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get conversation")
+        raise HTTPException(status_code=500, detail="Failed to get conversation") from e
 
 
-@router.get("/", response_model=List[ConversationResponse])
+@router.get("/", response_model=list[ConversationResponse])
 async def list_conversations(
-    workspace_id: str = Query(..., description="工作空间 ID"),
-    status: Optional[ConversationStatus] = Query(None, description="状态筛选"),
+    project_id: str = Query(..., description="项目 ID"),
+    status: ConversationStatus | None = Query(None, description="状态筛选"),
     limit: int = Query(20, ge=1, le=100, description="返回数量"),
     offset: int = Query(0, ge=0, description="偏移量"),
     current_user: User = Depends(get_current_user),
@@ -286,7 +285,7 @@ async def list_conversations(
     列出对话列表
 
     支持:
-    - 按工作空间筛选
+    - 按项目筛选
     - 按状态筛选
     - 分页
 
@@ -297,7 +296,7 @@ async def list_conversations(
         service = ConversationService(db)
 
         conversations = await service.list_conversations(
-            workspace_id=workspace_id,
+            project_id=project_id,
             status=status,
             limit=limit,
             offset=offset,
@@ -306,12 +305,12 @@ async def list_conversations(
         return [
             ConversationResponse(
                 id=conv.id,
-                workspace_id=conv.workspace_id,
+                project_id=conv.project_id,
                 title=conv.title,
                 status=conv.status.value,
-                conversation_type=conv.conversation_type.value,
+                purpose=conv.purpose.value,
                 turn_count=conv.turn_count,
-                message_count=conv.message_count,
+                message_count=conv.message_count_db,
                 created_at=conv.created_at.isoformat(),
                 last_message_at=conv.last_message_at.isoformat() if conv.last_message_at else None,
             )
@@ -320,7 +319,7 @@ async def list_conversations(
 
     except Exception as e:
         logger.error(f"Failed to list conversations: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to list conversations")
+        raise HTTPException(status_code=500, detail="Failed to list conversations") from e
 
 
 @router.post("/{conversation_id}/archive")
@@ -344,10 +343,10 @@ async def archive_conversation(
         return {"status": "archived", "conversation_id": conversation_id}
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Failed to archive conversation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to archive conversation")
+        raise HTTPException(status_code=500, detail="Failed to archive conversation") from e
 
 
 @router.get("/{conversation_id}/turns/{turn_id}/stream")
@@ -435,7 +434,7 @@ async def stream_turn_events(
         raise
     except Exception as e:
         logger.error(f"Failed to stream turn events: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to stream turn events")
+        raise HTTPException(status_code=500, detail="Failed to stream turn events") from e
 
 
 # ==================== Helper Functions ====================

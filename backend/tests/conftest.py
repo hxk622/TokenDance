@@ -8,7 +8,9 @@ Shared pytest fixtures for backend tests.
 - 测试数据工厂
 """
 
+import fnmatch
 import os
+import time
 from collections.abc import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock
 
@@ -19,11 +21,246 @@ from httpx import ASGITransport, AsyncClient
 
 # ==================== 环境配置 ====================
 
-# 设置测试环境变量
-os.environ.setdefault("ENVIRONMENT", "development")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
+RUN_INTEGRATION_TESTS = os.getenv("RUN_INTEGRATION_TESTS")
+
+# 设置测试环境变量（仅限非集成测试）
+if not RUN_INTEGRATION_TESTS:
+    os.environ.setdefault("ENVIRONMENT", "development")
+    os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
+    os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
+    os.environ.setdefault("DISABLE_REDIS", "true")
+    os.environ.setdefault("FINANCIAL_DATA_MODE", "mock")
+else:
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except Exception:
+        env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
+        try:
+            with open(env_path, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip("'").strip('"')
+                    os.environ.setdefault(key, value)
+        except FileNotFoundError:
+            pass
+    os.environ.setdefault("HF_HUB_DISABLE_SSL_VERIFICATION", "1")
+
+
+# ==================== Fake Redis ====================
+
+class FakeRedis:
+    """Simple in-memory async Redis replacement for tests."""
+
+    def __init__(self) -> None:
+        self._data: dict[str, object] = {}
+        self._hashes: dict[str, dict[str, str]] = {}
+        self._zsets: dict[str, dict[str, float]] = {}
+        self._expiry: dict[str, float] = {}
+
+    def reset(self) -> None:
+        self._data.clear()
+        self._hashes.clear()
+        self._zsets.clear()
+        self._expiry.clear()
+
+    def _purge_expired(self) -> None:
+        now = time.time()
+        expired = [key for key, ts in self._expiry.items() if ts <= now]
+        for key in expired:
+            self._data.pop(key, None)
+            self._hashes.pop(key, None)
+            self._zsets.pop(key, None)
+            self._expiry.pop(key, None)
+
+    async def ping(self) -> bool:
+        return True
+
+    async def aclose(self) -> None:
+        return None
+
+    async def get(self, key: str):
+        self._purge_expired()
+        return self._data.get(key)
+
+    async def set(self, key: str, value: object):
+        self._purge_expired()
+        self._data[key] = value
+        return True
+
+    async def setex(self, key: str, ttl: int, value: object):
+        self._data[key] = value
+        self._expiry[key] = time.time() + ttl
+        return True
+
+    async def exists(self, key: str) -> int:
+        self._purge_expired()
+        return 1 if (key in self._data or key in self._hashes or key in self._zsets) else 0
+
+    async def delete(self, key: str) -> int:
+        self._purge_expired()
+        removed = 0
+        if key in self._data:
+            del self._data[key]
+            removed = 1
+        if key in self._hashes:
+            del self._hashes[key]
+            removed = 1
+        if key in self._zsets:
+            del self._zsets[key]
+            removed = 1
+        self._expiry.pop(key, None)
+        return removed
+
+    async def incr(self, key: str) -> int:
+        self._purge_expired()
+        current = int(self._data.get(key, 0) or 0)
+        current += 1
+        self._data[key] = current
+        return current
+
+    async def expire(self, key: str, ttl: int) -> bool:
+        self._expiry[key] = time.time() + ttl
+        return True
+
+    async def hset(self, key: str, mapping: dict[str, str]):
+        self._purge_expired()
+        self._hashes.setdefault(key, {}).update(mapping)
+        return True
+
+    async def hgetall(self, key: str) -> dict[str, str]:
+        self._purge_expired()
+        return dict(self._hashes.get(key, {}))
+
+    async def scan_iter(self, match: str | None = None):
+        self._purge_expired()
+        keys = set(self._data) | set(self._hashes) | set(self._zsets)
+        for key in keys:
+            if match is None or fnmatch.fnmatch(key, match):
+                yield key
+
+    async def zadd(self, key: str, mapping: dict[str, float]):
+        self._purge_expired()
+        zset = self._zsets.setdefault(key, {})
+        added = 0
+        for member, score in mapping.items():
+            if member not in zset:
+                added += 1
+            zset[member] = float(score)
+        return added
+
+    async def zcard(self, key: str) -> int:
+        self._purge_expired()
+        return len(self._zsets.get(key, {}))
+
+    async def zremrangebyrank(self, key: str, start: int, end: int) -> int:
+        self._purge_expired()
+        zset = self._zsets.get(key)
+        if not zset:
+            return 0
+        sorted_members = sorted(zset.items(), key=lambda item: (item[1], item[0]))
+        if end < 0:
+            end = len(sorted_members) + end
+        if start < 0:
+            start = len(sorted_members) + start
+        to_remove = sorted_members[start:end + 1]
+        for member, _ in to_remove:
+            zset.pop(member, None)
+        return len(to_remove)
+
+    async def zrangebyscore(
+        self,
+        key: str,
+        min_score: str | float,
+        max_score: str | float,
+        start: int = 0,
+        num: int | None = None,
+    ) -> list[str]:
+        self._purge_expired()
+        zset = self._zsets.get(key, {})
+        if not zset:
+            return []
+
+        def parse_score(value):
+            if isinstance(value, (int, float)):
+                return float(value), False
+            if isinstance(value, str) and value.startswith("("):
+                return float(value[1:]), True
+            if value == "-inf":
+                return float("-inf"), False
+            if value == "+inf":
+                return float("inf"), False
+            return float(value), False
+
+        min_val, min_exclusive = parse_score(min_score)
+        max_val, max_exclusive = parse_score(max_score)
+
+        def in_range(score: float) -> bool:
+            if min_exclusive:
+                if score <= min_val:
+                    return False
+            else:
+                if score < min_val:
+                    return False
+            if max_exclusive:
+                if score >= max_val:
+                    return False
+            else:
+                if score > max_val:
+                    return False
+            return True
+
+        filtered = [(member, score) for member, score in zset.items() if in_range(score)]
+        filtered.sort(key=lambda item: (item[1], item[0]))
+        sliced = filtered[start:] if num is None else filtered[start:start + num]
+        return [member for member, _ in sliced]
+
+    async def zrange(self, key: str, start: int, end: int) -> list[str]:
+        self._purge_expired()
+        zset = self._zsets.get(key, {})
+        if not zset:
+            return []
+        sorted_members = sorted(zset.items(), key=lambda item: (item[1], item[0]))
+        if end < 0:
+            end = len(sorted_members) + end
+        if start < 0:
+            start = len(sorted_members) + start
+        return [member for member, _ in sorted_members[start:end + 1]]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _init_fake_redis():
+    """Initialize a shared FakeRedis client for all tests."""
+    if RUN_INTEGRATION_TESTS:
+        yield
+        return
+    from app.core import redis as redis_module
+
+    redis_module.redis_client = FakeRedis()
+    yield
+    redis_module.redis_client = None
+
+
+@pytest.fixture(autouse=True)
+def _reset_fake_redis():
+    """Reset FakeRedis state between tests."""
+    if RUN_INTEGRATION_TESTS:
+        yield
+        return
+    from app.core import redis as redis_module
+
+    client = redis_module.redis_client
+    if client is None:
+        redis_module.redis_client = FakeRedis()
+    elif hasattr(client, "reset"):
+        client.reset()
+    yield
 
 
 # ==================== 基础 Fixtures ====================
@@ -38,17 +275,53 @@ def anyio_backend():
 def test_client() -> Generator[TestClient, None, None]:
     """创建同步测试客户端"""
     from app.main import app
+    if RUN_INTEGRATION_TESTS:
+        with TestClient(app) as client:
+            yield client
+        return
+    from app.core.redis import get_redis
+    from app.core import redis as redis_module
+
+    fake_redis = FakeRedis()
+    redis_module.redis_client = fake_redis
+
+    async def override_get_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = override_get_redis
+
     with TestClient(app) as client:
         yield client
+
+    app.dependency_overrides.pop(get_redis, None)
+    redis_module.redis_client = None
 
 
 @pytest_asyncio.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """创建异步测试客户端"""
     from app.main import app
+    if RUN_INTEGRATION_TESTS:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            yield client
+        return
+    from app.core.redis import get_redis
+    from app.core import redis as redis_module
+
+    fake_redis = FakeRedis()
+    redis_module.redis_client = fake_redis
+
+    async def override_get_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = override_get_redis
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+    app.dependency_overrides.pop(get_redis, None)
+    redis_module.redis_client = None
 
 
 # ==================== Mock 数据库 Fixtures ====================
@@ -374,21 +647,13 @@ async def db_with_tables():
     4. 测试结束后清理
     """
     from sqlalchemy import event
+    from sqlalchemy.exc import CircularDependencyError
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
     from app.core.database import Base
 
     # Import all models to register them with Base.metadata
-    from app.models import (  # noqa: F401
-        artifact,
-        conversation,
-        message,
-        project,
-        project_version,
-        session,
-        user,
-        workspace,
-    )
+    import app.models  # noqa: F401
 
     # 创建内存数据库引擎
     test_engine = create_async_engine(
@@ -419,9 +684,72 @@ async def db_with_tables():
 
     # 清理表
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        try:
+            await conn.run_sync(Base.metadata.drop_all)
+        except CircularDependencyError:
+            # In-memory SQLite teardown can ignore FK cycles; DB will be disposed anyway.
+            pass
 
     await test_engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session(db_with_tables):
+    """提供统一的数据库 session fixture (兼容历史测试用例)."""
+    yield db_with_tables
+
+@pytest_asyncio.fixture
+async def db_user(db_session):
+    """创建测试用户 (真实数据库对象)."""
+    from app.models.user import User
+
+    user = User(
+        id="test-user-id",
+        email="test@example.com",
+        username="testuser",
+        password_hash="hashed_password",
+        is_active=True,
+        is_verified=True,
+        email_verified=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    return user
+
+
+@pytest_asyncio.fixture
+async def db_workspace(db_session, db_user):
+    """创建测试工作空间 (真实数据库对象)."""
+    from app.models.workspace import Workspace
+
+    workspace = Workspace(
+        id="test-workspace-id",
+        name="Test Workspace",
+        slug="test-workspace",
+        owner_id=db_user.id,
+        filesystem_path=f"/data/users/{db_user.id}/workspaces/test-workspace-id",
+    )
+    db_session.add(workspace)
+    await db_session.commit()
+    return workspace
+
+
+@pytest_asyncio.fixture
+async def db_project(db_session, db_workspace):
+    """创建测试 Project (真实数据库对象)."""
+    from app.models.project import Project, ProjectType
+
+    project = Project(
+        id="test-project-id",
+        workspace_id=db_workspace.id,
+        intent="Test project intent",
+        title="Test Project",
+        project_type=ProjectType.RESEARCH,
+    )
+    db_session.add(project)
+    await db_session.commit()
+    return project
 
 
 @pytest.fixture

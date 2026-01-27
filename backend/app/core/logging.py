@@ -4,8 +4,9 @@ All logs include trace_id for request tracing.
 """
 import logging
 import sys
+from collections.abc import Callable
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, MutableMapping
 
 import structlog
 
@@ -13,6 +14,11 @@ from app.core.config import settings
 
 # Context variable for request tracing
 request_id_ctx_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+
+Processor = Callable[
+    [Any, str, MutableMapping[str, Any]],
+    MutableMapping[str, Any] | str | bytes | bytearray | tuple[Any, ...],
+]
 
 
 def get_request_id() -> str | None:
@@ -26,8 +32,8 @@ def set_request_id(request_id: str) -> None:
 
 
 def add_request_id(
-    logger: logging.Logger, method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Add request_id to log records."""
     request_id = get_request_id()
     if request_id:
@@ -84,7 +90,7 @@ def configure_logging() -> None:
     uvicorn_access.propagate = False
 
     # Configure structlog processors
-    shared_processors = [
+    shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         add_request_id,
         structlog.stdlib.add_log_level,
@@ -94,7 +100,9 @@ def configure_logging() -> None:
 
     # For structlog's output
     if settings.ENVIRONMENT == "production":
-        final_processors = shared_processors + [structlog.processors.JSONRenderer()]
+        final_processors: list[Processor] = shared_processors + [
+            structlog.processors.JSONRenderer()
+        ]
     else:
         final_processors = shared_processors + [
             structlog.dev.ConsoleRenderer(

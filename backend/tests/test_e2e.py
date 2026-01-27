@@ -6,11 +6,11 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-
-from app.core.datetime_utils import utc_now_naive
+from sqlalchemy.exc import CircularDependencyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import Base, async_session_maker, engine
+from app.core.datetime_utils import utc_now_naive
 from app.main import app
 from app.models.message import Message, MessageRole
 from app.models.session import Session, SessionStatus
@@ -31,7 +31,12 @@ async def db_session():
 
     # Drop all tables after test
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        if conn.dialect.name == "sqlite":
+            await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        try:
+            await conn.run_sync(Base.metadata.drop_all)
+        except CircularDependencyError:
+            pass
 
 
 @pytest.fixture
@@ -196,10 +201,11 @@ class TestE2EFlow:
         """Test session status transitions."""
 
         # Create user and workspace
+        user_id = str(uuid.uuid4())
         user = User(
-            id=str(uuid.uuid4()),
-            email="status_test@example.com",
-            username="status_user",
+            id=user_id,
+            email=f"status_test_{user_id}@example.com",
+            username=f"status_user_{user_id[:8]}",
             password_hash="hashed_password",
         )
         db_session.add(user)

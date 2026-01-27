@@ -14,6 +14,7 @@ from app.api.v1 import (
     hitl,
     mcp,
     messages,
+    notifications,
     ppt,
     project,
     research,
@@ -39,6 +40,7 @@ api_router.include_router(messages.router, prefix="/sessions", tags=["messages"]
 api_router.include_router(stream.router, prefix="/sessions", tags=["stream"])  # SSE streaming
 api_router.include_router(artifact.router, prefix="/artifacts", tags=["artifacts"])  # Artifact download & preview
 api_router.include_router(mcp.router, prefix="/mcp", tags=["mcp"])  # MCP tools management
+api_router.include_router(notifications.router, tags=["notifications"])  # Notifications
 api_router.include_router(demo_stream.router, tags=["demo"])  # Demo endpoints (no auth)
 api_router.include_router(hitl.router, tags=["hitl"])  # Human-in-the-Loop
 api_router.include_router(trust.router, prefix="/trust", tags=["trust"])  # Trust configuration

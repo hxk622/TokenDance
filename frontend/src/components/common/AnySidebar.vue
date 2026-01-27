@@ -52,6 +52,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   logoText: 'TD',
+  sections: () => [],
+  recentItems: () => [],
   showNewButton: true,
   newButtonTooltip: '新建任务',
   tokenUsed: 0,

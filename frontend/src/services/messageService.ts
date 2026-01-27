@@ -7,7 +7,7 @@
 import type { Attachment as ChatAttachment } from '@/api/chat'
 import { SSEEventType, type SSEEvent } from '@/api/services/sse'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 /**
  * Message payload for sending to Agent
@@ -84,10 +84,14 @@ export async function sendMessage(
   let buffer = ''
   let currentEventType: SSEEventType = SSEEventType.CONTENT
 
-  while (true) {
+  let isReading = true
+  while (isReading) {
     const { done, value } = await reader.read()
     
-    if (done) break
+    if (done) {
+      isReading = false
+      break
+    }
 
     buffer += decoder.decode(value, { stream: true })
     const lines = buffer.split('\n')

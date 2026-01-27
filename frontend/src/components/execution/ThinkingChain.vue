@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { escapeHtml } from '@/utils/sanitize'
 import { 
   ChevronDownIcon, 
   ChevronRightIcon,
@@ -89,11 +90,14 @@ function getStepLabel(type: ThinkingStep['type']): string {
 
 // Highlight keywords in content
 function highlightContent(content: string, keywords?: string[]): string {
-  if (!props.highlightKeywords || !keywords?.length) return content
-  
-  let result = content
-  keywords.forEach(keyword => {
-    const regex = new RegExp(`(${keyword})`, 'gi')
+  const safeContent = escapeHtml(content)
+  if (!props.highlightKeywords || !keywords?.length) return safeContent
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+  let result = safeContent
+  keywords.forEach((keyword) => {
+    const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi')
     result = result.replace(regex, '<mark class="keyword-highlight">$1</mark>')
   })
   return result
@@ -255,6 +259,7 @@ const displaySteps = computed(() => props.steps.length > 0 ? props.steps : defau
               v-if="isExpanded(step.id)"
               class="step-expanded"
             >
+              <!-- eslint-disable-next-line vue/no-v-html -->
               <div 
                 class="step-text"
                 v-html="highlightContent(step.content, step.keywords)"

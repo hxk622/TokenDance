@@ -27,7 +27,7 @@ except ImportError:
 
 # 导入多源搜索器
 try:
-    from .search_providers import MultiSourceSearcher, get_multi_source_searcher
+    from .search_providers import get_multi_source_searcher
     MULTI_SOURCE_AVAILABLE = True
 except ImportError:
     MULTI_SOURCE_AVAILABLE = False
@@ -255,12 +255,6 @@ class WebSearchTool(BaseTool):
                 re.DOTALL
             )
 
-            # 备用模式: 更宽松的匹配
-            alt_pattern = re.compile(
-                r'<a[^>]+href="(https?://[^"]+)"[^>]*class="[^"]*result[^"]*"[^>]*>\s*'
-                r'<[^>]*>([^<]+)</[^>]*>',
-                re.DOTALL | re.IGNORECASE
-            )
 
             # 尝试主模式
             for match in result_pattern.finditer(html):

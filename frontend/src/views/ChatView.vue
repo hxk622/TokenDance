@@ -53,7 +53,7 @@ let hitlPollingInterval: ReturnType<typeof setInterval> | null = null
 const currentSessionId = computed(() => route.params.sessionId as string | undefined)
 
 // API base URL
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 // SSE Stream composable
 const {

@@ -19,7 +19,13 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
   active: false,
-  disabled: false
+  disabled: false,
+  icon: undefined,
+  label: '',
+  image: '',
+  title: '',
+  meta: '',
+  tag: ''
 })
 
 // Emits

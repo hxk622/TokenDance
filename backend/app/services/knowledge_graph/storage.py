@@ -14,6 +14,7 @@ from typing import Any
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
+
 from app.core.config import settings
 
 from .models import (
@@ -781,5 +782,11 @@ async def close_neo4j_storage() -> None:
     global _storage_instance
 
     if _storage_instance:
-        await _storage_instance.close()
+        try:
+            await _storage_instance.close()
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                logger.warning("Neo4j close skipped: event loop is closed")
+            else:
+                raise
         _storage_instance = None

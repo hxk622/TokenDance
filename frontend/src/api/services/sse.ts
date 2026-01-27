@@ -3,7 +3,7 @@
  * For real-time Agent execution streaming
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export enum SSEEventType {
   // Session events
@@ -16,10 +16,12 @@ export enum SSEEventType {
   SKILL_COMPLETED = 'skill_completed',
   
   // Agent events (new backend format)
+  START = 'start',
   THINKING = 'thinking',
   TOOL_CALL = 'tool_call',
   TOOL_RESULT = 'tool_result',
   CONTENT = 'content',
+  STATUS = 'status',
   DONE = 'done',
   
   // Agent events (legacy format - keep for compatibility)

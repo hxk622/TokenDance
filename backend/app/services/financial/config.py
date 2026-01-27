@@ -17,7 +17,7 @@ class DataMode(str, Enum):
 # Global configuration
 # In production, this should be set to REAL or ERROR
 # In development/demo, can be set to MOCK
-FINANCIAL_DATA_MODE = DataMode(os.getenv("FINANCIAL_DATA_MODE", "ERROR"))
+FINANCIAL_DATA_MODE = DataMode(os.getenv("FINANCIAL_DATA_MODE", DataMode.ERROR.value))
 
 
 class FinancialServiceNotImplementedError(NotImplementedError):

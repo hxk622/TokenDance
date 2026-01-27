@@ -8,8 +8,8 @@ This fixes a mismatch where SQLAlchemy persisted Enum names (e.g. 'PENDING')
 while the previous migration added lowercase values ('pending'). Adding the
 uppercase values allows inserts using Enum names to succeed.
 """
+
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'e7f8g9h0i1j2'

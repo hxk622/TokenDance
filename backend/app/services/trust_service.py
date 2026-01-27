@@ -8,14 +8,13 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.datetime_utils import utc_now_naive
-
 from app.agent.tools.base import BaseTool
 from app.agent.tools.risk import (
     OperationCategory,
     RiskLevel,
     is_risk_within_threshold,
 )
+from app.core.datetime_utils import utc_now_naive
 from app.models.trust_config import TrustAuditLog, TrustConfig
 
 logger = logging.getLogger(__name__)

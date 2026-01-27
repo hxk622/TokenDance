@@ -6,6 +6,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC
+from typing import cast
 
 # Fix SSL certificate issue on macOS
 try:
@@ -43,8 +44,10 @@ try:
     )
 except ValueError:
     # Metrics already registered (reload mode)
-    REQUEST_COUNT = REGISTRY._names_to_collectors.get("http_requests_total")
-    REQUEST_DURATION = REGISTRY._names_to_collectors.get("http_request_duration_seconds")
+    REQUEST_COUNT = cast(Counter, REGISTRY._names_to_collectors.get("http_requests_total"))
+    REQUEST_DURATION = cast(
+        Histogram, REGISTRY._names_to_collectors.get("http_request_duration_seconds")
+    )
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -285,7 +288,7 @@ async def check_unmigrated_sessions() -> None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan events."""
     # Startup
     logger.info(
@@ -343,8 +346,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Initialize Redis connection pool
     from app.core.redis import close_redis, init_redis
-    await init_redis()
-    logger.info("redis_connection_pool_initialized")
+    if settings.DISABLE_REDIS:
+        logger.info("redis_initialization_skipped", reason="disabled_via_settings")
+    else:
+        await init_redis()
+        logger.info("redis_connection_pool_initialized")
 
     # Check for unmigrated Sessions (Project-First migration)
     await check_unmigrated_sessions()

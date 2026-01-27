@@ -6,23 +6,22 @@ Create Date: 2026-01-24 00:05:00.000000
 
 This migration adds lowercase enum values that were missing for:
 - artifacttype
-- memberrole  
+- memberrole
 - orgstatus
 - messagerole
 
 These are needed because SQLAlchemy with values_callable uses .value (lowercase)
 but some original migrations only created uppercase values.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision: str = '8a9b0c1d2e3f'
-down_revision: Union[str, Sequence[str], None] = '62726dc81c01'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '62726dc81c01'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

@@ -9,7 +9,6 @@ Embedding 模块 - 提供语义向量化能力
 
 import logging
 import os
-import ssl
 from abc import ABC, abstractmethod
 
 # 修复 macOS SSL 证书问题（huggingface_hub 下载模型时需要）
@@ -105,6 +104,9 @@ class SentenceTransformerEmbedding(BaseEmbedding):
             raise
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")
+            import sys
+            if "pytest" in sys.modules:
+                raise ImportError("SentenceTransformer model not available in test environment") from e
             raise
 
     def encode(self, text: str) -> list[float]:

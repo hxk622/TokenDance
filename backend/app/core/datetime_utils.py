@@ -11,7 +11,7 @@ Datetime 工具函数
     now = utc_now()
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def utc_now() -> datetime:
@@ -22,7 +22,7 @@ def utc_now() -> datetime:
     Returns:
         当前 UTC 时间，带 timezone 信息
     """
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def utc_now_naive() -> datetime:
@@ -34,4 +34,4 @@ def utc_now_naive() -> datetime:
     Returns:
         当前 UTC 时间，不带 timezone 信息
     """
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)

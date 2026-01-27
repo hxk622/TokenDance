@@ -11,6 +11,7 @@
 - 所有源失败 -> 返回空结果 + 错误信息
 """
 import asyncio
+import importlib.util
 import logging
 import os
 import re
@@ -18,7 +19,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
-from urllib.parse import quote_plus, unquote, parse_qs, urlparse
+from urllib.parse import parse_qs, quote_plus, unquote, urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -98,11 +99,8 @@ class DuckDuckGoProvider(BaseSearchProvider):
 
     def __init__(self):
         # 使用 httpx 实现，不依赖 duckduckgo-search 库
-        try:
-            import httpx
-            self._httpx_available = True
-        except ImportError:
-            self._httpx_available = False
+        self._httpx_available = importlib.util.find_spec("httpx") is not None
+        if not self._httpx_available:
             logger.warning("httpx not installed, DuckDuckGo provider unavailable")
 
         self._available = self._httpx_available

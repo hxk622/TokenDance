@@ -8,8 +8,9 @@ TaskValidator 单元测试
 4. Domain 到 ValidationLevel 映射
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.agent.llm.base import BaseLLM, LLMResponse
 from app.agent.validator import (
@@ -18,7 +19,6 @@ from app.agent.validator import (
     ValidationResult,
     get_validation_level_for_domain,
 )
-
 
 # ========== Fixtures ==========
 
@@ -341,10 +341,10 @@ class TestTaskExecutorValidationIntegration:
     @pytest.mark.asyncio
     async def test_validation_disabled(self, mock_llm):
         """测试禁用验证"""
-        from app.agent.task_executor import TaskExecutor, TaskExecutorConfig
-        from app.agent.planning.task import Task
         from app.agent.execution_context import ExecutionContext
         from app.agent.executor import ToolCallExecutor
+        from app.agent.planning.task import Task
+        from app.agent.task_executor import TaskExecutor, TaskExecutorConfig
         from app.agent.types import SSEEventType
 
         mock_tool_executor = MagicMock(spec=ToolCallExecutor)

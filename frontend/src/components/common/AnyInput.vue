@@ -24,8 +24,12 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '',
   disabled: false,
   readonly: false,
+  icon: undefined,
+  iconRight: undefined,
   size: 'md',
   error: false,
+  errorMessage: '',
+  maxlength: undefined,
   autofocus: false
 })
 

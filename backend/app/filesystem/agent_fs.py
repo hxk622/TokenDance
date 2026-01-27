@@ -8,7 +8,7 @@ AgentFileSystem - Agent文件系统抽象层
 4. 支持监听式同步
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -198,8 +198,8 @@ class AgentFileSystem:
         if metadata:
             # 添加updated_at
             if "created_at" not in metadata:
-                metadata["created_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            metadata["updated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                metadata["created_at"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+            metadata["updated_at"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
             yaml_str = yaml.dump(metadata, allow_unicode=True, sort_keys=False)
             full_content = f"---\n{yaml_str}---\n\n{content}"

@@ -6,7 +6,6 @@ Project API Tests - Project-First Architecture
 import pytest
 from fastapi.testclient import TestClient
 
-
 # ========== Basic Route Tests ==========
 
 

@@ -371,9 +371,8 @@ class IndustryBenchmarkService:
         # 获取公司信息和行业
         company_info = self.COMPANY_INDUSTRY.get(symbol)
         if company_info:
-            company_name, industry = company_info
+            _, industry = company_info
         else:
-            company_name = f"Stock {symbol}"
             industry = "其他"
 
         if industry_code:

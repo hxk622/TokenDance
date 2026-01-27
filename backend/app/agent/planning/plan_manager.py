@@ -42,6 +42,12 @@ class TaskStatus(str, Enum):
     SKIPPED = "skipped"
 
 
+def _status_value(status: Any) -> str:
+    if isinstance(status, Enum):
+        return status.value
+    return str(status)
+
+
 @dataclass
 class Task:
     """
@@ -143,7 +149,10 @@ class Plan:
         Returns:
             List[Task]: 可执行的任务列表
         """
-        completed_ids = [t.id for t in self.tasks if t.status == TaskStatus.COMPLETED]
+        completed_ids = [
+            t.id for t in self.tasks
+            if _status_value(t.status) in ("completed", "success", "skipped")
+        ]
 
         next_tasks = []
         for task in self.tasks:
@@ -160,9 +169,18 @@ class Plan:
             dict: 进度信息
         """
         total = len(self.tasks)
-        completed = len([t for t in self.tasks if t.status == TaskStatus.COMPLETED])
-        failed = len([t for t in self.tasks if t.status == TaskStatus.FAILED])
-        in_progress = len([t for t in self.tasks if t.status == TaskStatus.IN_PROGRESS])
+        completed = len([
+            t for t in self.tasks
+            if _status_value(t.status) in ("completed", "success", "skipped")
+        ])
+        failed = len([
+            t for t in self.tasks
+            if _status_value(t.status) in ("failed", "error")
+        ])
+        in_progress = len([
+            t for t in self.tasks
+            if _status_value(t.status) in ("in_progress", "running")
+        ])
 
         return {
             "total": total,
@@ -192,13 +210,17 @@ class Plan:
 
         # 按依赖关系分组任务
         for i, task in enumerate(self.tasks, 1):
+            status_value = _status_value(task.status)
             status_icon = {
-                TaskStatus.COMPLETED: "✅",
-                TaskStatus.IN_PROGRESS: "🔄",
-                TaskStatus.FAILED: "❌",
-                TaskStatus.PENDING: "⏳",
-                TaskStatus.SKIPPED: "⏭️",
-            }.get(task.status, "❓")
+                "completed": "✅",
+                "success": "✅",
+                "in_progress": "🔄",
+                "running": "🔄",
+                "failed": "❌",
+                "error": "❌",
+                "pending": "⏳",
+                "skipped": "⏭️",
+            }.get(status_value, "❓")
 
             md_lines.append(f"### Task {i}: {task.title} {status_icon}")
             md_lines.append(f"**ID**: {task.id}")
@@ -300,21 +322,25 @@ class PlanManager:
             raise ValueError(f"Task not found: {task_id}")
 
         # 更新状态
-        if status == TaskStatus.IN_PROGRESS:
+        status_value = _status_value(status)
+
+        if status_value in ("in_progress", "running"):
             task.mark_started()
-        elif status == TaskStatus.COMPLETED:
+        elif status_value in ("completed", "success"):
             task.mark_completed()
             # 记录到progress.md
             self.three_files.update_progress(
                 f"✅ 完成任务: {task.title}"
             )
-        elif status == TaskStatus.FAILED:
+        elif status_value in ("failed", "error"):
             task.mark_failed(error or "Unknown error")
             # 记录错误到progress.md
             self.three_files.update_progress(
                 f"❌ 任务失败: {task.title}\n错误: {error}",
                 is_error=True
             )
+        elif status_value == "skipped" and hasattr(task, "mark_skipped"):
+            task.mark_skipped()
 
         # 同步到文件
         self._sync_to_file()
@@ -399,12 +425,16 @@ class PlanManager:
 """
 
         for task in self.current_plan.tasks[:5]:  # 只显示前5个任务
+            status_value = _status_value(task.status)
             status_icon = {
-                TaskStatus.COMPLETED: "✅",
-                TaskStatus.IN_PROGRESS: "🔄",
-                TaskStatus.FAILED: "❌",
-                TaskStatus.PENDING: "⏳",
-            }.get(task.status, "❓")
+                "completed": "✅",
+                "success": "✅",
+                "in_progress": "🔄",
+                "running": "🔄",
+                "failed": "❌",
+                "error": "❌",
+                "pending": "⏳",
+            }.get(status_value, "❓")
             summary += f"- {status_icon} {task.title}\n"
 
         if len(self.current_plan.tasks) > 5:

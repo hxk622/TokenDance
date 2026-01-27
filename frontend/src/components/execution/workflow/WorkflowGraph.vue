@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { ZoomIn, ZoomOut, Maximize2, RefreshCw } from 'lucide-vue-next'
 import NodeTooltip from './NodeTooltip.vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { storeToRefs } from 'pinia'
@@ -75,7 +76,6 @@ const edges = computed<Edge[]>(() => {
 })
 
 const selectedNodeId = ref<string | null>(null)
-const isCollapsed = ref(false)
 
 // Loading 状态基于 workflowStore
 const isLoading = computed(() => !isLoaded.value && nodes.value.length === 0)
@@ -104,9 +104,6 @@ function handleNodeDoubleClick(nodeId: string) {
   emit('node-double-click', nodeId)
 }
 
-function toggleCollapse() {
-  isCollapsed.value = !isCollapsed.value
-}
 
 function handleNodeHover(node: Node, event: MouseEvent) {
   tooltipVisible.value = true
@@ -216,14 +213,16 @@ function handleCanvasClick() {
 // 根据状态返回节点颜色
 function getNodeColor(status: Node['status']): string {
   const colors: Record<Node['status'], string> = {
-    pending: '#8E8E93',     // 灰色 - 未执行
-    running: '#FFB800',     // 黄色 - 执行中
-    success: '#00FF88',     // 绿色 - 已完成
-    error: '#FF3B30',       // 红色 - 出错
-    skipped: '#636366',     // 深灰 - 已跳过
+    pending: 'var(--any-text-tertiary)',
+    running: 'var(--exec-warning)',
+    success: 'var(--exec-success)',
+    error: 'var(--exec-error)',
+    skipped: 'var(--any-text-muted)',
   }
   return colors[status]
 }
+
+const completedCount = computed(() => nodes.value.filter(n => n.status === 'success').length)
 
 // 根据上游节点状态判断边是否激活（用于动画效果）
 function isEdgeActive(edge: Edge): boolean {
@@ -276,40 +275,33 @@ watch(() => props.sessionId, (newId) => {
 <template>
   <div
     class="workflow-graph"
-    :class="{ collapsed: isCollapsed }"
+    :class="{ 'mini-mode': miniMode }"
   >
     <!-- Toolbar -->
     <div class="graph-toolbar">
       <button
         class="btn-icon"
-        :title="isCollapsed ? '展开' : '折叠'"
-        @click="toggleCollapse"
-      >
-        <span>{{ isCollapsed ? '⬆' : '⬇' }}</span>
-      </button>
-      <button
-        class="btn-icon"
         title="缩小"
       >
-        <span>🔍-</span>
+        <ZoomOut class="w-4 h-4" />
       </button>
       <button
         class="btn-icon"
         title="放大"
       >
-        <span>🔍+</span>
+        <ZoomIn class="w-4 h-4" />
       </button>
       <button
         class="btn-icon"
         title="适应屏幕"
       >
-        <span>⛶</span>
+        <Maximize2 class="w-4 h-4" />
       </button>
       <button
         class="btn-icon"
         title="重置视图"
       >
-        <span>↻</span>
+        <RefreshCw class="w-4 h-4" />
       </button>
     </div>
 
@@ -331,20 +323,35 @@ watch(() => props.sessionId, (newId) => {
 
     <!-- Mini Graph (Collapsed Mode or Mini Mode) -->
     <div
-      v-else-if="isCollapsed || miniMode"
+      v-else-if="miniMode"
       class="mini-graph"
     >
-      <div 
-        v-for="node in nodes" 
-        :key="node.id" 
-        :class="['mini-node', node.status]"
-        :style="{ background: getNodeColor(node.status) }"
-        @click="handleNodeClick(node.id)"
+      <div class="mini-summary">
+        <span class="mini-title">执行概览</span>
+        <span class="mini-meta">{{ completedCount }}/{{ nodes.length }} 已完成</span>
+      </div>
+      <div
+        v-if="nodes.length > 0"
+        class="mini-nodes"
       >
-        <span
-          v-if="node.status === 'running'"
-          class="mini-node-pulse"
-        />
+        <div 
+          v-for="node in nodes" 
+          :key="node.id" 
+          :class="['mini-node', node.status]"
+          :style="{ background: getNodeColor(node.status) }"
+          @click="handleNodeClick(node.id)"
+        >
+          <span
+            v-if="node.status === 'running'"
+            class="mini-node-pulse"
+          />
+        </div>
+      </div>
+      <div
+        v-else
+        class="mini-empty"
+      >
+        暂无执行节点
       </div>
     </div>
 
@@ -370,14 +377,13 @@ watch(() => props.sessionId, (newId) => {
             :x2="nodes.find(n => n.id === edge.to)?.x"
             :y2="nodes.find(n => n.id === edge.to)?.y"
             :class="['edge', { active: isEdgeActive(edge) }]"
-            :stroke="isEdgeActive(edge) ? '#FFB800' : 'rgba(255, 255, 255, 0.3)'"
             stroke-width="2"
           />
           <!-- 箭头标记 -->
           <polygon
             v-if="nodes.find(n => n.id === edge.to)"
             :points="getArrowPoints(edge)"
-            :fill="isEdgeActive(edge) ? '#FFB800' : 'rgba(255, 255, 255, 0.3)'"
+            :class="['edge-arrow', { active: isEdgeActive(edge) }]"
           />
         </g>
       </g>
@@ -547,9 +553,10 @@ watch(() => props.sessionId, (newId) => {
   width: 100%;
   height: 100%;
   position: relative;
-  background: rgba(18, 18, 18, 0.75);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  --exec-warning: var(--td-state-waiting, #FFB800);
+  --exec-success: var(--td-state-executing, #00FF88);
+  --exec-error: var(--td-state-error, #FF3B30);
+  background: var(--any-bg-secondary);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--any-border);
@@ -571,8 +578,6 @@ watch(() => props.sessionId, (newId) => {
   border: 1px solid var(--any-border);
   border-radius: 6px;
   background: var(--any-bg-secondary);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
   color: var(--any-text-primary);
   cursor: pointer;
   display: flex;
@@ -582,8 +587,9 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .btn-icon:hover {
-  background: var(--td-state-thinking-bg);
-  border-color: var(--td-state-thinking);
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+  color: var(--any-text-primary);
 }
 
 /* Canvas */
@@ -600,38 +606,13 @@ watch(() => props.sessionId, (newId) => {
 .edge {
   transition: stroke 200ms ease-out;
   stroke-linecap: round;
+  stroke: var(--any-border);
 }
 
 .edge.active {
-  stroke: var(--vibe-color-active);
-  stroke-width: 3;
-  stroke-dasharray: 12 6;
-  animation: vibe-edge-flow 0.8s linear infinite;
-  filter: drop-shadow(0 0 6px var(--vibe-color-active-glow));
-}
-
-@keyframes vibe-edge-flow {
-  0% {
-    stroke-dashoffset: 18;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* Edge glow effect layer */
-.edge.active-glow {
-  stroke: var(--vibe-color-active);
-  stroke-width: 6;
-  stroke-linecap: round;
-  opacity: 0.3;
-  filter: blur(4px);
-  animation: vibe-edge-glow-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes vibe-edge-glow-pulse {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.4; }
+  stroke: var(--exec-warning);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
 }
 
 .edge-hitbox {
@@ -639,14 +620,21 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .edge-hitbox:hover + .edge {
-  stroke: color-mix(in srgb, var(--td-state-thinking) 60%, transparent);
-  stroke-width: 3;
+  stroke: color-mix(in srgb, var(--exec-warning) 60%, transparent);
+  stroke-width: 2.5;
 }
 
 .edge.dragging {
-  stroke: color-mix(in srgb, var(--td-state-waiting) 80%, transparent);
-  stroke-width: 3;
-  stroke-dasharray: 8 4;
+  stroke: color-mix(in srgb, var(--exec-warning) 60%, transparent);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+}
+.edge-arrow {
+  fill: var(--any-border);
+}
+
+.edge-arrow.active {
+  fill: var(--exec-warning);
 }
 
 /* Nodes */
@@ -660,8 +648,7 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .node circle {
-  filter: drop-shadow(0 0 10px currentColor);
-  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 200ms ease-out, opacity 200ms ease-out;
 }
 
 .node.selected circle {
@@ -671,32 +658,28 @@ watch(() => props.sessionId, (newId) => {
 
 /* Running node - 黄色脉冲呼吸动画 */
 .node circle.pulse {
-  animation: vibe-node-breath 1.5s ease-in-out infinite;
+  animation: vibe-node-breath 1.6s ease-in-out infinite;
 }
 
 @keyframes vibe-node-breath {
   0%, 100% {
     transform: scale(1);
     opacity: 1;
-    filter: drop-shadow(0 0 12px rgba(255, 184, 0, 0.6)) 
-            drop-shadow(0 0 24px rgba(255, 184, 0, 0.4));
   }
   50% {
-    transform: scale(1.15);
-    opacity: 0.92;
-    filter: drop-shadow(0 0 24px rgba(255, 184, 0, 0.8)) 
-            drop-shadow(0 0 48px rgba(255, 184, 0, 0.6));
+    transform: scale(1.08);
+    opacity: 0.9;
   }
 }
 
 /* Pending node - 灰色静态 */
 .node.status-pending circle {
-  filter: drop-shadow(0 0 8px rgba(142, 142, 147, 0.4));
+  opacity: 0.85;
 }
 
 /* Success node - 绿色光晕 */
 .node.status-success circle {
-  filter: drop-shadow(0 0 12px rgba(0, 255, 136, 0.5));
+  opacity: 0.95;
 }
 
 .node.status-success.just-completed circle {
@@ -713,7 +696,6 @@ watch(() => props.sessionId, (newId) => {
 /* Error node - 红色抖动 */
 .node.status-error circle {
   animation: vibe-node-error 0.4s ease-in-out;
-  filter: drop-shadow(0 0 12px rgba(255, 59, 48, 0.6));
 }
 
 @keyframes vibe-node-error {
@@ -738,11 +720,8 @@ watch(() => props.sessionId, (newId) => {
   gap: 16px;
   padding: 12px 16px;
   background: var(--any-bg-secondary);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 10px;
   border: 1px solid var(--any-border);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--any-bg-primary) 30%, transparent);
 }
 
 .legend-item {
@@ -760,52 +739,72 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .legend-dot.pending {
-  background: #8E8E93;
-  box-shadow: 0 0 6px rgba(142, 142, 147, 0.5);
+  background: var(--any-text-tertiary);
 }
 
 .legend-dot.running {
-  background: #FFB800;
-  box-shadow: 0 0 8px rgba(255, 184, 0, 0.6);
-  animation: vibe-legend-pulse 1.5s ease-in-out infinite;
+  background: var(--exec-warning);
 }
 
-@keyframes vibe-legend-pulse {
-  0%, 100% { box-shadow: 0 0 6px rgba(255, 184, 0, 0.4); }
-  50% { box-shadow: 0 0 12px rgba(255, 184, 0, 0.8); }
-}
 
 .legend-dot.success {
-  background: #00FF88;
-  box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+  background: var(--exec-success);
 }
 
 .legend-dot.error {
-  background: #FF3B30;
-  box-shadow: 0 0 6px rgba(255, 59, 48, 0.5);
+  background: var(--exec-error);
 }
 
-/* Collapse Mode */
-.workflow-graph.collapsed {
-  height: 80px;
-  min-height: 80px;
+/* Mini Mode */
+.workflow-graph.mini-mode {
+  height: 110px;
+  min-height: 110px;
   transition: height 200ms ease-out;
 }
 
 .mini-graph {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: center;
-  gap: 16px;
+  gap: 8px;
   height: 100%;
   padding: 16px;
 }
+.mini-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.mini-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--any-text-primary);
+}
+
+.mini-meta {
+  font-size: 12px;
+  color: var(--any-text-secondary);
+}
+
+.mini-nodes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mini-empty {
+  font-size: 12px;
+  color: var(--any-text-muted);
+}
 
 .mini-node {
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  box-shadow: 0 0 12px currentColor;
   transition: all 200ms ease-out;
   cursor: pointer;
   position: relative;
@@ -816,19 +815,16 @@ watch(() => props.sessionId, (newId) => {
 }
 
 .mini-node.running {
-  animation: vibe-mini-pulse 1.5s ease-in-out infinite;
+  animation: vibe-mini-pulse 1.6s ease-in-out infinite;
 }
-
 @keyframes vibe-mini-pulse {
   0%, 100% {
-    box-shadow: 0 0 12px var(--vibe-color-active-glow), 
-                0 0 24px var(--vibe-color-active-glow);
     transform: scale(1);
+    opacity: 0.9;
   }
   50% {
-    box-shadow: 0 0 20px var(--vibe-color-active-glow-strong), 
-                0 0 40px var(--vibe-color-active-glow-strong);
     transform: scale(1.08);
+    opacity: 1;
   }
 }
 
@@ -836,8 +832,8 @@ watch(() => props.sessionId, (newId) => {
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  border: 2px solid var(--vibe-color-active);
-  animation: vibe-ring-expand 1.5s ease-out infinite;
+  border: 2px solid var(--exec-warning);
+  animation: vibe-ring-expand 1.6s ease-out infinite;
 }
 
 @keyframes vibe-ring-expand {
@@ -857,8 +853,8 @@ watch(() => props.sessionId, (newId) => {
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  border: 1px solid var(--vibe-color-active);
-  animation: vibe-ring-expand 1.5s ease-out infinite 0.3s;
+  border: 1px solid var(--exec-warning);
+  animation: vibe-ring-expand 1.6s ease-out infinite 0.3s;
 }
 
 /* Skeleton Loading */
@@ -883,14 +879,14 @@ watch(() => props.sessionId, (newId) => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 100%);
+  background: linear-gradient(90deg, var(--any-bg-tertiary) 0%, var(--any-bg-hover) 50%, var(--any-bg-tertiary) 100%);
 }
 
 .skeleton-label {
   width: 80px;
   height: 12px;
   border-radius: 4px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 100%);
+  background: linear-gradient(90deg, var(--any-bg-tertiary) 0%, var(--any-bg-hover) 50%, var(--any-bg-tertiary) 100%);
 }
 
 .skeleton-shimmer {
@@ -899,7 +895,7 @@ watch(() => props.sessionId, (newId) => {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.05) 50%,
+    color-mix(in srgb, var(--any-bg-hover) 40%, transparent) 50%,
     transparent 100%
   );
   animation: shimmer 1.5s infinite;

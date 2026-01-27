@@ -73,7 +73,7 @@ class TestWeChatSearchTool:
         })
 
         with patch.object(tool, "_get_searcher", return_value=mock_searcher):
-            result = await tool.execute(query="AI Agent")
+            await tool.execute(query="AI Agent")
 
             # Verify search was called with site: filter
             mock_searcher.search.assert_called_once()

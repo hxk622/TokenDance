@@ -11,7 +11,13 @@ from unittest.mock import Mock
 
 import pytest
 
+from app.agent.tools import file_converter
 from app.agent.tools.file_converter import FileConverterTool
+
+pytestmark = pytest.mark.skipif(
+    file_converter.MarkItDown is None,
+    reason="MarkItDown not installed",
+)
 
 
 class TestFileConverterTool:

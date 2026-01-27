@@ -19,8 +19,8 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Any
 
+from app.agent.checkpoint.manager import CheckpointManager
 from app.agent.context_manager import ContextManager
-from app.core.datetime_utils import utc_now_naive
 from app.agent.context_manager import Message as CtxMessage
 
 # Unified Execution Architecture
@@ -43,6 +43,7 @@ from app.agent.llm.base import BaseLLM, LLMResponse
 
 # Distributed memory & feedback
 from app.agent.long_memory.distributed import DistributedMemory, Lesson
+from app.agent.memory.infinite_memory import InfiniteMemoryConfig, InfiniteMemoryManager
 
 # Planning System (Unified Architecture)
 from app.agent.planning import (
@@ -77,13 +78,12 @@ from app.agent.tools.init_tools import register_builtin_tools
 from app.agent.tools.registry import ToolRegistry
 from app.agent.types import ExecutionMode, SSEEvent, SSEEventType
 from app.agent.working_memory.three_files import ThreeFilesManager
-from app.agent.memory.infinite_memory import InfiniteMemoryManager, InfiniteMemoryConfig
-from app.agent.checkpoint.manager import CheckpointManager, Checkpoint
 from app.context.unified_context import (
     ExecutionStatus,
     ExecutionType,
     get_unified_context,
 )
+from app.core.datetime_utils import utc_now_naive
 from app.core.logging import get_logger
 from app.filesystem import AgentFileSystem
 from app.mcp.executor import (

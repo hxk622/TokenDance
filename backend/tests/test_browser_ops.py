@@ -4,6 +4,7 @@ Browser Operations Tools 集成测试
 测试 agent-browser 集成是否正常工作。
 """
 import asyncio
+import os
 
 import pytest
 
@@ -14,6 +15,11 @@ from app.agent.tools.builtin.browser_ops import (
     cleanup_browser_session,
 )
 from app.services.browser_automation import AgentBrowserService, SnapshotResult
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("RUN_INTEGRATION_TESTS"),
+    reason="Set RUN_INTEGRATION_TESTS=1 to run browser integration tests",
+)
 
 
 class TestAgentBrowserService:

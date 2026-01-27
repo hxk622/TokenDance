@@ -22,8 +22,6 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.datetime_utils import utc_now_naive
-
 from contextlib import asynccontextmanager
 
 from sqlalchemy import func, select, update
@@ -31,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import async_session_maker
+from app.core.datetime_utils import utc_now_naive
 from app.models.artifact import Artifact
 from app.models.conversation import Conversation, ConversationPurpose, ConversationStatus
 from app.models.message import Message

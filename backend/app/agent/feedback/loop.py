@@ -27,7 +27,7 @@ class FeedbackLoop:
 
     def record(self, feedback: UserFeedback) -> None:
         """将反馈以一条 Lesson 的形式写入 learnings.md"""
-        from app.agent.memory.distributed import DistributedMemory, Lesson
+        from app.agent.long_memory.distributed import DistributedMemory, Lesson
 
         dm = DistributedMemory(self.fs)
         dm.store_lessons([

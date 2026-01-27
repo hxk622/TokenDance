@@ -8,10 +8,8 @@ Agent Worker - 持续运行的 Agent 执行器
 4. 更新 shared_memory
 5. 保存执行结果
 """
-import asyncio
 import json
 import logging
-from typing import Dict, Optional
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +21,6 @@ from app.agent.llm.unified_router import get_router
 from app.agent.tools import ToolRegistry
 from app.agent.tools.init_tools import register_builtin_tools
 from app.core.config import Settings
-from app.models.turn import TurnStatus
 from app.repositories.message_repository import MessageRepository
 from app.services.conversation_service import ConversationService
 from app.services.session_service import SessionService
@@ -54,7 +51,7 @@ class AgentWorker:
         self.db = db
         self.settings = settings
         self.event_store = event_store
-        self.running_agents: Dict[str, DeepResearchAgent] = {}
+        self.running_agents: dict[str, DeepResearchAgent] = {}
 
     async def start(self):
         """
@@ -112,6 +109,16 @@ class AgentWorker:
             )
             if not conversation:
                 raise ValueError(f"Conversation {conversation_id} not found")
+            from app.models.project import Project
+            from app.models.workspace import Workspace
+
+            project = await self.db.get(Project, conversation.project_id)
+            if not project:
+                raise ValueError(f"Project {conversation.project_id} not found")
+
+            workspace = await self.db.get(Workspace, project.workspace_id)
+            if not workspace:
+                raise ValueError(f"Workspace {project.workspace_id} not found")
 
             # 2. 加载历史消息 (最近 20 条)
             message_history = await conversation_service.get_message_history(
@@ -124,7 +131,7 @@ class AgentWorker:
 
             # 4. 创建 Session
             session = await session_service.create_session(
-                workspace_id=conversation.workspace_id,
+                workspace_id=project.workspace_id,
                 title=f"Turn {conversation.turn_count}",
             )
             session.conversation_id = conversation_id
@@ -142,7 +149,7 @@ class AgentWorker:
             await self.db.commit()
 
             # 6. 创建 Working Memory (从 shared_memory 恢复)
-            workspace_path = self._get_workspace_path(conversation)
+            workspace_path = self._get_workspace_path(project.workspace_id, conversation.id)
             memory = await create_working_memory(
                 workspace_path=workspace_path,
                 session_id=session.id,
@@ -156,8 +163,8 @@ class AgentWorker:
             # 7. 创建 Agent Context
             context = AgentContext(
                 session_id=session.id,
-                user_id=conversation.workspace.owner_id,
-                workspace_id=conversation.workspace_id,
+                user_id=workspace.owner_id,
+                workspace_id=project.workspace_id,
             )
 
             # 8. 创建 Agent
@@ -355,13 +362,13 @@ class AgentWorker:
 
         return memory_update
 
-    def _get_workspace_path(self, conversation) -> str:
+    def _get_workspace_path(self, workspace_id: str, conversation_id: str) -> str:
         """获取工作空间路径"""
         import os
         return os.path.join(
             self.settings.SESSIONS_DATA_PATH,
-            conversation.workspace_id,
-            conversation.id,
+            workspace_id,
+            conversation_id,
         )
 
 

@@ -5,6 +5,7 @@ API Integration Tests
 """
 
 import os
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,14 +13,15 @@ from httpx import AsyncClient
 
 # 跳过如果没有配置 API KEY
 pytestmark = pytest.mark.skipif(
-    not os.getenv("OPENROUTER_API_KEY"),
-    reason="OPENROUTER_API_KEY not set"
+    not os.getenv("RUN_INTEGRATION_TESTS")
+    or not (os.getenv("OPENROUTER_API_KEY") or os.getenv("SILICONFLOW_API_KEY")),
+    reason="RUN_INTEGRATION_TESTS and LLM API key must be set",
 )
 
 
 # ========== Fixtures ==========
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def test_client():
     """创建测试客户端"""
     from app.main import app
@@ -34,14 +36,44 @@ async def async_client():
         yield ac
 
 
+@pytest.fixture(scope="session")
+def auth_context(test_client):
+    """注册测试用户并返回 auth token + workspace id"""
+    email = f"itest_{uuid4().hex[:8]}@example.com"
+    username = f"itest_{uuid4().hex[:8]}"
+    password = "SecurePass123!"
+    response = test_client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "username": username, "password": password},
+    )
+    if response.status_code != 201:
+        response = test_client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": password},
+        )
+        assert response.status_code == 200
+    data = response.json()
+    token = data["tokens"]["access_token"]
+    workspace_id = data.get("default_workspace_id") or data.get("workspace_id")
+    assert token
+    assert workspace_id
+    return {"token": token, "workspace_id": workspace_id}
+
+
+@pytest.fixture(scope="session")
+def auth_headers(auth_context):
+    """Authorization header for integration tests."""
+    return {"Authorization": f"Bearer {auth_context['token']}"}
+
+
 @pytest.fixture
-def test_workspace_id():
+def test_workspace_id(auth_context):
     """测试用的 workspace ID"""
-    return "test_workspace_api"
+    return auth_context["workspace_id"]
 
 
 @pytest.fixture
-async def test_session(test_client, test_workspace_id):
+async def test_session(test_client, test_workspace_id, auth_headers):
     """创建测试 session"""
     response = test_client.post(
         "/api/v1/sessions",
@@ -49,7 +81,9 @@ async def test_session(test_client, test_workspace_id):
             "workspace_id": test_workspace_id,
             "user_id": "test_user",
             "title": "API Integration Test"
-        }
+        },
+
+        headers=auth_headers,
     )
 
     assert response.status_code == 201
@@ -58,12 +92,12 @@ async def test_session(test_client, test_workspace_id):
     yield session
 
     # 清理: 删除 session
-    test_client.delete(f"/api/v1/sessions/{session['id']}")
+    test_client.delete(f"/api/v1/sessions/{session['id']}", headers=auth_headers)
 
 
 # ========== Session API Tests ==========
 
-def test_create_session(test_client, test_workspace_id):
+def test_create_session(test_client, test_workspace_id, auth_headers):
     """测试创建 Session"""
     response = test_client.post(
         "/api/v1/sessions",
@@ -71,7 +105,8 @@ def test_create_session(test_client, test_workspace_id):
             "workspace_id": test_workspace_id,
             "user_id": "test_user",
             "title": "Test Session"
-        }
+        },
+        headers=auth_headers,
     )
 
     assert response.status_code == 201
@@ -82,10 +117,11 @@ def test_create_session(test_client, test_workspace_id):
     assert data["title"] == "Test Session"
 
 
-def test_list_sessions(test_client, test_workspace_id, test_session):
+def test_list_sessions(test_client, test_workspace_id, test_session, auth_headers):
     """测试列出 Sessions"""
     response = test_client.get(
-        f"/api/v1/sessions?workspace_id={test_workspace_id}"
+        f"/api/v1/sessions?workspace_id={test_workspace_id}",
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -95,11 +131,11 @@ def test_list_sessions(test_client, test_workspace_id, test_session):
     assert len(data["items"]) > 0
 
 
-def test_get_session(test_client, test_session):
+def test_get_session(test_client, test_session, auth_headers):
     """测试获取 Session 详情"""
     session_id = test_session["id"]
 
-    response = test_client.get(f"/api/v1/sessions/{session_id}")
+    response = test_client.get(f"/api/v1/sessions/{session_id}", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -109,7 +145,7 @@ def test_get_session(test_client, test_session):
 
 # ========== Messages API Tests ==========
 
-def test_send_message_no_stream(test_client, test_session):
+def test_send_message_no_stream(test_client, test_session, auth_headers):
     """测试发送消息（非流式）"""
     session_id = test_session["id"]
 
@@ -118,7 +154,8 @@ def test_send_message_no_stream(test_client, test_session):
         json={
             "content": "2 + 2 等于几？",
             "stream": False
-        }
+        },
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -131,7 +168,7 @@ def test_send_message_no_stream(test_client, test_session):
 
 
 @pytest.mark.asyncio
-async def test_send_message_stream(async_client, test_session):
+async def test_send_message_stream(async_client, test_session, auth_headers):
     """测试发送消息（流式）"""
     session_id = test_session["id"]
 
@@ -141,7 +178,8 @@ async def test_send_message_stream(async_client, test_session):
         json={
             "content": "简单说一下 FastAPI 是什么",
             "stream": True
-        }
+        },
+        headers=auth_headers,
     ) as response:
         assert response.status_code == 200
         assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
@@ -163,7 +201,7 @@ async def test_send_message_stream(async_client, test_session):
         assert "done" in event_types
 
 
-def test_get_messages(test_client, test_session):
+def test_get_messages(test_client, test_session, auth_headers):
     """测试获取消息历史"""
     session_id = test_session["id"]
 
@@ -173,11 +211,12 @@ def test_get_messages(test_client, test_session):
         json={
             "content": "Hello",
             "stream": False
-        }
+        },
+        headers=auth_headers,
     )
 
     # 获取消息历史
-    response = test_client.get(f"/api/v1/sessions/{session_id}/messages")
+    response = test_client.get(f"/api/v1/sessions/{session_id}/messages", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -187,7 +226,7 @@ def test_get_messages(test_client, test_session):
     assert len(data["items"]) >= 2
 
 
-def test_get_working_memory(test_client, test_session):
+def test_get_working_memory(test_client, test_session, auth_headers):
     """测试获取 Working Memory"""
     session_id = test_session["id"]
 
@@ -197,12 +236,14 @@ def test_get_working_memory(test_client, test_session):
         json={
             "content": "创建一个简单的任务计划",
             "stream": False
-        }
+        },
+        headers=auth_headers,
     )
 
     # 获取 Working Memory
     response = test_client.get(
-        f"/api/v1/sessions/{session_id}/working-memory"
+        f"/api/v1/sessions/{session_id}/working-memory",
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -220,9 +261,9 @@ def test_get_working_memory(test_client, test_session):
 
 # ========== Error Handling Tests ==========
 
-def test_session_not_found(test_client):
+def test_session_not_found(test_client, auth_headers):
     """测试 Session 不存在的情况"""
-    response = test_client.get("/api/v1/sessions/nonexistent_id")
+    response = test_client.get("/api/v1/sessions/nonexistent_id", headers=auth_headers)
 
     assert response.status_code == 404
     data = response.json()
@@ -230,20 +271,21 @@ def test_session_not_found(test_client):
     assert "error" in data
 
 
-def test_send_message_to_nonexistent_session(test_client):
+def test_send_message_to_nonexistent_session(test_client, auth_headers):
     """测试向不存在的 Session 发送消息"""
     response = test_client.post(
         "/api/v1/sessions/nonexistent_id/messages",
         json={
             "content": "Hello",
             "stream": False
-        }
+        },
+        headers=auth_headers,
     )
 
     assert response.status_code == 404
 
 
-def test_invalid_request_body(test_client, test_session):
+def test_invalid_request_body(test_client, test_session, auth_headers):
     """测试无效的请求体"""
     session_id = test_session["id"]
 
@@ -252,7 +294,8 @@ def test_invalid_request_body(test_client, test_session):
         json={
             # 缺少必需的 content 字段
             "stream": True
-        }
+        },
+        headers=auth_headers,
     )
 
     assert response.status_code == 422
@@ -265,7 +308,7 @@ def test_invalid_request_body(test_client, test_session):
 # ========== Performance Tests ==========
 
 @pytest.mark.slow
-def test_concurrent_messages(test_client, test_session):
+def test_concurrent_messages(test_client, test_session, auth_headers):
     """测试并发发送消息"""
     session_id = test_session["id"]
 
@@ -277,7 +320,8 @@ def test_concurrent_messages(test_client, test_session):
             json={
                 "content": f"什么是 {n}？",
                 "stream": False
-            }
+            },
+            headers=auth_headers,
         )
         return response.status_code
 

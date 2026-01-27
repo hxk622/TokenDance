@@ -302,7 +302,7 @@ LLM Errors:
 🎯 KEY INSIGHTS
 ────────────────────────────────────────────────────────────────────
 • Fastest Path:       Skill ({latency['skill']['avg_ms']:.1f}ms avg)
-• Most Used Path:     {max(distribution, key=distribution.get).upper()}
+• Most Used Path:     {max(distribution, key=lambda k: distribution[k]).upper()}
 • Most Reliable:      {max(success_rates, key=lambda x: success_rates[x] if x != 'overall' else 0).upper()} ({max([success_rates[k] for k in ['skill', 'mcp', 'llm']]):.1%})
 """
 

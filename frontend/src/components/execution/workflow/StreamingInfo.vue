@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, toRef } from 'vue'
-import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw } from 'lucide-vue-next'
+import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw, ChevronDown } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
 import { ChatInput, ChatFormMessage, BrowserPreviewCard, AssistantBubble, UserBubble } from '@/components/execution/chat'
@@ -106,6 +106,7 @@ watch(() => props.initPhase, () => {
 const executionStore = useExecutionStore()
 // 使用 store 的 researchProgress 作为数据源 (单一数据源原则)
 const researchProgress = toRef(executionStore, 'researchProgress')
+const chatPhase = toRef(executionStore, 'chatPhase')
 const isResearchProgressCollapsed = ref(false)
 const isInterventionPanelCollapsed = ref(false)
 const isInterventionSending = ref(false)
@@ -246,6 +247,24 @@ const chatContainerRef = ref<HTMLElement | null>(null)
 const isScrollLocked = ref(false)
 const userScrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const isUserScrolling = ref(false)
+const unreadCount = ref(0)
+const visibleItemLimit = ref(120)
+const loadMoreStep = 60
+
+const chatPhaseLabel = computed(() => {
+  switch (chatPhase.value) {
+    case 'planning':
+      return '规划中'
+    case 'executing':
+      return '执行中'
+    case 'answering':
+      return '汇总中'
+    case 'done':
+      return '已完成'
+    default:
+      return ''
+  }
+})
 
 // Initialize with user message when userInput changes
 watch(() => props.userInput, (newInput) => {
@@ -261,7 +280,7 @@ watch(() => props.userInput, (newInput) => {
   }
 }, { immediate: true })
 
-// Mock: Simulate AI response stream (for demo)
+// Demo helper: Simulate AI response stream (demo sessions only)
 function simulateAIResponse() {
   // Add thinking message
   const thinkingMsg: ChatMessage = {
@@ -310,9 +329,11 @@ function simulateAIResponse() {
   }, 5000)
 }
 
-// Start demo when entering executing phase
+const isDemoSession = computed(() => props.sessionId === 'demo' || props.sessionId.startsWith('demo-'))
+
+// Start demo when entering executing phase (demo sessions only)
 watch(() => props.initPhase, (phase) => {
-  if (phase === 'executing' && messages.value.length <= 1) {
+  if (phase === 'executing' && isDemoSession.value && messages.value.length <= 1) {
     setTimeout(simulateAIResponse, 500)
   }
 })
@@ -321,6 +342,26 @@ watch(() => props.initPhase, (phase) => {
 function scrollToBottom() {
   if (isScrollLocked.value || isUserScrolling.value) return
   
+  nextTick(() => {
+    const container = chatContainerRef.value
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+      unreadCount.value = 0
+    }
+  })
+}
+function isNearBottom() {
+  const container = chatContainerRef.value
+  if (!container) return true
+  const threshold = 80
+  return container.scrollHeight - container.scrollTop - container.clientHeight < threshold
+}
+
+function handleJumpToBottom() {
+  unreadCount.value = 0
   nextTick(() => {
     const container = chatContainerRef.value
     if (container) {
@@ -347,6 +388,10 @@ function handleUserScroll() {
   userScrollTimeout.value = setTimeout(() => {
     isUserScrolling.value = false
   }, 3000)
+
+  if (isNearBottom()) {
+    unreadCount.value = 0
+  }
 }
 
 // Format timestamp (relative time)
@@ -540,7 +585,7 @@ type TimelineItem =
   | { type: 'message'; data: ChatMessage }
   | { type: 'browser'; data: BrowserEvent }
 
-const timelineItems = computed<TimelineItem[]>(() => {
+const timelineItemsAll = computed<TimelineItem[]>(() => {
   const items: TimelineItem[] = []
   
   // Add visible messages
@@ -556,6 +601,36 @@ const timelineItems = computed<TimelineItem[]>(() => {
   // Sort by timestamp
   return items.sort((a, b) => a.data.timestamp - b.data.timestamp)
 })
+
+const timelineItems = computed<TimelineItem[]>(() => {
+  const items = timelineItemsAll.value
+  if (items.length <= visibleItemLimit.value) return items
+  return items.slice(-visibleItemLimit.value)
+})
+
+const hiddenItemCount = computed(() => {
+  return Math.max(0, timelineItemsAll.value.length - timelineItems.value.length)
+})
+
+function loadEarlier() {
+  visibleItemLimit.value = Math.min(
+    visibleItemLimit.value + loadMoreStep,
+    timelineItemsAll.value.length
+  )
+}
+
+watch(
+  () => timelineItemsAll.value.length,
+  (next, prev) => {
+    if (next <= prev) return
+    const delta = next - prev
+    if (!isNearBottom() || isScrollLocked.value || isUserScrolling.value) {
+      unreadCount.value += delta
+      return
+    }
+    scrollToBottom()
+  }
+)
 
 // ========================================
 // Legacy methods for compatibility
@@ -777,7 +852,15 @@ defineExpose({
       v-if="initPhase === 'executing' || initPhase === 'ready'"
       class="chat-header"
     >
-      <span class="chat-title">对话</span>
+      <div class="chat-title-group">
+        <span class="chat-title">对话</span>
+        <span
+          v-if="chatPhaseLabel"
+          class="chat-phase-badge"
+        >
+          {{ chatPhaseLabel }}
+        </span>
+      </div>
       <button 
         :class="['btn-lock', { locked: isScrollLocked }]"
         :title="isScrollLocked ? '解锁自动滚动' : '固定视图'"
@@ -829,7 +912,7 @@ defineExpose({
     <!-- Research Progress - Block Mode (v2.0 Block 化进度面板) -->
     <div
       v-if="(initPhase === 'executing' || initPhase === 'ready') && isDeepResearch && useBlockMode"
-      class="research-blocks-container"
+      class="research-blocks-container streaming-section"
     >
       <ResearchBlockList
         ref="researchBlockListRef"
@@ -845,7 +928,7 @@ defineExpose({
     <!-- Research Progress Panel - Legacy Mode (旧版深度研究进度面板) -->
     <div
       v-if="(initPhase === 'executing' || initPhase === 'ready') && isDeepResearch && !useBlockMode && researchProgress"
-      class="research-progress-container"
+      class="research-progress-container streaming-section"
     >
       <ResearchProgress
         :progress="researchProgress"
@@ -857,14 +940,18 @@ defineExpose({
     </div>
 
     <!-- Research Intervention Panel (研究干预面板 - 两种模式共用) -->
-    <InterventionPanel
+    <div
       v-if="initPhase === 'executing' && isDeepResearch && (researchProgress || useBlockMode)"
-      :progress="researchProgress"
-      :collapsed="isInterventionPanelCollapsed"
-      :sending="isInterventionSending"
-      @intervene="handleResearchIntervene"
-      @toggle-collapse="isInterventionPanelCollapsed = !isInterventionPanelCollapsed"
-    />
+      class="streaming-section"
+    >
+      <InterventionPanel
+        :progress="researchProgress"
+        :collapsed="isInterventionPanelCollapsed"
+        :sending="isInterventionSending"
+        @intervene="handleResearchIntervene"
+        @toggle-collapse="isInterventionPanelCollapsed = !isInterventionPanelCollapsed"
+      />
+    </div>
 
     <!-- Chat Messages & Browser Events (Dialog Style - Flatten principle) -->
     <div
@@ -873,6 +960,18 @@ defineExpose({
       class="chat-container"
       @scroll="handleUserScroll"
     >
+      <div
+        v-if="hiddenItemCount > 0"
+        class="load-earlier"
+      >
+        <button
+          class="load-earlier-btn"
+          @click="loadEarlier"
+        >
+          <ChevronDown class="load-earlier-icon" />
+          <span>加载更早内容 ({{ hiddenItemCount }})</span>
+        </button>
+      </div>
       <template
         v-for="item in timelineItems"
         :key="item.data.id"
@@ -957,6 +1056,19 @@ defineExpose({
       >
         <p>等待对话开始...</p>
       </div>
+
+      <div
+        v-if="unreadCount > 0"
+        class="new-message-indicator"
+      >
+        <button
+          class="new-message-btn"
+          @click="handleJumpToBottom"
+        >
+          <ChevronDown class="new-message-icon" />
+          <span>有 {{ unreadCount }} 条新消息</span>
+        </button>
+      </div>
     </div>
     
     <!-- Bottom Chat Input -->
@@ -982,7 +1094,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background: var(--any-bg-primary);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ========================================
@@ -994,12 +1106,30 @@ defineExpose({
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid var(--any-border);
+  background: var(--any-bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.chat-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chat-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--any-text-primary);
+}
+.chat-phase-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--any-text-secondary);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
 }
 
 .btn-lock {
@@ -1037,6 +1167,10 @@ defineExpose({
   overflow-y: auto;
 }
 
+.streaming-section {
+  border-bottom: 1px solid var(--any-border);
+}
+
 .research-blocks-container::-webkit-scrollbar {
   width: 6px;
 }
@@ -1060,6 +1194,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
 }
 
 .chat-container::-webkit-scrollbar {
@@ -1087,6 +1222,71 @@ defineExpose({
   max-width: 100%;
 }
 
+/* Load earlier */
+.load-earlier {
+  display: flex;
+  justify-content: center;
+}
+
+.load-earlier-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
+  color: var(--any-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.load-earlier-btn:hover {
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+}
+
+.load-earlier-icon {
+  width: 14px;
+  height: 14px;
+  transform: rotate(180deg);
+}
+
+/* New message indicator */
+.new-message-indicator {
+  position: sticky;
+  bottom: 8px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.new-message-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--any-border);
+  background: var(--any-bg-secondary);
+  color: var(--any-text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.new-message-btn:hover {
+  background: var(--any-bg-hover);
+  border-color: var(--any-border-hover);
+}
+
+.new-message-icon {
+  width: 14px;
+  height: 14px;
+}
+
 /* ========================================
    Chat Message
    ======================================== */
@@ -1108,8 +1308,8 @@ defineExpose({
 /* Avatar */
 .avatar {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
@@ -1132,7 +1332,7 @@ defineExpose({
 
 .ai-avatar {
   background: var(--any-bg-tertiary);
-  padding: 6px;
+  padding: 4px;
 }
 
 .ai-avatar img {
@@ -1533,6 +1733,14 @@ defineExpose({
   padding: 12px 16px;
   border-top: 1px solid var(--any-border);
   background: var(--any-bg-primary);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(var(--any-bg-primary-rgb, 255, 255, 255), 0.92);
 }
 
 /* ========================================

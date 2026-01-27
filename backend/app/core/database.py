@@ -3,10 +3,12 @@ Database configuration and session management.
 Uses SQLAlchemy 2.0 with async support.
 """
 from collections.abc import AsyncGenerator
+import sys
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -14,13 +16,22 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 # Create async engine
+use_null_pool = "pytest" in sys.modules
+engine_kwargs: dict[str, object] = {
+    "echo": settings.DEBUG,
+    "pool_pre_ping": True,  # Verify connections before using
+    "pool_recycle": 3600,   # Recycle connections after 1 hour
+}
+
+if use_null_pool:
+    engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # Verify connections before using
-    pool_recycle=3600,   # Recycle connections after 1 hour
+    **engine_kwargs,
 )
 
 # Create async session factory
@@ -84,13 +95,13 @@ async def check_db_health() -> bool:
 async def check_tables_exist() -> tuple[bool, list[str]]:
     """
     Check if critical database tables exist.
-    
+
     Returns:
         Tuple of (all_exist: bool, missing_tables: list[str])
     """
     critical_tables = ['users', 'workspaces', 'sessions', 'messages']
     missing_tables = []
-    
+
     try:
         async with engine.connect() as conn:
             for table in critical_tables:
@@ -107,7 +118,7 @@ async def check_tables_exist() -> tuple[bool, list[str]]:
                 exists = result.scalar()
                 if not exists:
                     missing_tables.append(table)
-        
+
         return len(missing_tables) == 0, missing_tables
     except Exception as e:
         logger.error("table_check_failed", error=str(e))
@@ -117,19 +128,19 @@ async def check_tables_exist() -> tuple[bool, list[str]]:
 async def run_migrations() -> bool:
     """
     Run database migrations using Alembic.
-    
+
     Returns:
         True if migrations succeeded, False otherwise
     """
-    import subprocess
     import os
-    
+    import subprocess
+
     try:
         # Get the backend directory path
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        
+
         logger.info("running_database_migrations", backend_dir=backend_dir)
-        
+
         result = subprocess.run(
             ["alembic", "upgrade", "head"],
             cwd=backend_dir,
@@ -137,13 +148,13 @@ async def run_migrations() -> bool:
             text=True,
             timeout=60
         )
-        
+
         if result.returncode == 0:
             logger.info("database_migrations_completed", output=result.stdout)
             return True
         else:
-            logger.error("database_migrations_failed", 
-                        stderr=result.stderr, 
+            logger.error("database_migrations_failed",
+                        stderr=result.stderr,
                         stdout=result.stdout,
                         returncode=result.returncode)
             return False

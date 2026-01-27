@@ -277,30 +277,31 @@ class TaskExecutor:
                 # 1. 构建 Prompt
                 prompt = build_task_prompt(task, context)
 
-                # 2. 调用 LLM
+                # 2. 调用 LLM (流式)
                 yield SSEEvent(
                     type=SSEEventType.THINKING,
                     data={"content": f"Iteration {self._iteration_count}: Thinking...\n"}
                 )
 
-                response = await self.llm.complete(
+                # 流式收集响应
+                response_content = ""
+                async for chunk in self.llm.stream(
                     messages=[LLMMessage(role="user", content=prompt)],
                     system=TASK_EXECUTION_SYSTEM_PROMPT,
-                )
-
-                # 更新 token 统计
-                if response.usage:
-                    context.add_token_usage(
-                        input_tokens=response.usage.get("input_tokens", 0),
-                        output_tokens=response.usage.get("output_tokens", 0),
+                ):
+                    response_content += chunk
+                    # 逐 token 发送 CONTENT 事件
+                    yield SSEEvent(
+                        type=SSEEventType.CONTENT,
+                        data={"content": chunk}
                     )
 
                 # 添加到上下文
-                context.add_assistant_message(response.content)
+                context.add_assistant_message(response_content)
 
                 # 3. 检查是否完成
-                if self._is_task_complete(response.content):
-                    output = self._extract_completion(response.content)
+                if self._is_task_complete(response_content):
+                    output = self._extract_completion(response_content)
                     logger.info(f"Task completed: {task.title}")
 
                     # ========== 执行验证 ==========
@@ -319,9 +320,9 @@ class TaskExecutor:
                     return
 
                 # 4. 检查是否有工具调用
-                if self.config.enable_tool_calls and self.tool_executor.has_tool_calls(response.content):
+                if self.config.enable_tool_calls and self.tool_executor.has_tool_calls(response_content):
                     # 解析工具调用
-                    tool_calls = self.tool_executor.parse_tool_calls(response.content)
+                    tool_calls = self.tool_executor.parse_tool_calls(response_content)
 
                     if tool_calls:
                         # 发送工具调用事件
@@ -368,9 +369,9 @@ class TaskExecutor:
 
                 # 5. 既没有完成标记也没有工具调用
                 # 检查是否有 <answer> 标记 (兼容旧格式)
-                if self.tool_executor.has_final_answer(response.content):
-                    answer = self.tool_executor.extract_answer(response.content)
-                    output = answer or response.content
+                if self.tool_executor.has_final_answer(response_content):
+                    answer = self.tool_executor.extract_answer(response_content)
+                    output = answer or response_content
                     logger.info(f"Task completed with answer: {task.title}")
 
                     # ========== 执行验证 (answer 路径) ==========

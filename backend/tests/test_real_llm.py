@@ -10,6 +10,8 @@ import os
 import sys
 import tempfile
 
+import pytest
+
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,6 +22,11 @@ from app.agent import (
 )
 from app.agent.llm import create_openrouter_llm
 from app.agent.tools import ToolRegistry
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("RUN_INTEGRATION_TESTS"),
+    reason="Set RUN_INTEGRATION_TESTS=1 to run real LLM integration tests",
+)
 
 
 async def test_real_llm():

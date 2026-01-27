@@ -5,12 +5,18 @@ OpenRouter 连接测试
 import asyncio
 import os
 
+import pytest
 from dotenv import load_dotenv
 
 from app.agent.llm import LLMMessage, create_openrouter_llm
 
 # 加载环境变量
 load_dotenv()
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("RUN_INTEGRATION_TESTS"),
+    reason="Set RUN_INTEGRATION_TESTS=1 to run OpenRouter connection tests",
+)
 
 
 async def test_basic_connection():

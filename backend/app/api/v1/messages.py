@@ -146,7 +146,13 @@ async def send_message(
         exec_mode = mode_map.get(request.mode.lower(), ExecutionMode.AUTO)
 
         return StreamingResponse(
-            stream_agent_execute(agent, request.content, session_id, exec_mode),
+            stream_agent_execute(
+                agent,
+                request.content,
+                session_id,
+                message_id=message_id,
+                mode=exec_mode,
+            ),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -340,6 +346,7 @@ async def stream_agent_execute(
     agent: AgentEngine,
     user_message: str,
     session_id: str,
+    message_id: str,
     mode: ExecutionMode = ExecutionMode.AUTO,
 ) -> AsyncGenerator[str, None]:
     """
@@ -354,6 +361,7 @@ async def stream_agent_execute(
         agent: Agent 引擎实例
         user_message: 用户消息
         session_id: Session ID
+        message_id: Message ID
         mode: 执行模式
 
     Yields:

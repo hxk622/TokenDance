@@ -20,7 +20,7 @@ export interface UseAgentStreamOptions {
 }
 
 export function useAgentStream(options: UseAgentStreamOptions = {}) {
-  const API_BASE = options.apiBase || 'http://localhost:8000'
+  const API_BASE = options.apiBase || 'http://127.0.0.1:8000'
   const eventSource = ref<EventSource | null>(null)
   const isConnected = ref(false)
   const isLoading = ref(false)
@@ -48,8 +48,7 @@ export function useAgentStream(options: UseAgentStreamOptions = {}) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            content,
-            stream: true
+            content
           })
         }
       )
@@ -82,10 +81,12 @@ export function useAgentStream(options: UseAgentStreamOptions = {}) {
       isConnected.value = true
 
       // 读取流
-      while (true) {
+      let isReading = true
+      while (isReading) {
         const { done, value } = await reader.read()
         
         if (done) {
+          isReading = false
           break
         }
 

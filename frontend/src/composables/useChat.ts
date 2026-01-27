@@ -62,7 +62,7 @@ export function useChat() {
    */
   async function streamResponse(sessionId: string, request: ChatRequest) {
     const token = localStorage.getItem('access_token')
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
     const url = `${baseUrl}/api/v1/chat/${sessionId}/message`
 
     const response = await fetch(url, {
@@ -88,10 +88,14 @@ export function useChat() {
     let buffer = ''
     let currentEventType: SSEEventType = 'content'
 
-    while (true) {
+    let isReading = true
+    while (isReading) {
       const { done, value } = await reader.read()
       
-      if (done) break
+      if (done) {
+        isReading = false
+        break
+      }
 
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split('\n')

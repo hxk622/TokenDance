@@ -362,7 +362,7 @@ class TestGetWorkspaceSessions:
 
     def test_get_workspace_sessions_success(self, test_client, mock_user, mock_workspace_response):
         """测试成功获取工作空间会话
-        
+
         Note: API 返回 WorkspaceList，所以使用 mock_workspace_response
         """
         from app.api.v1.workspace import get_workspace_service

@@ -10,6 +10,7 @@
 
 import { ref, computed, h, resolveComponent, type VNode, watch, onMounted } from 'vue'
 import { marked } from 'marked'
+import { sanitizeHtml } from '@/utils/sanitize'
 import hljs from 'highlight.js/lib/core'
 import { getComponent, hasComponent } from './ComponentRegistry'
 import type { ParsedBlock, RenderContext } from '../types'
@@ -244,10 +245,10 @@ const parsedBlocks = computed(() => parseContent(props.content))
  */
 function renderMarkdown(content: string): string {
   try {
-    return marked.parse(content) as string
+    return sanitizeHtml(marked.parse(content) as string)
   } catch (err) {
     console.error('[DynamicRenderer] Markdown parse error:', err)
-    return `<p>${content}</p>`
+    return sanitizeHtml(`<p>${content}</p>`)
   }
 }
 
@@ -333,6 +334,7 @@ watch(() => props.content, () => {
       :key="index"
     >
       <!-- Markdown Block -->
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div 
         v-if="block.type === 'markdown'"
         class="markdown-block"

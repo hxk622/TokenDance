@@ -25,6 +25,11 @@ from app.services.context_graph.failure_observer import (
 )
 from app.services.context_graph.service import DecisionType, StorageMode
 
+@pytest.fixture
+def observer() -> FailureObserver:
+    """创建测试用观测器"""
+    return FailureObserver(max_history=50)
+
 
 class TestFailureSignal:
     """FailureSignal 测试"""

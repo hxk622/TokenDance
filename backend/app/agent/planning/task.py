@@ -20,8 +20,11 @@ class TaskStatus(str, Enum):
     """任务状态 - 与前端 Node.status 对齐"""
     PENDING = "pending"      # 灰色 - 等待执行
     RUNNING = "running"      # 黄色 - 执行中
+    IN_PROGRESS = "running"  # 兼容旧状态名
     SUCCESS = "success"      # 绿色 - 成功
+    COMPLETED = "success"    # 兼容旧状态名
     ERROR = "error"          # 红色 - 失败
+    FAILED = "error"         # 兼容旧状态名
     SKIPPED = "skipped"      # 跳过
 
 
@@ -51,6 +54,12 @@ class Task:
 
     # 工具提示 (建议使用的工具)
     tools_hint: list[str] = field(default_factory=list)
+    # 兼容旧字段名
+    tools_needed: list[str] = field(default_factory=list)
+
+    # 兼容旧字段: 预计/实际时间（分钟）
+    estimated_time: int | None = None
+    actual_time: int | None = None
 
     # 执行元数据
     started_at: datetime | None = None
@@ -69,6 +78,19 @@ class Task:
     # 金融等严谨场景使用 adversarial
     validation_level: str = "light"
 
+    def __post_init__(self) -> None:
+        if self.tools_needed and not self.tools_hint:
+            self.tools_hint = list(self.tools_needed)
+        elif self.tools_hint and not self.tools_needed:
+            self.tools_needed = list(self.tools_hint)
+        elif self.tools_hint and self.tools_needed:
+            combined = list(self.tools_hint)
+            for tool in self.tools_needed:
+                if tool not in combined:
+                    combined.append(tool)
+            self.tools_hint = combined
+            self.tools_needed = list(combined)
+
     def can_start(self, completed_task_ids: set[str]) -> bool:
         """检查任务是否可以开始执行"""
         if self.status != TaskStatus.PENDING:
@@ -81,11 +103,21 @@ class Task:
         self.status = TaskStatus.RUNNING
         self.started_at = datetime.now()
 
+    def mark_started(self) -> None:
+        """兼容旧方法名"""
+        self.mark_running()
+
     def mark_success(self, output: str = "") -> None:
         """标记为成功"""
         self.status = TaskStatus.SUCCESS
         self.completed_at = datetime.now()
         self.output = output
+        if self.started_at:
+            self.actual_time = int((self.completed_at - self.started_at).total_seconds() / 60)
+
+    def mark_completed(self, output: str = "") -> None:
+        """兼容旧方法名"""
+        self.mark_success(output)
 
     def mark_error(self, error: str) -> None:
         """标记为失败"""
@@ -93,6 +125,10 @@ class Task:
         self.completed_at = datetime.now()
         self.error_message = error
         self.retry_count += 1
+
+    def mark_failed(self, error: str) -> None:
+        """兼容旧方法名"""
+        self.mark_error(error)
 
     def mark_skipped(self) -> None:
         """标记为跳过"""

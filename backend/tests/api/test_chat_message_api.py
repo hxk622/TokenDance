@@ -20,7 +20,6 @@ import pytest
 
 from app.models.session import SessionStatus
 
-
 # ==================== Test Fixtures ====================
 
 @pytest.fixture
@@ -73,7 +72,7 @@ class TestSendMessage:
 
     def test_send_message_empty_content(self, test_client, auth_headers):
         """测试空消息内容"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
 
         mock_user = create_mock_user()
@@ -111,9 +110,9 @@ class TestSendMessage:
 
     def test_send_message_session_not_found(self, test_client, auth_headers):
         """测试 session 不存在返回 404"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
-        from app.services.permission_service import PermissionError
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
+        from app.services.permission_service import PermissionError
 
         mock_user = create_mock_user()
         session_id = str(uuid4())
@@ -151,9 +150,9 @@ class TestSendMessage:
 
     def test_send_message_permission_denied(self, test_client, auth_headers):
         """测试无权限访问 session 返回 403"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
-        from app.services.permission_service import PermissionError
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
+        from app.services.permission_service import PermissionError
 
         mock_user = create_mock_user()
         other_user_id = uuid4()
@@ -191,9 +190,9 @@ class TestSendMessage:
 
     def test_send_message_session_already_running(self, test_client, auth_headers):
         """测试 session 正在运行时发送消息返回 409"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
-        from app.services.session_service import SessionService
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
+        from app.services.session_service import SessionService
 
         mock_user = create_mock_user()
         mock_session = create_mock_session(user_id=mock_user.id, status=SessionStatus.RUNNING)
@@ -237,7 +236,7 @@ class TestSendMessageWithAttachments:
 
     def test_send_message_with_image_attachment(self, test_client, auth_headers):
         """测试发送带图片附件的消息"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
 
         mock_user = create_mock_user()
@@ -284,7 +283,7 @@ class TestSendMessageWithAttachments:
 
     def test_send_message_with_document_attachment(self, test_client, auth_headers):
         """测试发送带文档附件的消息"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
 
         mock_user = create_mock_user()
@@ -335,7 +334,7 @@ class TestMessageRequestValidation:
 
     def test_invalid_attachment_type(self, test_client, auth_headers):
         """测试无效的附件类型"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
 
         mock_user = create_mock_user()
@@ -382,7 +381,7 @@ class TestMessageRequestValidation:
 
     def test_missing_attachment_url(self, test_client, auth_headers):
         """测试缺少附件 URL"""
-        from app.core.dependencies import get_current_user, get_permission_service, get_db
+        from app.core.dependencies import get_current_user, get_db, get_permission_service
         from app.main import app
 
         mock_user = create_mock_user()

@@ -1,7 +1,8 @@
 """
 Redis configuration and connection management.
 """
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable
+from typing import cast
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -20,7 +21,7 @@ async def init_redis() -> None:
     global redis_client
 
     try:
-        redis_client = await aioredis.from_url(
+        redis_client = aioredis.from_url(
             settings.REDIS_URL,
             encoding="utf-8",
             decode_responses=True,
@@ -31,7 +32,7 @@ async def init_redis() -> None:
         )
 
         # Test connection
-        await redis_client.ping()
+        await cast(Awaitable[bool], redis_client.ping())
         logger.info(
             "redis_initialized",
             host=settings.REDIS_HOST,
@@ -73,7 +74,7 @@ async def check_redis_health() -> bool:
     try:
         if redis_client is None:
             return False
-        await redis_client.ping()
+        await cast(Awaitable[bool], redis_client.ping())
         return True
     except Exception as e:
         logger.error("redis_health_check_failed", error=str(e))

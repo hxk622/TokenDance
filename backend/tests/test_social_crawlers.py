@@ -9,18 +9,13 @@ These tests verify:
 - Integration with SentimentTool
 """
 
-import pytest
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.agent.tools.builtin.financial.sentiment.crawlers.reddit import RedditCrawler
 from app.agent.tools.builtin.financial.sentiment.crawlers.stocktwits import StocktwitsCrawler
-from app.agent.tools.builtin.financial.sentiment.crawlers.base import (
-    CrawlResult,
-    SentimentPost,
-)
 from app.agent.tools.builtin.financial.sentiment.sentiment_tool import SentimentTool
-
 
 # =============================================================================
 # Stocktwits Crawler Tests
@@ -416,9 +411,9 @@ class TestModuleImports:
     def test_import_from_crawlers_package(self):
         """Test importing from crawlers package."""
         from app.agent.tools.builtin.financial.sentiment.crawlers import (
+            BaseSentimentCrawler,
             RedditCrawler,
             StocktwitsCrawler,
-            BaseSentimentCrawler,
         )
 
         assert RedditCrawler is not None
@@ -428,9 +423,9 @@ class TestModuleImports:
     def test_crawler_inheritance(self):
         """Test crawler class inheritance."""
         from app.agent.tools.builtin.financial.sentiment.crawlers import (
+            BaseSentimentCrawler,
             RedditCrawler,
             StocktwitsCrawler,
-            BaseSentimentCrawler,
         )
 
         assert issubclass(RedditCrawler, BaseSentimentCrawler)

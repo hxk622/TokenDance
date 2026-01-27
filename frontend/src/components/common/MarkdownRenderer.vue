@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { marked } from 'marked'
+import { sanitizeHtml } from '@/utils/sanitize'
 import hljs from 'highlight.js/lib/core'
 
 // Import commonly used languages
@@ -61,10 +62,12 @@ marked.use({ renderer })
 
 const renderedContent = computed(() => {
   try {
-    return marked.parse(props.content) as string
+    const html = marked.parse(props.content) as string
+    return props.sanitize ? sanitizeHtml(html) : html
   } catch (err) {
     console.error('Markdown parse error:', err)
-    return `<p>${props.content}</p>`
+    const fallback = `<p>${props.content}</p>`
+    return props.sanitize ? sanitizeHtml(fallback) : fallback
   }
 })
 
@@ -90,6 +93,7 @@ function highlightCodeBlocks() {
 </script>
 
 <template>
+  <!-- eslint-disable-next-line vue/no-v-html -->
   <div 
     class="markdown-content prose prose-invert max-w-none"
     v-html="renderedContent"

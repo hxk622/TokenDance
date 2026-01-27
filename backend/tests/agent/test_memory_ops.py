@@ -403,7 +403,7 @@ class TestMemListBlocksTool:
     @pytest.mark.asyncio
     async def test_list_filter_by_status(self, tool):
         """测试按状态过滤"""
-        id1 = register_block("Active", "user_message")
+        register_block("Active", "user_message")
         id2 = register_block("Retained", "user_message")
 
         store = get_block_store()
@@ -472,7 +472,7 @@ class TestMemActWorkflow:
         )
 
         # 5. 查看最终状态
-        list_result = await list_tool.execute()
+        await list_tool.execute()
 
         # 验证
         store = get_block_store()

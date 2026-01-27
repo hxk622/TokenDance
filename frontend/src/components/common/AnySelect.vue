@@ -26,7 +26,8 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '请选择',
   disabled: false,
   variant: 'default',
-  size: 'md'
+  size: 'md',
+  icon: undefined
 })
 
 // Emits

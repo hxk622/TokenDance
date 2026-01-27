@@ -13,9 +13,8 @@ This migration adds support for multi-turn conversations:
 5. Add conversation_id, turn_id to messages
 6. Add conversation_id, turn_id to sessions
 """
+
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_multi_turn_conversation'
@@ -50,7 +49,7 @@ def upgrade():
         ('last_message_at', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMP"),
         ('current_session_id', "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS current_session_id VARCHAR(36) REFERENCES sessions(id) ON DELETE SET NULL"),
     ]
-    for col_name, sql in columns_to_add:
+    for _, sql in columns_to_add:
         conn.execute(text(sql))
 
     # Create index if not exists
@@ -88,13 +87,13 @@ def upgrade():
     # Foreign keys - check if not exists
     conn.execute(text("""
         DO $$ BEGIN
-            ALTER TABLE messages ADD CONSTRAINT fk_messages_conversation_id 
+            ALTER TABLE messages ADD CONSTRAINT fk_messages_conversation_id
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id);
         EXCEPTION WHEN duplicate_object THEN NULL; END $$
     """))
     conn.execute(text("""
         DO $$ BEGIN
-            ALTER TABLE messages ADD CONSTRAINT fk_messages_turn_id 
+            ALTER TABLE messages ADD CONSTRAINT fk_messages_turn_id
                 FOREIGN KEY (turn_id) REFERENCES turns(id);
         EXCEPTION WHEN duplicate_object THEN NULL; END $$
     """))
@@ -107,13 +106,13 @@ def upgrade():
     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sessions_turn_id ON sessions (turn_id)"))
     conn.execute(text("""
         DO $$ BEGIN
-            ALTER TABLE sessions ADD CONSTRAINT fk_sessions_conversation_id 
+            ALTER TABLE sessions ADD CONSTRAINT fk_sessions_conversation_id
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id);
         EXCEPTION WHEN duplicate_object THEN NULL; END $$
     """))
     conn.execute(text("""
         DO $$ BEGIN
-            ALTER TABLE sessions ADD CONSTRAINT fk_sessions_turn_id 
+            ALTER TABLE sessions ADD CONSTRAINT fk_sessions_turn_id
                 FOREIGN KEY (turn_id) REFERENCES turns(id);
         EXCEPTION WHEN duplicate_object THEN NULL; END $$
     """))

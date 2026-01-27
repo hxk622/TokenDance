@@ -10,8 +10,16 @@ Usage:
 """
 
 import asyncio
+import os
 import sys
 from dataclasses import dataclass
+
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("RUN_INTEGRATION_TESTS"),
+    reason="Set RUN_INTEGRATION_TESTS=1 to run browser scenario integration tests",
+)
 
 
 @dataclass

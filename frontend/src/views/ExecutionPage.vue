@@ -37,6 +37,7 @@ const isProjectMode = computed(() => route.name === 'Project')
 const projectId = computed(() => route.params.projectId as string | undefined)
 const sessionId = ref(route.params.id as string || '')
 const initialTask = ref(route.query.task as string | null)
+const isSendingInitialTask = ref(false)
 
 // Task title - AI summary or first 30 chars of query
 const taskTitle = computed(() => {
@@ -87,9 +88,7 @@ watch(projectId, async (newProjectId) => {
       // Check if already loaded
       if (projectStore.currentProject?.id === newProjectId) {
         // Project already loaded, check if we need to send initial task
-        if (initialTask.value && initPhase.value === 'ready') {
-          await sendInitialTaskForProject()
-        }
+        maybeSendInitialTaskForProject()
         return
       }
       // Load project via API and set as current
@@ -98,9 +97,7 @@ watch(projectId, async (newProjectId) => {
       await projectStore.setCurrentProject(project)
 
       // After project is loaded, send initial task if present
-      if (initialTask.value && initPhase.value === 'ready') {
-        await sendInitialTaskForProject()
-      }
+      maybeSendInitialTaskForProject()
     } catch (error) {
       console.error('[ExecutionPage] Failed to load project:', error)
       executionStore.error = 'Failed to load project'
@@ -108,10 +105,29 @@ watch(projectId, async (newProjectId) => {
   }
 }, { immediate: true })
 
+watch(
+  [() => initPhase.value, () => initialTask.value, () => projectStore.currentProject?.id],
+  () => {
+    maybeSendInitialTaskForProject()
+  },
+  { immediate: true }
+)
+// Try to send initial task when prerequisites are ready
+function maybeSendInitialTaskForProject() {
+  if (!isProjectMode.value) return
+  if (initPhase.value !== 'ready') return
+  if (!initialTask.value) return
+  if (!projectStore.currentProject) return
+  if (isSendingInitialTask.value) return
+  void sendInitialTaskForProject()
+}
+
 // Helper to send initial task for project mode
 async function sendInitialTaskForProject() {
   if (!projectStore.currentProject || !initialTask.value) return
+  if (isSendingInitialTask.value) return
 
+  isSendingInitialTask.value = true
   try {
     const task = initialTask.value
     // Send message through project API - returns session_id for SSE
@@ -138,6 +154,8 @@ async function sendInitialTaskForProject() {
   } catch (error) {
     console.error('[ExecutionPage] Failed to send initial task:', error)
     // Don't set error - let user see the chat input and retry manually
+  } finally {
+    isSendingInitialTask.value = false
   }
 }
 
@@ -152,6 +170,24 @@ const sessionStatus = computed(() => {
   if (executionStore.isLoading) return 'loading'
   if (executionStore.error) return 'error'
   return executionStore.session?.status || 'idle'
+})
+const statusLabel = computed(() => {
+  switch (sessionStatus.value) {
+    case 'running':
+      return '执行中'
+    case 'completed':
+      return '已完成'
+    case 'failed':
+      return '失败'
+    case 'cancelled':
+      return '已取消'
+    case 'error':
+      return '错误'
+    case 'loading':
+      return '连接中'
+    default:
+      return '准备中'
+  }
 })
 const elapsedTime = ref('0分0秒')
 let elapsedTimer: ReturnType<typeof setInterval> | null = null
@@ -189,7 +225,7 @@ const stepDisplayText = computed(() => {
   if (isPreparing.value) {
     return '初始化中'
   }
-  return `Step ${currentStepIndex.value + 1}/${totalSteps.value}`
+  return `第 ${currentStepIndex.value + 1} / ${totalSteps.value} 步`
 })
 
 // HITL 干预状态
@@ -341,11 +377,14 @@ const layoutMode = ref<LayoutMode>('chat')
 
 // 是否应该显示执行模式（自动切换触发条件）
 const shouldShowExecution = computed(() => {
-  return (
-    executionStore.nodes.length > 0 ||
-    (executionStore.artifacts && executionStore.artifacts.length > 0) ||
-    isDeepResearch.value
-  )
+  // Deep research 模式立即切换，不等待 nodes/artifacts
+  if (isDeepResearch.value) return true
+  // 有工作流节点或产出物时切换
+  if (executionStore.nodes.length > 0) return true
+  if (executionStore.artifacts && executionStore.artifacts.length > 0) return true
+  // 有历史聊天记录时（刷新后恢复的 session）也切换到 execution mode
+  if (executionStore.chatMessages.length > 1) return true  // > 1 因为初始 user query 不算
+  return false
 })
 
 // 监听切换条件，自动从 chat 切换到 execution
@@ -582,6 +621,7 @@ async function startActualExecution(taskInput: string, attachments?: MessagePayl
         executionStore.handleSSEEventFromREST(event)
       }
     )
+    executionStore.finalizeLastAssistantMessage()
   } catch (error) {
     console.error('[ExecutionPage] Failed to send initial message:', error)
     executionStore.error = error instanceof Error ? error.message : 'Failed to start execution'
@@ -597,7 +637,10 @@ async function initializeExecution() {
     // Project Mode: Skip session-based initialization
     // Project loading and initialTask are handled by watch(projectId, ...)
     if (isProjectMode.value) {
-      initPhase.value = 'ready'
+      if (initPhase.value !== 'executing') {
+        initPhase.value = 'ready'
+      }
+      maybeSendInitialTaskForProject()
       return
     }
 
@@ -622,6 +665,12 @@ async function initializeExecution() {
 
     // Sync taskType from session data
     syncTaskTypeFromSession()
+
+    // If we already have messages/artifacts, show results and skip re-run
+    if (executionStore.artifacts.length > 0 || executionStore.messages.length > 0 || executionStore.chatMessages.length > 0) {
+      initPhase.value = 'executing'
+      return
+    }
 
     // Check for fatal errors (session not found)
     if (executionStore.sseConnectionState === 'fatal_error') {
@@ -979,13 +1028,6 @@ onUnmounted(() => {
   <div :class="['execution-page', { 'project-mode': isProjectMode }]">
     <!-- Fixed Header (always visible) -->
     <AnyHeader />
-    
-    <!-- Task Title (top-left, next to sidebar) -->
-    <div class="task-title-bar">
-      <h1 class="task-title-text">
-        {{ taskTitle }}
-      </h1>
-    </div>
 
     <!-- Main Execution UI (always visible - In-Place principle) -->
     <template v-if="true">
@@ -1004,14 +1046,20 @@ onUnmounted(() => {
           v-if="layoutMode !== 'chat'"
           class="execution-header"
         >
-          <!-- Status indicator -->
-          <div class="status-indicator">
-            <span :class="['status-badge', sessionStatus]">
-              {{ sessionStatus === 'running' ? '执行中' : 
-                sessionStatus === 'completed' ? '已完成' : 
-                sessionStatus === 'error' ? '错误' : '准备中' }}
-            </span>
-            <span class="time">已执行 {{ elapsedTime }}</span>
+          <!-- Left: Title + Status -->
+          <div class="header-left">
+            <h1
+              class="task-title-text"
+              :title="taskTitle"
+            >
+              {{ taskTitle }}
+            </h1>
+            <div class="status-indicator">
+              <span :class="['status-badge', sessionStatus]">
+                {{ statusLabel }}
+              </span>
+              <span class="time">已运行 {{ elapsedTime }}</span>
+            </div>
           </div>
         
           <!-- Plan Recitation: 当前步骤指示器 - Enhanced Design -->
@@ -1052,11 +1100,11 @@ onUnmounted(() => {
                   >
                     <stop
                       offset="0%"
-                      stop-color="#00D9FF"
+                      stop-color="var(--exec-accent)"
                     />
                     <stop
                       offset="100%"
-                      stop-color="#00FF88"
+                      stop-color="var(--exec-success)"
                     />
                   </linearGradient>
                 </defs>
@@ -1474,41 +1522,27 @@ onUnmounted(() => {
   --exec-error: #FF3B30;
 }
 
-/* Task title bar - fixed top-left */
-.task-title-bar {
-  position: fixed;
-  top: 12px;
-  left: calc(var(--sidebar-width) + 16px);
-  z-index: 100;
-}
-
-.task-title-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--any-text-primary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
-}
 
 /* Main area with sidebar offset */
 .execution-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
+  padding-left: var(--sidebar-width);
+  padding-right: var(--sidebar-width);
 }
 
-/* Project mode: wider sidebar */
-.execution-page.project-mode .execution-main {
-  margin-left: var(--sidebar-expanded-width);
+/* Keep header aligned with centered layout */
+.execution-page :deep(.any-header) {
+  left: 0;
 }
 
-/* Project mode: adjust header position */
-.execution-page.project-mode :deep(.any-header) {
-  left: calc(var(--sidebar-expanded-width) + 16px);
+@media (max-width: 1024px) {
+  .execution-main {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 /* Sidebar footer button */
@@ -1569,16 +1603,35 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   border-bottom: 1px solid var(--exec-border);
   background: var(--exec-bg-secondary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.task-title-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--exec-text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .status-badge {
@@ -1589,9 +1642,8 @@ onUnmounted(() => {
 }
 
 .status-badge.running {
-  background: rgba(0, 217, 255, 0.2);
+  background: color-mix(in srgb, var(--exec-accent) 18%, transparent);
   color: var(--exec-accent);
-  animation: status-pulse 2s ease-in-out infinite;
 }
 
 @keyframes status-pulse {
@@ -1600,12 +1652,12 @@ onUnmounted(() => {
 }
 
 .status-badge.completed {
-  background: rgba(0, 255, 136, 0.2);
+  background: color-mix(in srgb, var(--exec-success) 18%, transparent);
   color: var(--exec-success);
 }
 
 .status-badge.error {
-  background: rgba(255, 59, 48, 0.2);
+  background: color-mix(in srgb, var(--exec-error) 18%, transparent);
   color: var(--exec-error);
 }
 
@@ -1620,8 +1672,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
-  background: rgba(0, 217, 255, 0.08);
-  border: 1px solid rgba(0, 217, 255, 0.2);
+  background: var(--exec-bg-tertiary);
+  border: 1px solid var(--exec-border);
   border-radius: var(--any-radius-lg);
 }
 
@@ -1703,7 +1755,8 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--exec-accent);
   padding: 2px 10px;
-  background: rgba(0, 217, 255, 0.2);
+  background: color-mix(in srgb, var(--exec-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--exec-accent) 35%, transparent);
   border-radius: var(--any-radius-sm);
   display: inline-flex;
   align-items: center;
@@ -1776,14 +1829,14 @@ onUnmounted(() => {
 .progress-bar-bg {
   flex: 1;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--exec-border);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00D9FF, #00FF88);
+  background: linear-gradient(90deg, var(--exec-accent), var(--exec-success));
   border-radius: 2px;
   transition: width 300ms ease-out;
   position: relative;
@@ -1794,7 +1847,7 @@ onUnmounted(() => {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--exec-accent) 30%, transparent), transparent);
   animation: progress-shimmer 1.5s ease-in-out infinite;
 }
 
@@ -1805,7 +1858,7 @@ onUnmounted(() => {
 
 .progress-percent {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--exec-text-secondary);
   min-width: 36px;
   text-align: right;
 }
@@ -2045,7 +2098,7 @@ onUnmounted(() => {
 }
 
 .collapse-toggle:hover {
-  background: rgba(0, 217, 255, 0.2);
+  background: color-mix(in srgb, var(--exec-accent) 16%, transparent);
   border-color: var(--exec-accent);
   color: var(--exec-accent);
 }
@@ -2057,7 +2110,7 @@ onUnmounted(() => {
 }
 
 .collapse-toggle.collapsed {
-  background: rgba(0, 217, 255, 0.15);
+  background: color-mix(in srgb, var(--exec-accent) 12%, transparent);
 }
 
 /* Error Banner */
@@ -2219,7 +2272,9 @@ onUnmounted(() => {
 .streaming-info-container {
   flex: 1;  /* 填充剩余空间 */
   min-height: 200px;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Skeleton loading styles */
@@ -2301,8 +2356,8 @@ onUnmounted(() => {
 }
 
 .toggle-btn.active {
-  background: rgba(0, 217, 255, 0.15);
-  border-color: rgba(0, 217, 255, 0.5);
+  background: color-mix(in srgb, var(--exec-accent) 16%, transparent);
+  border-color: var(--exec-accent);
   color: var(--exec-accent);
 }
 
@@ -2338,8 +2393,7 @@ onUnmounted(() => {
   .execution-header {
     padding: 0 20px;
   }
-
-  .task-title {
+  .task-title-text {
     font-size: 17px;
   }
 
@@ -2357,8 +2411,7 @@ onUnmounted(() => {
   .execution-header {
     padding: 0 16px;
   }
-
-  .task-title {
+  .task-title-text {
     font-size: 16px;
   }
 
@@ -2394,11 +2447,9 @@ onUnmounted(() => {
     align-items: stretch;
     gap: 12px;
   }
-  
-  .task-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+ 
+  .header-left {
+    width: 100%;
   }
   
   .plan-progress {

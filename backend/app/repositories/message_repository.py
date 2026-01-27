@@ -17,7 +17,7 @@ class MessageRepository:
 
     async def create(
         self,
-        session_id: str,
+        session_id: str | None,
         role: MessageRole,
         content: str | None = None,
         thinking: str | None = None,
@@ -26,11 +26,15 @@ class MessageRepository:
         citations: list[dict] | None = None,
         tokens_used: int = 0,
         full_result_ref: str | None = None,
+        conversation_id: str | None = None,
+        turn_id: str | None = None,
     ) -> Message:
         """Create a new message."""
         message = Message(
             id=str(uuid4()),
             session_id=session_id,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
             role=role,
             content=content,
             thinking=thinking,
@@ -47,24 +51,30 @@ class MessageRepository:
 
     async def create_user_message(
         self,
-        session_id: str,
+        session_id: str | None,
         content: str,
+        conversation_id: str | None = None,
+        turn_id: str | None = None,
     ) -> Message:
         """Create a user message."""
         return await self.create(
             session_id=session_id,
             role=MessageRole.USER,
             content=content,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
         )
 
     async def create_assistant_message(
         self,
-        session_id: str,
+        session_id: str | None,
         content: str | None = None,
         thinking: str | None = None,
         tool_calls: list[dict] | None = None,
         citations: list[dict] | None = None,
         tokens_used: int = 0,
+        conversation_id: str | None = None,
+        turn_id: str | None = None,
     ) -> Message:
         """Create an assistant message."""
         return await self.create(
@@ -75,14 +85,18 @@ class MessageRepository:
             tool_calls=tool_calls,
             citations=citations,
             tokens_used=tokens_used,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
         )
 
     async def create_tool_message(
         self,
-        session_id: str,
+        session_id: str | None,
         tool_call_id: str,
         content: str,
         full_result_ref: str | None = None,
+        conversation_id: str | None = None,
+        turn_id: str | None = None,
     ) -> Message:
         """Create a tool response message."""
         return await self.create(
@@ -91,6 +105,8 @@ class MessageRepository:
             content=content,
             tool_call_id=tool_call_id,
             full_result_ref=full_result_ref,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
         )
 
     async def get_by_id(self, message_id: str) -> Message | None:

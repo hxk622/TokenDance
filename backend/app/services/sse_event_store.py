@@ -29,10 +29,10 @@ class SSEEventStore:
     # Redis key prefixes
     EVENTS_KEY_PREFIX = "sse_events:"  # Sorted set: score=seq, member=event_json
     SEQ_KEY_PREFIX = "sse_seq:"  # Counter for sequence numbers
-    
+
     # Default TTL for events (30 minutes)
     DEFAULT_EVENT_TTL = 1800
-    
+
     # Maximum events to store per session
     MAX_EVENTS_PER_SESSION = 500
 
@@ -56,21 +56,21 @@ class SSEEventStore:
     ) -> int:
         """
         Store an SSE event with sequence number.
-        
+
         Args:
             session_id: Session ID
             event_type: Event type (e.g., 'agent_thinking', 'tool_call')
             data: Event data
-            
+
         Returns:
             int: Sequence number assigned to this event
         """
         seq_key = self._get_seq_key(session_id)
         events_key = self._get_events_key(session_id)
-        
+
         # Get next sequence number
         seq = await self.redis.incr(seq_key)
-        
+
         # Create event record
         event_record = {
             "seq": seq,
@@ -78,18 +78,18 @@ class SSEEventStore:
             "data": data,
             "timestamp": time.time(),
         }
-        
+
         # Store in sorted set (score = sequence number)
         await self.redis.zadd(
             events_key,
             {json.dumps(event_record): seq},
         )
-        
+
         # Set TTL on first event
         if seq == 1:
             await self.redis.expire(events_key, self.event_ttl)
             await self.redis.expire(seq_key, self.event_ttl)
-        
+
         # Trim old events if needed
         event_count = await self.redis.zcard(events_key)
         if event_count > self.MAX_EVENTS_PER_SESSION:
@@ -99,7 +99,7 @@ class SSEEventStore:
                 0,
                 event_count - self.MAX_EVENTS_PER_SESSION - 1,
             )
-        
+
         return seq
 
     async def get_events_since(
@@ -110,17 +110,17 @@ class SSEEventStore:
     ) -> list[dict]:
         """
         Get events since a given sequence number (for replay).
-        
+
         Args:
             session_id: Session ID
             last_seq: Last sequence number client received
             max_events: Maximum events to return
-            
+
         Returns:
             list of events with seq > last_seq
         """
         events_key = self._get_events_key(session_id)
-        
+
         # Get events with score > last_seq
         # ZRANGEBYSCORE with min=(last_seq exclusive
         raw_events = await self.redis.zrangebyscore(
@@ -130,7 +130,7 @@ class SSEEventStore:
             start=0,
             num=max_events,
         )
-        
+
         events = []
         for raw in raw_events:
             try:
@@ -139,7 +139,7 @@ class SSEEventStore:
             except json.JSONDecodeError:
                 logger.warning("sse_event_parse_error", raw=raw[:50])
                 continue
-        
+
         if events:
             logger.info(
                 "sse_events_replayed",
@@ -147,16 +147,16 @@ class SSEEventStore:
                 last_seq=last_seq,
                 count=len(events),
             )
-        
+
         return events
 
     async def get_latest_seq(self, session_id: str) -> int:
         """
         Get the latest sequence number for a session.
-        
+
         Args:
             session_id: Session ID
-            
+
         Returns:
             int: Latest sequence number, or 0 if no events
         """
@@ -167,16 +167,16 @@ class SSEEventStore:
     async def get_all_events(self, session_id: str) -> list[dict]:
         """
         Get all stored events for a session (for debugging).
-        
+
         Args:
             session_id: Session ID
-            
+
         Returns:
             list of all stored events
         """
         events_key = self._get_events_key(session_id)
         raw_events = await self.redis.zrange(events_key, 0, -1)
-        
+
         events = []
         for raw in raw_events:
             try:
@@ -184,24 +184,24 @@ class SSEEventStore:
                 events.append(event)
             except json.JSONDecodeError:
                 continue
-        
+
         return events
 
     async def clear_events(self, session_id: str) -> bool:
         """
         Clear all events for a session.
-        
+
         Args:
             session_id: Session ID
-            
+
         Returns:
             bool: True if events were cleared
         """
         events_key = self._get_events_key(session_id)
         seq_key = self._get_seq_key(session_id)
-        
+
         deleted = await self.redis.delete(events_key, seq_key)
-        
+
         if deleted:
             logger.info("sse_events_cleared", session_id=session_id)
             return True

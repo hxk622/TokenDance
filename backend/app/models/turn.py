@@ -9,17 +9,16 @@ Turn 是多轮对话架构的核心概念:
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Integer
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.conversation import Conversation
-    from app.models.message import Message
-    from app.models.session import Session
+    pass
 
 
 class TurnStatus(str, Enum):

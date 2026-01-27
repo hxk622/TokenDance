@@ -11,6 +11,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { Citation, ReportWithCitations } from './types'
 import CitationCard from './CitationCard.vue'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 interface Props {
   /** 报告内容 (带引用的 Markdown 或 HTML) */
@@ -109,7 +110,7 @@ function getCardPosition(citationId: number): { top: string; left: string } {
 const parsedContent = computed(() => {
   if (props.isHtml) {
     // 如果是 HTML，注入交互属性
-    return props.content.replace(
+    const output = props.content.replace(
       /\[(\d+)\]/g,
       (match, id) => {
         const citationId = parseInt(id)
@@ -118,6 +119,7 @@ const parsedContent = computed(() => {
         return `<span class="citation-ref" data-citation-id="${citationId}" title="${citation.source.title}">${match}</span>`
       }
     )
+    return sanitizeHtml(output)
   } else {
     // 纯文本/Markdown，需要先转义再处理
     const escaped = props.content
@@ -125,7 +127,7 @@ const parsedContent = computed(() => {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
     
-    return escaped.replace(
+    const output = escaped.replace(
       /\[(\d+)\]/g,
       (match, id) => {
         const citationId = parseInt(id)
@@ -134,6 +136,7 @@ const parsedContent = computed(() => {
         return `<span class="citation-ref" data-citation-id="${citationId}" title="${citation.source.title}">${match}</span>`
       }
     )
+    return sanitizeHtml(output)
   }
 })
 
@@ -206,6 +209,7 @@ onUnmounted(() => {
     class="citation-renderer"
   >
     <!-- 渲染内容 -->
+    <!-- eslint-disable-next-line vue/no-v-html -->
     <div 
       class="content"
       v-html="parsedContent"

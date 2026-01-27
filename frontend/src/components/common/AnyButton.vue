@@ -20,6 +20,8 @@ const props = withDefaults(defineProps<Props>(), {
   block: false,
   disabled: false,
   loading: false,
+  icon: undefined,
+  iconRight: undefined,
   type: 'button'
 })
 

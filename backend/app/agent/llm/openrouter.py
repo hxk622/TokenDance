@@ -432,7 +432,7 @@ def create_openrouter_llm(
 ) -> OpenRouterLLM:
     """创建 OpenRouterLLM 实例
 
-    优先从 settings 读取配置，其次从环境变量读取
+    优先从环境变量读取，其次从 settings（非测试环境）
 
     Args:
         api_key: OpenRouter API Key
@@ -448,16 +448,18 @@ def create_openrouter_llm(
     """
     import os
 
-    # 优先从 settings 读取，其次从环境变量
-    if api_key is None:
-        try:
-            from app.core.config import settings
-            api_key = settings.OPENROUTER_API_KEY
-        except Exception:
-            pass
-
+    # 优先从环境变量读取，其次从 settings
     if api_key is None:
         api_key = os.getenv("OPENROUTER_API_KEY")
+
+    if api_key is None:
+        import sys
+        if "pytest" not in sys.modules:
+            try:
+                from app.core.config import settings
+                api_key = settings.OPENROUTER_API_KEY
+            except Exception:
+                pass
 
     if not api_key:
         raise ValueError("API Key not found. Set OPENROUTER_API_KEY in .env or environment")

@@ -53,9 +53,10 @@
             <h4>{{ files[0].label }}</h4>
             <span class="file-description">{{ files[0].description }}</span>
           </div>
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <div
             class="markdown-content"
-            v-html="renderMarkdown(memory.task_plan.content)"
+            v-html="renderSafeMarkdown(memory.task_plan.content)"
           />
         </div>
 
@@ -68,9 +69,10 @@
             <h4>{{ files[1].label }}</h4>
             <span class="file-description">{{ files[1].description }}</span>
           </div>
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <div
             class="markdown-content"
-            v-html="renderMarkdown(memory.findings.content)"
+            v-html="renderSafeMarkdown(memory.findings.content)"
           />
         </div>
 
@@ -83,9 +85,10 @@
             <h4>{{ files[2].label }}</h4>
             <span class="file-description">{{ files[2].description }}</span>
           </div>
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <div
             class="markdown-content"
-            v-html="renderMarkdown(memory.progress.content)"
+            v-html="renderSafeMarkdown(memory.progress.content)"
           />
         </div>
       </div>
@@ -102,7 +105,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/utils/sanitize'
 import { workingMemoryApi, type WorkingMemoryResponse } from '@/api/working-memory'
 
 const props = defineProps<{
@@ -134,11 +137,11 @@ const files: { key: TabKey; label: string; description: string }[] = [
   }
 ]
 
-const renderMarkdown = (content: string): string => {
+const renderSafeMarkdown = (content: string): string => {
   if (!content || content.trim() === '') {
     return '<p class="empty-content">No content yet.</p>'
   }
-  return marked(content) as string
+  return renderMarkdown(content)
 }
 
 const fetchMemory = async () => {

@@ -3,12 +3,11 @@ Tests for Conversation Service
 
 测试多轮对话的核心业务逻辑
 """
-import pytest
-from datetime import datetime
 
-from app.models.conversation import Conversation, ConversationStatus, ConversationType
-from app.models.turn import Turn, TurnStatus
-from app.models.message import Message, MessageRole
+import pytest
+
+from app.models.conversation import ConversationPurpose, ConversationStatus
+from app.models.turn import TurnStatus
 from app.services.conversation_service import ConversationService
 
 
@@ -18,61 +17,48 @@ async def conversation_service(db_session):
     return ConversationService(db_session)
 
 
-@pytest.fixture
-async def test_workspace(db_session):
-    """创建测试工作空间"""
-    from app.models.workspace import Workspace
-    workspace = Workspace(
-        id="test_workspace_123",
-        name="Test Workspace",
-        owner_id="test_user_123",
-    )
-    db_session.add(workspace)
-    await db_session.commit()
-    return workspace
-
 
 class TestConversationCreation:
     """测试对话创建"""
 
     async def test_create_conversation_without_initial_message(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试创建对话 (不带初始消息)"""
         # Act
         conversation, turn = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test Conversation",
-            conversation_type=ConversationType.RESEARCH,
+            purpose=ConversationPurpose.GENERAL,
         )
 
         # Assert
         assert conversation.id is not None
-        assert conversation.workspace_id == test_workspace.id
+        assert conversation.project_id == db_project.id
         assert conversation.title == "Test Conversation"
-        assert conversation.conversation_type == ConversationType.RESEARCH
+        assert conversation.purpose == ConversationPurpose.GENERAL
         assert conversation.status == ConversationStatus.ACTIVE
         assert conversation.turn_count == 0
-        assert conversation.message_count == 0
+        assert conversation.message_count_db == 0
         assert conversation.shared_memory == {}
         assert turn is None  # 没有初始消息,不创建 Turn
 
     async def test_create_conversation_with_initial_message(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试创建对话 (带初始消息)"""
         # Act
         conversation, turn = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Research AI Agent",
-            conversation_type=ConversationType.RESEARCH,
+            purpose=ConversationPurpose.GENERAL,
             initial_message="帮我调研下 AI Agent 市场",
         )
 
         # Assert
         assert conversation.id is not None
         assert conversation.turn_count == 1
-        assert conversation.message_count == 1
+        assert conversation.message_count_db == 1
         assert turn is not None
         assert turn.turn_number == 1
         assert turn.user_input == "帮我调研下 AI Agent 市场"
@@ -83,12 +69,12 @@ class TestSendMessage:
     """测试发送消息"""
 
     async def test_send_message_creates_turn(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试发送消息创建 Turn"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
@@ -99,7 +85,7 @@ class TestSendMessage:
         )
 
         # Assert
-        id is not None
+        assert turn.id is not None
         assert turn.conversation_id == conversation.id
         assert turn.turn_number == 1
         assert turn.user_input == "Hello, Agent!"
@@ -109,16 +95,16 @@ class TestSendMessage:
         # 验证 Conversation 更新
         updated_conversation = await conversation_service.get_conversation(conversation.id)
         assert updated_conversation.turn_count == 1
-        assert updated_conversation.message_count == 1
+        assert updated_conversation.message_count_db == 1
         assert updated_conversation.last_message_at is not None
 
     async def test_send_multiple_messages(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试发送多条消息"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Multi-turn Test",
         )
 
@@ -143,15 +129,15 @@ class TestSendMessage:
 
         updated_conversation = await conversation_service.get_conversation(conversation.id)
         assert updated_conversation.turn_count == 3
-        assert updated_conversation.message_count == 3
+        assert updated_conversation.message_count_db == 3
 
     async def test_send_message_to_archived_conversation_fails(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试向已归档的对话发送消息失败"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
         await conversation_service.archive_conversation(conversation.id)
@@ -168,12 +154,12 @@ class TestSharedMemory:
     """测试 shared_memory 管理"""
 
     async def test_update_shared_memory_merge_mode(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试合并模式更新 shared_memory"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
@@ -211,12 +197,12 @@ class TestSharedMemory:
         assert memory["entities"]["companies"] == ["OpenAI", "Anthropic"]
 
     async def test_update_shared_memory_replace_mode(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试替换模式更新 shared_memory"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
         await conversation_service.update_shared_memory(
@@ -240,12 +226,12 @@ class TestSharedMemory:
         assert memory["new_data"] == "replaced"
 
     async def test_merge_memory_deduplicates_key_facts(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试 key_facts 去重"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
@@ -277,12 +263,12 @@ class TestSharedMemory:
         assert len(memory["key_facts"]) == 1
 
     async def test_merge_memory_limits_key_facts_to_50(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试 key_facts 限制为 50 条"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
@@ -310,18 +296,18 @@ class TestGetMessageHistory:
     """测试获取消息历史"""
 
     async def test_get_message_history_returns_recent_messages(
-        self, conversation_service, test_workspace, db_session
+        self, conversation_service, db_project, db_session
     ):
         """测试获取最近的消息历史"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
         # 创建 10 条消息
         for i in range(10):
-            turn = await conversation_service.send_message(
+            await conversation_service.send_message(
                 conversation_id=conversation.id,
                 content=f"Message {i}",
             )
@@ -339,24 +325,24 @@ class TestGetMessageHistory:
         assert messages[-1].content == "Message 9"
 
     async def test_get_message_history_ascending_order(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试消息历史按时间升序返回"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
-        turn1 = await conversation_service.send_message(
+        await conversation_service.send_message(
             conversation_id=conversation.id,
             content="First",
         )
-        turn2 = await conversation_service.send_message(
+        await conversation_service.send_message(
             conversation_id=conversation.id,
             content="Second",
         )
-        turn3 = await conversation_service.send_message(
+        await conversation_service.send_message(
             conversation_id=conversation.id,
             content="Third",
         )
@@ -378,26 +364,26 @@ class TestListConversations:
     """测试列出对话列表"""
 
     async def test_list_conversations_by_workspace(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试按工作空间列出对话"""
         # Arrange - 创建 3 个对话
         conv1, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Conversation 1",
         )
         conv2, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Conversation 2",
         )
         conv3, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Conversation 3",
         )
 
         # Act
         conversations = await conversation_service.list_conversations(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             limit=10,
         )
 
@@ -406,23 +392,23 @@ class TestListConversations:
         assert {c.id for c in conversations} == {conv1.id, conv2.id, conv3.id}
 
     async def test_list_conversations_filters_by_status(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试按状态筛选对话"""
         # Arrange
         conv1, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Active",
         )
         conv2, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="To Archive",
         )
         await conversation_service.archive_conversation(conv2.id)
 
         # Act - 只获取 active 的
         active_conversations = await conversation_service.list_conversations(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             status=ConversationStatus.ACTIVE,
         )
 
@@ -431,16 +417,16 @@ class TestListConversations:
         assert active_conversations[0].id == conv1.id
 
     async def test_list_conversations_ordered_by_last_message(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试对话按最后消息时间排序"""
         # Arrange
         conv1, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Old",
         )
         conv2, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="New",
         )
 
@@ -452,7 +438,7 @@ class TestListConversations:
 
         # Act
         conversations = await conversation_service.list_conversations(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
         )
 
         # Assert
@@ -465,12 +451,12 @@ class TestArchiveConversation:
     """测试归档对话"""
 
     async def test_archive_conversation(
-        self, conversation_service, test_workspace
+        self, conversation_service, db_project
     ):
         """测试归档对话"""
         # Arrange
         conversation, _ = await conversation_service.create_conversation(
-            workspace_id=test_workspace.id,
+            project_id=db_project.id,
             title="Test",
         )
 
@@ -479,8 +465,8 @@ class TestArchiveConversation:
 
         # Assert
         updated_conversation = await conversation_service.get_conversation(conversation.id)
-        assert updated_conversation.status == ConversationStatus.ARCHIVED
-        assert updated_conversation.archived_at is not None
+        assert updated_conversation.status == ConversationStatus.COMPLETED
+        assert updated_conversation.completed_at is not None
 
 
 # 运行测试

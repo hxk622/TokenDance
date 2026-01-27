@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # CORS - allow common dev ports
     BACKEND_CORS_ORIGINS: list[str] = Field(
         default=[
+            "http://127.0.0.1:5173",
             "http://localhost:5173",
             "http://localhost:5174",
             "http://localhost:5175",
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str] | None) -> list[str]:
         default_origins = [
+            "http://127.0.0.1:5173",
             "http://localhost:5173",
             "http://localhost:5174",
             "http://localhost:5175",
@@ -91,6 +93,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: str | None = None
+    DISABLE_REDIS: bool = False
 
     @property
     def REDIS_URL(self) -> str:

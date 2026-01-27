@@ -17,6 +17,9 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
+  title: '',
+  image: '',
+  imageAlt: '',
   showClose: true,
   closeOnOverlay: true,
   closeOnEsc: true,
@@ -34,15 +37,6 @@ const emit = defineEmits<{
 // Refs
 const isVisible = ref(false)
 const isAnimating = ref(false)
-
-// Watch modelValue
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    open()
-  } else {
-    close()
-  }
-}, { immediate: true })
 
 // Methods
 const open = () => {
@@ -70,6 +64,14 @@ const close = () => {
     emit('close')
   }, 200)
 }
+// Watch modelValue
+watch(() => props.modelValue, (newValue) => {
+  if (newValue) {
+    open()
+  } else {
+    close()
+  }
+}, { immediate: true })
 
 const handleOverlayClick = () => {
   if (props.closeOnOverlay && !props.persistent) {

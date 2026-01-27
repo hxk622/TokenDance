@@ -15,9 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 
-# Mark all tests in this module as slow
-pytestmark = pytest.mark.slow
-
 from app.agent.engine import AgentEngine
 from app.context.unified_context import (
     ExecutionStatus,
@@ -26,6 +23,9 @@ from app.context.unified_context import (
     clear_all_contexts,
 )
 from app.routing.router import ExecutionPath, ExecutionRouter, reset_execution_router
+
+# Mark all tests in this module as slow
+pytestmark = pytest.mark.slow
 
 
 class MockLLM:

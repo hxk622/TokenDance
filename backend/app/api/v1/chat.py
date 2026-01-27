@@ -14,6 +14,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -23,6 +24,7 @@ from app.core.dependencies import (
     get_permission_service,
 )
 from app.core.redis import get_redis
+from app.models.project import Project, ProjectType
 from app.models.user import User
 from app.repositories.message_repository import MessageRepository
 from app.schemas.message import Attachment, ChatRequest, ConfirmRequest
@@ -41,19 +43,13 @@ except ImportError:
 
 # Agent Engine imports
 try:
-    from app.agent import (
-        AgentContext,
-        BasicAgent,
-        create_working_memory,
-    )
-    from app.agent.agents.deep_research import DeepResearchAgent
-    from app.agent.llm.base import BaseLLM
+    from app.agent.engine import AgentEngine
     from app.agent.llm.openrouter import create_openrouter_llm
     from app.agent.llm.router import TaskType
     from app.agent.llm.unified_router import get_router
     from app.agent.llm.vision_router import VisionTaskType, get_vision_model
-    from app.agent.tools import ToolRegistry
-    from app.agent.tools.init_tools import register_builtin_tools
+    from app.agent.types import ExecutionMode
+    from app.filesystem import AgentFileSystem
     AGENT_ENGINE_AVAILABLE = True
 except ImportError as e:
     AGENT_ENGINE_AVAILABLE = False
@@ -230,7 +226,7 @@ async def send_message(
 
     # Get session service and verify session exists
     session_service = SessionService(db)
-    session = await session_service.get_session(session_id)
+    session = await session_service.get_session(session_id, include_details=True)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -247,6 +243,15 @@ async def send_message(
 
     # Get event store for replay support
     event_store = get_sse_event_store(redis)
+
+    # Determine project type (if session is created from project mode)
+    project_type: ProjectType | None = None
+    project_id = None
+    if session.extra_data:
+        project_id = session.extra_data.get("project_id")
+    if project_id:
+        result = await db.execute(select(Project.project_type).where(Project.id == project_id))
+        project_type = result.scalar_one_or_none()
 
     async def event_stream():
         """Generate SSE events from Agent execution with full features."""
@@ -289,51 +294,25 @@ async def send_message(
                 'timestamp': time.time(),
             })
 
-            # Use persistent workspace path
-            workspace_path = os.path.join(
-                settings.SESSIONS_DATA_PATH,
-                str(session.workspace_id),
-                session_id
-            )
-            os.makedirs(workspace_path, exist_ok=True)
-
             # Save user message to database
             await message_repo.create_user_message(
                 session_id=session_id,
                 content=user_message,
             )
 
-            # Initialize Working Memory
-            memory = await create_working_memory(
-                workspace_path=workspace_path,
-                session_id=session_id,
-                initial_task=user_message
-            )
-
-            # Create Agent Context
-            context = AgentContext(
-                session_id=session_id,
-                user_id=str(current_user.id),
-                workspace_id=str(session.workspace_id)
-            )
-
-            # Create Tool Registry and register built-in tools
-            tools = ToolRegistry()
-            register_builtin_tools(tools)
-
-            # Check if we have images - use Vision model
+            # Create AgentEngine (unified architecture)
+            router = get_router()
             has_images = len(attachments_for_agent) > 0
-
+            
             if has_images:
                 # Use Vision model for image analysis
                 vision_model = get_vision_model(
                     task_type=VisionTaskType.CHART_ANALYSIS,
                     max_cost=5.0
                 )
-                llm: BaseLLM = create_openrouter_llm(model=vision_model, max_tokens=4096)
+                llm = create_openrouter_llm(model=vision_model, max_tokens=4096)
                 logger.info(f"Using Vision model: {vision_model}")
-
-                # Send skill matched event
+                
                 yield await emit_event('skill_matched', {
                     'skill_id': 'vision_analysis',
                     'skill_name': 'vision_analysis',
@@ -344,25 +323,13 @@ async def send_message(
                     'confidence': 1.0,
                     'timestamp': time.time(),
                 })
-
-                # Use BasicAgent for vision tasks
-                agent = BasicAgent(
-                    context=context,
-                    llm=llm,
-                    tools=tools,
-                    memory=memory,
-                    db=db,
-                    max_iterations=50
-                )
-            else:
-                # Use DeepResearchAgent for text tasks
-                router = get_router()
+            elif project_type == ProjectType.RESEARCH:
+                # Use research-focused model
                 llm = await router.get_llm(
                     task_type=TaskType.DEEP_RESEARCH,
                     max_tokens=8192
                 )
-
-                # Send skill matched event
+                
                 yield await emit_event('skill_matched', {
                     'skill_id': 'deep_research',
                     'skill_name': 'deep_research',
@@ -373,16 +340,36 @@ async def send_message(
                     'confidence': 1.0,
                     'timestamp': time.time(),
                 })
-
-                # Use DeepResearchAgent
-                agent = DeepResearchAgent(
-                    context=context,
-                    llm=llm,
-                    tools=tools,
-                    memory=memory,
-                    db=db,
-                    max_iterations=50
+            else:
+                # Default to general model
+                llm = await router.get_llm(
+                    task_type=TaskType.GENERAL,
+                    max_tokens=2048
                 )
+                
+                yield await emit_event('skill_matched', {
+                    'skill_id': 'general',
+                    'skill_name': 'general',
+                    'display_name': '通用助手',
+                    'description': '快速回答与通用问答',
+                    'icon': 'message-circle',
+                    'color': '#00D9FF',
+                    'confidence': 0.9,
+                    'timestamp': time.time(),
+                })
+            
+            # Create filesystem
+            filesystem = AgentFileSystem()
+            
+            # Create AgentEngine
+            agent = AgentEngine(
+                llm=llm,
+                filesystem=filesystem,
+                workspace_id=str(session.workspace_id),
+                session_id=session_id,
+                max_iterations=20,
+                enable_skills=True,
+            )
 
             # Collect assistant response for saving
             assistant_content_parts = []
@@ -390,18 +377,16 @@ async def send_message(
             assistant_tool_calls = []
             iteration_count = 0
 
-            # Run Agent and stream events
-            async for event in agent.run(
-                user_message,
-                attachments=attachments_for_agent if attachments_for_agent else None
-            ):
+            # Run AgentEngine with auto mode
+            execution_mode = ExecutionMode.PLANNING if project_type == ProjectType.RESEARCH else ExecutionMode.AUTO
+            
+            async for event in agent.execute(user_message, mode=execution_mode):
                 # Check stop signal periodically
                 iteration_count += 1
                 if iteration_count % 5 == 0:
                     if await stop_service.should_stop(session_id):
                         logger.info(f"Stop signal received for session {session_id}")
                         await stop_service.clear_stop_signal(session_id)
-                        agent.stopped = True
                         break
 
                 # Emit event with storage
@@ -608,13 +593,13 @@ async def get_working_memory(
             },
         }
 
-    except ImportError:
+    except ImportError as e:
         # Fallback if filesystem modules not available
         logger.error("Working Memory modules not available")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Working Memory service is not available. Please ensure the agent engine is properly configured."
-        )
+        ) from e
     except Exception as e:
         logger.error(f"Error reading working memory: {e}")
         raise HTTPException(

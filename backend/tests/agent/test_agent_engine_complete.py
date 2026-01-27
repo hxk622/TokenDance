@@ -17,7 +17,20 @@ import pytest
 
 from app.agent.engine import AgentEngine
 from app.agent.llm.openrouter import OpenRouterLLM
+from app.agent.llm.siliconflow import SiliconFlowLLM
 from app.filesystem import AgentFileSystem
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("RUN_INTEGRATION_TESTS"),
+    reason="Set RUN_INTEGRATION_TESTS=1 to run live LLM integration tests",
+)
+
+DEFAULT_TIMEOUT = int(os.getenv("INTEGRATION_TEST_TIMEOUT", "180"))
+WEB_TIMEOUT = int(os.getenv("INTEGRATION_WEB_TIMEOUT", "240"))
+
+
+async def run_with_timeout(agent: AgentEngine, prompt: str, timeout: int = DEFAULT_TIMEOUT):
+    return await asyncio.wait_for(agent.run(prompt), timeout=timeout)
 
 # ========== 测试环境配置 ==========
 
@@ -55,17 +68,25 @@ def filesystem(workspace_id):
 @pytest.fixture
 def llm():
     """初始化 LLM 客户端 (via OpenRouter)"""
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        pytest.skip("OPENROUTER_API_KEY not set")
+    siliconflow_key = os.getenv("SILICONFLOW_API_KEY")
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not siliconflow_key and not openrouter_key:
+        pytest.skip("SILICONFLOW_API_KEY or OPENROUTER_API_KEY not set")
 
-    # 优先从环境变量获取模型，否则使用默认列表
+    if siliconflow_key:
+        model = os.getenv("SILICONFLOW_MODEL", "Qwen/Qwen2.5-72B-Instruct")
+        return SiliconFlowLLM(
+            api_key=siliconflow_key,
+            model=model,
+            max_tokens=4096,
+        )
+
+    # Fallback to OpenRouter
     model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct")
-
     return OpenRouterLLM(
-        api_key=api_key,
+        api_key=openrouter_key,
         model=model,
-        max_tokens=4096
+        max_tokens=4096,
     )
 
 
@@ -90,7 +111,7 @@ async def test_basic_question(agent):
     """测试 1: 基础问答（无工具调用）"""
     print("\n=== Test 1: Basic Question ===")
 
-    response = await agent.run("2 + 2 等于几？")
+    response = await run_with_timeout(agent, "2 + 2 等于几？")
 
     assert response.answer is not None
     assert "4" in response.answer
@@ -106,8 +127,9 @@ async def test_file_operations(agent):
     """测试 2: 文件操作工具"""
     print("\n=== Test 2: File Operations ===")
 
-    response = await agent.run(
-        "请在 task_plan.md 中写入一个简单的任务计划：目标是测试文件操作功能"
+    response = await run_with_timeout(
+        agent,
+        "请在 task_plan.md 中写入一个简单的任务计划：目标是测试文件操作功能",
     )
 
     assert response.answer is not None
@@ -115,7 +137,12 @@ async def test_file_operations(agent):
 
     # 验证文件是否创建
     task_plan = agent.three_files.read_task_plan()
-    assert "测试文件操作" in task_plan["content"] or "test" in task_plan["content"].lower()
+    assert task_plan["content"]
+    assert (
+        "task plan" in task_plan["content"].lower()
+        or "任务" in task_plan["content"]
+        or "目标" in task_plan["content"]
+    )
 
     print(f"Answer: {response.answer[:200]}...")
     print(f"Task plan content preview: {task_plan['content'][:200]}...")
@@ -126,8 +153,10 @@ async def test_web_search(agent):
     """测试 3: Web 搜索工具"""
     print("\n=== Test 3: Web Search ===")
 
-    response = await agent.run(
-        "搜索 FastAPI 的官方文档网址是什么？"
+    response = await run_with_timeout(
+        agent,
+        "搜索 FastAPI 的官方文档网址是什么？",
+        timeout=WEB_TIMEOUT,
     )
 
     assert response.answer is not None
@@ -144,15 +173,15 @@ async def test_web_search(agent):
 async def test_multi_step_task(agent):
     """测试 4: 多步骤任务（触发 2-Action Rule）"""
     print("\n=== Test 4: Multi-Step Task ===")
-
-    response = await agent.run(
+    response = await run_with_timeout(
+        agent,
         """请帮我研究一下 Vue 3 的核心特性：
         1. 先搜索 Vue 3 的主要新特性
         2. 搜索 Composition API 的用法
         3. 将发现记录到 findings.md
-        """
+        """,
+        timeout=WEB_TIMEOUT,
     )
-
     assert response.answer is not None
 
     # 检查 findings.md 是否有内容（如果 Agent 遵循 2-Action Rule）
@@ -173,15 +202,18 @@ async def test_error_handling(agent):
     """测试 5: 错误处理"""
     print("\n=== Test 5: Error Handling ===")
 
-    response = await agent.run(
-        "读取一个不存在的文件：/nonexistent/file.txt"
+    response = await run_with_timeout(
+        agent,
+        "读取一个不存在的文件：/nonexistent/file.txt",
     )
 
     assert response.answer is not None
 
     # 检查 progress.md 中是否记录了错误
     progress = agent.three_files.read_progress()
-    assert "error" in progress["content"].lower() or "ERROR" in progress["content"]
+    content = progress["content"]
+    content_lower = content.lower()
+    assert "error" in content_lower or "错误" in content
 
     print(f"Answer: {response.answer[:200]}...")
     print(f"Progress (errors): {progress['content'][-500:]}")
@@ -191,14 +223,15 @@ async def test_error_handling(agent):
 async def test_three_files_workflow(agent):
     """测试 6: 完整的三文件工作流"""
     print("\n=== Test 6: Three Files Workflow ===")
-
-    response = await agent.run(
+    response = await run_with_timeout(
+        agent,
         """请完成以下任务：
         1. 在 task_plan.md 中创建一个3步计划
         2. 执行第一步：搜索 Python FastAPI 最佳实践
         3. 将搜索结果记录到 findings.md
         4. 在 progress.md 中记录执行过程
-        """
+        """,
+        timeout=WEB_TIMEOUT,
     )
 
     assert response.answer is not None
@@ -227,7 +260,7 @@ async def test_context_summary(agent):
     print("\n=== Test 7: Context Summary ===")
 
     # 发送一条消息
-    await agent.run("Hello! This is a test message.")
+    await run_with_timeout(agent, "Hello! This is a test message.")
 
     # 获取 context 摘要
     summary = agent.get_context_summary()

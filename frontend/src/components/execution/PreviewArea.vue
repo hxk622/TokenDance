@@ -307,7 +307,7 @@ function handleCopyCitation(citation: Citation) {
 .preview-area {
   flex: 1;
   overflow-y: auto;
-  background: rgba(18, 18, 18, 0.9);
+  background: var(--any-bg-primary);
   display: flex;
   flex-direction: column;
 }
@@ -527,23 +527,23 @@ p {
 }
 
 .lightbox-title {
-  color: var(--text-primary, #ffffff);
+  color: var(--any-text-primary);
   font-size: 14px;
   margin: 0;
 }
 
 .lightbox-close {
   padding: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--any-text-primary) 8%, transparent);
   border: none;
   border-radius: 8px;
-  color: var(--text-primary, #ffffff);
+  color: var(--any-text-primary);
   cursor: pointer;
   transition: background 150ms ease;
 }
 
 .lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--any-text-primary) 16%, transparent);
 }
 
 /* Scrollbar */
@@ -552,15 +552,15 @@ p {
 }
 
 .preview-area::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
 }
 
 .preview-area::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--any-border-hover);
   border-radius: 4px;
 }
 
 .preview-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--any-text-muted);
 }
 </style>

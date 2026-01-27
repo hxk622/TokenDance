@@ -14,6 +14,7 @@ import { Loader2 } from 'lucide-vue-next'
 import PlanningCard from './PlanningCard.vue'
 import ExecutionTimeline from './ExecutionTimeline.vue'
 import MessageActions from '@/components/chat/MessageActions.vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import type { ChatMessage, Source, PlanningData, ExecutionStep } from './types'
 
 interface Props {
@@ -62,6 +63,10 @@ const messageContent = computed(() => props.message.content || '')
 // Has text content to show
 const hasTextContent = computed(() => {
   return messageContent.value.trim().length > 0
+})
+
+const showActions = computed(() => {
+  return hasTextContent.value && isComplete.value
 })
 
 // Event handlers
@@ -149,30 +154,33 @@ function formatTime(timestamp: number): string {
       <!-- Text content -->
       <div
         v-if="hasTextContent || isStreamingContent"
-        class="text-content"
+        :class="['text-content', { 'is-final': isComplete, 'is-streaming': isStreamingContent, 'is-draft': !isComplete && !isStreamingContent }]"
       >
         <div class="message-text">
-          {{ messageContent }}
+          <MarkdownRenderer :content="messageContent" />
           <!-- Streaming cursor -->
           <span
-            v-if="isStreamingContent"
+            v-if="isStreamingContent && isLastMessage"
             class="streaming-cursor"
           />
         </div>
+        <!-- Message actions (as widget under content) -->
+        <div
+          v-if="showActions"
+          class="bubble-actions"
+        >
+          <MessageActions
+            :message-id="message.id"
+            :content="messageContent"
+            :feedback="(message as any).feedback"
+            :is-last-message="isLastMessage"
+            :is-streaming="isStreaming"
+            class="bubble-actions-inner"
+            @feedback="handleFeedback"
+            @regenerate="handleRegenerate"
+          />
+        </div>
       </div>
-
-      <!-- Message actions (only for complete messages) -->
-      <MessageActions
-        v-if="isComplete"
-        :message-id="message.id"
-        :content="messageContent"
-        :feedback="(message as any).feedback"
-        :is-last-message="isLastMessage"
-        :is-streaming="isStreaming"
-        class="bubble-actions"
-        @feedback="handleFeedback"
-        @regenerate="handleRegenerate"
-      />
 
       <!-- Timestamp -->
       <span class="message-time">{{ formatTime(message.timestamp) }}</span>
@@ -190,11 +198,11 @@ function formatTime(timestamp: number): string {
 /* Avatar */
 .bubble-avatar {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--any-bg-tertiary);
-  padding: 3px;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -210,7 +218,7 @@ function formatTime(timestamp: number): string {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* Thinking indicator */
@@ -256,7 +264,7 @@ function formatTime(timestamp: number): string {
 /* Text content */
 .text-content {
   padding: 12px 16px;
-  background: var(--any-bg-secondary);
+  background: var(--any-bg-primary);
   border: 1px solid var(--any-border);
   border-radius: 12px;
 }
@@ -264,9 +272,70 @@ function formatTime(timestamp: number): string {
 .message-text {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--any-text-primary);
-  white-space: pre-wrap;
   word-break: break-word;
+}
+.text-content.is-final,
+.text-content.is-streaming {
+  color: var(--any-text-primary);
+}
+
+.text-content.is-draft {
+  color: var(--any-text-tertiary);
+}
+
+.text-content.is-final .message-text :deep(.markdown-content),
+.text-content.is-final .message-text :deep(.markdown-content p),
+.text-content.is-final .message-text :deep(.markdown-content li),
+.text-content.is-final .message-text :deep(.markdown-content blockquote),
+.text-content.is-streaming .message-text :deep(.markdown-content),
+.text-content.is-streaming .message-text :deep(.markdown-content p),
+.text-content.is-streaming .message-text :deep(.markdown-content li),
+.text-content.is-streaming .message-text :deep(.markdown-content blockquote) {
+  color: var(--any-text-primary);
+}
+
+.text-content.is-draft .message-text :deep(.markdown-content),
+.text-content.is-draft .message-text :deep(.markdown-content p),
+.text-content.is-draft .message-text :deep(.markdown-content li),
+.text-content.is-draft .message-text :deep(.markdown-content blockquote) {
+  color: var(--any-text-tertiary);
+}
+
+.message-text :deep(.markdown-content p) {
+  margin: 0 0 0.6em;
+}
+
+.message-text :deep(.markdown-content p:last-child) {
+  margin-bottom: 0;
+}
+
+.message-text :deep(.markdown-content h1),
+.message-text :deep(.markdown-content h2),
+.message-text :deep(.markdown-content h3),
+.message-text :deep(.markdown-content h4),
+.message-text :deep(.markdown-content h5),
+.message-text :deep(.markdown-content h6) {
+  margin: 0.8em 0 0.4em;
+  color: inherit;
+}
+
+.message-text :deep(.markdown-content ul),
+.message-text :deep(.markdown-content ol) {
+  margin: 0.4em 0 0.6em 1.25em;
+}
+
+.message-text :deep(.markdown-content li) {
+  margin-bottom: 0.25em;
+}
+
+.message-text :deep(.markdown-content code) {
+  background: var(--any-bg-tertiary);
+  color: inherit;
+}
+
+.message-text :deep(.markdown-content pre) {
+  background: var(--any-bg-tertiary);
+  border: 1px solid var(--any-border);
 }
 
 /* Streaming cursor */
@@ -287,7 +356,14 @@ function formatTime(timestamp: number): string {
 
 /* Actions */
 .bubble-actions {
-  margin-top: 4px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--any-border);
+  display: flex;
+}
+
+.bubble-actions :deep(.bubble-actions-inner) {
+  margin-top: 0 !important;
 }
 
 /* Timestamp */

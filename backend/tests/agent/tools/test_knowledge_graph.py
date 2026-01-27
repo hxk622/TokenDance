@@ -38,7 +38,7 @@ class TestKnowledgeGraphTool:
         assert "finding" in NODE_TYPES
         assert "entity" in NODE_TYPES
         assert "event" in NODE_TYPES
-        
+
         for node_type in NODE_TYPES.values():
             assert "label" in node_type
             assert "color" in node_type
@@ -50,7 +50,7 @@ class TestKnowledgeGraphTool:
         assert "cites" in EDGE_TYPES
         assert "supports" in EDGE_TYPES
         assert "contradicts" in EDGE_TYPES
-        
+
         for edge_type in EDGE_TYPES.values():
             assert "label" in edge_type
             assert "style" in edge_type
@@ -59,7 +59,7 @@ class TestKnowledgeGraphTool:
     def test_system_prompt_generation(self):
         """测试 system prompt 生成"""
         prompt = self.tool._get_system_prompt("concept", 30)
-        
+
         assert "知识图谱" in prompt
         assert "nodes" in prompt
         assert "edges" in prompt
@@ -69,7 +69,7 @@ class TestKnowledgeGraphTool:
     def test_system_prompt_different_types(self):
         """测试不同图谱类型的 prompt"""
         types = ["concept", "citation", "finding", "timeline", "mixed"]
-        
+
         for graph_type in types:
             prompt = self.tool._get_system_prompt(graph_type, 20)
             assert "知识图谱" in prompt or "提取" in prompt
@@ -83,7 +83,7 @@ class TestKnowledgeGraphTool:
 }
 ```'''
         result = self.tool._extract_json(content)
-        
+
         assert "nodes" in result
         assert len(result["nodes"]) == 1
         assert result["nodes"][0]["id"] == "a"
@@ -92,7 +92,7 @@ class TestKnowledgeGraphTool:
         """测试直接提取 JSON"""
         content = '''{"nodes": [{"id": "b", "label": "B"}], "edges": []}'''
         result = self.tool._extract_json(content)
-        
+
         assert "nodes" in result
         assert result["nodes"][0]["id"] == "b"
 
@@ -102,7 +102,7 @@ class TestKnowledgeGraphTool:
 {"nodes": [{"id": "c", "label": "C"}], "edges": []}
 Hope this helps!'''
         result = self.tool._extract_json(content)
-        
+
         assert "nodes" in result
 
     def test_validate_graph_valid(self):
@@ -116,7 +116,7 @@ Hope this helps!'''
                 {"source": "a", "target": "b"},
             ],
         }
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert is_valid
         assert error == ""
@@ -124,7 +124,7 @@ Hope this helps!'''
     def test_validate_graph_missing_nodes(self):
         """测试缺少 nodes 字段"""
         data = {"edges": []}
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert not is_valid
         assert "nodes" in error
@@ -132,7 +132,7 @@ Hope this helps!'''
     def test_validate_graph_missing_edges(self):
         """测试缺少 edges 字段"""
         data = {"nodes": []}
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert not is_valid
         assert "edges" in error
@@ -143,7 +143,7 @@ Hope this helps!'''
             "nodes": [{"id": "a", "label": "A"}],
             "edges": [{"source": "nonexistent", "target": "a"}],
         }
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert not is_valid
         assert "source" in error
@@ -154,7 +154,7 @@ Hope this helps!'''
             "nodes": [{"id": "a", "label": "A"}],
             "edges": [{"source": "a", "target": "nonexistent"}],
         }
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert not is_valid
         assert "target" in error
@@ -165,7 +165,7 @@ Hope this helps!'''
             "nodes": [{"label": "A"}],
             "edges": [],
         }
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert not is_valid
         assert "id" in error
@@ -176,7 +176,7 @@ Hope this helps!'''
             "nodes": [{"id": "a"}],
             "edges": [],
         }
-        
+
         is_valid, error = self.tool._validate_graph(data)
         assert not is_valid
         assert "label" in error
@@ -190,9 +190,9 @@ Hope this helps!'''
             ],
             "edges": [],
         }
-        
+
         result = self.tool._enrich_graph(data)
-        
+
         assert result["nodes"][0]["color"] == NODE_TYPES["concept"]["color"]
         assert result["nodes"][1]["color"] == NODE_TYPES["source"]["color"]
 
@@ -202,9 +202,9 @@ Hope this helps!'''
             "nodes": [{"id": "a", "label": "A"}],
             "edges": [],
         }
-        
+
         result = self.tool._enrich_graph(data)
-        
+
         assert result["nodes"][0]["importance"] == 5
 
     def test_enrich_graph_adds_edge_style(self):
@@ -218,9 +218,9 @@ Hope this helps!'''
                 {"source": "a", "target": "b", "type": "cites"},
             ],
         }
-        
+
         result = self.tool._enrich_graph(data)
-        
+
         assert result["edges"][0]["style"] == EDGE_TYPES["cites"]["style"]
 
     def test_enrich_graph_adds_default_strength(self):
@@ -232,9 +232,9 @@ Hope this helps!'''
             ],
             "edges": [{"source": "a", "target": "b"}],
         }
-        
+
         result = self.tool._enrich_graph(data)
-        
+
         assert result["edges"][0]["strength"] == 5
 
     def test_enrich_graph_preserves_existing_values(self):
@@ -245,9 +245,9 @@ Hope this helps!'''
             ],
             "edges": [],
         }
-        
+
         result = self.tool._enrich_graph(data)
-        
+
         assert result["nodes"][0]["color"] == "#ff0000"
         assert result["nodes"][0]["importance"] == 10
 
@@ -255,7 +255,7 @@ Hope this helps!'''
     async def test_execute_empty_content(self):
         """测试空内容执行"""
         result = await self.tool.execute(content="")
-        
+
         assert "Error" in result
         assert "不能为空" in result
 
@@ -264,9 +264,9 @@ Hope this helps!'''
         """测试无 API key"""
         tool = KnowledgeGraphTool()
         tool.api_key = ""
-        
+
         result = await tool.execute(content="test content")
-        
+
         assert "Error" in result
         assert "OPENROUTER_API_KEY" in result
 
@@ -288,20 +288,20 @@ Hope this helps!'''
     }
 }
 ```'''
-        
+
         with patch.object(self.tool, '_call_llm', new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_llm_response
             self.tool.api_key = "test_key"
-            
+
             result = await self.tool.execute(
                 content="人工智能和机器学习的关系",
                 graph_type="concept",
                 title="AI 概念图"
             )
-            
+
             # to_text() now returns JSON data directly (no summary)
             result_data = json.loads(result)
-            
+
             assert result_data["type"] == "knowledge_graph"
             assert result_data["graph_type"] == "concept"
             assert result_data["title"] == "AI 概念图"
@@ -312,16 +312,16 @@ Hope this helps!'''
     async def test_execute_with_focus_entities(self):
         """测试带 focus_entities 的执行"""
         mock_llm_response = '''{"nodes": [{"id": "a", "label": "A"}], "edges": []}'''
-        
+
         with patch.object(self.tool, '_call_llm', new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_llm_response
             self.tool.api_key = "test_key"
-            
+
             await self.tool.execute(
                 content="test",
                 focus_entities=["entity1", "entity2"]
             )
-            
+
             # 检查 prompt 中包含 focus_entities
             call_args = mock_llm.call_args[0]
             assert "entity1" in call_args[1] or "entity2" in call_args[1]
@@ -332,9 +332,9 @@ Hope this helps!'''
         with patch.object(self.tool, '_call_llm', new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = "invalid json {"
             self.tool.api_key = "test_key"
-            
+
             result = await self.tool.execute(content="test")
-            
+
             assert "Error" in result
             assert "解析" in result or "失败" in result
 
@@ -342,13 +342,13 @@ Hope this helps!'''
     async def test_execute_invalid_graph(self):
         """测试无效图谱数据"""
         mock_llm_response = '''{"nodes": [], "edges": [{"source": "x", "target": "y"}]}'''
-        
+
         with patch.object(self.tool, '_call_llm', new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = mock_llm_response
             self.tool.api_key = "test_key"
-            
+
             result = await self.tool.execute(content="test")
-            
+
             assert "Error" in result
             assert "无效" in result or "不存在" in result
 

@@ -58,11 +58,11 @@ async def create_session(
     service: SessionService = Depends(get_session_service),
 ):
     """Create a new session.
-    
+
     DEPRECATED: Use POST /api/v1/projects instead.
     """
     add_deprecation_header(response)
-    
+
     # Check if user can create session in this workspace
     try:
         await permission_service.can_create_session(current_user, data.workspace_id)
@@ -87,7 +87,7 @@ async def list_sessions(
     service: SessionService = Depends(get_session_service),
 ):
     """List sessions for a workspace with pagination.
-    
+
     DEPRECATED: Use GET /api/v1/projects instead.
     """
     add_deprecation_header(response)

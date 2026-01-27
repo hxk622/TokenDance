@@ -4,16 +4,16 @@ Conversation Service - 对话服务
 提供多轮对话的核心业务逻辑
 """
 import logging
-from typing import Optional, List
 from datetime import datetime
 
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.conversation import Conversation, ConversationStatus, ConversationType
+from app.models.conversation import Conversation, ConversationPurpose, ConversationStatus
+from app.models.message import Message
 from app.models.turn import Turn, TurnStatus
-from app.models.message import Message, MessageRole
+from app.models.project import Project, ProjectStatus
 from app.repositories.message_repository import MessageRepository
 
 logger = logging.getLogger(__name__)
@@ -36,42 +36,50 @@ class ConversationService:
 
     async def create_conversation(
         self,
-        workspace_id: str,
-        title: Optional[str] = None,
-        conversation_type: ConversationType = ConversationType.CHAT,
-        initial_message: Optional[str] = None,
-    ) -> tuple[Conversation, Optional[Turn]]:
+        project_id: str,
+        title: str | None = None,
+        purpose: ConversationPurpose = ConversationPurpose.GENERAL,
+        initial_message: str | None = None,
+    ) -> tuple[Conversation, Turn | None]:
         """
         创建新对话
 
         Args:
-            workspace_id: 工作空间 ID
+            project_id: 项目 ID
             title: 对话标题 (可选,不提供则使用默认值)
-            conversation_type: 对话类型
+            purpose: 对话目的
             initial_message: 初始消息 (可选)
 
         Returns:
             (Conversation, Turn): 对话对象和首个 Turn (如果提供了 initial_message)
         """
         # 1. 创建 Conversation
+        project = await self.db.get(Project, project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+
         conversation = Conversation(
-            workspace_id=workspace_id,
+            project_id=project_id,
             title=title or "新对话",
-            conversation_type=conversation_type,
+            purpose=purpose,
             status=ConversationStatus.ACTIVE,
             turn_count=0,
-            message_count=0,
+            message_count_db=0,
             shared_memory={},
         )
         self.db.add(conversation)
         await self.db.flush()  # 获取 conversation.id
 
         logger.info(
-            "conversation_created",
-            conversation_id=conversation.id,
-            workspace_id=workspace_id,
-            conversation_type=conversation_type.value,
+            "conversation_created conversation_id=%s project_id=%s purpose=%s",
+            conversation.id,
+            project_id,
+            purpose.value,
         )
+
+        project.conversation_count += 1
+        if project.status == ProjectStatus.DRAFT:
+            project.status = ProjectStatus.IN_PROGRESS
 
         # 2. 如果提供了初始消息,创建首个 Turn
         turn = None
@@ -88,7 +96,7 @@ class ConversationService:
         self,
         conversation_id: str,
         content: str,
-        parent_message_id: Optional[str] = None,
+        parent_message_id: str | None = None,
     ) -> Turn:
         """
         向对话发送新消息 (核心方法)
@@ -114,41 +122,41 @@ class ConversationService:
         if conversation.status != ConversationStatus.ACTIVE:
             raise ValueError(f"Conversation {conversation_id} is not active")
 
-        # 2. 创建 Turn
+        # 2. 保存 User Message
+        user_message = await self.message_repo.create_user_message(
+            session_id=None,  # Session 稍后由 Agent Worker 创建
+            content=content,
+            conversation_id=conversation_id,
+        )
+
+        # 3. 创建 Turn (需要 user_message_id)
         turn_number = conversation.turn_count + 1
         turn = Turn(
             conversation_id=conversation_id,
             turn_number=turn_number,
+            user_message_id=user_message.id,
             user_input=content,
             status=TurnStatus.PENDING,
         )
         self.db.add(turn)
         await self.db.flush()  # 获取 turn.id
 
-        # 3. 保存 User Message
-        user_message = await self.message_repo.create_user_message(
-            session_id=None,  # Session 稍后由 Agent Worker 创建
-            content=content,
-            conversation_id=conversation_id,
-            turn_id=turn.id,
-        )
-
-        # 4. 更新 Turn 的 user_message_id
-        turn.user_message_id = user_message.id
+        # 4. 回填 Message.turn_id
+        user_message.turn_id = turn.id
 
         # 5. 更新 Conversation 统计
         conversation.turn_count = turn_number
-        conversation.message_count += 1
+        conversation.message_count_db += 1
         conversation.last_message_at = datetime.utcnow()
 
         await self.db.commit()
 
         logger.info(
-            "message_sent",
-            conversation_id=conversation_id,
-            turn_id=turn.id,
-            turn_number=turn_number,
-            content_length=len(content),
+            "message_sent conversation_id=%s turn_id=%s turn_number=%s content_length=%s",
+            conversation_id,
+            turn.id,
+            turn_number,
+            len(content),
         )
 
         return turn
@@ -158,7 +166,7 @@ class ConversationService:
         conversation_id: str,
         include_turns: bool = False,
         include_messages: bool = False,
-    ) -> Optional[Conversation]:
+    ) -> Conversation | None:
         """
         获取对话详情
 
@@ -182,16 +190,16 @@ class ConversationService:
 
     async def list_conversations(
         self,
-        workspace_id: str,
-        status: Optional[ConversationStatus] = None,
+        project_id: str,
+        status: ConversationStatus | None = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> List[Conversation]:
+    ) -> list[Conversation]:
         """
         列出对话列表
 
         Args:
-            workspace_id: 工作空间 ID
+            project_id: 项目 ID
             status: 对话状态筛选
             limit: 返回数量
             offset: 偏移量
@@ -199,7 +207,7 @@ class ConversationService:
         Returns:
             List[Conversation]: 对话列表
         """
-        query = select(Conversation).where(Conversation.workspace_id == workspace_id)
+        query = select(Conversation).where(Conversation.project_id == project_id)
 
         if status:
             query = query.where(Conversation.status == status)
@@ -239,10 +247,10 @@ class ConversationService:
         await self.db.commit()
 
         logger.info(
-            "shared_memory_updated",
-            conversation_id=conversation_id,
-            merge=merge,
-            memory_size=len(str(conversation.shared_memory)),
+            "shared_memory_updated conversation_id=%s merge=%s memory_size=%s",
+            conversation_id,
+            merge,
+            len(str(conversation.shared_memory)),
         )
 
     def _merge_memory(self, current: dict, update: dict) -> dict:
@@ -302,18 +310,17 @@ class ConversationService:
         conversation = await self.get_conversation(conversation_id)
         if not conversation:
             raise ValueError(f"Conversation {conversation_id} not found")
-
-        conversation.status = ConversationStatus.ARCHIVED
-        conversation.archived_at = datetime.utcnow()
+        conversation.status = ConversationStatus.COMPLETED
+        conversation.completed_at = datetime.utcnow()
         await self.db.commit()
 
-        logger.info("conversation_archived", conversation_id=conversation_id)
+        logger.info("conversation_archived conversation_id=%s", conversation_id)
 
     async def get_message_history(
         self,
         conversation_id: str,
         limit: int = 20,
-    ) -> List[Message]:
+    ) -> list[Message]:
         """
         获取对话的消息历史
 

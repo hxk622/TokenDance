@@ -3,12 +3,11 @@ import re
 from datetime import datetime, timedelta
 
 from jose import JWTError, jwt
-
-from app.core.datetime_utils import utc_now_naive
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, field_validator
 
 from app.core.config import settings
+from app.core.datetime_utils import utc_now_naive
 from app.core.logging import get_logger
 from app.models.user import AuthProvider, User
 from app.models.workspace import Workspace

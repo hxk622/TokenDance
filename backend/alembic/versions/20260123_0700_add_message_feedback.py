@@ -23,14 +23,14 @@ def upgrade() -> None:
     # Create feedback type enum
     feedback_type = sa.Enum('like', 'dislike', name='feedbacktype')
     feedback_type.create(op.get_bind(), checkfirst=True)
-    
+
     # Add feedback column
     op.add_column('messages', sa.Column(
         'feedback',
         sa.Enum('like', 'dislike', name='feedbacktype'),
         nullable=True
     ))
-    
+
     # Add feedback_at column
     op.add_column('messages', sa.Column(
         'feedback_at',
@@ -43,6 +43,6 @@ def downgrade() -> None:
     """Remove feedback columns from messages table."""
     op.drop_column('messages', 'feedback_at')
     op.drop_column('messages', 'feedback')
-    
+
     # Drop the enum type
     op.execute('DROP TYPE IF EXISTS feedbacktype')

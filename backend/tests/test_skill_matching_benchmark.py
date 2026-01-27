@@ -209,7 +209,7 @@ _cached_embedding_matcher = None
 @pytest.fixture(scope="session")
 def skill_matcher_with_embedding_session(skill_registry_session):
     """创建带 Embedding 的 SkillMatcher (session scope，模型只加载一次)
-    
+
     性能优化：模型加载约 3-10 秒，使用 session scope 避免重复加载。
     """
     from app.skills.matcher import create_skill_matcher
@@ -251,7 +251,7 @@ class TestSkillMatchingBasic:
 @pytest.mark.slow
 class TestSkillMatchingBenchmark:
     """Skill 匹配准确性 Benchmark
-    
+
     标记为 slow，默认跳过。运行方式：pytest -m slow
     """
 
@@ -294,7 +294,7 @@ class TestSkillMatchingBenchmark:
 @pytest.mark.slow
 class TestPrecisionRecall:
     """评估匹配的 Precision 和 Recall
-    
+
     标记为 slow，默认跳过。运行方式：pytest -m slow
     """
 
@@ -372,7 +372,7 @@ class TestPrecisionRecall:
 @pytest.mark.slow
 class TestThresholdSensitivity:
     """测试不同阈值对匹配结果的影响
-    
+
     标记为 slow，默认跳过。运行方式：pytest -m slow
     """
 

@@ -1,7 +1,6 @@
-import asyncio
 
-from app.skills.registry import get_skill_registry, SkillRegistry
-from app.skills.template_registry import get_template_registry, TemplateRegistry
+from app.skills.registry import SkillRegistry, get_skill_registry
+from app.skills.template_registry import TemplateRegistry, get_template_registry
 
 
 def test_financial_research_skill_exists():

@@ -236,6 +236,8 @@ export const useExecutionStore = defineStore('execution', () => {
 
   // AnyGen-style chat messages (Chat 模式增强)
   const chatMessages = ref<ChatMessage[]>([])
+  // Chat phase (for header status)
+  const chatPhase = ref<'idle' | 'planning' | 'executing' | 'answering' | 'done'>('idle')
 
   // SSE connection
   let sseConnection: SSEConnection | null = null
@@ -268,6 +270,19 @@ export const useExecutionStore = defineStore('execution', () => {
       // Fetch messages
       const messageResponse = await sessionService.getSessionMessages(id)
       messages.value = messageResponse.items
+      // Hydrate chatMessages for Execution UI
+      chatMessages.value = messageResponse.items
+        .filter(m => m.role !== 'tool')  // 过滤 tool role，ChatMessage 只支持 user/assistant
+        .map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: m.content || '',
+          status: 'complete' as const,
+          timestamp: new Date(m.created_at).getTime(),
+        }))
+      if (session.value?.status === SessionStatus.COMPLETED) {
+        chatPhase.value = 'done'
+      }
 
       // Fetch artifacts
       const artifactResponse = await sessionService.getSessionArtifacts(id)
@@ -472,6 +487,29 @@ export const useExecutionStore = defineStore('execution', () => {
         }
         break
 
+      case SSEEventType.START: {
+        const msgId = event.data.message_id
+        const msg = getOrCreateAssistantMessage(msgId)
+        msg.status = 'thinking'
+        msg.statusText = event.data.message || '正在处理...'
+        if (event.data.mode === 'planning') {
+          chatPhase.value = 'planning'
+        } else if (event.data.mode === 'direct') {
+          chatPhase.value = 'executing'
+        }
+        break
+      }
+
+      case SSEEventType.STATUS: {
+        const phase = event.data.phase
+        if (phase === 'planning') {
+          chatPhase.value = 'planning'
+        } else if (phase === 'executing') {
+          chatPhase.value = 'executing'
+        }
+        break
+      }
+
       // Backend actual events: thinking, tool_call, tool_result, content, done
       case SSEEventType.THINKING:
       case SSEEventType.AGENT_THINKING:
@@ -481,6 +519,12 @@ export const useExecutionStore = defineStore('execution', () => {
           nodeId: event.data.node_id || activeNodeId.value || '0',
           content: event.data.content,
         })
+        {
+          const msgId = event.data.message_id
+          const msg = getOrCreateAssistantMessage(msgId)
+          msg.status = 'thinking'
+          msg.statusText = event.data.phase ? `正在${event.data.phase}` : '正在思考...'
+        }
         // 如果是 LLM_REASONING 事件，可能包含 phase 信息
         if (event.event === SSEEventType.LLM_REASONING && event.data.phase) {
           console.log('[ExecutionStore] LLM reasoning phase:', event.data.phase)
@@ -511,6 +555,12 @@ export const useExecutionStore = defineStore('execution', () => {
       case SSEEventType.CONTENT:
         // 累积报告内容
         reportContent.value += event.data.content || ''
+        {
+          const msgId = event.data.message_id
+          const msg = getOrCreateAssistantMessage(msgId)
+          msg.status = 'streaming'
+          msg.content = (msg.content || '') + (event.data.content || '')
+        }
         addLog({
           type: 'result',
           nodeId: activeNodeId.value || '0',
@@ -674,6 +724,15 @@ export const useExecutionStore = defineStore('execution', () => {
         if (session.value) {
           session.value.status = SessionStatus.COMPLETED
         }
+        {
+          const msgId = event.data.message_id
+          const msg = getOrCreateAssistantMessage(msgId)
+          msg.status = 'complete'
+          if (event.data.answer) {
+            msg.content = event.data.answer
+          }
+        }
+        chatPhase.value = 'done'
         break
 
       // Task planning events (dynamic workflow construction)
@@ -802,6 +861,7 @@ export const useExecutionStore = defineStore('execution', () => {
       // ========== Answer events (AnswerAgent) ==========
       case SSEEventType.ANSWER_GENERATING: {
         console.log('[ExecutionStore] Answer generating...')
+        chatPhase.value = 'answering'
         addLog({
           type: 'thinking',
           nodeId: '0',
@@ -816,6 +876,16 @@ export const useExecutionStore = defineStore('execution', () => {
         if (event.data.content) {
           reportContent.value = event.data.content
         }
+        {
+          const msgId = event.data.message_id
+          const msg = getOrCreateAssistantMessage(msgId)
+          const answerContent = event.data.content || event.data.answer || ''
+          if (answerContent) {
+            msg.content = answerContent
+          }
+          msg.status = 'complete'
+        }
+        chatPhase.value = 'done'
         // 更新引用
         if (event.data.citations && Array.isArray(event.data.citations)) {
           citations.value = event.data.citations
@@ -891,6 +961,7 @@ export const useExecutionStore = defineStore('execution', () => {
         if (session.value) {
           session.value.status = SessionStatus.COMPLETED
         }
+        chatPhase.value = 'done'
         // Close SSE connection - session is done, no need to reconnect
         sseConnection?.close()
         sseConnectionState.value = 'disconnected'
@@ -900,6 +971,7 @@ export const useExecutionStore = defineStore('execution', () => {
         if (session.value) {
           session.value.status = SessionStatus.FAILED
         }
+        chatPhase.value = 'done'
         // Close SSE connection - session failed, no need to reconnect
         sseConnection?.close()
         sseConnectionState.value = 'disconnected'
@@ -1125,13 +1197,16 @@ export const useExecutionStore = defineStore('execution', () => {
       case SSEEventType.PLANNING_START: {
         // 创建或更新 planning 数据到当前 AI 消息
         const msgId = event.data.message_id
-        if (msgId) {
-          updateMessagePlanning(msgId, {
-            content: '',
-            streaming: true,
-            collapsed: false,
-          })
-        }
+        const msg = getOrCreateAssistantMessage(msgId)
+        msg.status = 'thinking'
+        updateMessagePlanning(msg.id, {
+          title: event.data.title,
+          content: '',
+          streaming: true,
+          collapsed: false,
+          status: 'thinking',
+        })
+        chatPhase.value = 'planning'
         console.log('[ExecutionStore] Planning started:', msgId)
         break
       }
@@ -1140,18 +1215,16 @@ export const useExecutionStore = defineStore('execution', () => {
         // 流式追加 planning 内容
         const msgId = event.data.message_id
         const content = event.data.content || ''
-        if (msgId) {
-          appendPlanningContent(msgId, content)
-        }
+        const msg = getOrCreateAssistantMessage(msgId)
+        appendPlanningContent(msg.id, content)
         break
       }
 
       case SSEEventType.PLANNING_DONE: {
         // 标记 planning 完成
         const msgId = event.data.message_id
-        if (msgId) {
-          finishPlanning(msgId)
-        }
+        const msg = getOrCreateAssistantMessage(msgId)
+        finishPlanning(msg.id)
         console.log('[ExecutionStore] Planning done:', msgId)
         break
       }
@@ -1168,9 +1241,10 @@ export const useExecutionStore = defineStore('execution', () => {
           children: [],
           sources: [],
         }
-        if (msgId) {
-          addExecutionStep(msgId, step)
-        }
+        const msg = getOrCreateAssistantMessage(msgId)
+        msg.status = 'streaming'
+        addExecutionStep(msg.id, step)
+        chatPhase.value = 'executing'
         console.log('[ExecutionStore] Step started:', event.data.step_id)
         break
       }
@@ -1179,8 +1253,9 @@ export const useExecutionStore = defineStore('execution', () => {
         // 更新执行步骤
         const msgId = event.data.message_id
         const stepId = event.data.step_id
-        if (msgId && stepId) {
-          updateExecutionStep(msgId, stepId, {
+        const msg = getOrCreateAssistantMessage(msgId)
+        if (stepId) {
+          updateExecutionStep(msg.id, stepId, {
             label: event.data.label,
             content: event.data.content,
           })
@@ -1192,8 +1267,9 @@ export const useExecutionStore = defineStore('execution', () => {
         // 标记步骤完成
         const msgId = event.data.message_id
         const stepId = event.data.step_id
-        if (msgId && stepId) {
-          updateExecutionStep(msgId, stepId, { status: 'done' })
+        const msg = getOrCreateAssistantMessage(msgId)
+        if (stepId) {
+          updateExecutionStep(msg.id, stepId, { status: 'done' })
         }
         console.log('[ExecutionStore] Step done:', stepId)
         break
@@ -1203,8 +1279,9 @@ export const useExecutionStore = defineStore('execution', () => {
         // 标记步骤失败
         const msgId = event.data.message_id
         const stepId = event.data.step_id
-        if (msgId && stepId) {
-          updateExecutionStep(msgId, stepId, { status: 'pending' }) // 用 pending 表示失败
+        const msg = getOrCreateAssistantMessage(msgId)
+        if (stepId) {
+          updateExecutionStep(msg.id, stepId, { status: 'failed' })
         }
         console.log('[ExecutionStore] Step failed:', stepId)
         break
@@ -1219,8 +1296,9 @@ export const useExecutionStore = defineStore('execution', () => {
           favicon: s.favicon || `https://www.google.com/s2/favicons?domain=${new URL(s.url).hostname}`,
           domain: s.domain || new URL(s.url).hostname,
         }))
-        if (msgId && stepId && sources.length > 0) {
-          addStepSources(msgId, stepId, sources)
+        const msg = getOrCreateAssistantMessage(msgId)
+        if (stepId && sources.length > 0) {
+          addStepSources(msg.id, stepId, sources)
         }
         break
       }
@@ -1347,6 +1425,41 @@ export const useExecutionStore = defineStore('execution', () => {
   // ========== AnyGen-style ChatMessage 辅助函数 ==========
 
   /**
+   * Get or create an assistant message for streaming updates
+   */
+  function getOrCreateAssistantMessage(messageId?: string): ChatMessage {
+    let msg: ChatMessage | undefined
+
+    if (messageId) {
+      msg = chatMessages.value.find(m => m.id === messageId)
+      if (!msg) {
+        msg = {
+          id: messageId,
+          role: 'assistant',
+          content: '',
+          status: 'thinking',
+          timestamp: Date.now(),
+        }
+        chatMessages.value.push(msg)
+      }
+      return msg
+    }
+
+    msg = getLastAIMessage()
+    if (msg) return msg
+
+    const fallbackMsg: ChatMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      status: 'thinking',
+      timestamp: Date.now(),
+    }
+    chatMessages.value.push(fallbackMsg)
+    return fallbackMsg
+  }
+
+  /**
    * Add a chat message
    */
   function addChatMessage(msg: ChatMessage) {
@@ -1432,6 +1545,13 @@ export const useExecutionStore = defineStore('execution', () => {
     return [...chatMessages.value].reverse().find(m => m.role === 'assistant')
   }
 
+  function finalizeLastAssistantMessage() {
+    const msg = getLastAIMessage()
+    if (msg && msg.status !== 'complete') {
+      msg.status = 'complete'
+    }
+  }
+
   /**
    * Clear chat messages
    */
@@ -1511,6 +1631,7 @@ export const useExecutionStore = defineStore('execution', () => {
     researchProgress.value = null
     // Reset chat messages
     chatMessages.value = []
+    chatPhase.value = 'idle'
   }
 
   return {
@@ -1540,6 +1661,7 @@ export const useExecutionStore = defineStore('execution', () => {
     citations,
     researchProgress,  // 深度研究进度
     chatMessages,      // AnyGen-style chat messages
+    chatPhase,
 
     // Computed
     isRunning,
@@ -1573,6 +1695,7 @@ export const useExecutionStore = defineStore('execution', () => {
     updateExecutionStep,
     addStepSources,
     getLastAIMessage,
+    finalizeLastAssistantMessage,
     clearChatMessages,
   }
 })

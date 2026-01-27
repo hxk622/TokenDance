@@ -90,7 +90,7 @@ class TestEventCalendarService:
             days_ahead=90
         )
 
-        valid_types = {e for e in EventType}
+        valid_types = set(EventType)
 
         for event in result.upcoming_events:
             assert event.event_type in valid_types
@@ -103,7 +103,7 @@ class TestEventCalendarService:
             days_ahead=90
         )
 
-        valid_importance = {e for e in EventImportance}
+        valid_importance = set(EventImportance)
 
         for event in result.upcoming_events:
             assert event.importance in valid_importance

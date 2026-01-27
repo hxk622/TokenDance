@@ -13,7 +13,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   selected: false,
-  disabled: false
+  disabled: false,
+  icon: undefined
 })
 
 // Emits

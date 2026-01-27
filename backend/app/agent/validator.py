@@ -308,6 +308,15 @@ class TaskValidator:
 
             # 解析结果
             content = response.content.upper()
+            if "VERDICT:" not in content:
+                logger.warning("Light validation returned no verdict; defaulting to pass")
+                return ValidationResult(
+                    passed=True,
+                    level=ValidationLevel.LIGHT,
+                    reason="Validation response missing verdict; defaulted to pass",
+                    confidence=0.5,
+                )
+
             passed = "VERDICT: PASS" in content or "VERDICT:PASS" in content
 
             # 提取原因

@@ -15,8 +15,6 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any
 
-from app.services.financial.config import check_data_mode_or_raise
-
 logger = logging.getLogger(__name__)
 
 

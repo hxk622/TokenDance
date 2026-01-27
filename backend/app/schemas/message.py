@@ -2,9 +2,9 @@
 Message Pydantic schemas for API request/response validation.
 """
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.message import MessageRole
 
@@ -36,10 +36,17 @@ class Attachment(BaseModel):
     - image: Image files (PNG, JPEG, GIF, WebP)
     - document: Document files (PDF, DOCX, XLSX, PPTX, TXT, CSV, MD)
     """
-    type: str  # image, document
+    type: Literal["image", "document"]
     file_id: str | None = None
     url: str | None = None  # base64 data URL
     name: str | None = None
+    mime_type: str | None = None
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "Attachment":
+        if not self.url and not self.file_id:
+            raise ValueError("Attachment must include url or file_id")
+        return self
 
 
 # ============ Base Schemas ============

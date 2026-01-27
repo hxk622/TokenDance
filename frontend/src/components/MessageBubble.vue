@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/utils/sanitize'
 import 'highlight.js/styles/github-dark.css'
-
-// Configure marked
-marked.use({
-  breaks: true,
-  gfm: true
-})
 
 // Props
 interface Props {
@@ -27,7 +21,7 @@ const renderedContent = computed(() => {
     return props.content // Plain text for user messages
   }
   // Markdown for assistant and error messages
-  return marked.parse(props.content)
+  return renderMarkdown(props.content)
 })
 
 const formattedTime = computed(() => {
@@ -57,6 +51,7 @@ const formattedTime = computed(() => {
       </div>
       
       <!-- Assistant/Error message: markdown -->
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div
         v-else
         class="message-text markdown-body"

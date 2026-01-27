@@ -10,7 +10,10 @@
     >
       <div class="header-left">
         <div class="assistant-avatar">
-          🧠
+          <img
+            src="/logo.svg"
+            alt="AI"
+          >
         </div>
         <div class="header-text">
           <h4 class="assistant-name">
@@ -64,9 +67,15 @@
           :class="msg.role"
         >
           <div class="message-avatar">
-            {{ msg.role === 'user' ? '👤' : '🧠' }}
+            <img
+              v-if="msg.role === 'assistant'"
+              src="/logo.svg"
+              alt="AI"
+            >
+            <span v-else>U</span>
           </div>
           <div class="message-content">
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <p
               class="message-text"
               v-html="formatMessage(msg.content)"
@@ -153,6 +162,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { renderMarkdown } from '@/utils/sanitize'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -317,10 +327,7 @@ function exportConversation() {
 }
 
 function formatMessage(content: string): string {
-  // Convert markdown-like formatting to HTML
-  return content
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
+  return renderMarkdown(content)
 }
 
 function formatTime(date: Date): string {
@@ -364,14 +371,14 @@ watch(() => props.symbol, () => {
 }
 
 .assistant-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: linear-gradient(135deg, #3b82f6, #00D9FF);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  padding: 0;
 }
 
 .assistant-name {
@@ -483,6 +490,12 @@ watch(() => props.symbol, () => {
   flex-direction: row-reverse;
 }
 
+
+.assistant-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .message-avatar {
   width: 32px;
   height: 32px;
@@ -496,6 +509,18 @@ watch(() => props.symbol, () => {
 
 .message.assistant .message-avatar {
   background: linear-gradient(135deg, #3b82f6, #00D9FF);
+}
+
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.message-avatar span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
 }
 
 .message-content {

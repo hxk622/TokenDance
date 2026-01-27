@@ -13,7 +13,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.datetime_utils import utc_now_naive
-
 from app.models.user_preference import (
     ExpertiseLevel,
     ReportStyle,

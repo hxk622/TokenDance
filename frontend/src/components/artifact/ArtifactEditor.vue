@@ -11,6 +11,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useProjectStore } from '@/stores/project'
 import type { SelectionContext } from '@/types/project'
+import { sanitizeHtml } from '@/utils/sanitize'
 import {
   Wand2,
   Copy,
@@ -71,6 +72,11 @@ const contentType = computed(() => {
   if (type === 'code') return 'code'
   if (type === 'markdown' || type === 'report') return 'markdown'
   return 'text'
+})
+
+const safeContent = computed(() => {
+  if (!props.artifact) return ''
+  return sanitizeHtml(props.artifact.content)
 })
 
 // Handle text selection
@@ -222,10 +228,11 @@ function handleEditorClick(e: MouseEvent) {
         ><code>{{ artifact.content }}</code></pre>
 
         <!-- Markdown/text content -->
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <div
           v-else
           class="text-content"
-          v-html="artifact.content"
+          v-html="safeContent"
         />
       </template>
 

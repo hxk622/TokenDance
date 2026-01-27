@@ -17,7 +17,6 @@ import secrets
 from redis.asyncio import Redis
 
 from app.core.datetime_utils import utc_now_naive
-
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,10 +27,10 @@ class SSETokenService:
 
     # Redis key prefix for SSE tokens
     KEY_PREFIX = "sse_token:"
-    
+
     # Default TTL for SSE tokens (5 minutes)
     DEFAULT_TTL_SECONDS = 300
-    
+
     def __init__(self, redis: Redis):
         self.redis = redis
 
@@ -43,20 +42,20 @@ class SSETokenService:
     ) -> str:
         """
         Create a short-lived SSE token.
-        
+
         Args:
             user_id: User ID who owns this token
             session_id: Session ID this token is valid for
             ttl_seconds: Token TTL in seconds (default: 300)
-            
+
         Returns:
             str: The SSE token
         """
         ttl = ttl_seconds or self.DEFAULT_TTL_SECONDS
-        
+
         # Generate secure random token
         token = secrets.token_urlsafe(32)
-        
+
         # Store token data in Redis
         key = f"{self.KEY_PREFIX}{token}"
         token_data = {
@@ -64,18 +63,18 @@ class SSETokenService:
             "session_id": session_id,
             "created_at": utc_now_naive().isoformat(),
         }
-        
+
         # Set with TTL
         await self.redis.hset(key, mapping=token_data)
         await self.redis.expire(key, ttl)
-        
+
         logger.info(
             "sse_token_created",
             user_id=user_id,
             session_id=session_id,
             ttl_seconds=ttl,
         )
-        
+
         return token
 
     async def validate_sse_token(
@@ -86,24 +85,24 @@ class SSETokenService:
     ) -> dict | None:
         """
         Validate and optionally consume an SSE token.
-        
+
         Args:
             token: The SSE token to validate
             session_id: Expected session ID
             consume: If True, delete token after validation (single-use)
-            
+
         Returns:
             dict with user_id and session_id if valid, None otherwise
         """
         key = f"{self.KEY_PREFIX}{token}"
-        
+
         # Get token data
         token_data = await self.redis.hgetall(key)
-        
+
         if not token_data:
             logger.warning("sse_token_invalid_or_expired", token_prefix=token[:8])
             return None
-        
+
         # Validate session_id matches
         stored_session_id = token_data.get("session_id")
         if stored_session_id != session_id:
@@ -113,7 +112,7 @@ class SSETokenService:
                 got=stored_session_id,
             )
             return None
-        
+
         # Consume token (single-use)
         if consume:
             await self.redis.delete(key)
@@ -122,7 +121,7 @@ class SSETokenService:
                 user_id=token_data.get("user_id"),
                 session_id=session_id,
             )
-        
+
         return {
             "user_id": token_data.get("user_id"),
             "session_id": stored_session_id,
@@ -131,16 +130,16 @@ class SSETokenService:
     async def revoke_sse_token(self, token: str) -> bool:
         """
         Revoke an SSE token before it expires.
-        
+
         Args:
             token: The SSE token to revoke
-            
+
         Returns:
             bool: True if token was revoked, False if not found
         """
         key = f"{self.KEY_PREFIX}{token}"
         deleted = await self.redis.delete(key)
-        
+
         if deleted:
             logger.info("sse_token_revoked", token_prefix=token[:8])
             return True
@@ -149,32 +148,32 @@ class SSETokenService:
     async def revoke_user_tokens(self, user_id: str) -> int:
         """
         Revoke all SSE tokens for a user.
-        
+
         Note: This requires scanning Redis keys, which can be slow.
         For production, consider using a secondary index.
-        
+
         Args:
             user_id: User ID whose tokens to revoke
-            
+
         Returns:
             int: Number of tokens revoked
         """
         count = 0
         pattern = f"{self.KEY_PREFIX}*"
-        
+
         async for key in self.redis.scan_iter(match=pattern):
             token_data = await self.redis.hgetall(key)
             if token_data.get("user_id") == user_id:
                 await self.redis.delete(key)
                 count += 1
-        
+
         if count > 0:
             logger.info(
                 "sse_tokens_revoked_for_user",
                 user_id=user_id,
                 count=count,
             )
-        
+
         return count
 
 

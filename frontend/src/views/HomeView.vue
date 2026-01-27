@@ -36,8 +36,8 @@ const showError = (msg: string) => {
   }, 4000)
 }
 
-// Project list
-const recentProjects = computed(() => projectStore.activeProjects.slice(0, 6))
+// Project list (最多 2 行 × 2 列)
+const recentProjects = computed(() => projectStore.activeProjects.slice(0, 4))
 const hasProjects = computed(() => recentProjects.value.length > 0)
 
 // Convert projects to sidebar recent items
@@ -625,12 +625,13 @@ watch(
 
 /* Main Content */
 .home-main {
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 0 16px;
+  padding-left: calc(16px + var(--sidebar-width));
   padding-top: 70px;
   padding-bottom: 4rem;
   overflow-y: auto;
@@ -649,6 +650,8 @@ watch(
   margin-bottom: 24px;
   width: 100%;
   max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (min-width: 768px) {
@@ -679,6 +682,8 @@ watch(
   margin-bottom: 12px;
   width: 100%;
   max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .input-box {
@@ -785,6 +790,8 @@ watch(
   margin-bottom: 40px;
   width: 100%;
   max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .section-header {
@@ -822,18 +829,12 @@ watch(
 .projects-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 @media (min-width: 640px) {
   .projects-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 768px) {
-  .projects-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -914,6 +915,8 @@ watch(
   margin-bottom: 32px;
   width: 100%;
   max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .chips-row {
@@ -960,6 +963,8 @@ watch(
   margin-bottom: 24px;
   width: 100%;
   max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
   border-bottom: 1px solid var(--any-border);
 }
 
@@ -1019,6 +1024,8 @@ watch(
   padding: 24px 0;
   width: 100%;
   max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .templates-grid {

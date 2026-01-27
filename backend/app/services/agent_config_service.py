@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.llm.base import BaseLLM
-from app.agent.llm.router import get_free_llm_for_task, TaskType
+from app.agent.llm.router import TaskType, get_free_llm_for_task
 from app.core.config import Settings
 from app.models.agent_config import AgentConfig, LLMModel
 from app.repositories.agent_config_repository import (

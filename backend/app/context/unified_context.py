@@ -382,7 +382,8 @@ class UnifiedExecutionContext:
                 "by_type": {},
             }
 
-        stats = {
+        by_type: dict[str, dict[str, int]] = {}
+        stats: dict[str, Any] = {
             "total_executions": total,
             "success_count": sum(
                 1 for r in self.execution_history
@@ -395,7 +396,7 @@ class UnifiedExecutionContext:
                     ExecutionStatus.TIMEOUT,
                 ]
             ),
-            "by_type": {},
+            "by_type": by_type,
         }
 
         # 按执行类型统计
@@ -405,7 +406,7 @@ class UnifiedExecutionContext:
                 if r.execution_type == exec_type
             ]
             if type_records:
-                stats["by_type"][exec_type.value] = {
+                by_type[exec_type.value] = {
                     "count": len(type_records),
                     "success_count": sum(
                         1 for r in type_records

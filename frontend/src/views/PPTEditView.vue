@@ -22,6 +22,7 @@ import {
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { pptApi, type PPTOutline, type SlideContent, type SlideType, type ExportFormat } from '@/api/ppt'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const route = useRoute()
 const router = useRouter()
@@ -311,7 +312,7 @@ const updatePreview = () => {
   }
 
   html += '</div>'
-  previewHtml.value = html
+  previewHtml.value = sanitizeHtml(html)
 }
 
 const exportPPT = async (format: ExportFormat) => {
@@ -601,6 +602,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="preview-container">
+          <!-- eslint-disable-next-line vue/no-v-html -->
           <div
             class="preview-slide"
             v-html="previewHtml"
