@@ -2078,8 +2078,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden;  /* 默认隐藏滚动条 */
   position: relative;
+}
+
+/* 三栏独立滚动: hover 时启用滚动 */
+.left-panel:hover {
+  overflow-y: auto;
 }
 
 .workflow-graph-container {
@@ -2291,9 +2296,14 @@ onUnmounted(() => {
 .streaming-info-container {
   flex: 1;  /* 填充剩余空间 */
   min-height: 200px;
-  overflow: hidden;
+  overflow: hidden;  /* 默认隐藏滚动条 */
   display: flex;
   flex-direction: column;
+}
+
+/* hover 时启用滚动 */
+.streaming-info-container:hover {
+  overflow-y: auto;
 }
 
 /* Skeleton loading styles */
@@ -2340,8 +2350,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden;  /* 默认隐藏滚动条 */
   background: var(--exec-bg-secondary);
+}
+
+/* hover 时启用滚动 */
+.right-panel:hover {
+  overflow-y: auto;
 }
 
 /* Panel Toggle (Compact Mode) */

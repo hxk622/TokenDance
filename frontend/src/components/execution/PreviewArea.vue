@@ -65,15 +65,23 @@
         v-if="currentTab === 'report'"
         class="report-container"
       >
-        <!-- 有报告内容时显示引用渲染器 -->
+        <!-- HTML 报告 - 使用 iframe 渲染 -->
+        <iframe
+          v-if="reportContent && isReportHtml"
+          :srcdoc="reportIframeContent"
+          class="report-iframe"
+          sandbox="allow-same-origin"
+          @load="handleIframeLoad"
+        />
+        <!-- Markdown 报告 - 使用引用渲染器 -->
         <div
-          v-if="reportContent"
+          v-else-if="reportContent && !isReportHtml"
           class="report-content"
         >
           <CitationRenderer
             :content="reportContent"
             :citations="citations"
-            :is-html="isReportHtml"
+            :is-html="false"
             @open-url="handleOpenCitationUrl"
             @copy-citation="handleCopyCitation"
           />
@@ -301,6 +309,121 @@ function handleCopyCitation(citation: Citation) {
   console.log('Citation copied:', citation)
   // TODO: 显示 Toast 提示
 }
+
+// iframe 内容 - 包装为完整的 HTML 文档
+const reportIframeContent = computed(() => {
+  if (!props.reportContent) return ''
+  
+  // 完整的 HTML 文档模板
+  return `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>研究报告</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--any-text-primary, #1a1a1a);
+      background: var(--any-bg-primary, #ffffff);
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin: 1.5em 0 0.5em;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.25em; }
+    p {
+      margin: 0.8em 0;
+    }
+    ul, ol {
+      margin: 0.8em 0;
+      padding-left: 2em;
+    }
+    li {
+      margin: 0.3em 0;
+    }
+    a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: "Monaco", "Courier New", monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    blockquote {
+      border-left: 4px solid rgba(0, 0, 0, 0.1);
+      padding-left: 1em;
+      margin: 1em 0;
+      color: rgba(0, 0, 0, 0.6);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+    }
+    th, td {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      padding: 0.5em;
+      text-align: left;
+    }
+    th {
+      background: rgba(0, 0, 0, 0.05);
+      font-weight: 600;
+    }
+    .citation-ref {
+      display: inline-block;
+      background: #0066cc;
+      color: white;
+      font-size: 0.75em;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      margin: 0 0.2em;
+      cursor: pointer;
+      vertical-align: super;
+      line-height: 1;
+    }
+    .citation-ref:hover {
+      background: #0052a3;
+    }
+  </style>
+</head>
+<body>
+  ${props.reportContent}
+</body>
+</html>
+  `.trim()
+})
+
+// iframe 加载完成
+function handleIframeLoad() {
+  console.log('[PreviewArea] Report iframe loaded')
+}
 </script>
 
 <style scoped>
@@ -438,6 +561,14 @@ p {
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* Report iframe 样式 */
+.report-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: var(--any-bg-primary);
 }
 
 /* Project Context */

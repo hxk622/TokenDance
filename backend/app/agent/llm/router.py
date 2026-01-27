@@ -476,6 +476,8 @@ def get_free_llm_for_task(
 ) -> BaseLLM:
     """快捷方式：获取免费 LLM
 
+    优先级: SiliconFlow > OpenRouter
+
     Args:
         task_type: 任务类型
         context_length: 上下文长度
@@ -499,6 +501,29 @@ def get_free_llm_for_task(
         >>> # 超长文档
         >>> llm = get_free_llm_for_task("general", context_length=500000)
     """
+    from .siliconflow import is_siliconflow_available, select_siliconflow_model, create_siliconflow_llm
+
+    # 优先使用 SiliconFlow
+    if is_siliconflow_available():
+        task_type_str = task_type.value if isinstance(task_type, TaskType) else task_type
+        model = select_siliconflow_model(
+            task_type=task_type_str,
+            prefer_free=True,
+            context_length=context_length
+        )
+        logger.info(
+            f"\n"
+            f"========== LLM Router (SiliconFlow) ==========\n"
+            f"  Task Type: {task_type}\n"
+            f"  Selected Model: {model}\n"
+            f"  Context Length: {context_length}\n"
+            f"  Prefer Speed: {prefer_speed}\n"
+            f"  Prefer Chinese: {prefer_chinese}\n"
+            f"=============================================="
+        )
+        return create_siliconflow_llm(model=model, **llm_kwargs)
+
+    # Fallback to OpenRouter
     router = FreeModelRouter()
     model = router.select_model(
         task_type,
@@ -507,16 +532,15 @@ def get_free_llm_for_task(
         prefer_chinese=prefer_chinese
     )
 
-    # 打印模型选择日志
     logger.info(
         f"\n"
-        f"========== LLM Router ==========\n"
+        f"========== LLM Router (OpenRouter) ==========\n"
         f"  Task Type: {task_type}\n"
         f"  Selected Model: {model}\n"
         f"  Context Length: {context_length}\n"
         f"  Prefer Speed: {prefer_speed}\n"
         f"  Prefer Chinese: {prefer_chinese}\n"
-        f"================================"
+        f"============================================="
     )
 
     return create_openrouter_llm(model=model, **llm_kwargs)
