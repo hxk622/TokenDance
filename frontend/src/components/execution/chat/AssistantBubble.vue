@@ -10,7 +10,7 @@
  * - 底部操作栏 (复制、点赞、重新生成)
  */
 import { computed } from 'vue'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, Pause } from 'lucide-vue-next'
 import PlanningCard from './PlanningCard.vue'
 import ExecutionTimeline from './ExecutionTimeline.vue'
 import MessageActions from '@/components/chat/MessageActions.vue'
@@ -25,12 +25,15 @@ interface Props {
   isLastMessage?: boolean
   /** 是否有任何消息正在流式输出 */
   isStreaming?: boolean
+  /** 任务是否正在运行 (显示介入按钮) */
+  isRunning?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   avatarSrc: '/logo.svg',
   isLastMessage: false,
-  isStreaming: false
+  isStreaming: false,
+  isRunning: false
 })
 
 const emit = defineEmits<{
@@ -39,6 +42,7 @@ const emit = defineEmits<{
   'source-click': [source: Source]
   'feedback': [feedback: 'like' | 'dislike' | null, onError?: () => void]
   'regenerate': []
+  'intervene': []
 }>()
 
 // Status helpers
@@ -88,6 +92,10 @@ function handleFeedback(feedback: 'like' | 'dislike' | null, onError?: () => voi
 
 function handleRegenerate() {
   emit('regenerate')
+}
+
+function handleIntervene() {
+  emit('intervene')
 }
 
 // Format timestamp
@@ -181,6 +189,17 @@ function formatTime(timestamp: number): string {
           />
         </div>
       </div>
+      
+      <!-- Intervention button (when task is running) -->
+      <button
+        v-if="isRunning && isComplete"
+        class="intervene-btn"
+        title="暂停并介入"
+        @click="handleIntervene"
+      >
+        <Pause class="w-4 h-4" />
+        <span>介入</span>
+      </button>
 
       <!-- Timestamp -->
       <span class="message-time">{{ formatTime(message.timestamp) }}</span>
@@ -368,8 +387,34 @@ function formatTime(timestamp: number): string {
 
 /* Timestamp */
 .message-time {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--any-text-muted);
-  padding: 0 4px;
+}
+
+/* Intervention button */
+.intervene-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  background: var(--any-bg-secondary);
+  border: 1px solid var(--any-border);
+  border-radius: 8px;
+  color: var(--any-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.intervene-btn:hover {
+  background: var(--any-bg-tertiary);
+  border-color: var(--any-border-hover);
+  color: var(--any-text-primary);
+}
+
+.intervene-btn:active {
+  transform: scale(0.98);
 }
 </style>

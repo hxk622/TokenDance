@@ -46,6 +46,8 @@ interface Props {
   isDeepResearch?: boolean  // 是否为深度研究模式
   /** 是否使用 Block 模式展示研究进度 (v2.0) */
   useBlockMode?: boolean
+  /** 任务是否正在运行 */
+  isRunning?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -55,6 +57,7 @@ const props = withDefaults(defineProps<Props>(), {
   userAvatar: 'U',
   isDeepResearch: false,
   useBlockMode: true,  // 默认启用 Block 模式
+  isRunning: false,
 })
 
 // Emits
@@ -65,6 +68,8 @@ const emit = defineEmits<{
   'research-intervene': [intervention: ResearchIntervention]
   /** 用户发送消息事件 (Chat Mode 下触发执行) - 传递完整 payload 包括附件 */
   'send-message': [payload: SendMessagePayload]
+  /** 终止任务执行 */
+  'stop': []
 }>()
 
 // Selected clarification options
@@ -538,6 +543,13 @@ function handleMessageFeedback(msgId: string, feedback: 'like' | 'dislike' | nul
 function handleRegenerateMessage() {
   // TODO: Implement regenerate logic - re-run agent from last user message
   console.log('Regenerate message requested')
+}
+
+// Handle message intervention (pause button on AI message)
+function handleMessageIntervene() {
+  // Emit stop event to parent to pause execution
+  emit('stop')
+  console.log('User intervention requested from message')
 }
 
 // Handle planning card toggle (AnyGen style)
@@ -1039,11 +1051,13 @@ defineExpose({
               :message="item.data as ChatMessage"
               :is-last-message="isLastAssistantMessage(item.data.id)"
               :is-streaming="isAnyMessageStreaming"
+              :is-running="isRunning"
               @planning-toggle="(collapsed) => handlePlanningToggle(item.data.id, collapsed)"
               @step-toggle="(stepId, collapsed) => handleStepToggle(item.data.id, stepId, collapsed)"
               @source-click="handleSourceClick"
               @feedback="(fb, onError) => handleMessageFeedback(item.data.id, fb, onError)"
               @regenerate="handleRegenerateMessage"
+              @intervene="handleMessageIntervene"
             />
           </template>
         </div>
@@ -1079,9 +1093,11 @@ defineExpose({
       <ChatInput
         ref="chatInputRef"
         :quote="currentQuote"
+        :is-running="isRunning"
         placeholder="输入追加消息..."
         @send="handleSendMessage"
         @clear-quote="handleClearQuote"
+        @stop="emit('stop')"
       />
     </div>
   </div>

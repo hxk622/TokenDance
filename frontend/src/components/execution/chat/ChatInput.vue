@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { Send, Paperclip, Mic, X, Image as ImageIcon, FileText, FileSpreadsheet, File } from 'lucide-vue-next'
+import { Send, Paperclip, Mic, X, Image as ImageIcon, FileText, FileSpreadsheet, File, Square } from 'lucide-vue-next'
 import type { QuoteInfo, SendMessagePayload, ImageAttachment, FileAttachment, Attachment } from './types'
 import { SUPPORTED_DOCUMENT_TYPES } from './types'
 
@@ -13,6 +13,8 @@ interface Props {
   maxFiles?: number
   maxImageSizeMB?: number
   maxFileSizeMB?: number
+  /** 任务是否正在运行 */
+  isRunning?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -23,12 +25,15 @@ const props = withDefaults(defineProps<Props>(), {
   maxImages: 5,
   maxFiles: 5,
   maxImageSizeMB: 10,
-  maxFileSizeMB: 20
+  maxFileSizeMB: 20,
+  isRunning: false
 })
 
 const emit = defineEmits<{
   send: [payload: SendMessagePayload]
   'clear-quote': []
+  /** 终止任务执行 */
+  'stop': []
 }>()
 
 // Input state
@@ -681,8 +686,17 @@ defineExpose({
         <Mic class="w-4 h-4" />
       </button>
       
-      <!-- Send Button -->
+      <!-- Send/Stop Button - 运行时变成停止按钮 -->
       <button
+        v-if="isRunning"
+        class="send-btn stop-btn active"
+        title="终止任务执行"
+        @click="emit('stop')"
+      >
+        <Square class="w-4 h-4" />
+      </button>
+      <button
+        v-else
         :class="['send-btn', { active: canSend }]"
         :disabled="!canSend"
         :title="isProcessingFile ? '处理文件中...' : '发送'"
@@ -1078,5 +1092,17 @@ defineExpose({
 
 .send-btn:disabled {
   cursor: not-allowed;
+}
+
+/* Stop Button - 运行时显示 */
+.send-btn.stop-btn {
+  background: linear-gradient(135deg, #FF6B6B, #FF3B30);
+  color: white;
+  cursor: pointer;
+}
+
+.send-btn.stop-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4);
 }
 </style>

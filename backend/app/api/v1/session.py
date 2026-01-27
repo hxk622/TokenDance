@@ -121,6 +121,12 @@ async def get_session(
     try:
         await permission_service.check_session_access(current_user, session_id)
     except PermissionError as e:
+        # Return 404 if session not found, otherwise 403
+        if "not found" in str(e).lower():
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail=str(e),
+            ) from e
         raise HTTPException(
             status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),

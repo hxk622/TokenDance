@@ -16,7 +16,8 @@ class TestVisionRouter:
     def test_select_model_ocr(self):
         """测试 OCR 任务模型选择"""
         model = VisionRouter.select_model(VisionTaskType.OCR_TEXT)
-        assert model == "anthropic/claude-3-haiku"  # 默认选择最便宜的
+        # 按质量/成本比排序，gemini-pro-vision (8/0.125=64) > haiku (7/0.25=28)
+        assert model == "google/gemini-pro-vision"
 
     def test_select_model_chart_analysis(self):
         """测试图表分析任务模型选择"""
@@ -138,7 +139,8 @@ class TestVisionRouter:
     def test_select_model_string_type(self):
         """测试字符串类型的任务类型"""
         model = VisionRouter.select_model("ocr_text")
-        assert model == "anthropic/claude-3-haiku"
+        # 按质量/成本比排序，gemini-pro-vision 更优
+        assert model == "google/gemini-pro-vision"
 
     def test_select_model_unknown_type(self):
         """测试未知任务类型（应该有默认行为）"""

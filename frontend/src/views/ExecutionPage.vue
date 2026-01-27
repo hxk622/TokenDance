@@ -1064,6 +1064,7 @@ onUnmounted(() => {
         <header
           v-if="layoutMode !== 'chat'"
           class="execution-header"
+          style="margin-top: 64px;"
         >
           <!-- Left: Title + Status -->
           <div class="header-left">
@@ -1153,62 +1154,8 @@ onUnmounted(() => {
             </div>
           </div>
         
-          <div class="header-actions">
-            <!-- 布局模式切换按钮组 -->
-            <div class="layout-mode-switcher">
-              <button
-                v-for="item in layoutModes"
-                :key="item.mode"
-                :class="['layout-mode-btn', { active: columnLayoutMode === item.mode }]"
-                :title="item.label + '布局'"
-                :aria-label="item.label + '布局'"
-                :aria-pressed="columnLayoutMode === item.mode"
-                @click="setColumnLayout(item.mode)"
-              >
-                <Columns3
-                  v-if="item.icon === 'columns-3'"
-                  class="w-4 h-4"
-                />
-                <Columns2
-                  v-else-if="item.icon === 'columns-2'"
-                  class="w-4 h-4"
-                />
-                <Maximize2
-                  v-else
-                  class="w-4 h-4"
-                />
-              </button>
-            </div>
-
-            <div class="header-divider" />
-
-            <AnyButton
-              variant="secondary"
-              :disabled="!isRunning || isRequestingIntervention"
-              :title="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
-              :aria-label="isRunning ? '暂停任务并进行人工干预' : '任务未运行'"
-              @click="requestIntervention"
-            >
-              <PauseCircle
-                class="w-4 h-4"
-                aria-hidden="true"
-              />
-              <span>介入</span>
-            </AnyButton>
-            <AnyButton
-              variant="ghost"
-              class="btn-stop"
-              :title="'终止任务执行'"
-              :aria-label="'终止任务执行'"
-              @click="handleStop"
-            >
-              <StopCircle
-                class="w-4 h-4"
-                aria-hidden="true"
-              />
-              <span>终止</span>
-            </AnyButton>
-          </div>
+          <!-- header-actions 已移除: layout-switcher, 介入, 终止按钮 -->
+          <!-- 介入功能移到 AI 消息下方，终止功能移到输入框 -->
         </header>
 
         <!-- Error Banner (shown in all modes when there's an error) -->
@@ -1362,9 +1309,11 @@ onUnmounted(() => {
               :user-input="initialTask || ''"
               :user-avatar="userInitial"
               :is-deep-research="isDeepResearch"
+              :is-running="isRunning"
               @proceed="handleStreamingProceed"
               @research-intervene="handleResearchIntervene"
               @send-message="handleChatMessage"
+              @stop="handleStop"
             />
           </div>
 
@@ -1437,9 +1386,11 @@ onUnmounted(() => {
                   :user-input="initialTask || ''"
                   :user-avatar="userInitial"
                   :is-deep-research="isDeepResearch"
+                  :is-running="isRunning"
                   @proceed="handleStreamingProceed"
                   @research-intervene="handleResearchIntervene"
                   @send-message="handleChatMessage"
+                  @stop="handleStop"
                 />
               </div>
             </div>
@@ -1457,9 +1408,11 @@ onUnmounted(() => {
                 :user-input="initialTask || ''"
                 :user-avatar="userInitial"
                 :is-deep-research="isDeepResearch"
+                :is-running="isRunning"
                 @proceed="handleStreamingProceed"
                 @research-intervene="handleResearchIntervene"
                 @send-message="handleChatMessage"
+                @stop="handleStop"
               />
             </div>
 
