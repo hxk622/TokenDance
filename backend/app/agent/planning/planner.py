@@ -53,19 +53,19 @@ Each task must have:
 ## Output Format:
 Return a JSON object with:
 ```json
-{
+{{
   "goal": "Restate the user's goal",
   "tasks": [
-    {
+    {{
       "id": "t1",
       "title": "Task title",
       "description": "What to do",
       "acceptance_criteria": "How to verify completion",
       "depends_on": [],
       "tools_hint": ["web_search"]
-    }
+    }}
   ]
-}
+}}
 ```
 
 ## User's Goal:
