@@ -18,5 +18,9 @@ export { default as SourceGroup } from './SourceGroup.vue'
 export { default as AssistantBubble } from './AssistantBubble.vue'
 export { default as UserBubble } from './UserBubble.vue'
 
+// Inline widgets
+export { default as ToolCallWidget } from './ToolCallWidget.vue'
+export { default as ArtifactCard } from './ArtifactCard.vue'
+
 // Types
 export * from './types'

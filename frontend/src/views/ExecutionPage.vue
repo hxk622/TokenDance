@@ -897,6 +897,25 @@ function handleTabChange(tab: TabType) {
   // TODO: Update URL or trigger other side effects
 }
 
+// Handle artifact view from StreamingInfo (sync to PreviewArea)
+function handleArtifactView(artifactId: string, artifactType: string) {
+  console.log('View artifact:', artifactId, artifactType)
+  // Map artifact type to tab type
+  const tabMap: Record<string, TabType> = {
+    'report': 'report',
+    'ppt': 'ppt',
+    'code': 'file-diff',
+    'file': 'file-diff',
+    'data': 'working-memory',
+  }
+  const tab = tabMap[artifactType] || 'report'
+  currentTab.value = tab
+  // Switch to right panel if in compact mode
+  if (isCompactMode.value) {
+    activePanel.value = 'right'
+  }
+}
+
 // Focus Mode: Enter when user double-clicks a node
 function handleNodeDoubleClick(nodeId: string) {
   if (isFocusMode.value && focusedNodeId.value === nodeId) {
@@ -1314,6 +1333,7 @@ onUnmounted(() => {
               @research-intervene="handleResearchIntervene"
               @send-message="handleChatMessage"
               @stop="handleStop"
+              @view-artifact="handleArtifactView"
             />
           </div>
 
@@ -1391,6 +1411,7 @@ onUnmounted(() => {
                   @research-intervene="handleResearchIntervene"
                   @send-message="handleChatMessage"
                   @stop="handleStop"
+                  @view-artifact="handleArtifactView"
                 />
               </div>
             </div>
@@ -1413,6 +1434,7 @@ onUnmounted(() => {
                 @research-intervene="handleResearchIntervene"
                 @send-message="handleChatMessage"
                 @stop="handleStop"
+                @view-artifact="handleArtifactView"
               />
             </div>
 

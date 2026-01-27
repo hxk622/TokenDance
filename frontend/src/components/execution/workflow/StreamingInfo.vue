@@ -3,7 +3,8 @@ import { ref, computed, nextTick, watch, toRef } from 'vue'
 import { Lightbulb, ArrowRight, Loader2, Edit3, MessageSquareQuote, RotateCcw, ChevronDown } from 'lucide-vue-next'
 import AnyButton from '@/components/common/AnyButton.vue'
 import type { IntentValidationResponse } from '@/api/services/session'
-import { ChatInput, ChatFormMessage, BrowserPreviewCard, AssistantBubble, UserBubble } from '@/components/execution/chat'
+import { ChatInput, ChatFormMessage, BrowserPreviewCard, AssistantBubble, UserBubble, ArtifactCard } from '@/components/execution/chat'
+import type { ArtifactType, ArtifactStatus } from '@/components/execution/chat/ArtifactCard.vue'
 import { ResearchProgress, InterventionPanel } from '@/components/execution/research'
 import MessageActions from '@/components/chat/MessageActions.vue'
 import { messageApi } from '@/api/message'
@@ -70,6 +71,8 @@ const emit = defineEmits<{
   'send-message': [payload: SendMessagePayload]
   /** 终止任务执行 */
   'stop': []
+  /** 查看 Artifact (同步到 PreviewArea) */
+  'view-artifact': [artifactId: string, type: ArtifactType]
 }>()
 
 // Selected clarification options
@@ -592,6 +595,44 @@ const visibleMessages = computed(() => {
   return messages.value.filter(m => !m.deprecated)
 })
 
+// ========================================
+// Artifacts (可折叠产物卡片)
+// ========================================
+const artifacts = toRef(executionStore, 'artifacts')
+
+// 转换 artifact 类型
+function mapArtifactType(type: string): ArtifactType {
+  const typeMap: Record<string, ArtifactType> = {
+    'report': 'report',
+    'research_report': 'report',
+    'ppt': 'ppt',
+    'presentation': 'ppt',
+    'code': 'code',
+    'file': 'file',
+    'data': 'data',
+  }
+  return typeMap[type] || 'file'
+}
+
+// 转换 artifact 状态
+function mapArtifactStatus(artifact: any): ArtifactStatus {
+  if (artifact.status === 'completed' || artifact.content) {
+    return 'complete'
+  }
+  if (artifact.status === 'generating' || artifact.status === 'pending') {
+    return 'generating'
+  }
+  if (artifact.status === 'error') {
+    return 'error'
+  }
+  return 'pending'
+}
+
+// 处理 Artifact 查看事件 (同步到 PreviewArea)
+function handleArtifactView(artifactId: string, type: ArtifactType) {
+  emit('view-artifact', artifactId, type)
+}
+
 // Combined timeline: messages + browser events, sorted by timestamp
 type TimelineItem = 
   | { type: 'message'; data: ChatMessage }
@@ -1082,6 +1123,25 @@ defineExpose({
           <ChevronDown class="new-message-icon" />
           <span>有 {{ unreadCount }} 条新消息</span>
         </button>
+      </div>
+      
+      <!-- Artifacts Section (可折叠产物卡片) -->
+      <div
+        v-if="artifacts && artifacts.length > 0"
+        class="artifacts-section"
+      >
+        <ArtifactCard
+          v-for="artifact in artifacts"
+          :key="artifact.id"
+          :id="artifact.id"
+          :type="mapArtifactType(artifact.artifact_type)"
+          :title="artifact.name || '未命名产物'"
+          :status="mapArtifactStatus(artifact)"
+          :summary="artifact.description"
+          :default-collapsed="mapArtifactStatus(artifact) === 'complete'"
+          class="artifact-card-item"
+          @view="handleArtifactView"
+        />
       </div>
     </div>
     
@@ -1899,6 +1959,22 @@ defineExpose({
   font-size: 11px;
   opacity: 0.7;
   margin-left: 4px;
+}
+
+/* ========================================
+   Artifacts Section (可折叠产物卡片)
+   ======================================== */
+.artifacts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--any-border);
+  margin-top: 12px;
+}
+
+.artifact-card-item {
+  /* ArtifactCard 组件内部处理样式 */
 }
 
 </style>
