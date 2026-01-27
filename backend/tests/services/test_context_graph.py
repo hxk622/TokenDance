@@ -8,22 +8,22 @@ Context Graph 服务测试
 4. 3-Strike Protocol
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 from app.services.context_graph import (
     ContextGraphService,
-    DecisionTrace,
     FailureObserver,
     FailureSignal,
     FailureTaxonomy,
     RecoveryStrategy,
     get_context_graph_service,
 )
-from app.services.context_graph.service import DecisionType, StorageMode
 from app.services.context_graph.failure_observer import (
     create_failure_signal_from_tool_result,
 )
+from app.services.context_graph.service import DecisionType, StorageMode
 
 
 class TestFailureSignal:
@@ -197,6 +197,33 @@ class TestFailureObserver:
     def observer(self) -> FailureObserver:
         """创建测试用观测器"""
         return FailureObserver(max_history=50)
+
+
+class TestMemoryActionTrace:
+    """Memory Action Trace 测试"""
+
+    @pytest.mark.asyncio
+    async def test_record_memory_action(self) -> None:
+        """测试记录 Memory Action"""
+        service = ContextGraphService(mode=StorageMode.MEMORY)
+
+        trace = await service.record_memory_action(
+            action="retain",
+            block_ids=["b_001"],
+            reason="important",
+            stats={"importance": 0.9},
+            task_id="task-1",
+            session_id="session-1",
+        )
+
+        assert trace.decision_type == DecisionType.MEMORY_ACTION
+        assert trace.tool_name == "mem_retain"
+        assert trace.context["action"] == "retain"
+        assert trace.context["block_ids"] == ["b_001"]
+
+        recent = service.get_recent_traces(limit=1, decision_type=DecisionType.MEMORY_ACTION)
+        assert len(recent) == 1
+        assert recent[0].context["reason"] == "important"
 
     @pytest.mark.asyncio
     async def test_observe_single_failure(self, observer: FailureObserver) -> None:
@@ -625,7 +652,6 @@ class TestContextGraphServiceSingleton:
     async def test_get_singleton(self) -> None:
         """测试获取单例"""
         from app.services.context_graph.service import (
-            _service_instance,
             close_context_graph_service,
         )
 

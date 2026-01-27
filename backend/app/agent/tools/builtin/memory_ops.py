@@ -78,6 +78,35 @@ def clear_block_store() -> None:
     _block_counter = 0
 
 
+async def _record_memory_action(
+    action: str,
+    block_ids: list[str] | None = None,
+    summary_id: str | None = None,
+    memory_type: str | None = None,
+    reason: str | None = None,
+    stats: dict[str, Any] | None = None,
+    task_id: str | None = None,
+    session_id: str | None = None,
+) -> None:
+    """记录 Memory Action 到 Context Graph（可用时）"""
+    try:
+        from app.services.context_graph import get_context_graph_service
+
+        service = await get_context_graph_service()
+        await service.record_memory_action(
+            action=action,
+            block_ids=block_ids,
+            summary_id=summary_id,
+            memory_type=memory_type,
+            reason=reason,
+            stats=stats,
+            task_id=task_id,
+            session_id=session_id,
+        )
+    except Exception as e:
+        logger.debug(f"Context graph memory_action record skipped: {e}")
+
+
 # ============================================================================
 # Memory Tools
 # ============================================================================
@@ -117,6 +146,8 @@ class MemRetainTool(BaseTool):
     async def execute(self, **kwargs: Any) -> dict[str, Any]:
         block_id = kwargs.get("block_id", "")
         reason = kwargs.get("reason", "")
+        session_id = kwargs.get("session_id")
+        task_id = kwargs.get("task_id")
 
         if not block_id:
             return {"success": False, "error": "block_id is required"}
@@ -140,6 +171,14 @@ class MemRetainTool(BaseTool):
         block["metadata"]["retain_reason"] = reason
 
         logger.info(f"Block {block_id} marked as retained: {reason}")
+        await _record_memory_action(
+            action="retain",
+            block_ids=[block_id],
+            reason=reason,
+            stats={"importance": block["importance"]},
+            task_id=task_id,
+            session_id=session_id,
+        )
 
         return {
             "success": True,
@@ -183,6 +222,8 @@ class MemDeleteTool(BaseTool):
     async def execute(self, **kwargs: Any) -> dict[str, Any]:
         block_id = kwargs.get("block_id", "")
         reason = kwargs.get("reason", "")
+        session_id = kwargs.get("session_id")
+        task_id = kwargs.get("task_id")
 
         if not block_id:
             return {"success": False, "error": "block_id is required"}
@@ -214,6 +255,14 @@ class MemDeleteTool(BaseTool):
         block["metadata"]["delete_reason"] = reason
 
         logger.info(f"Block {block_id} soft-deleted: {reason}")
+        await _record_memory_action(
+            action="delete",
+            block_ids=[block_id],
+            reason=reason,
+            stats={"tokens_freed": tokens_freed},
+            task_id=task_id,
+            session_id=session_id,
+        )
 
         return {
             "success": True,
@@ -264,7 +313,9 @@ class MemSummarizeTool(BaseTool):
         block_ids = kwargs.get("block_ids", [])
         summary = kwargs.get("summary", "")
         # target_tokens is available for future use but not enforced currently
-        _ = kwargs.get("target_tokens", 200)
+        target_tokens = kwargs.get("target_tokens", 200)
+        session_id = kwargs.get("session_id")
+        task_id = kwargs.get("task_id")
 
         if not block_ids:
             return {"success": False, "error": "block_ids is required"}
@@ -322,6 +373,20 @@ class MemSummarizeTool(BaseTool):
             f"Summarized {len(block_ids)} blocks into {summary_block_id}: "
             f"{original_tokens} -> {summary_tokens} tokens ({compression_ratio:.1%})"
         )
+        await _record_memory_action(
+            action="summarize",
+            block_ids=block_ids,
+            summary_id=summary_block_id,
+            reason="context_compression",
+            stats={
+                "original_tokens": original_tokens,
+                "compressed_tokens": summary_tokens,
+                "compression_ratio": round(compression_ratio, 2),
+                "target_tokens": target_tokens,
+            },
+            task_id=task_id,
+            session_id=session_id,
+        )
 
         return {
             "success": True,
@@ -378,6 +443,8 @@ class MemPinTool(BaseTool):
         content = kwargs.get("content", "")
         memory_type = kwargs.get("memory_type", "")
         importance = kwargs.get("importance", 0.7)
+        session_id = kwargs.get("session_id")
+        task_id = kwargs.get("task_id")
 
         if not content:
             return {"success": False, "error": "content is required"}
@@ -414,6 +481,18 @@ class MemPinTool(BaseTool):
         }
 
         logger.info(f"Pinned to long-term memory: {memory_block_id} ({memory_type})")
+        await _record_memory_action(
+            action="pin",
+            block_ids=[memory_block_id],
+            memory_type=memory_type,
+            reason="long_term_memory",
+            stats={
+                "importance": importance,
+                "content_preview": content[:200],
+            },
+            task_id=task_id,
+            session_id=session_id,
+        )
 
         # TODO: 实际应该写入 MemoryManager
         # await memory_manager.save_memory(Memory(
@@ -472,6 +551,8 @@ class MemListBlocksTool(BaseTool):
     async def execute(self, **kwargs: Any) -> dict[str, Any]:
         include_deleted = kwargs.get("include_deleted", False)
         status_filter = kwargs.get("status_filter", "all")
+        session_id = kwargs.get("session_id")
+        task_id = kwargs.get("task_id")
 
         blocks = []
         total_tokens = 0
@@ -498,6 +579,21 @@ class MemListBlocksTool(BaseTool):
             total_tokens += block["token_count"]
             if block["status"] in ("active", "retained"):
                 active_tokens += block["token_count"]
+
+        await _record_memory_action(
+            action="list",
+            block_ids=[b["block_id"] for b in blocks],
+            reason="inspect_context",
+            stats={
+                "total_blocks": len(blocks),
+                "total_tokens": total_tokens,
+                "active_tokens": active_tokens,
+                "status_filter": status_filter,
+                "include_deleted": include_deleted,
+            },
+            task_id=task_id,
+            session_id=session_id,
+        )
 
         return {
             "success": True,

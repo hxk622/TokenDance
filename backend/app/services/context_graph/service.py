@@ -14,14 +14,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+
 from app.core.config import settings
 
 from ..knowledge_graph import (
     Entity,
     EntityType,
     GraphQueryEngine,
-    Relation,
-    RelationType,
     ResearchKnowledgeGraph,
 )
 from .failure_observer import FailureObserver, FailureSignal, FailureTaxonomy
@@ -40,6 +39,7 @@ class DecisionType(Enum):
     STATE_TRANSITION = "state_transition"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
+    MEMORY_ACTION = "memory_action"
     PLAN_CREATED = "plan_created"
     PLAN_UPDATED = "plan_updated"
     USER_INPUT = "user_input"
@@ -151,7 +151,7 @@ class ContextGraphService:
         """异步初始化 (连接 Neo4j 等)"""
         if self.mode == StorageMode.NEO4J:
             try:
-                from ..knowledge_graph import Neo4jStorage, get_neo4j_storage
+                from ..knowledge_graph import get_neo4j_storage
 
                 self._neo4j_storage = await get_neo4j_storage()
                 self._query_engine.neo4j_storage = self._neo4j_storage
@@ -311,6 +311,61 @@ class ContextGraphService:
             if failure_signal:
                 await self.failure_observer.observe(failure_signal)
 
+        return trace
+
+    async def record_memory_action(
+        self,
+        action: str,
+        block_ids: list[str] | None = None,
+        summary_id: str | None = None,
+        memory_type: str | None = None,
+        reason: str | None = None,
+        stats: dict[str, Any] | None = None,
+        task_id: str | None = None,
+        session_id: str | None = None,
+    ) -> DecisionTrace:
+        """
+        记录 Memory Action 轨迹
+
+        Args:
+            action: 动作类型 (retain/delete/summarize/pin/list)
+            block_ids: 关联的内容块 ID 列表
+            summary_id: 摘要块 ID（summarize 时）
+            memory_type: 记忆类型（pin 时）
+            reason: 动作原因
+            stats: 额外统计数据
+            task_id: 任务 ID
+            session_id: 会话 ID
+
+        Returns:
+            DecisionTrace 记录
+        """
+        action_name = action.lower().strip()
+        trace = DecisionTrace(
+            trace_id=str(uuid.uuid4()),
+            timestamp=datetime.now(),
+            decision_type=DecisionType.MEMORY_ACTION,
+            task_id=task_id,
+            session_id=session_id,
+            tool_name=f"mem_{action_name}" if action_name else None,
+            tool_args={
+                "action": action_name,
+                "block_ids": block_ids or [],
+                "summary_id": summary_id,
+                "memory_type": memory_type,
+                "reason": reason,
+            },
+            context={
+                "action": action_name,
+                "block_ids": block_ids or [],
+                "summary_id": summary_id,
+                "memory_type": memory_type,
+                "reason": reason,
+                "stats": stats or {},
+            },
+        )
+
+        await self._store_trace(trace)
         return trace
 
     async def _store_trace(self, trace: DecisionTrace) -> None:
@@ -602,8 +657,8 @@ class ContextGraphService:
             "tool_calls": len(tool_calls),
             "state_transitions": len(state_transitions),
             "failures": len(failures),
-            "failure_types": list(set(f.taxonomy.value for f in failures)),
-            "unique_tools": list(set(t.tool_name for t in tool_calls if t.tool_name)),
+            "failure_types": list({f.taxonomy.value for f in failures}),
+            "unique_tools": list({t.tool_name for t in tool_calls if t.tool_name}),
         }
 
     def export_traces(self, session_id: str | None = None) -> list[dict[str, Any]]:
