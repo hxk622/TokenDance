@@ -32,7 +32,9 @@ def test_client():
 async def async_client():
     """创建异步测试客户端"""
     from app.main import app
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    from httpx import ASGITransport
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 

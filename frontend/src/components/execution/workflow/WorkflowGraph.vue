@@ -556,7 +556,7 @@ watch(() => props.sessionId, (newId) => {
   --exec-warning: var(--td-state-waiting, #FFB800);
   --exec-success: var(--td-state-executing, #00FF88);
   --exec-error: var(--td-state-error, #FF3B30);
-  background: var(--any-bg-secondary);
+  background: var(--any-bg-primary);  /* 统一为主背景色 */
   display: flex;
   flex-direction: column;
   border: 1px solid var(--any-border);

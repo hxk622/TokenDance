@@ -85,8 +85,8 @@ def get_agent_engine(session_id: str, workspace_id: str, task_type: TaskType = T
     # 初始化 FileSystem
     workspace_root = getattr(settings, 'WORKSPACE_ROOT_PATH', '/tmp/tokendance/workspaces')
     filesystem = AgentFileSystem(
-        workspace_id=workspace_id,
-        base_dir=workspace_root
+        workspace_root=workspace_root,
+        workspace_id=workspace_id
     )
 
     # 创建 Agent Engine
@@ -532,8 +532,8 @@ async def get_working_memory(
         # 初始化 FileSystem
         workspace_root = getattr(settings, 'WORKSPACE_ROOT_PATH', '/tmp/tokendance/workspaces')
         filesystem = AgentFileSystem(
-            workspace_id=str(session.workspace_id),
-            base_dir=workspace_root
+            workspace_root=workspace_root,
+            workspace_id=str(session.workspace_id)
         )
 
         # 获取 Three Files Manager

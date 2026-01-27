@@ -218,7 +218,14 @@ const progressPercent = computed(() => {
 })
 
 // 是否处于准备阶段（没有工作流节点）
-const isPreparing = computed(() => totalSteps.value === 0)
+// 修复: session 已完成时不再显示 preparing 状态
+const isPreparing = computed(() => {
+  const status = sessionStatus.value
+  if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+    return false
+  }
+  return totalSteps.value === 0
+})
 
 // 显示的步骤文本
 const stepDisplayText = computed(() => {
@@ -409,8 +416,20 @@ const focusedNodeId = ref<string | null>(null)
 // See: docs/ux/EXECUTION-PAGE-LAYOUT.md - Zone Responsibility & Flatten principle
 
 // Collapse Mode state (mini-graph view)
-const isCollapsed = ref(false)
+// 空状态默认收起，有节点时展开
+const isCollapsed = ref(true)  // 默认收起状态
 const collapsedHeight = 80 // px for mini-graph
+
+// 监听 nodes 变化，自动展开/收起
+watch(
+  () => executionStore.nodes.length,
+  (newLen, oldLen) => {
+    // nodes 从 0 变为 >0 时自动展开
+    if (oldLen === 0 && newLen > 0) {
+      isCollapsed.value = false
+    }
+  }
+)
 
 // ========================================
 // Column Layout Mode (AnyGen-style)
@@ -2065,17 +2084,17 @@ onUnmounted(() => {
 
 .workflow-graph-container {
   flex-shrink: 0;  /* 不压缩 */
-  height: 180px;   /* 固定高度，不随 streaming 区域增长 */
-  min-height: 120px;
-  max-height: 40vh;
+  height: 126px;   /* 减少30%: 180 * 0.7 = 126px */
+  min-height: 84px; /* 减少30%: 120 * 0.7 = 84px */
+  max-height: 28vh; /* 减少30%: 40vh * 0.7 = 28vh */
   overflow: hidden;
   border-bottom: 1px solid var(--exec-border);
   transition: height var(--any-duration-normal) var(--any-ease-default);
 }
 
 .workflow-graph-container.collapsed {
-  height: 80px;
-  min-height: 80px;
+  height: 56px;  /* 减少30%: 80 * 0.7 = 56px */
+  min-height: 56px;
 }
 
 /* Collapse Toggle */

@@ -195,9 +195,9 @@ class TestTaskExecutor:
         self, task_executor, sample_task, execution_context, mock_llm
     ):
         """测试执行简单任务 (无工具调用)"""
-        # Mock LLM 返回完成标记
+        # Mock LLM 返回验证通过结果
         mock_llm.complete.return_value = LLMResponse(
-            content="VERDICT: YES\nREASON: Task completed successfully",
+            content="VERDICT: PASS\nREASON: Task completed successfully",
             usage={"input_tokens": 100, "output_tokens": 50},
         )
 
@@ -214,18 +214,27 @@ class TestTaskExecutor:
         self, task_executor, sample_task, execution_context, mock_llm, mock_tool_executor
     ):
         """测试执行带工具调用的任务"""
-        # 第一次调用: 返回工具调用
-        # 第二次调用: 返回完成
-        mock_llm.complete.side_effect = [
-            LLMResponse(
-                content="<tool_use><tool_name>web_search</tool_name><parameters>{}</parameters></tool_use>",
-                usage={"input_tokens": 100, "output_tokens": 50},
-            ),
-            LLMResponse(
-                content="<task_done>Search completed!</task_done>",
-                usage={"input_tokens": 100, "output_tokens": 50},
-            ),
-        ]
+        # Mock stream to return tool call then completion
+        call_count = [0]
+        
+        async def mock_stream_with_tool(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # First call: return tool use
+                chunks = ["<tool_use><tool_name>web_search</tool_name>", "<parameters>{}</parameters></tool_use>"]
+            else:
+                # Second call: return completion
+                chunks = ["<task_done>Search completed!</task_done>"]
+            for chunk in chunks:
+                yield chunk
+        
+        mock_llm.stream = mock_stream_with_tool
+        
+        # Mock validation to pass
+        mock_llm.complete.return_value = LLMResponse(
+            content="VERDICT: PASS\nREASON: Task completed with tool call",
+            usage={"input_tokens": 100, "output_tokens": 50},
+        )
 
         # Mock 工具执行
         mock_tool_executor.has_tool_calls.side_effect = [True, False]
@@ -247,9 +256,17 @@ class TestTaskExecutor:
         self, task_executor, sample_task, execution_context, mock_llm
     ):
         """测试达到最大迭代次数"""
+        # Mock stream to never return completion
+        async def mock_stream_no_completion(*args, **kwargs):
+            chunks = ["Still thinking..."]
+            for chunk in chunks:
+                yield chunk
+        
+        mock_llm.stream = mock_stream_no_completion
+        
         # LLM 永远不返回完成标记
         mock_llm.complete.return_value = LLMResponse(
-            content="Still thinking...",
+            content="VERDICT: PASS\nREASON: Validation passed",
             usage={"input_tokens": 100, "output_tokens": 50},
         )
 

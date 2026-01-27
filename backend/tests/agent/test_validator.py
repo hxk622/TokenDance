@@ -362,6 +362,14 @@ class TestTaskExecutorValidationIntegration:
             config=config,
         )
 
+        # Mock stream to return completion
+        async def mock_stream_completion(*args, **kwargs):
+            chunks = ["<task_done>Done!</task_done>"]
+            for chunk in chunks:
+                yield chunk
+        
+        mock_llm.stream = mock_stream_completion
+        
         mock_llm.complete.return_value = LLMResponse(
             content="<task_done>Done!</task_done>",
             usage={"input_tokens": 100, "output_tokens": 20},
@@ -389,5 +397,6 @@ class TestTaskExecutorValidationIntegration:
         ]
         assert len(validation_events) == 0
 
-        # 只调用一次 LLM（任务执行），没有验证调用
-        assert mock_llm.complete.call_count == 1
+        # 验证禁用时，complete 不应该被调用（因为不需要验证LLM调用）
+        # 任务执行使用stream，不使用complete
+        assert mock_llm.complete.call_count == 0
