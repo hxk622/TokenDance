@@ -13,6 +13,7 @@ import { computed } from 'vue'
 import { Loader2, Pause } from 'lucide-vue-next'
 import PlanningCard from './PlanningCard.vue'
 import ExecutionTimeline from './ExecutionTimeline.vue'
+import ToolCallWidget from './ToolCallWidget.vue'
 import MessageActions from '@/components/chat/MessageActions.vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import type { ChatMessage, Source, PlanningData, ExecutionStep } from './types'
@@ -56,9 +57,12 @@ const planning = computed<PlanningData | undefined>(() => props.message.planning
 // Execution steps
 const executionSteps = computed<ExecutionStep[]>(() => props.message.executionSteps || [])
 
-// Has any structured content (planning or timeline)
+// Tool calls
+const toolCalls = computed(() => props.message.toolCalls || [])
+
+// Has any structured content (planning or timeline or tool calls)
 const hasStructuredContent = computed(() => {
-  return planning.value || executionSteps.value.length > 0
+  return planning.value || executionSteps.value.length > 0 || toolCalls.value.length > 0
 })
 
 // Message content (text)
@@ -147,6 +151,13 @@ function formatTime(timestamp: number): string {
           :data="planning"
           class="planning-section"
           @update:collapsed="handlePlanningToggle"
+        />
+
+        <!-- Tool Calls Widget (inline, no avatar) -->
+        <ToolCallWidget
+          v-if="toolCalls.length > 0"
+          :tool-calls="toolCalls"
+          class="tool-calls-section"
         />
 
         <!-- Execution Timeline -->
@@ -274,6 +285,10 @@ function formatTime(timestamp: number): string {
 
 .planning-section {
   /* PlanningCard styles handled by the component */
+}
+
+.tool-calls-section {
+  /* ToolCallWidget styles handled by the component */
 }
 
 .timeline-section {
